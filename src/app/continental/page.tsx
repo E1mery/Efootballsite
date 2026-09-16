@@ -10,50 +10,108 @@ export default async function ContinentalCupsPage() {
   const sessionUserId = cookieStore.get("efrl_session")?.value;
 
   let currentPlayer = null;
-  if (sessionUserId) {
-    const user = await prisma.user.findUnique({
-      where: { id: sessionUserId },
-      include: { player: true },
-    });
-    if (user?.player) {
-      currentPlayer = user.player;
+  let leagueConfig: any = { registrationOpen: true, currentMatchday: 1, uclStarted: false, europaStarted: false };
+  let div1Standings: any[] = [];
+  let div2Standings: any[] = [];
+  let div3Standings: any[] = [];
+  let div1Europa: any[] = [];
+  let div2Europa: any[] = [];
+  let div3Europa: any[] = [];
+  let uclSlots: any[] = [];
+  let europaSlots: any[] = [];
+
+  try {
+    if (sessionUserId) {
+      const user = await prisma.user.findUnique({
+        where: { id: sessionUserId },
+        include: { player: true },
+      });
+      if (user?.player) {
+        currentPlayer = user.player;
+      }
     }
+
+    // Fetch LeagueConfig
+    leagueConfig = await prisma.leagueConfig.upsert({
+      where: { id: "default" },
+      update: {},
+      create: {
+        id: "default",
+        registrationOpen: true,
+        currentMatchday: 1,
+        uclStarted: false,
+        europaStarted: false,
+      },
+    });
+
+    const resultsUcl = await Promise.all([
+      prisma.standing.findMany({
+        where: { division: "Division 1" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        take: 8,
+      }),
+      prisma.standing.findMany({
+        where: { division: "Division 2" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        take: 4,
+      }),
+      prisma.standing.findMany({
+        where: { division: "Division 3" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        take: 4,
+      }),
+    ]);
+    div1Standings = resultsUcl[0];
+    div2Standings = resultsUcl[1];
+    div3Standings = resultsUcl[2];
+
+    const resultsEuropa = await Promise.all([
+      prisma.standing.findMany({
+        where: { division: "Division 1" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        skip: 8,
+        take: 4,
+      }),
+      prisma.standing.findMany({
+        where: { division: "Division 2" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        skip: 4,
+        take: 6,
+      }),
+      prisma.standing.findMany({
+        where: { division: "Division 3" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        skip: 4,
+        take: 6,
+      }),
+    ]);
+    div1Europa = resultsEuropa[0];
+    div2Europa = resultsEuropa[1];
+    div3Europa = resultsEuropa[2];
+
+    const resultsSlots = await Promise.all([
+      prisma.uclGroupSlot.findMany({
+        where: { competition: "UCL" },
+        include: { player: true },
+        orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+      }),
+      prisma.uclGroupSlot.findMany({
+        where: { competition: "EUROPA" },
+        include: { player: true },
+        orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+      }),
+    ]);
+    uclSlots = resultsSlots[0];
+    europaSlots = resultsSlots[1];
+  } catch (error) {
+    console.error("Continental page fetch error:", error);
   }
-
-  // Fetch LeagueConfig
-  const leagueConfig = await prisma.leagueConfig.upsert({
-    where: { id: "default" },
-    update: {},
-    create: {
-      id: "default",
-      registrationOpen: true,
-      currentMatchday: 1,
-      uclStarted: false,
-      europaStarted: false,
-    },
-  });
-
-  // Fetch Top 8 from Div 1, Top 4 from Div 2, Top 4 from Div 3 for UCL
-  const [div1Standings, div2Standings, div3Standings] = await Promise.all([
-    prisma.standing.findMany({
-      where: { division: "Division 1" },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      take: 8,
-    }),
-    prisma.standing.findMany({
-      where: { division: "Division 2" },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      take: 4,
-    }),
-    prisma.standing.findMany({
-      where: { division: "Division 3" },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      take: 4,
-    }),
-  ]);
 
   const uclQualified = [
     ...div1Standings.map((s, idx) => ({ ...s, seedLabel: `Div 1 #${idx + 1}` })),
@@ -61,43 +119,11 @@ export default async function ContinentalCupsPage() {
     ...div3Standings.map((s, idx) => ({ ...s, seedLabel: `Div 3 #${idx + 1}` })),
   ];
 
-  // Europa League Qualified
-  const [div1Europa, div2Europa, div3Europa] = await Promise.all([
-    prisma.standing.findMany({
-      where: { division: "Division 1" },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      skip: 8,
-      take: 4,
-    }),
-    prisma.standing.findMany({
-      where: { division: "Division 2" },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      skip: 4,
-      take: 6,
-    }),
-    prisma.standing.findMany({
-      where: { division: "Division 3" },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      skip: 4,
-      take: 6,
-    }),
-  ]);
-
   const europaQualified = [
     ...div1Europa.map((s, idx) => ({ ...s, seedLabel: `Div 1 #${idx + 9}` })),
     ...div2Europa.map((s, idx) => ({ ...s, seedLabel: `Div 2 #${idx + 5}` })),
     ...div3Europa.map((s, idx) => ({ ...s, seedLabel: `Div 3 #${idx + 5}` })),
   ];
-
-  // Fetch group slots
-  const [uclSlots, europaSlots] = await Promise.all([
-    prisma.uclGroupSlot.findMany({
-      where: { competition: "UCL" },
-      include: { player: true },
-      orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
     }),
     prisma.uclGroupSlot.findMany({
       where: { competition: "EUROPA" },

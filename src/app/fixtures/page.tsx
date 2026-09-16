@@ -24,39 +24,54 @@ export default async function FixturesPage({
     whereClause.division = division;
   }
 
-  const [matches, leagueConfig, storedMotd, allStandings] = await Promise.all([
-    prisma.match.findMany({
-      where: whereClause,
-      include: {
-        homePlayer: true,
-        awayPlayer: true,
-      },
-      orderBy: { matchDate: "desc" },
-    }),
-    prisma.leagueConfig.upsert({
-      where: { id: "default" },
-      update: {},
-      create: { id: "default", currentMatchday: 1 },
-    }),
-    prisma.match.findFirst({
-      where: { isMatchOfTheDay: true },
-      include: { homePlayer: true, awayPlayer: true },
-    }),
-    prisma.standing.findMany({
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-    }),
-  ]);
+  let matches: any[] = [];
+  let leagueConfig: any = { currentMatchday: 1 };
+  let storedMotd: any = null;
+  let allStandings: any[] = [];
 
-  const currentRoundNum = leagueConfig.currentMatchday || 1;
-  let matchOfTheDay = storedMotd;
-  if (!matchOfTheDay && currentRoundNum > 1) {
-    const { evaluateMatchOfTheDay } = await import("@/lib/matchOfTheDay");
-    const roundMatches = await prisma.match.findMany({
-      where: { round: `Matchday ${currentRoundNum}` },
-      include: { homePlayer: true, awayPlayer: true },
-    });
-    matchOfTheDay = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
+  try {
+    const results = await Promise.all([
+      prisma.match.findMany({
+        where: whereClause,
+        include: {
+          homePlayer: true,
+          awayPlayer: true,
+        },
+        orderBy: { matchDate: "desc" },
+      }),
+      prisma.leagueConfig.upsert({
+        where: { id: "default" },
+        update: {},
+        create: { id: "default", currentMatchday: 1 },
+      }),
+      prisma.match.findFirst({
+        where: { isMatchOfTheDay: true },
+        include: { homePlayer: true, awayPlayer: true },
+      }),
+      prisma.standing.findMany({
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+      }),
+    ]);
+
+    matches = results[0];
+    leagueConfig = results[1];
+    storedMotd = results[2];
+    allStandings = results[3];
+
+    const currentRoundNum = leagueConfig?.currentMatchday || 1;
+    if (!storedMotd && currentRoundNum > 1) {
+      const { evaluateMatchOfTheDay } = await import("@/lib/matchOfTheDay");
+      const roundMatches = await prisma.match.findMany({
+        where: { round: `Matchday ${currentRoundNum}` },
+        include: { homePlayer: true, awayPlayer: true },
+      });
+      storedMotd = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
+    }
+  } catch (error) {
+    console.error("Fixtures fetch error:", error);
   }
+
+  const matchOfTheDay = storedMotd;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">

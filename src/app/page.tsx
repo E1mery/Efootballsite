@@ -12,25 +12,26 @@ import { evaluateMatchOfTheDay } from "@/lib/matchOfTheDay";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [
-    liveMatches,
-    recentMatches,
-    upcomingMatches,
-    div1Standings,
-    allStandings,
-    topPlayers,
-    announcements,
-    leagueConfig,
-    storedMotd,
-  ] = await Promise.all([
-    prisma.match.findMany({
-      where: { status: "LIVE" },
-      include: {
-        homePlayer: true,
-        awayPlayer: true,
-      },
-      take: 1,
-    }),
+  let liveMatches: any[] = [];
+  let recentMatches: any[] = [];
+  let upcomingMatches: any[] = [];
+  let div1Standings: any[] = [];
+  let allStandings: any[] = [];
+  let topPlayers: any[] = [];
+  let announcements: any[] = [];
+  let leagueConfig: any = { registrationOpen: true, currentMatchday: 1 };
+  let storedMotd: any = null;
+
+  try {
+    const results = await Promise.all([
+      prisma.match.findMany({
+        where: { status: "LIVE" },
+        include: {
+          homePlayer: true,
+          awayPlayer: true,
+        },
+        take: 1,
+      }),
       prisma.match.findMany({
         where: { status: { in: ["FINISHED", "FORFEIT"] } },
         include: {
@@ -80,17 +81,30 @@ export default async function HomePage() {
       }),
     ]);
 
-  const currentRoundNum = leagueConfig?.currentMatchday || 1;
-  let matchOfTheDay = storedMotd;
+    liveMatches = results[0];
+    recentMatches = results[1];
+    upcomingMatches = results[2];
+    div1Standings = results[3];
+    allStandings = results[4];
+    topPlayers = results[5];
+    announcements = results[6];
+    leagueConfig = results[7];
+    storedMotd = results[8];
 
-  // Rule: Match of the Day based on table standings except on the first round
-  if (!matchOfTheDay && currentRoundNum > 1) {
-    const roundMatches = await prisma.match.findMany({
-      where: { round: `Matchday ${currentRoundNum}` },
-      include: { homePlayer: true, awayPlayer: true },
-    });
-    matchOfTheDay = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
+    const currentRoundNum = leagueConfig?.currentMatchday || 1;
+    // Rule: Match of the Day based on table standings except on the first round
+    if (!storedMotd && currentRoundNum > 1) {
+      const roundMatches = await prisma.match.findMany({
+        where: { round: `Matchday ${currentRoundNum}` },
+        include: { homePlayer: true, awayPlayer: true },
+      });
+      storedMotd = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
+    }
+  } catch (error) {
+    console.error("Database connection or query error on HomePage:", error);
   }
+
+  const matchOfTheDay = storedMotd;
 
   const featuredLiveMatch = liveMatches[0];
   const latestAnnouncement = announcements[0];

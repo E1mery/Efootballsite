@@ -6,19 +6,30 @@ import { Badge } from "@/components/ui/badge";
 export const dynamic = "force-dynamic";
 
 export default async function PlayersPage() {
-  const [topScorers, topAssists, allPlayers] = await Promise.all([
-    prisma.player.findMany({
-      orderBy: { goals: "desc" },
-      take: 6,
-    }),
-    prisma.player.findMany({
-      orderBy: { assists: "desc" },
-      take: 4,
-    }),
-    prisma.player.findMany({
-      orderBy: { overallRating: "desc" },
-    }),
-  ]);
+  let topScorers: any[] = [];
+  let topAssists: any[] = [];
+  let allPlayers: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      prisma.player.findMany({
+        orderBy: { goals: "desc" },
+        take: 6,
+      }),
+      prisma.player.findMany({
+        orderBy: { assists: "desc" },
+        take: 4,
+      }),
+      prisma.player.findMany({
+        orderBy: { overallRating: "desc" },
+      }),
+    ]);
+    topScorers = results[0];
+    topAssists = results[1];
+    allPlayers = results[2];
+  } catch (error) {
+    console.error("Players fetch error:", error);
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">

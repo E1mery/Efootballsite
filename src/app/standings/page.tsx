@@ -14,19 +14,24 @@ export default async function StandingsPage({
   const currentDivision = params.division || "Division 1";
 
   // Fetch standings for selected division with player profile and team
-  const standings = await prisma.standing.findMany({
-    where: { division: currentDivision },
-    include: {
-      player: true,
-    },
-    orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-    take: 20, // Strict 20 players cap per division
-  });
+  let standings: any[] = [];
+  try {
+    standings = await prisma.standing.findMany({
+      where: { division: currentDivision },
+      include: {
+        player: true,
+      },
+      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+      take: 20, // Strict 20 players cap per division
+    });
+  } catch (error) {
+    console.error("Standings fetch error:", error);
+  }
 
-  const totalGoals = standings.reduce((acc, curr) => acc + curr.goalsFor, 0);
+  const totalGoals = standings.reduce((acc, curr) => acc + (curr.goalsFor || 0), 0);
   const bestPlayer = standings[0];
   const flaggedPlayers = standings.filter(
-    (s) => s.consecutiveMissed >= 3 || s.isDisqualified
+    (s) => (s.consecutiveMissed || 0) >= 3 || s.isDisqualified
   );
 
   return (
