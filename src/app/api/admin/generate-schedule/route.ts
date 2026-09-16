@@ -1,0 +1,230 @@
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+
+async function verifyAdmin() {
+  const cookieStore = await cookies();
+  const sessionUserId = cookieStore.get("efrl_session")?.value;
+  if (!sessionUserId) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUserId },
+  });
+
+  if (!user || user.role !== "ADMIN") return null;
+  return user;
+}
+
+// Berger Tables / Round Robin Pairing Algorithm
+function generateRoundRobin(players: { id: string; gamerTag: string }[]) {
+  const n = players.length;
+  const isOdd = n % 2 !== 0;
+  const playerList = [...players];
+  
+  // If odd, add a BYE dummy player
+  if (isOdd) {
+    playerList.push({ id: "BYE", gamerTag: "BYE" });
+  }
+
+  const numPlayers = playerList.length;
+  const roundsCount = numPlayers - 1;
+  const matchesPerRound = numPlayers / 2;
+
+  const firstLegRounds: { roundNumber: number; pairings: [string, string][] }[] = [];
+
+  const teamIndices = playerList.map((_, i) => i);
+
+  for (let round = 0; round < roundsCount; round++) {
+    const pairings: [string, string][] = [];
+
+    for (let match = 0; match < matchesPerRound; match++) {
+      const homeIdx = teamIndices[match];
+      const awayIdx = teamIndices[numPlayers - 1 - match];
+
+      const homePlayer = playerList[homeIdx];
+      const awayPlayer = playerList[awayIdx];
+
+      // Exclude BYE matches
+      if (homePlayer.id !== "BYE" && awayPlayer.id !== "BYE") {
+        // Alternate home/away based on round to balance home advantage
+        if (round % 2 === 1 && match === 0) {
+          pairings.push([awayPlayer.id, homePlayer.id]);
+        } else {
+          pairings.push([homePlayer.id, awayPlayer.id]);
+        }
+      }
+    }
+
+    firstLegRounds.push({ roundNumber: round + 1, pairings });
+
+    // Rotate indices clockwise keeping index 0 fixed
+    const last = teamIndices.pop()!;
+    teamIndices.splice(1, 0, last);
+  }
+
+  // Second Leg (Round Trip / Reverse Fixtures)
+  const secondLegRounds = firstLegRounds.map((r) => ({
+    roundNumber: r.roundNumber + roundsCount,
+    pairings: r.pairings.map(([home, away]) => [away, home] as [string, string]),
+  }));
+
+  return [...firstLegRounds, ...secondLegRounds];
+}
+
+export async function POST(req: Request) {
+  try {
+    const admin = await verifyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized: Admin access required." }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { division = "ALL" } = body; // "Division 1", "Division 2", "Division 3", or "ALL"
+
+    // Check if registration is officially closed
+    const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+    if (config?.registrationOpen) {
+      return NextResponse.json(
+        {
+          error:
+            "Registration is still open! Please End/Close Registration first before generating official tournament schedules.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const divisionsToProcess =
+      division === "ALL"
+        ? ["Division 1", "Division 2", "Division 3"]
+        : [division];
+
+    let totalMatchesGenerated = 0;
+    const summary: any = {};
+
+    for (const divName of divisionsToProcess) {
+      // Find tournament
+      const tournament = await prisma.tournament.findFirst({
+        where: {
+          name: { contains: divName },
+          type: "DIVISION",
+        },
+      });
+
+      if (!tournament) {
+        summary[divName] = "Tournament not found in DB";
+        continue;
+      }
+
+      // Fetch active registered players in this division
+      const players = await prisma.player.findMany({
+        where: { division: divName, isDisqualified: false },
+        select: { id: true, gamerTag: true },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (players.length < 2) {
+        summary[divName] = `Need at least 2 players to generate round-robin schedule (currently ${players.length}).`;
+        continue;
+      }
+
+      // Ensure standings records exist for all players
+      for (const p of players) {
+        await prisma.standing.upsert({
+          where: {
+            tournamentId_playerId: {
+              tournamentId: tournament.id,
+              playerId: p.id,
+            },
+          },
+          update: {},
+          create: {
+            tournamentId: tournament.id,
+            division: divName,
+            playerId: p.id,
+            rank: 1,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDifference: 0,
+            points: 0,
+            form: "D",
+          },
+        });
+      }
+
+      // Delete old scheduled unplayed matches to prevent duplicates if re-generating
+      await prisma.match.deleteMany({
+        where: {
+          tournamentId: tournament.id,
+          status: "SCHEDULED",
+        },
+      });
+
+      // Generate round-robin schedule (round trip home & away)
+      const allRounds = generateRoundRobin(players);
+      let divMatchesCount = 0;
+
+      const now = new Date();
+      // Matchday 1 deadline is 24 hours from today
+      const matchday1Deadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+      for (const roundData of allRounds) {
+        const roundName = `Matchday ${roundData.roundNumber}`;
+        const isMatchday1 = roundData.roundNumber === 1;
+
+        // Schedule dates for future matchdays
+        const matchDate = new Date(now.getTime() + (roundData.roundNumber - 1) * 24 * 60 * 60 * 1000);
+        const deadlineDate = new Date(matchDate.getTime() + 24 * 60 * 60 * 1000);
+
+        for (const [homeId, awayId] of roundData.pairings) {
+          await prisma.match.create({
+            data: {
+              tournamentId: tournament.id,
+              division: divName,
+              homePlayerId: homeId,
+              awayPlayerId: awayId,
+              round: roundName,
+              platform: "eFootball Mobile",
+              status: "SCHEDULED",
+              matchDate: isMatchday1 ? now : matchDate,
+              deadlineDate: isMatchday1 ? matchday1Deadline : deadlineDate,
+            },
+          });
+          divMatchesCount++;
+        }
+      }
+
+      totalMatchesGenerated += divMatchesCount;
+      summary[divName] = `Generated ${divMatchesCount} matches across ${allRounds.length} matchdays for ${players.length} players.`;
+    }
+
+    // Set current matchday in config to 1
+    await prisma.leagueConfig.upsert({
+      where: { id: "default" },
+      update: { currentMatchday: 1 },
+      create: { id: "default", currentMatchday: 1, registrationOpen: false },
+    });
+
+    // Create league broadcast announcement
+    await prisma.announcement.create({
+      data: {
+        title: "⚡ Matchday 1 Fixtures are LIVE - 24-Hour Countdown Started!",
+        content: `The official round-robin schedule has been generated by the League Commissioner. Check your overview dashboard for your opponent's WhatsApp contact. You have 24 hours to coordinate, play, and upload full-time result screenshots.`,
+        type: "BROADCAST",
+        isPinned: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully generated ${totalMatchesGenerated} division matches.`,
+      summary,
+    });
+  } catch (err: any) {
+    console.error("Schedule generation error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

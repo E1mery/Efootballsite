@@ -1,0 +1,208 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model LeagueConfig {
+  id               String   @id @default("default")
+  registrationOpen Boolean  @default(true)
+  currentMatchday  Int      @default(1)
+  uclStarted       Boolean  @default(false)
+  europaStarted    Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         String    @default("PLAYER") // "PLAYER" or "ADMIN"
+  player       Player?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Player {
+  id                     String       @id @default(cuid())
+  userId                 String?      @unique
+  user                   User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  gamerTag               String       @unique
+  fullName               String
+  efootballId            String       @unique
+  whatsapp               String       // Mandatory for match scheduling via WhatsApp
+  division               String       @default("Division 1") // Division 1, Division 2, Division 3
+  platform               String       @default("eFootball Mobile") // Mobile Gaming Only
+  avatar                 String?
+  overallRating          Int          @default(85)
+  
+  matchesPlayed          Int          @default(0)
+  goals                  Int          @default(0)
+  assists                Int          @default(0)
+  cleanSheets            Int          @default(0)
+  mvpAwards              Int          @default(0)
+  
+  // Attendance & Discipline (3 consecutive missed matches -> Disqualification)
+  consecutiveMissed      Int          @default(0)
+  isDisqualified         Boolean      @default(false)
+  disqualificationReason String?
+  status                 String       @default("ACTIVE") // ACTIVE, WARNING, DISQUALIFIED
+  
+  homeMatches            Match[]      @relation("HomePlayer")
+  awayMatches            Match[]      @relation("AwayPlayer")
+  standings              Standing[]
+  
+  matchSubmissions       MatchSubmission[]
+  forfeitClaimsMade      ForfeitClaim[]   @relation("ClaimantPlayer")
+  forfeitClaimsAgainst   ForfeitClaim[]   @relation("AccusedPlayer")
+  announcementsReceived  Announcement[]   @relation("TargetPlayer")
+  uclGroupSlots          UclGroupSlot[]
+
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+}
+
+model Tournament {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  season      String     @default("2026")
+  format      String     @default("League") // League, UCL, Europa
+  type        String     @default("DIVISION") // DIVISION, UCL, EUROPA
+  prizePool   String     @default("5,000,000 RWF")
+  status      String     @default("ONGOING") // UPCOMING, ONGOING, COMPLETED
+  startDate   DateTime   @default(now())
+  
+  matches     Match[]
+  standings   Standing[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Match {
+  id                String            @id @default(cuid())
+  tournamentId      String
+  tournament        Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  division          String            @default("Division 1") // Division 1, Division 2, Division 3, UCL, Europa
+  
+  homePlayerId      String
+  homePlayer        Player            @relation("HomePlayer", fields: [homePlayerId], references: [id], onDelete: Cascade)
+  awayPlayerId      String
+  awayPlayer        Player            @relation("AwayPlayer", fields: [awayPlayerId], references: [id], onDelete: Cascade)
+  
+  homeScore         Int?
+  awayScore         Int?
+  
+  round             String            @default("Matchday 1")
+  platform          String            @default("eFootball Mobile")
+  status            String            @default("SCHEDULED") // SCHEDULED, LIVE, FINISHED, FORFEIT
+  matchDate         DateTime          @default(now())
+  deadlineDate      DateTime          // 24-hour match window (expires 12:00 AM)
+  notes             String?
+  screenshotUrl     String?
+  isMatchOfTheDay   Boolean           @default(false) // Match of the Day based on table standings (from Round 2 onwards)
+
+  submissions       MatchSubmission[]
+  forfeitClaims     ForfeitClaim[]
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model Standing {
+  id                String      @id @default(cuid())
+  tournamentId      String
+  tournament        Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  division          String      @default("Division 1")
+  playerId          String
+  player            Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  rank              Int         @default(1)
+  played            Int         @default(0)
+  won               Int         @default(0)
+  drawn             Int         @default(0)
+  lost              Int         @default(0)
+  goalsFor          Int         @default(0)
+  goalsAgainst      Int         @default(0)
+  goalDifference    Int         @default(0)
+  points            Int         @default(0)
+  form              String      @default("D,D,D,D,D")
+  
+  consecutiveMissed Int         @default(0)
+  isDisqualified    Boolean     @default(false)
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@unique([tournamentId, playerId])
+}
+
+model MatchSubmission {
+  id                  String    @id @default(cuid())
+  matchId             String
+  match               Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  submittedByPlayerId String
+  submittedByPlayer   Player    @relation(fields: [submittedByPlayerId], references: [id], onDelete: Cascade)
+  
+  homeScore           Int
+  awayScore           Int
+  screenshotUrl       String    // Screenshot showing full-time score
+  notes               String?
+  status              String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  adminNotes          String?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model ForfeitClaim {
+  id                  String    @id @default(cuid())
+  matchId             String
+  match               Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  claimantPlayerId    String
+  claimantPlayer      Player    @relation("ClaimantPlayer", fields: [claimantPlayerId], references: [id], onDelete: Cascade)
+  
+  accusedPlayerId     String
+  accusedPlayer       Player    @relation("AccusedPlayer", fields: [accusedPlayerId], references: [id], onDelete: Cascade)
+  
+  proofScreenshotUrl  String    // Screenshot proof showing opponent was unavailable
+  reason              String
+  status              String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  adminNotes          String?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Announcement {
+  id             String    @id @default(cuid())
+  title          String
+  content        String
+  type           String    @default("BROADCAST") // "BROADCAST" or "INDIVIDUAL"
+  
+  targetPlayerId String?
+  targetPlayer   Player?   @relation("TargetPlayer", fields: [targetPlayerId], references: [id], onDelete: Cascade)
+  
+  isPinned       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model UclGroupSlot {
+  id             String    @id @default(cuid())
+  competition    String    @default("UCL") // "UCL" or "EUROPA"
+  groupName      String    // "Group A", "Group B", "Group C", "Group D"
+  playerId       String
+  player         Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerDivision String    // Division constraint: "Division 1", "Division 2", "Division 3"
+  slotIndex      Int       @default(1)
+  createdAt      DateTime  @default(now())
+
+  @@unique([competition, playerId])
+}

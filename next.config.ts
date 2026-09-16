@@ -1,0 +1,30 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
+    ],
+  },
+  experimental: {
+    cpus: 1,
+  },
+  async redirects() {
+    return [
+      {
+        source: "/teams",
+        destination: "/standings",
+        permanent: true,
+      },
+    ];
+  },
+};
+
+export default nextConfig;
