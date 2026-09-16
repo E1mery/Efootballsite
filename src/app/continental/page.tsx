@@ -124,13 +124,6 @@ export default async function ContinentalCupsPage() {
     ...div2Europa.map((s, idx) => ({ ...s, seedLabel: `Div 2 #${idx + 5}` })),
     ...div3Europa.map((s, idx) => ({ ...s, seedLabel: `Div 3 #${idx + 5}` })),
   ];
-    }),
-    prisma.uclGroupSlot.findMany({
-      where: { competition: "EUROPA" },
-      include: { player: true },
-      orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
-    }),
-  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">

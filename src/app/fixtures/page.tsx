@@ -58,19 +58,20 @@ export default async function FixturesPage({
     storedMotd = results[2];
     allStandings = results[3];
 
-    const currentRoundNum = leagueConfig?.currentMatchday || 1;
-    if (!storedMotd && currentRoundNum > 1) {
+    const roundNum = leagueConfig?.currentMatchday || 1;
+    if (!storedMotd && roundNum > 1) {
       const { evaluateMatchOfTheDay } = await import("@/lib/matchOfTheDay");
       const roundMatches = await prisma.match.findMany({
-        where: { round: `Matchday ${currentRoundNum}` },
+        where: { round: `Matchday ${roundNum}` },
         include: { homePlayer: true, awayPlayer: true },
       });
-      storedMotd = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
+      storedMotd = evaluateMatchOfTheDay(roundMatches, allStandings, roundNum);
     }
   } catch (error) {
     console.error("Fixtures fetch error:", error);
   }
 
+  const currentRoundNum = leagueConfig?.currentMatchday || 1;
   const matchOfTheDay = storedMotd;
 
   return (
