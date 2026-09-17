@@ -403,26 +403,6 @@ export default async function HomePage({
                       </div>
                     )}
                   </div>
-
-                  <div className="space-y-1.5 text-xs">
-                    {entry.runnerUp && (
-                      <div className="flex justify-between text-slate-400">
-                        <span>Runner-Up:</span>
-                        <span className="font-semibold text-slate-300">{entry.runnerUp}</span>
-                      </div>
-                    )}
-                    {entry.prizeWon && (
-                      <div className="flex justify-between text-slate-400">
-                        <span>Prize Won:</span>
-                        <span className="font-mono text-emerald-400 font-bold">{entry.prizeWon}</span>
-                      </div>
-                    )}
-                    {entry.notes && (
-                      <div className="text-xs text-slate-400 italic pt-2 border-t border-slate-800/80">
-                        &ldquo;{entry.notes}&rdquo;
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">

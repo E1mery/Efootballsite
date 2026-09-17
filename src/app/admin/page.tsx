@@ -61,6 +61,8 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.player.findMany({
+      where: { status: { in: ["ACTIVE", "WARNING", "DISQUALIFIED"] } },
+      include: { user: true },
       orderBy: [{ division: "asc" }, { gamerTag: "asc" }],
     }),
     prisma.announcement.findMany({

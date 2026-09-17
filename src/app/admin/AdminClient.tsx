@@ -117,10 +117,7 @@ export default function AdminClient({
   const [hofSeason, setHofSeason] = useState("Season 2026");
   const [hofChampion, setHofChampion] = useState("");
   const [hofRealName, setHofRealName] = useState("");
-  const [hofRunnerUp, setHofRunnerUp] = useState("");
-  const [hofPrize, setHofPrize] = useState("3,000,000 RWF + Gold Trophy");
   const [hofTrophyType, setHofTrophyType] = useState("GOLD");
-  const [hofNotes, setHofNotes] = useState("");
   const [submittingHof, setSubmittingHof] = useState(false);
 
   // Announcement Form State
@@ -166,14 +163,28 @@ export default function AdminClient({
       if (!res.ok) throw new Error(data.error || "Failed to process athlete registration");
 
       alert(data.message);
-      // Remove from pending list
-      setPendingPlayers(prev => prev.filter(p => p.id !== playerId));
 
       if (action === "ADMIT" && data.player) {
-        setPlayersList(prev => [...prev, data.player]);
+        // Remove from pending registrations
+        setPendingPlayers(prev => prev.filter(p => p.id !== playerId));
+        // Remove from reserve pool if they were on standby
+        setReservePlayers(prev => prev.filter(p => p.id !== playerId));
+        // Automatically add/update in Athletes Directory
+        setPlayersList(prev => {
+          const filtered = prev.filter(p => p.id !== playerId);
+          return [...filtered, data.player].sort(
+            (a, b) => (a.division || "").localeCompare(b.division || "") || a.gamerTag.localeCompare(b.gamerTag)
+          );
+        });
       } else if (action === "RESERVE" && data.player) {
-        setReservePlayers(prev => [data.player, ...prev]);
+        // Remove from pending registrations
+        setPendingPlayers(prev => prev.filter(p => p.id !== playerId));
+        // Remove from active athletes directory
+        setPlayersList(prev => prev.filter(p => p.id !== playerId));
+        // Add to reserve pool
+        setReservePlayers(prev => [data.player, ...prev.filter(p => p.id !== playerId)]);
       }
+
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -270,10 +281,7 @@ export default function AdminClient({
           season: hofSeason,
           championName: hofChampion,
           championRealName: hofRealName,
-          runnerUp: hofRunnerUp,
-          prizeWon: hofPrize,
           trophyType: hofTrophyType,
-          notes: hofNotes,
         }),
       });
 
@@ -286,8 +294,6 @@ export default function AdminClient({
       }
       setHofChampion("");
       setHofRealName("");
-      setHofRunnerUp("");
-      setHofNotes("");
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -2198,7 +2204,7 @@ export default function AdminClient({
                       onChange={(e) => setTargetPlayerId(e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2 text-xs text-white"
                     >
-                      {allPlayers.map((p) => (
+                      {playersList.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.gamerTag} ({p.division})
                         </option>
@@ -2417,7 +2423,6 @@ export default function AdminClient({
                     <option value="EFRL Division 3 (Conference)">EFRL Division 3 (Conference)</option>
                     <option value="eFootball Rwanda Champions League (UCL)">eFootball Rwanda Champions League (UCL)</option>
                     <option value="EFRL Europa League">EFRL Europa League</option>
-                    <option value="Kigali Esports Super Cup">Kigali Esports Super Cup</option>
                   </select>
                 </div>
 
@@ -2446,7 +2451,7 @@ export default function AdminClient({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-yellow-400">Champion Gamer Tag *</label>
                   <Input
@@ -2464,38 +2469,6 @@ export default function AdminClient({
                     placeholder="e.g. Jean-Claude Mugisha"
                     value={hofRealName}
                     onChange={(e) => setHofRealName(e.target.value)}
-                    className="bg-slate-900 border-slate-800 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Runner-Up / Finalist</label>
-                  <Input
-                    placeholder="e.g. Kigali_Apex"
-                    value={hofRunnerUp}
-                    onChange={(e) => setHofRunnerUp(e.target.value)}
-                    className="bg-slate-900 border-slate-800 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Prize Awarded</label>
-                  <Input
-                    placeholder="e.g. 3,000,000 RWF + Gold Trophy"
-                    value={hofPrize}
-                    onChange={(e) => setHofPrize(e.target.value)}
-                    className="bg-slate-900 border-slate-800 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Tournament Highlights / Notes</label>
-                  <Input
-                    placeholder="e.g. Undefeated run across all 19 matchdays"
-                    value={hofNotes}
-                    onChange={(e) => setHofNotes(e.target.value)}
                     className="bg-slate-900 border-slate-800 text-xs"
                   />
                 </div>
@@ -2554,26 +2527,6 @@ export default function AdminClient({
                         <div className="text-lg font-black text-white">{entry.championName}</div>
                         {entry.championRealName && (
                           <div className="text-xs text-slate-300 font-medium">{entry.championRealName}</div>
-                        )}
-                      </div>
-
-                      <div className="space-y-1 text-xs">
-                        {entry.runnerUp && (
-                          <div className="flex justify-between text-slate-400">
-                            <span>Runner-Up:</span>
-                            <span className="font-semibold text-slate-300">{entry.runnerUp}</span>
-                          </div>
-                        )}
-                        {entry.prizeWon && (
-                          <div className="flex justify-between text-slate-400">
-                            <span>Prize:</span>
-                            <span className="font-mono text-emerald-400 font-bold">{entry.prizeWon}</span>
-                          </div>
-                        )}
-                        {entry.notes && (
-                          <div className="text-xs text-slate-400 italic pt-1 border-t border-slate-800/80">
-                            &ldquo;{entry.notes}&rdquo;
-                          </div>
                         )}
                       </div>
                     </div>

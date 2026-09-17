@@ -48,6 +48,7 @@ export async function POST(req: Request) {
           isDisqualified: false,
           consecutiveMissed: 0,
         },
+        include: { user: true },
       });
 
       // 2. Find tournament and ensure a Standing record exists
@@ -116,6 +117,7 @@ export async function POST(req: Request) {
         data: {
           status: "RESERVED",
         },
+        include: { user: true },
       });
 
       // Remove any standing entry if previously present

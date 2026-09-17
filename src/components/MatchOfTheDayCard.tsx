@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Trophy, Flame, Phone, Calendar, Clock, Sparkles, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import MotdPredictionPoll from "@/components/MotdPredictionPoll";
 
 interface MotdProps {
   match: {
@@ -178,6 +179,14 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
           )}
         </div>
       </div>
+
+      {/* MOTD User & Community Prediction Poll */}
+      <MotdPredictionPoll
+        matchId={match.id}
+        homeGamerTag={match.homePlayer?.gamerTag || "Home Contender"}
+        awayGamerTag={match.awayPlayer?.gamerTag || "Away Contender"}
+        isFinished={isFinished || isForfeit}
+      />
 
       {/* Footer Info */}
       <div className="mt-5 pt-4 border-t border-yellow-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">

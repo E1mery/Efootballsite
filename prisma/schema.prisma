@@ -108,6 +108,7 @@ model Match {
 
   submissions       MatchSubmission[]
   forfeitClaims     ForfeitClaim[]
+  motdPollVotes     MotdPollVote[]
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -219,4 +220,17 @@ model HallOfFame {
   notes            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model MotdPollVote {
+  id         String   @id @default(cuid())
+  matchId    String
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  voterId    String   // User ID or guest client token
+  prediction String   // "HOME", "DRAW", "AWAY"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([matchId, voterId])
+  @@index([matchId])
 }

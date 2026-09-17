@@ -36,10 +36,7 @@ export async function POST(req: Request) {
       season,
       championName,
       championRealName,
-      runnerUp,
-      prizeWon,
       trophyType = "GOLD",
-      notes,
     } = body;
 
     if (!tournamentName || !season || !championName) {
@@ -55,10 +52,7 @@ export async function POST(req: Request) {
         season: season.trim(),
         championName: championName.trim(),
         championRealName: championRealName?.trim() || null,
-        runnerUp: runnerUp?.trim() || null,
-        prizeWon: prizeWon?.trim() || null,
         trophyType: trophyType || "GOLD",
-        notes: notes?.trim() || null,
       },
     });
 
