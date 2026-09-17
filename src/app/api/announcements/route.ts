@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
 
 export async function GET(req: Request) {
   try {
+    // Check and trigger any pending 1-hour automated reminders
+    await checkAndSendOneHourMatchReminders();
+
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get("playerId");
 

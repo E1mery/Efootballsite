@@ -329,6 +329,18 @@ export default function DashboardClient({
     !activeMatch.notes?.includes("ADMIN_REOPENED")
   );
 
+  // Check if player has already submitted score or claimed forfeit
+  const hasSubmittedResult = Boolean(activeMatch?.submissions && activeMatch.submissions.length > 0);
+  const hasClaimedForfeit = Boolean(activeMatch?.forfeitClaims && activeMatch.forfeitClaims.length > 0);
+  const isOneHourWarning = Boolean(
+    activeMatch &&
+    !isMatchLocked &&
+    !timeLeft.isExpired &&
+    timeLeft.hours === 0 &&
+    !hasSubmittedResult &&
+    !hasClaimedForfeit
+  );
+
   // Copy WhatsApp Number helper
   const handleCopyWhatsApp = (num: string) => {
     navigator.clipboard.writeText(num);
@@ -778,6 +790,28 @@ export default function DashboardClient({
                 </div>
               </div>
 
+              {/* AUTOMATED 1-HOUR DEADLINE WARNING BANNER FOR UNPLAYED MATCHES */}
+              {isOneHourWarning && (
+                <div className="mt-6 p-4 rounded-2xl border border-amber-500/60 bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-950/40 flex items-start gap-3.5 text-amber-200 shadow-xl shadow-amber-500/10 ring-1 ring-amber-500/30">
+                  <div className="h-9 w-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle className="h-5 w-5 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="destructive" className="text-[9px] font-black uppercase tracking-wider animate-pulse">
+                        ⏰ 1-HOUR DEADLINE WARNING
+                      </Badge>
+                      <span className="text-xs font-mono font-bold text-white">
+                        {timeLeft.minutes}m {timeLeft.seconds}s remaining before 12:00 AM cutoff
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-100/90 leading-relaxed">
+                      You have not uploaded a match result screenshot or submitted a forfeit claim. Message <strong className="text-white">@{opponent?.gamerTag}</strong> on WhatsApp right now to play. If your opponent is unreachable, submit your forfeit claim proof before the timer reaches 00:00:00!
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Match Action Buttons (Result Upload & Forfeit Proof) */}
               <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-xs text-slate-400 max-w-md">
@@ -1048,7 +1082,9 @@ export default function DashboardClient({
                           </div>
                         </div>
 
-                        <h4 className="text-base font-extrabold text-white">{ann.title}</h4>
+                        <h4 className="text-base font-extrabold text-white">
+                          {ann.title.replace(/\[REMINDER-1HR-[^\]]+\]/, "").trim()}
+                        </h4>
                         <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
                           {ann.content}
                         </p>

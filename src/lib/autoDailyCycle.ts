@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncMatchOfTheDay } from "@/lib/matchOfTheDay";
 import { promoteTopPlayersAtSeasonEnd } from "@/lib/seasonPromotion";
+import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
 
 /**
  * Checks if the current matchday deadline has expired (12:00 AM midnight passed)
@@ -33,7 +34,8 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
 
     const now = new Date();
     if (now < new Date(sampleMatch.deadlineDate)) {
-      // Deadline has not expired yet
+      // Deadline has not expired yet: Automatically check & send 1-hour reminders to unplayed athletes
+      await checkAndSendOneHourMatchReminders();
       return { advanced: false, currentMatchday };
     }
 

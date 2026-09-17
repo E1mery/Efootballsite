@@ -418,6 +418,22 @@ export default function AdminClient({
     }
   };
 
+  // Trigger 1-Hour Deadline Reminders to Unplayed Players
+  const handleTriggerReminders = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/cron/reminders", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send reminders");
+      alert(`Automated 1-Hour Deadline Reminder Check:\n• Matches evaluated: ${data.checkedCount}\n• Urgent reminders sent: ${data.remindersSent}${data.details?.length > 0 ? `\n\nDetails:\n` + data.details.join("\n") : "\n(No unplayed matches are within the 1-hour window or reminders already sent)"}`);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Toggle UCL / Europa Started
   const handleToggleCompetition = async (comp: "UCL" | "EUROPA", started: boolean) => {
     const actionText = started ? "START and UNLOCK" : "LOCK";
@@ -1287,15 +1303,27 @@ export default function AdminClient({
                 </p>
               </div>
 
-              <Button
-                onClick={handleTriggerDailyCycle}
-                disabled={actionLoading}
-                variant="default"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span>Advance to Matchday {leagueConfig.currentMatchday + 1}</span>
-              </Button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Button
+                  onClick={handleTriggerReminders}
+                  disabled={actionLoading}
+                  variant="outline"
+                  className="border-amber-500/50 text-amber-300 hover:bg-amber-950/30 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <Bell className="h-3.5 w-3.5 text-amber-400" />
+                  <span>Trigger 1-Hr Reminders</span>
+                </Button>
+
+                <Button
+                  onClick={handleTriggerDailyCycle}
+                  disabled={actionLoading}
+                  variant="default"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>Advance to Matchday {leagueConfig.currentMatchday + 1}</span>
+                </Button>
+              </div>
             </div>
 
             <div className="text-xs text-slate-400 space-y-1">
