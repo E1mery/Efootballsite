@@ -39,6 +39,10 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
+      if (typeof window !== "undefined") {
+        localStorage.setItem("efrl_user", JSON.stringify({ ...data.user, player: data.player }));
+      }
+
       if (data.user?.role === "ADMIN") {
         router.push("/admin");
       } else {

@@ -27,6 +27,12 @@ import {
   Play,
   Lock,
   Unlock,
+  UserMinus,
+  UserCheck,
+  Crown,
+  Sparkles,
+  PlusCircle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +52,9 @@ export default function AdminClient({
   uclSlots,
   europaSlots,
   adminEmail,
+  initialPendingPlayers = [],
+  initialReservePlayers = [],
+  initialHallOfFame = [],
 }: {
   matches: any[];
   pendingSubmissions: any[];
@@ -60,20 +69,59 @@ export default function AdminClient({
   uclSlots: any[];
   europaSlots: any[];
   adminEmail?: string;
+  initialPendingPlayers?: any[];
+  initialReservePlayers?: any[];
+  initialHallOfFame?: any[];
 }) {
   const router = useRouter();
 
   type TabType =
     | "DASHBOARD"
+    | "PENDING_REGISTRATIONS"
+    | "RESERVE_POOL"
     | "TABLES"
     | "CONTINENTAL"
     | "RESULTS_QUEUE"
     | "FORFEITS_QUEUE"
     | "ANNOUNCEMENTS"
-    | "PLAYERS";
+    | "PLAYERS"
+    | "HALL_OF_FAME";
 
   const [activeTab, setActiveTab] = useState<TabType>("DASHBOARD");
   const [tableSubTab, setTableSubTab] = useState<"DIV1" | "DIV2" | "DIV3" | "UCL" | "EUROPA">("DIV1");
+
+  // Dynamic Lists State
+  const [pendingPlayers, setPendingPlayers] = useState<any[]>(initialPendingPlayers);
+  const [reservePlayers, setReservePlayers] = useState<any[]>(initialReservePlayers);
+  const [hallOfFame, setHallOfFame] = useState<any[]>(initialHallOfFame);
+  const [playersList, setPlayersList] = useState<any[]>(allPlayers);
+
+  // Pending approval selection state: playerId -> selectedDivision
+  const [pendingDivSelection, setPendingDivSelection] = useState<Record<string, string>>({});
+  const [pendingActionLoading, setPendingActionLoading] = useState<string | null>(null);
+
+  // Player replace modal state
+  const [replaceTargetPlayer, setReplaceTargetPlayer] = useState<any | null>(null);
+  const [replaceMode, setReplaceMode] = useState<"FROM_RESERVE" | "NEW_DETAILS">("FROM_RESERVE");
+  const [selectedReserveId, setSelectedReserveId] = useState<string>("");
+  const [repGamerTag, setRepGamerTag] = useState("");
+  const [repFullName, setRepFullName] = useState("");
+  const [repWhatsapp, setRepWhatsapp] = useState("");
+  const [repEmail, setRepEmail] = useState("");
+  const [repPassword, setRepPassword] = useState("");
+  const [outgoingAction, setOutgoingAction] = useState<"REMOVE" | "MOVE_TO_RESERVE">("REMOVE");
+  const [replaceLoading, setReplaceLoading] = useState(false);
+
+  // Hall of fame form state
+  const [hofTournament, setHofTournament] = useState("EFRL Division 1 (Premiership)");
+  const [hofSeason, setHofSeason] = useState("Season 2026");
+  const [hofChampion, setHofChampion] = useState("");
+  const [hofRealName, setHofRealName] = useState("");
+  const [hofRunnerUp, setHofRunnerUp] = useState("");
+  const [hofPrize, setHofPrize] = useState("3,000,000 RWF + Gold Trophy");
+  const [hofTrophyType, setHofTrophyType] = useState("GOLD");
+  const [hofNotes, setHofNotes] = useState("");
+  const [submittingHof, setSubmittingHof] = useState(false);
 
   // Announcement Form State
   const [annTitle, setAnnTitle] = useState("");
@@ -93,11 +141,175 @@ export default function AdminClient({
   const handleLogout = async () => {
     if (!confirm("Are you sure you want to log out of the League Admin Office?")) return;
     try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("efrl_user");
+      }
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/?loggedOut=admin");
       router.refresh();
     } catch (err) {
       router.push("/?loggedOut=admin");
+    }
+  };
+
+  // Handler: Approve Athlete or Place in Reserve Pool
+  const handleApproveAthlete = async (playerId: string, action: "ADMIT" | "RESERVE") => {
+    const selectedDiv = pendingDivSelection[playerId] || pendingPlayers.find(p => p.id === playerId)?.division || "Division 1";
+    setPendingActionLoading(playerId);
+    try {
+      const res = await fetch("/api/admin/approve-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, action, division: selectedDiv }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to process athlete registration");
+
+      alert(data.message);
+      // Remove from pending list
+      setPendingPlayers(prev => prev.filter(p => p.id !== playerId));
+
+      if (action === "ADMIT" && data.player) {
+        setPlayersList(prev => [...prev, data.player]);
+      } else if (action === "RESERVE" && data.player) {
+        setReservePlayers(prev => [data.player, ...prev]);
+      }
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setPendingActionLoading(null);
+    }
+  };
+
+  // Handler: Remove Any Athlete
+  const handleRemoveAthlete = async (playerId: string, gamerTag: string) => {
+    if (!confirm(`Are you sure you want to PERMANENTLY remove athlete "${gamerTag}" from the league?\n\nThis will remove their user account, standings, and any unplayed matches.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/remove-player?playerId=${playerId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove player");
+
+      alert(data.message);
+      setPlayersList(prev => prev.filter(p => p.id !== playerId));
+      setPendingPlayers(prev => prev.filter(p => p.id !== playerId));
+      setReservePlayers(prev => prev.filter(p => p.id !== playerId));
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // Handler: Replace Athlete Submit
+  const handleReplaceAthleteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replaceTargetPlayer) return;
+
+    setReplaceLoading(true);
+    try {
+      const payload: any = {
+        playerId: replaceTargetPlayer.id,
+        replacementMode: replaceMode,
+        outgoingAction,
+      };
+
+      if (replaceMode === "FROM_RESERVE") {
+        if (!selectedReserveId) {
+          throw new Error("Please select an athlete from the Reserve Pool.");
+        }
+        payload.reservePlayerId = selectedReserveId;
+      } else {
+        payload.newGamerTag = repGamerTag;
+        payload.newFullName = repFullName;
+        payload.newWhatsapp = repWhatsapp;
+        payload.newEmail = repEmail;
+        payload.newPassword = repPassword;
+      }
+
+      const res = await fetch("/api/admin/replace-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to replace athlete");
+
+      alert(data.message);
+      setReplaceTargetPlayer(null);
+      // Reset form
+      setRepGamerTag("");
+      setRepFullName("");
+      setRepWhatsapp("");
+      setRepEmail("");
+      setRepPassword("");
+      setSelectedReserveId("");
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setReplaceLoading(false);
+    }
+  };
+
+  // Handler: Add to Hall of Fame
+  const handleAddHallOfFame = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingHof(true);
+    try {
+      const res = await fetch("/api/admin/hall-of-fame", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tournamentName: hofTournament,
+          season: hofSeason,
+          championName: hofChampion,
+          championRealName: hofRealName,
+          runnerUp: hofRunnerUp,
+          prizeWon: hofPrize,
+          trophyType: hofTrophyType,
+          notes: hofNotes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to crown champion in Hall of Fame");
+
+      alert(data.message);
+      if (data.entry) {
+        setHallOfFame(prev => [data.entry, ...prev]);
+      }
+      setHofChampion("");
+      setHofRealName("");
+      setHofRunnerUp("");
+      setHofNotes("");
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmittingHof(false);
+    }
+  };
+
+  // Handler: Delete Hall of Fame Entry
+  const handleDeleteHallOfFame = async (id: string, champName: string) => {
+    if (!confirm(`Are you sure you want to remove ${champName} from the Hall of Fame?`)) return;
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove entry");
+
+      setHallOfFame(prev => prev.filter(e => e.id !== id));
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -551,6 +763,35 @@ export default function AdminClient({
         </button>
 
         <button
+          onClick={() => setActiveTab("PENDING_REGISTRATIONS")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "PENDING_REGISTRATIONS"
+              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <UserCheck className="h-4 w-4 text-amber-400" />
+          <span>Pending Approvals</span>
+          {pendingPlayers.length > 0 && (
+            <Badge variant="yellow" className="text-[10px] px-1.5 py-0 font-black bg-amber-400 text-slate-950">
+              {pendingPlayers.length}
+            </Badge>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("RESERVE_POOL")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "RESERVE_POOL"
+              ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <Sparkles className="h-4 w-4 text-cyan-400" />
+          <span>Reserve Pool ({reservePlayers.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("TABLES")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
             activeTab === "TABLES"
@@ -583,7 +824,7 @@ export default function AdminClient({
           }`}
         >
           <Upload className="h-4 w-4" />
-          <span>Score Verification & Results Queue</span>
+          <span>Score Verification</span>
           {pendingSubmissions.length > 0 && (
             <Badge variant="live" className="text-[10px] px-1.5 py-0">
               {pendingSubmissions.length}
@@ -629,7 +870,19 @@ export default function AdminClient({
           }`}
         >
           <Users className="h-4 w-4" />
-          <span>Players ({allPlayers.length})</span>
+          <span>Athletes Directory ({playersList.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("HALL_OF_FAME")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "HALL_OF_FAME"
+              ? "bg-yellow-500 text-slate-950 font-black shadow-lg shadow-yellow-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <Crown className="h-4 w-4 text-yellow-400" />
+          <span>Hall of Fame ({hallOfFame.length})</span>
         </button>
       </div>
 
@@ -1002,6 +1255,243 @@ export default function AdminClient({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: PENDING ATHLETE REGISTRATIONS */}
+      {/* ========================================================================= */}
+      {activeTab === "PENDING_REGISTRATIONS" && (
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-amber-500/30 bg-amber-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-amber-400">
+                <Clock className="h-5 w-5" />
+                <h3 className="text-lg font-black uppercase text-white">Pending Athlete Approval Queue</h3>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Athletes who registered while open registration is active. The League Commissioner must review and choose to either admit them to an active division or hold them in the Reserve Pool.
+              </p>
+            </div>
+            <Badge variant="yellow" className="text-xs px-3 py-1 font-mono">
+              {pendingPlayers.length} Awaiting Approval
+            </Badge>
+          </div>
+
+          {pendingPlayers.length === 0 ? (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center">
+              <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto mb-3 opacity-60" />
+              <h4 className="text-base font-bold text-white uppercase">Queue is Clear</h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                There are no pending registrations awaiting review. All registered players have been either assigned to a division or placed into the reserve pool.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingPlayers.map((p) => {
+                const currentSelection = pendingDivSelection[p.id] || p.division || "Division 1";
+                const isLoading = pendingActionLoading === p.id;
+                return (
+                  <div
+                    key={p.id}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 hover:border-slate-700 transition-all shadow-lg flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-xs font-mono text-slate-400">Registered Athlete</span>
+                          <h4 className="text-base font-black text-white">{p.gamerTag}</h4>
+                          <p className="text-xs text-slate-300">{p.fullName}</p>
+                        </div>
+                        <Badge variant="yellow" className="text-[10px]">
+                          Pending
+                        </Badge>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-1.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">WhatsApp:</span>
+                          <span className="font-mono text-emerald-400 font-semibold">{p.whatsapp}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Email:</span>
+                          <span className="font-mono text-slate-300 truncate max-w-[160px]">{p.user?.email || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Requested:</span>
+                          <span className="font-bold text-sky-400">{p.division || "Division 1"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Joined:</span>
+                          <span className="text-slate-400">{new Date(p.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-300 uppercase">
+                          Target Division Placement:
+                        </label>
+                        <select
+                          value={currentSelection}
+                          onChange={(e) =>
+                            setPendingDivSelection((prev) => ({
+                              ...prev,
+                              [p.id]: e.target.value,
+                            }))
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-medium focus:ring-1 focus:ring-sky-500"
+                        >
+                          <option value="Division 1">Division 1 (Premiership)</option>
+                          <option value="Division 2">Division 2 (Championship)</option>
+                          <option value="Division 3">Division 3 (Conference)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800 space-y-2">
+                      <Button
+                        size="sm"
+                        disabled={isLoading}
+                        onClick={() => handleApproveAthlete(p.id, "ADMIT")}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                      >
+                        <UserCheck className="h-4 w-4 mr-1.5" />
+                        {isLoading ? "Processing..." : `Admit to ${currentSelection}`}
+                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isLoading}
+                          onClick={() => handleApproveAthlete(p.id, "RESERVE")}
+                          className="border-amber-500/40 text-amber-400 hover:bg-amber-950/40 text-[11px] font-bold"
+                        >
+                          <Layers className="h-3.5 w-3.5 mr-1" />
+                          Reserve Pool
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={isLoading}
+                          onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
+                          className="text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: RESERVE POOL (STANDBY ATHLETES) */}
+      {/* ========================================================================= */}
+      {activeTab === "RESERVE_POOL" && (
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-sky-500/30 bg-sky-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-sky-400">
+                <Layers className="h-5 w-5" />
+                <h3 className="text-lg font-black uppercase text-white">League Reserve Pool (Standby Roster)</h3>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Reserve athletes have registered and are placed on standby. They have complete access to view all division standings and league news, but are not assigned fixtures until you admit them or use them to replace an inactive player.
+              </p>
+            </div>
+            <Badge variant="secondary" className="text-xs px-3 py-1 font-mono">
+              {reservePlayers.length} In Reserve
+            </Badge>
+          </div>
+
+          {reservePlayers.length === 0 ? (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center">
+              <Layers className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+              <h4 className="text-base font-bold text-white uppercase">Reserve Pool is Empty</h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                No athletes are currently waiting in reserve. When excess athletes register, or when players are replaced and moved to reserve, they will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
+              <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                <h3 className="text-lg font-black uppercase text-white">Standby Athletes</h3>
+                <span className="text-xs font-mono text-slate-400">{reservePlayers.length} Total</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900/80 text-[11px] font-black uppercase text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="px-4 py-3">Gamer Tag</th>
+                      <th className="px-4 py-3">Full Name</th>
+                      <th className="px-4 py-3">WhatsApp Number</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Target Division</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {reservePlayers.map((p) => {
+                      const currentSelection = pendingDivSelection[p.id] || p.division || "Division 1";
+                      const isLoading = pendingActionLoading === p.id;
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-900/40">
+                          <td className="px-4 py-3 font-bold text-white">{p.gamerTag}</td>
+                          <td className="px-4 py-3 text-slate-300">{p.fullName}</td>
+                          <td className="px-4 py-3 font-mono text-emerald-400">{p.whatsapp}</td>
+                          <td className="px-4 py-3 font-mono text-slate-400">{p.user?.email || "N/A"}</td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={currentSelection}
+                              onChange={(e) =>
+                                setPendingDivSelection((prev) => ({
+                                  ...prev,
+                                  [p.id]: e.target.value,
+                                }))
+                              }
+                              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
+                            >
+                              <option value="Division 1">Division 1</option>
+                              <option value="Division 2">Division 2</option>
+                              <option value="Division 3">Division 3</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                disabled={isLoading}
+                                onClick={() => handleApproveAthlete(p.id, "ADMIT")}
+                                className="h-7 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold"
+                              >
+                                <UserCheck className="h-3 w-3 mr-1" />
+                                Admit to {currentSelection}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={isLoading}
+                                onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
+                                className="h-7 px-2 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Remove
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1793,7 +2283,7 @@ export default function AdminClient({
           <div className="rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
               <h3 className="text-lg font-black uppercase text-white">Registered Athletes Directory</h3>
-              <span className="text-xs font-mono text-slate-400">{allPlayers.length} Total</span>
+              <span className="text-xs font-mono text-slate-400">{playersList.length} Total</span>
             </div>
 
             <div className="overflow-x-auto">
@@ -1802,15 +2292,16 @@ export default function AdminClient({
                   <tr>
                     <th className="px-4 py-3">Gamer Tag</th>
                     <th className="px-4 py-3">Full Name</th>
-                    <th className="px-4 py-3">Konami ID</th>
+                    <th className="px-4 py-3">eFootball ID</th>
                     <th className="px-4 py-3">WhatsApp Number</th>
                     <th className="px-4 py-3">Division</th>
                     <th className="px-4 py-3 text-center">Missed</th>
                     <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {allPlayers.map((p) => (
+                  {playersList.map((p) => (
                     <tr key={p.id} className="hover:bg-slate-900/40">
                       <td className="px-4 py-3 font-bold text-white">{p.gamerTag}</td>
                       <td className="px-4 py-3 text-slate-300">{p.fullName}</td>
@@ -1843,11 +2334,472 @@ export default function AdminClient({
                           {p.status}
                         </Badge>
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setReplaceTargetPlayer(p);
+                              setRepGamerTag("");
+                              setRepFullName("");
+                              setRepWhatsapp(p.whatsapp || "");
+                              setRepEmail("");
+                              setRepPassword("");
+                              setSelectedReserveId(reservePlayers[0]?.id || "");
+                            }}
+                            className="h-7 px-2 text-[11px] font-bold border-indigo-500/40 text-indigo-400 hover:bg-indigo-950/50 hover:text-indigo-300"
+                          >
+                            <Shuffle className="h-3 w-3 mr-1" />
+                            Replace
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
+                            className="h-7 px-2 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600 text-white"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: HALL OF FAME MANAGEMENT */}
+      {/* ========================================================================= */}
+      {activeTab === "HALL_OF_FAME" && (
+        <div className="space-y-8">
+          <div className="rounded-3xl border border-yellow-500/30 bg-gradient-to-r from-yellow-950/20 to-amber-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-yellow-400">
+                <Crown className="h-6 w-6" />
+                <h3 className="text-xl font-black uppercase text-white tracking-wide">
+                  EFRL Hall of Fame Commissioner Office
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                Crown champions of Division 1, Division 2, Division 3, UCL, Europa League, and Kigali cups. Immortalized champions are showcased proudly on the League Homepage.
+              </p>
+            </div>
+            <Badge variant="yellow" className="text-xs px-3 py-1 font-mono">
+              {hallOfFame.length} Immortalized Champions
+            </Badge>
+          </div>
+
+          {/* Add Champion Form */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 space-y-5 shadow-xl">
+            <div className="flex items-center gap-2 text-yellow-400 border-b border-slate-800 pb-3">
+              <Sparkles className="h-5 w-5" />
+              <h4 className="text-sm font-black uppercase text-white">Crown New Champion</h4>
+            </div>
+
+            <form onSubmit={handleAddHallOfFame} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Tournament Name *</label>
+                  <select
+                    value={hofTournament}
+                    onChange={(e) => setHofTournament(e.target.value)}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-yellow-500"
+                    required
+                  >
+                    <option value="EFRL Division 1 (Premiership)">EFRL Division 1 (Premiership)</option>
+                    <option value="EFRL Division 2 (Championship)">EFRL Division 2 (Championship)</option>
+                    <option value="EFRL Division 3 (Conference)">EFRL Division 3 (Conference)</option>
+                    <option value="eFootball Rwanda Champions League (UCL)">eFootball Rwanda Champions League (UCL)</option>
+                    <option value="EFRL Europa League">EFRL Europa League</option>
+                    <option value="Kigali Esports Super Cup">Kigali Esports Super Cup</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Season / Year *</label>
+                  <Input
+                    placeholder="e.g. Season 2026 or Season 1"
+                    value={hofSeason}
+                    onChange={(e) => setHofSeason(e.target.value)}
+                    className="bg-slate-900 border-slate-800 text-xs"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Trophy Tier</label>
+                  <select
+                    value={hofTrophyType}
+                    onChange={(e) => setHofTrophyType(e.target.value)}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-yellow-500"
+                  >
+                    <option value="GOLD">Gold Cup / 1st Place</option>
+                    <option value="SILVER">Silver Cup / Runner-up</option>
+                    <option value="BRONZE">Bronze Cup / 3rd Place</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-yellow-400">Champion Gamer Tag *</label>
+                  <Input
+                    placeholder="e.g. RW_Sniper99"
+                    value={hofChampion}
+                    onChange={(e) => setHofChampion(e.target.value)}
+                    className="bg-slate-900 border-yellow-500/30 text-xs font-bold text-white"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Champion Real Name</label>
+                  <Input
+                    placeholder="e.g. Jean-Claude Mugisha"
+                    value={hofRealName}
+                    onChange={(e) => setHofRealName(e.target.value)}
+                    className="bg-slate-900 border-slate-800 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Runner-Up / Finalist</label>
+                  <Input
+                    placeholder="e.g. Kigali_Apex"
+                    value={hofRunnerUp}
+                    onChange={(e) => setHofRunnerUp(e.target.value)}
+                    className="bg-slate-900 border-slate-800 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Prize Awarded</label>
+                  <Input
+                    placeholder="e.g. 3,000,000 RWF + Gold Trophy"
+                    value={hofPrize}
+                    onChange={(e) => setHofPrize(e.target.value)}
+                    className="bg-slate-900 border-slate-800 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-400">Tournament Highlights / Notes</label>
+                  <Input
+                    placeholder="e.g. Undefeated run across all 19 matchdays"
+                    value={hofNotes}
+                    onChange={(e) => setHofNotes(e.target.value)}
+                    className="bg-slate-900 border-slate-800 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  disabled={submittingHof || !hofChampion.trim()}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs px-6 py-2.5 shadow-lg shadow-yellow-500/20"
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  {submittingHof ? "Immortalizing..." : "Crown Champion & Add to Hall of Fame"}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* List of Hall of Fame Champions */}
+          <div className="space-y-4">
+            <h4 className="text-base font-black uppercase text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              Immortalized Champions Directory ({hallOfFame.length})
+            </h4>
+
+            {hallOfFame.length === 0 ? (
+              <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center">
+                <Crown className="h-12 w-12 text-yellow-500/40 mx-auto mb-3" />
+                <h5 className="text-sm font-bold text-white uppercase">No Champions Crowned Yet</h5>
+                <p className="text-xs text-slate-400 mt-1">Use the form above to add your first league title winner!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {hallOfFame.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="relative overflow-hidden rounded-2xl border border-yellow-500/20 bg-slate-950/90 p-5 space-y-4 hover:border-yellow-500/40 transition-all shadow-xl flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <Badge variant="yellow" className="text-[10px] uppercase tracking-wider mb-1">
+                            {entry.season}
+                          </Badge>
+                          <h5 className="text-xs font-bold text-slate-300">{entry.tournamentName}</h5>
+                        </div>
+                        <div className="h-9 w-9 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                          <Crown className="h-5 w-5 text-yellow-400" />
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-900/90 border border-yellow-500/10 space-y-1">
+                        <span className="text-[10px] font-mono uppercase text-yellow-400 font-bold block">
+                          Champion
+                        </span>
+                        <div className="text-lg font-black text-white">{entry.championName}</div>
+                        {entry.championRealName && (
+                          <div className="text-xs text-slate-300 font-medium">{entry.championRealName}</div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        {entry.runnerUp && (
+                          <div className="flex justify-between text-slate-400">
+                            <span>Runner-Up:</span>
+                            <span className="font-semibold text-slate-300">{entry.runnerUp}</span>
+                          </div>
+                        )}
+                        {entry.prizeWon && (
+                          <div className="flex justify-between text-slate-400">
+                            <span>Prize:</span>
+                            <span className="font-mono text-emerald-400 font-bold">{entry.prizeWon}</span>
+                          </div>
+                        )}
+                        {entry.notes && (
+                          <div className="text-xs text-slate-400 italic pt-1 border-t border-slate-800/80">
+                            &ldquo;{entry.notes}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 font-mono">
+                        {new Date(entry.createdAt).toLocaleDateString()}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteHallOfFame(entry.id, entry.championName)}
+                        className="h-7 px-2.5 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* REPLACE ATHLETE MODAL */}
+      {replaceTargetPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative max-w-xl w-full rounded-3xl border border-indigo-500/40 bg-slate-950 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2 text-indigo-400">
+                  <Shuffle className="h-5 w-5" />
+                  <h3 className="text-lg font-black uppercase text-white">Replace Active Athlete</h3>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Replacing <strong className="text-white">{replaceTargetPlayer.gamerTag}</strong> ({replaceTargetPlayer.division})
+                </p>
+              </div>
+              <button
+                onClick={() => setReplaceTargetPlayer(null)}
+                className="rounded-full bg-slate-900 p-1.5 text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleReplaceAthleteSubmit} className="space-y-4">
+              {/* Replacement Source Mode Tabs */}
+              <div className="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setReplaceMode("FROM_RESERVE")}
+                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                    replaceMode === "FROM_RESERVE"
+                      ? "bg-indigo-600 text-white shadow-md"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  From Reserve Pool ({reservePlayers.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReplaceMode("NEW_DETAILS")}
+                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                    replaceMode === "NEW_DETAILS"
+                      ? "bg-indigo-600 text-white shadow-md"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Register New Athlete
+                </button>
+              </div>
+
+              {replaceMode === "FROM_RESERVE" ? (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-slate-400">
+                    Select Replacement from Reserve Pool *
+                  </label>
+                  {reservePlayers.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-300">
+                      No athletes currently in the reserve pool. Switch to &quot;Register New Athlete&quot; instead.
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedReserveId}
+                      onChange={(e) => setSelectedReserveId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-medium focus:ring-1 focus:ring-indigo-500"
+                      required
+                    >
+                      <option value="">-- Choose Reserve Athlete --</option>
+                      {reservePlayers.map((rp) => (
+                        <option key={rp.id} value={rp.id}>
+                          {rp.gamerTag} ({rp.fullName}) — WA: {rp.whatsapp}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-slate-400">New Gamer Tag *</label>
+                      <Input
+                        placeholder="e.g. RW_Champion"
+                        value={repGamerTag}
+                        onChange={(e) => setRepGamerTag(e.target.value)}
+                        className="bg-slate-900 border-slate-800 text-xs"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-slate-400">Full Name *</label>
+                      <Input
+                        placeholder="e.g. Jean Paul"
+                        value={repFullName}
+                        onChange={(e) => setRepFullName(e.target.value)}
+                        className="bg-slate-900 border-slate-800 text-xs"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-slate-400">WhatsApp Number</label>
+                      <Input
+                        placeholder="e.g. +250 788 000 000"
+                        value={repWhatsapp}
+                        onChange={(e) => setRepWhatsapp(e.target.value)}
+                        className="bg-slate-900 border-slate-800 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-slate-400">Login Email (Optional)</label>
+                      <Input
+                        type="email"
+                        placeholder="New login email"
+                        value={repEmail}
+                        onChange={(e) => setRepEmail(e.target.value)}
+                        className="bg-slate-900 border-slate-800 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold uppercase text-slate-400">Login Password (Optional)</label>
+                    <Input
+                      type="password"
+                      placeholder="Minimum 6 characters"
+                      value={repPassword}
+                      onChange={(e) => setRepPassword(e.target.value)}
+                      className="bg-slate-900 border-slate-800 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action on replaced athlete */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                <label className="text-xs font-bold uppercase text-slate-400">
+                  Outgoing Athlete Disposition:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs ${
+                      outgoingAction === "REMOVE"
+                        ? "border-rose-500 bg-rose-950/20 text-white font-bold"
+                        : "border-slate-800 bg-slate-900 text-slate-400"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="outgoingAction"
+                      value="REMOVE"
+                      checked={outgoingAction === "REMOVE"}
+                      onChange={() => setOutgoingAction("REMOVE")}
+                      className="text-rose-600"
+                    />
+                    <span>Delete Account Permanently</span>
+                  </label>
+                  <label
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs ${
+                      outgoingAction === "MOVE_TO_RESERVE"
+                        ? "border-amber-500 bg-amber-950/20 text-white font-bold"
+                        : "border-slate-800 bg-slate-900 text-slate-400"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="outgoingAction"
+                      value="MOVE_TO_RESERVE"
+                      checked={outgoingAction === "MOVE_TO_RESERVE"}
+                      onChange={() => setOutgoingAction("MOVE_TO_RESERVE")}
+                      className="text-amber-500"
+                    />
+                    <span>Move to Reserve Pool</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-[11px] text-indigo-300">
+                💡 <strong>Automatic Cascading:</strong> All existing match fixtures, standings points, and UCL/Europa slots associated with this athlete slot will automatically update to display the new athlete&apos;s name immediately.
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setReplaceTargetPlayer(null)}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={replaceLoading}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                >
+                  <Shuffle className="h-4 w-4 mr-1.5" />
+                  {replaceLoading ? "Replacing..." : "Confirm Athlete Replacement"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

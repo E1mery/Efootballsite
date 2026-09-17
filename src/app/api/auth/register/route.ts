@@ -16,24 +16,18 @@ export async function POST(req: Request) {
       preferredDivision = "Division 1",
     } = body;
 
-    if (!fullName || !gamerTag || !efootballId || !email || !password || !whatsapp) {
+    if (!fullName || !gamerTag || !email || !password || !whatsapp) {
       return NextResponse.json(
-        { error: "All fields including WhatsApp number and Password are required." },
+        { error: "Full Name, Gamer Tag, WhatsApp, Email, and Password are required." },
         { status: 400 }
       );
     }
 
-    // Check if registration is officially open
-    const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
-    if (config && !config.registrationOpen) {
-      return NextResponse.json(
-        { error: "League registration has been closed by the League Administrator. Matches have commenced." },
-        { status: 403 }
-      );
-    }
+    const cleanGamerTag = gamerTag.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     // Check uniqueness
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existingUser) {
       return NextResponse.json(
         { error: "An account with this email already exists. Please log in." },
@@ -41,7 +35,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingGamerTag = await prisma.player.findUnique({ where: { gamerTag } });
+    const existingGamerTag = await prisma.player.findUnique({ where: { gamerTag: cleanGamerTag } });
     if (existingGamerTag) {
       return NextResponse.json(
         { error: "Gamer Tag is already taken. Please choose another one." },
@@ -49,7 +43,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingKonami = await prisma.player.findUnique({ where: { efootballId } });
+    // Auto-generate or sanitize eFootball ID if not provided
+    const sanitizedKonami = efootballId?.trim()
+      ? efootballId.trim()
+      : `EF-${cleanGamerTag.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)}-${Date.now().toString().slice(-4)}`;
+
+    const existingKonami = await prisma.player.findUnique({ where: { efootballId: sanitizedKonami } });
     if (existingKonami) {
       return NextResponse.json(
         { error: "Konami eFootball Mobile ID is already registered." },
@@ -57,25 +56,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check 20 players cap in division
-    const divisionCount = await prisma.player.count({
-      where: { division: preferredDivision, isDisqualified: false },
-    });
-
-    if (divisionCount >= 20) {
-      return NextResponse.json(
-        {
-          error: `${preferredDivision} has reached its maximum cap of 20 players. Please register for another division or join the standby pool.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Create User and Player
+    // Create User and Player in PENDING_APPROVAL status (no caps, Commissioner will admit or place on reserve)
     const passwordHash = hashPassword(password);
     const user = await prisma.user.create({
       data: {
-        email,
+        email: cleanEmail,
         passwordHash,
         role: "PLAYER",
       },
@@ -84,65 +69,54 @@ export async function POST(req: Request) {
     const player = await prisma.player.create({
       data: {
         userId: user.id,
-        gamerTag,
-        fullName,
-        efootballId,
-        whatsapp,
-        division: preferredDivision,
+        gamerTag: cleanGamerTag,
+        fullName: fullName.trim(),
+        efootballId: sanitizedKonami,
+        whatsapp: whatsapp.trim(),
+        division: preferredDivision, // Requested division, pending admin confirmation
+        status: "PENDING_APPROVAL",
         platform: "eFootball Mobile",
         overallRating: 85,
       },
     });
 
-    // Find active tournament for this division
-    const tournament = await prisma.tournament.findFirst({
-      where: {
-        name: { contains: preferredDivision },
-        type: "DIVISION",
-      },
-    });
+    // NOTE: Standings record is NOT created yet.
+    // The League Commissioner will review and either admit the player to an active division
+    // or place them in the Reserve Pool.
 
-    if (tournament) {
-      const currentStandingsCount = await prisma.standing.count({
-        where: { tournamentId: tournament.id, division: preferredDivision },
-      });
+    // Robust session cookie creation (dual-write to headers and cookieStore)
+    const host = req.headers.get("host") || "";
+    const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1");
+    const isSecure = process.env.NODE_ENV === "production" && !isLocalhost;
 
-      await prisma.standing.create({
-        data: {
-          tournamentId: tournament.id,
-          division: preferredDivision,
-          playerId: player.id,
-          rank: currentStandingsCount + 1,
-          played: 0,
-          won: 0,
-          drawn: 0,
-          lost: 0,
-          goalsFor: 0,
-          goalsAgainst: 0,
-          goalDifference: 0,
-          points: 0,
-          form: "D",
-        },
-      });
-    }
-
-    // Set auth cookie
-    const cookieStore = await cookies();
-    cookieStore.set("efrl_session", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
+        pendingApproval: true,
         user: { id: user.id, email: user.email, role: user.role },
         player,
       },
       { status: 201 }
     );
+
+    response.cookies.set("efrl_session", user.id, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("efrl_session", user.id, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    return response;
   } catch (err: any) {
     console.error("Registration error:", err);
     return NextResponse.json(
@@ -151,3 +125,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

@@ -206,3 +206,17 @@ model UclGroupSlot {
 
   @@unique([competition, playerId])
 }
+
+model HallOfFame {
+  id               String   @id @default(cuid())
+  tournamentName   String   // e.g. "EFRL Division 1 (Premiership)", "eFootball Champions League (UCL)"
+  season           String   // e.g. "Season 2026", "Season 2025"
+  championName     String   // Gamer Tag
+  championRealName String?  // Optional real name
+  runnerUp         String?  // Optional runner up
+  prizeWon         String?  // e.g. "3,000,000 RWF + Trophy"
+  trophyType       String   @default("GOLD") // "GOLD", "UCL", "EUROPA", "SILVER"
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

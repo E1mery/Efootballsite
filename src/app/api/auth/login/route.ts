@@ -52,16 +52,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Set cookie session
-    const cookieStore = await cookies();
-    cookieStore.set("efrl_session", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
+    // Set cookie session (dual-write to response headers and cookieStore)
+    const host = req.headers.get("host") || "";
+    const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1");
+    const isSecure = process.env.NODE_ENV === "production" && !isLocalhost;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -70,6 +66,25 @@ export async function POST(req: Request) {
       },
       player: user.player,
     });
+
+    response.cookies.set("efrl_session", user.id, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("efrl_session", user.id, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    return response;
   } catch (err: any) {
     console.error("Login error:", err);
     return NextResponse.json(

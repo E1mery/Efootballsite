@@ -13,7 +13,6 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     gamerTag: "",
-    efootballId: "",
     whatsapp: "",
     email: "",
     password: "",
@@ -51,6 +50,11 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
 
+      // Save user session in localStorage for immediate navbar persistence
+      if (typeof window !== "undefined" && data.user) {
+        localStorage.setItem("efrl_user", JSON.stringify(data.user));
+      }
+
       // Successfully registered and session created! Redirect to dashboard
       router.push("/dashboard");
       router.refresh();
@@ -66,16 +70,16 @@ export default function RegisterPage() {
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 mb-3">
-          <Badge variant="yellow">EFOOTBALL MOBILE GAMING ONLY</Badge>
+          <Badge variant="yellow">EFOOTBALL MOBILE GAMING</Badge>
           <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
-            Season 2026 Registration
+            Open Athlete Registration
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black uppercase text-white tracking-tight">
           Player Registration
         </h1>
         <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-          Create your official account to compete in Division 1, 2, or 3. You will receive daily 24-hour matchday fixtures on your player dashboard and chat with opponents via WhatsApp.
+          Create your official athlete profile. Registrations have no limit! The League Commissioner will review your account to either place you directly into an active division or into the official Standby Reserve Pool.
         </p>
       </div>
 
@@ -93,7 +97,7 @@ export default function RegisterPage() {
               <div>
                 <p className="font-black uppercase tracking-wider text-amber-400">Registration Is Currently Closed</p>
                 <p className="mt-1 text-slate-300">
-                  The League Administrator has officially closed registrations. Season matches are currently in progress. Please log in if you already have an account, or contact an administrator to join the standby reserve list.
+                  The League Administrator has temporarily closed registrations. Please log in if you already have an account, or check back soon.
                 </p>
               </div>
             </div>
@@ -134,35 +138,21 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Konami eFootball Mobile ID & WhatsApp */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                  Konami eFootball Mobile ID *
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. EF-MOB-5839"
-                  value={formData.efootballId}
-                  onChange={(e) => setFormData({ ...formData, efootballId: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-emerald-400 uppercase mb-1 flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  WhatsApp Number *
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. +250 788 123 456"
-                  value={formData.whatsapp}
-                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Used by opponents to schedule match times on WhatsApp.
-                </span>
-              </div>
+            {/* WhatsApp Contact */}
+            <div>
+              <label className="block text-xs font-bold text-emerald-400 uppercase mb-1 flex items-center gap-1">
+                <Phone className="h-3.5 w-3.5" />
+                WhatsApp Number *
+              </label>
+              <Input
+                required
+                placeholder="e.g. +250 788 123 456"
+                value={formData.whatsapp}
+                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Required for matchmaking coordination with opponents and Commissioner updates.
+              </span>
             </div>
 
             {/* Email & Password */}
@@ -194,10 +184,10 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Preferred Division */}
+            {/* Requested Starting Division */}
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                Select Starting Division (Max 20 Players per Division)
+                Requested Starting Division (Pending Commissioner Placement)
               </label>
               <select
                 className="flex h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -208,6 +198,9 @@ export default function RegisterPage() {
                 <option value="Division 2">Division 2 (Championship - Semi-Pro)</option>
                 <option value="Division 3">Division 3 (National Academy - Grassroots)</option>
               </select>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                The League Administrator will review your account to either approve your division placement or place you in the official Standby Reserve Pool.
+              </span>
             </div>
 
             <div className="pt-2">
@@ -219,10 +212,10 @@ export default function RegisterPage() {
                 disabled={loading || registrationOpen === false}
               >
                 {loading
-                  ? "Creating Account..."
+                  ? "Submitting Profile..."
                   : registrationOpen === false
                   ? "Registration Closed"
-                  : "Create Account & Enter League"}
+                  : "Submit Registration for League Review"}
               </Button>
             </div>
 

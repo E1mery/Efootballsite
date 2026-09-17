@@ -34,6 +34,9 @@ export default async function AdminPage() {
     div3Standings,
     uclSlots,
     europaSlots,
+    pendingPlayers,
+    reservePlayers,
+    hallOfFameEntries,
   ] = await Promise.all([
     prisma.match.findMany({
       include: { homePlayer: true, awayPlayer: true },
@@ -106,6 +109,17 @@ export default async function AdminPage() {
       include: { player: true },
       orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
     }),
+    prisma.player.findMany({
+      where: { status: "PENDING_APPROVAL" },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.player.findMany({
+      where: { status: "RESERVED" },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.hallOfFame.findMany({
+      orderBy: [{ season: "desc" }, { createdAt: "desc" }],
+    }),
   ]);
 
   return (
@@ -124,6 +138,9 @@ export default async function AdminPage() {
         uclSlots={uclSlots}
         europaSlots={europaSlots}
         adminEmail={user.email}
+        initialPendingPlayers={pendingPlayers}
+        initialReservePlayers={reservePlayers}
+        initialHallOfFame={hallOfFameEntries}
       />
     </div>
   );

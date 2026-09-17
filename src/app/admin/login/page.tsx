@@ -37,6 +37,9 @@ export default function AdminLoginPage() {
       }
 
       // Successful Admin Login
+      if (typeof window !== "undefined") {
+        localStorage.setItem("efrl_user", JSON.stringify(data.user));
+      }
       router.push("/admin");
       router.refresh();
     } catch (err: any) {

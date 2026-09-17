@@ -3,21 +3,54 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Trophy, Calendar, Users, Award, Shield, Menu, X, Flame, ShieldAlert, Globe, Smartphone, User, LogIn } from "lucide-react";
+import { Trophy, Shield, Menu, X, ShieldAlert, Globe, User, LogIn, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const isAdminPortal = pathname?.startsWith("/admin");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [session, setSession] = useState<{ authenticated: boolean; player?: any } | null>(null);
+  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(null);
 
   useEffect(() => {
+    // 1. Immediately hydrate from localStorage to prevent flash of "Log In" on refresh
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("efrl_user");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setSession({
+            authenticated: true,
+            user: parsed,
+            player: parsed.player,
+          });
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+
+    // 2. Fetch fresh session from server
     fetch("/api/auth/me")
       .then((res) => res.json())
-      .then((data) => setSession(data))
-      .catch(() => setSession({ authenticated: false }));
+      .then((data) => {
+        if (data.authenticated) {
+          setSession(data);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("efrl_user", JSON.stringify({ ...data.user, player: data.player }));
+          }
+        } else {
+          setSession({ authenticated: false });
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("efrl_user");
+          }
+        }
+      })
+      .catch(() => {
+        // keep cached session if network hiccup
+      });
   }, [pathname]);
 
   const navLinks = [
@@ -28,58 +61,90 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#060913]/90 backdrop-blur-xl transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#060913]/95 backdrop-blur-xl transition-all">
       {/* Sleek Cyan / Gold Esports Accent Line */}
       <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-amber-400 opacity-80" />
 
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
-        {/* Gaming Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <EfootballGamingLogo size="md" showText={true} />
-        </Link>
+        {/* Gaming Brand Logo & Admin Badge */}
+        <div className="flex items-center gap-3">
+          <Link href={isAdminPortal ? "/admin" : "/"} className="flex items-center gap-3 group">
+            <EfootballGamingLogo size="md" showText={true} />
+          </Link>
+          {isAdminPortal && (
+            <Badge variant="destructive" className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex">
+              COMMISSIONER OFFICE
+            </Badge>
+          )}
+        </div>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center space-x-1">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  isActive
-                    ? "bg-cyan-500/10 text-cyan-400 shadow-inner border border-cyan-500/30"
-                    : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-                }`}
-              >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-cyan-400" : "text-slate-400"}`} />
-                <span>{link.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Desktop Navigation Links (HIDDEN in Admin Portal) */}
+        {!isAdminPortal && (
+          <nav className="hidden lg:flex items-center space-x-1">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    isActive
+                      ? "bg-cyan-500/10 text-cyan-400 shadow-inner border border-cyan-500/30"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-cyan-400" : "text-slate-400"}`} />
+                  <span>{link.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        )}
 
-        {/* Auth Buttons */}
+        {/* Right Action Bar */}
         <div className="hidden sm:flex items-center gap-2.5">
-          {session?.authenticated ? (
-            <Link href="/dashboard">
-              <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5">
-                <User className="h-3.5 w-3.5" />
-                {session.player?.gamerTag || "My Dashboard"}
-              </Button>
-            </Link>
+          {isAdminPortal ? (
+            /* Inside Admin Portal: Clean Header without player dashboard, home, 3 divisions, or UCL buttons */
+            <div className="flex items-center gap-3">
+              <Link href="/">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-bold text-xs gap-1.5 border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-white"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 text-cyan-400" />
+                  <span>Public League Portal</span>
+                </Button>
+              </Link>
+            </div>
+          ) : session?.authenticated ? (
+            session.user?.role === "ADMIN" ? (
+              <Link href="/admin">
+                <Button variant="destructive" size="sm" className="font-black text-xs gap-1.5 shadow-md shadow-red-600/20">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  <span>Admin Office</span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/dashboard">
+                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md shadow-yellow-500/20">
+                  <User className="h-3.5 w-3.5" />
+                  <span>{session.player?.gamerTag || "Player Dashboard"}</span>
+                </Button>
+              </Link>
+            )
           ) : (
             <>
               <Link href="/login">
-                <Button variant="outline" size="sm" className="font-bold text-xs gap-1.5">
+                <Button variant="outline" size="sm" className="font-bold text-xs gap-1.5 border-slate-700 text-slate-200 hover:text-white">
                   <LogIn className="h-3.5 w-3.5" />
-                  Log In
+                  <span>Log In</span>
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="yellow" size="sm" className="font-bold text-xs">
-                  Register
+                <Button variant="yellow" size="sm" className="font-black text-xs text-slate-950 shadow-md shadow-yellow-500/20">
+                  <span>Register</span>
                 </Button>
               </Link>
             </>
@@ -90,7 +155,8 @@ export default function Navbar() {
         <div className="flex lg:hidden">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="inline-flex items-center justify-center p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 min-h-[44px] min-w-[44px]"
+            aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -99,40 +165,79 @@ export default function Navbar() {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-slate-800 bg-slate-950/95 backdrop-blur-2xl px-4 pt-2 pb-6 space-y-2">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            const Icon = link.icon;
-            return (
+        <div className="lg:hidden border-b border-slate-800 bg-[#060913]/98 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2">
+          {isAdminPortal ? (
+            /* Clean Admin mobile drawer */
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 text-xs text-red-300 font-mono">
+                Admin Office Active
+              </div>
               <Link
-                key={link.href}
-                href={link.href}
+                href="/"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-slate-800 text-sky-400 border border-sky-500/30"
-                    : "text-slate-300 hover:bg-slate-900"
-                }`}
+                className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-bold text-xs"
               >
-                <Icon className="h-4 w-4" />
-                <span>{link.name}</span>
+                <ExternalLink className="h-4 w-4 text-cyan-400" />
+                <span>Return to Public League Portal</span>
               </Link>
-            );
-          })}
-          <div className="pt-3 grid grid-cols-2 gap-2">
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full text-xs font-bold">
-                Log In
-              </Button>
-            </Link>
-            <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="yellow" className="w-full text-xs font-bold">
-                Register
-              </Button>
-            </Link>
-          </div>
+            </div>
+          ) : (
+            <>
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all min-h-[44px] ${
+                      isActive
+                        ? "bg-slate-800/80 text-cyan-400 border border-cyan-500/30"
+                        : "text-slate-300 hover:bg-slate-900"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 text-cyan-400" />
+                    <span>{link.name}</span>
+                  </Link>
+                );
+              })}
+
+              <div className="pt-3 border-t border-slate-800/80">
+                {session?.authenticated ? (
+                  session.user?.role === "ADMIN" ? (
+                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="destructive" className="w-full text-xs font-black min-h-[44px]">
+                        Open Admin Office
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="yellow" className="w-full text-xs font-black min-h-[44px]">
+                        My Player Dashboard ({session.player?.gamerTag || "Profile"})
+                      </Button>
+                    </Link>
+                  )
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full text-xs font-bold min-h-[44px]">
+                        Log In
+                      </Button>
+                    </Link>
+                    <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="yellow" className="w-full text-xs font-black min-h-[44px]">
+                        Register
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </header>
   );
 }
+

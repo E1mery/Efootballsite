@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
 import EfootballLoader from "@/components/EfootballLoader";
+import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 
 export default function DashboardClient({
   player,
@@ -38,6 +39,9 @@ export default function DashboardClient({
   standing,
   leagueConfig,
   divisionalMotd = {},
+  div1Standings = [],
+  div2Standings = [],
+  div3Standings = [],
 }: {
   player: any;
   user: any;
@@ -47,6 +51,9 @@ export default function DashboardClient({
   standing: any;
   leagueConfig?: any;
   divisionalMotd?: Record<string, any>;
+  div1Standings?: any[];
+  div2Standings?: any[];
+  div3Standings?: any[];
 }) {
   const router = useRouter();
 
@@ -113,8 +120,11 @@ export default function DashboardClient({
   const [submittingForfeit, setSubmittingForfeit] = useState(false);
   const [forfeitSuccessMsg, setForfeitSuccessMsg] = useState("");
 
-  // Active tab
-  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "INBOX" | "HISTORY">("OVERVIEW");
+  // Active tab (if player is reserved, default to STANDINGS)
+  const isReserved = player.status === "RESERVED";
+  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "INBOX" | "HISTORY" | "STANDINGS">(
+    isReserved ? "STANDINGS" : "OVERVIEW"
+  );
 
   // Determine opponent
   const isHomePlayer = activeMatch?.homePlayerId === player.id;
@@ -237,12 +247,84 @@ export default function DashboardClient({
   };
 
   const handleLogout = async () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("efrl_user");
+    }
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/?loggedOut=player");
     router.refresh();
   };
 
   const cleanWhatsapp = opponent?.whatsapp?.replace(/[^0-9]/g, "") || "";
+
+  if (player.status === "PENDING_APPROVAL") {
+    return (
+      <div className="mx-auto max-w-4xl space-y-8 py-6">
+        <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-950 to-slate-950 p-6 sm:p-10 shadow-2xl backdrop-blur-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-2xl shadow-lg">
+                {player.gamerTag.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl sm:text-3xl font-black text-white">{player.gamerTag}</h1>
+                  <Badge variant="yellow" className="text-xs">PENDING APPROVAL</Badge>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Requested Division: <strong className="text-white">{player.division}</strong> • WA: <span className="text-emerald-400 font-mono">{player.whatsapp}</span>
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="text-xs gap-2">
+              <LogOut className="h-4 w-4" /> Sign Out
+            </Button>
+          </div>
+
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 space-y-3">
+            <div className="flex items-center gap-3 text-amber-400">
+              <ShieldAlert className="h-6 w-6 shrink-0" />
+              <h3 className="text-lg font-black uppercase">Registration Under League Review</h3>
+            </div>
+            <p className="text-sm text-slate-200 leading-relaxed">
+              Welcome, <strong className="text-white">{player.gamerTag}</strong>! Your athlete profile has been received.
+              The League Commissioner will review your account to either approve your placement in <strong>{player.division}</strong> or assign you to the official <strong>Standby Reserve Pool</strong>.
+            </p>
+            <p className="text-xs text-slate-400">
+              Matchday fixtures, scheduling, and table standings will become active once your registration is officially placed by an administrator.
+            </p>
+          </div>
+
+          {/* External Links */}
+          <div className="rounded-2xl border border-slate-800 bg-[#080d1e]/80 p-5 space-y-3">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              Official Community & League Resources (Open Access)
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a
+                href="https://discord.gg/rbaFrBB5p"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-xs text-slate-300 font-semibold flex items-center justify-between transition-all hover:text-white"
+              >
+                <span>Official Discord Community</span>
+                <ExternalLink className="h-4 w-4 text-cyan-400" />
+              </a>
+              <a
+                href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-pink-500/40 text-xs text-slate-300 font-semibold flex items-center justify-between transition-all hover:text-white"
+              >
+                <span>Official Instagram</span>
+                <ExternalLink className="h-4 w-4 text-pink-400" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -257,8 +339,8 @@ export default function DashboardClient({
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 {player.gamerTag}
               </h1>
-              <Badge variant="yellow" className="text-xs">
-                {player.division}
+              <Badge variant={isReserved ? "outline" : "yellow"} className="text-xs">
+                {isReserved ? "RESERVE POOL" : player.division}
               </Badge>
               <Badge variant="default" className="text-[10px] uppercase font-mono">
                 {player.platform}
@@ -277,9 +359,9 @@ export default function DashboardClient({
         {/* Action Controls */}
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <span className="text-[10px] font-bold text-slate-500 uppercase block">Division Rank</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase block">Status / Rank</span>
             <span className="text-xl font-black text-yellow-400">
-              {standing ? `#${standing.rank}` : "Unranked"}
+              {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-xs">
@@ -289,18 +371,45 @@ export default function DashboardClient({
         </div>
       </div>
 
+      {/* Reserve Athlete Status Banner */}
+      {isReserved && (
+        <div className="rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-5 space-y-2">
+          <div className="flex items-center gap-2 text-cyan-400">
+            <Sparkles className="h-5 w-5 shrink-0" />
+            <h3 className="text-sm font-black uppercase tracking-wider">Official Reserve Athlete (Standby Roster)</h3>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            You are registered in the official League Reserve Pool. You are not currently scheduled in daily match fixtures, but you remain eligible as an official replacement athlete whenever an active league slot opens. You can explore all division tables and league announcements below.
+          </p>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        {!isReserved && (
+          <button
+            onClick={() => setActiveTab("OVERVIEW")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === "OVERVIEW"
+                ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-900"
+            }`}
+          >
+            <Smartphone className="h-4 w-4" />
+            <span>Today's 24-Hr Match</span>
+          </button>
+        )}
+
         <button
-          onClick={() => setActiveTab("OVERVIEW")}
+          onClick={() => setActiveTab("STANDINGS")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-            activeTab === "OVERVIEW"
+            activeTab === "STANDINGS"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
           }`}
         >
-          <Smartphone className="h-4 w-4" />
-          <span>Today's 24-Hr Match</span>
+          <Trophy className="h-4 w-4" />
+          <span>All Division Tables</span>
         </button>
 
         <button
@@ -320,18 +429,40 @@ export default function DashboardClient({
           )}
         </button>
 
-        <button
-          onClick={() => setActiveTab("HISTORY")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-            activeTab === "HISTORY"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
-          }`}
-        >
-          <Trophy className="h-4 w-4" />
-          <span>Match History & Proof</span>
-        </button>
+        {!isReserved && (
+          <button
+            onClick={() => setActiveTab("HISTORY")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === "HISTORY"
+                ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-900"
+            }`}
+          >
+            <Trophy className="h-4 w-4" />
+            <span>Match History & Proof</span>
+          </button>
+        )}
       </div>
+
+      {/* TAB: STANDINGS (AVAILABLE TO BOTH ACTIVE AND RESERVE ATHLETES) */}
+      {activeTab === "STANDINGS" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-1">
+            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              <span>Official League Standings</span>
+            </h3>
+            <p className="text-xs text-slate-400">
+              Live standings across Division 1, Division 2, and Division 3.
+            </p>
+          </div>
+          <HomeDivisionsTabs
+            div1Standings={div1Standings}
+            div2Standings={div2Standings}
+            div3Standings={div3Standings}
+          />
+        </div>
+      )}
 
       {/* TAB 1: OVERVIEW & ACTIVE 24-HOUR MATCH */}
       {activeTab === "OVERVIEW" && (

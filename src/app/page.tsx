@@ -15,6 +15,7 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ export default async function HomePage({
   let div1Standings: any[] = [];
   let div2Standings: any[] = [];
   let div3Standings: any[] = [];
+  let hallOfFame: any[] = [];
   let leagueConfig: any = { registrationOpen: true, currentMatchday: 1 };
 
   try {
@@ -80,6 +82,10 @@ export default async function HomePage({
         update: {},
         create: { id: "default", registrationOpen: true, currentMatchday: 1 },
       }),
+      prisma.hallOfFame.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      }),
     ]);
 
     liveMatches = results[0];
@@ -88,6 +94,7 @@ export default async function HomePage({
     div2Standings = results[3];
     div3Standings = results[4];
     leagueConfig = results[5];
+    hallOfFame = results[6] || [];
   } catch (error) {
     console.error("HomePage data query error:", error);
   }
@@ -319,6 +326,113 @@ export default async function HomePage({
           div2Standings={div2Standings}
           div3Standings={div3Standings}
         />
+      </section>
+
+      {/* ========================================================================= */}
+      {/* HALL OF FAME: IMMORTALIZED CHAMPIONS */}
+      {/* ========================================================================= */}
+      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-yellow-500/20 pb-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
+                <Crown className="h-5 w-5" />
+              </div>
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight">
+                EFRL Hall of Fame
+              </h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Honoring the legendary esports champions who conquered Rwanda&apos;s most competitive eFootball tournaments.
+            </p>
+          </div>
+
+          <Badge variant="yellow" className="self-start sm:self-auto font-mono text-[10px] tracking-wider uppercase">
+            🏆 Championship Heritage
+          </Badge>
+        </div>
+
+        {hallOfFame.length === 0 ? (
+          <div className="rounded-3xl border border-slate-800/80 bg-slate-950/60 p-10 text-center backdrop-blur-md">
+            <Crown className="h-10 w-10 text-yellow-500/40 mx-auto mb-2.5" />
+            <h4 className="text-sm font-bold text-white uppercase">Inaugural Season in Progress</h4>
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              Championship winners across Division 1, Division 2, Division 3, UCL, and Europa League will be immortalized here upon tournament conclusion.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {hallOfFame.map((entry) => (
+              <div
+                key={entry.id}
+                className="relative group overflow-hidden rounded-3xl border border-yellow-500/20 bg-gradient-to-b from-[#0e1628]/90 to-[#070b16]/90 p-6 space-y-4 shadow-xl hover:border-yellow-500/40 transition-all duration-300 backdrop-blur-md flex flex-col justify-between"
+              >
+                {/* Gold Glow decoration */}
+                <div className="absolute -top-10 -right-10 w-28 h-28 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-yellow-500/20 transition-all" />
+
+                <div className="space-y-3 relative z-10">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge
+                      variant="yellow"
+                      className="text-[10px] uppercase font-bold tracking-wider"
+                    >
+                      {entry.season}
+                    </Badge>
+                    <div className="h-8 w-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center shrink-0">
+                      <Trophy className="h-4 w-4 text-yellow-400" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-mono text-slate-400 block uppercase tracking-wider">
+                      Tournament Title
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-200 line-clamp-1">{entry.tournamentName}</h3>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-yellow-950/20 border border-yellow-500/20 space-y-1">
+                    <span className="text-[10px] font-mono uppercase text-yellow-400 font-extrabold tracking-wider block">
+                      👑 Champion
+                    </span>
+                    <div className="text-xl font-black text-white tracking-wide">
+                      {entry.championName}
+                    </div>
+                    {entry.championRealName && (
+                      <div className="text-xs text-slate-300 font-medium">
+                        {entry.championRealName}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 text-xs">
+                    {entry.runnerUp && (
+                      <div className="flex justify-between text-slate-400">
+                        <span>Runner-Up:</span>
+                        <span className="font-semibold text-slate-300">{entry.runnerUp}</span>
+                      </div>
+                    )}
+                    {entry.prizeWon && (
+                      <div className="flex justify-between text-slate-400">
+                        <span>Prize Won:</span>
+                        <span className="font-mono text-emerald-400 font-bold">{entry.prizeWon}</span>
+                      </div>
+                    )}
+                    {entry.notes && (
+                      <div className="text-xs text-slate-400 italic pt-2 border-t border-slate-800/80">
+                        &ldquo;{entry.notes}&rdquo;
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <span>Honored</span>
+                  <span>{new Date(entry.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* MAIN SYSTEM FEATURES & RULES */}

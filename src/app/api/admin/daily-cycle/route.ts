@@ -99,15 +99,17 @@ export async function POST(req: Request) {
       await promoteTopPlayersAtSeasonEnd();
     }
 
-    // 5. Create Announcement
-    await prisma.announcement.create({
-      data: {
-        title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Midnight Window)`,
-        content: `The system has automatically dropped all ${nextRoundName} fixtures. Contact your opponent via WhatsApp immediately. Submissions and proof upload buttons will remain active until 12:00 AM cutoff.`,
-        type: "BROADCAST",
-        isPinned: true,
-      },
-    });
+    // 5. Create Announcement ONLY if new round fixtures were actually activated
+    if (updatedMatches.count > 0) {
+      await prisma.announcement.create({
+        data: {
+          title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Midnight Window)`,
+          content: `The system has automatically dropped all ${nextRoundName} fixtures. Contact your opponent via WhatsApp immediately. Submissions and proof upload buttons will remain active until 12:00 AM cutoff.`,
+          type: "BROADCAST",
+          isPinned: true,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
