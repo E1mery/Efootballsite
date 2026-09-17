@@ -6,9 +6,9 @@ export default function Footer() {
   return (
     <footer className="border-t border-slate-800/80 bg-[#050811] text-slate-400">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Brand Info - Clean Gaming Logo (no picture box) */}
-          <div className="space-y-4 md:col-span-1">
+          <div className="space-y-4 sm:col-span-2 lg:col-span-1">
             <EfootballGamingLogo size="sm" showText={true} />
             <p className="text-xs leading-relaxed text-slate-400">
               The official competitive digital football championship in Rwanda. Empowering athletes across 3 divisions with daily 24-hour matchday cycles.

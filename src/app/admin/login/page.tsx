@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Login Box */}
-        <div className="rounded-3xl border border-red-500/20 bg-slate-950/90 p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+        <div className="rounded-3xl border border-red-500/20 bg-slate-950/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-amber-500 to-sky-500" />
 
           {error && (

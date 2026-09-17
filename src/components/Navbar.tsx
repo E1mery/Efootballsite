@@ -109,7 +109,7 @@ export default function Navbar() {
             href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-900/40 hover:text-emerald-300 transition-all shadow-sm"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-900/40 hover:text-emerald-300 transition-all shadow-sm shrink-0"
           >
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>WhatsApp Community</span>

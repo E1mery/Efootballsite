@@ -84,15 +84,15 @@ export default function EfootballGamingLogo({
 
       {showText && (
         <div className="flex flex-col">
-          <div className="flex items-center gap-1.5 leading-none">
-            <span className={`font-black tracking-wider uppercase text-white font-sans ${textMap[size]}`}>
+          <div className="flex items-center gap-1 sm:gap-1.5 leading-none">
+            <span className={`font-black tracking-wider uppercase text-white font-sans text-xs sm:text-sm md:text-base lg:text-lg`}>
               EFOOTBALL
             </span>
-            <span className={`font-black tracking-wider uppercase text-cyan-400 font-sans ${textMap[size]}`}>
+            <span className={`font-black tracking-wider uppercase text-cyan-400 font-sans text-xs sm:text-sm md:text-base lg:text-lg`}>
               RWANDA
             </span>
           </div>
-          <span className="text-[9px] uppercase font-bold tracking-[0.22em] text-amber-400/90 mt-1">
+          <span className="text-[7.5px] sm:text-[9px] uppercase font-bold tracking-[0.12em] sm:tracking-[0.22em] text-amber-400/90 mt-0.5 sm:mt-1 truncate max-w-[130px] sm:max-w-none">
             OFFICIAL ESPORTS LEAGUE
           </span>
         </div>

@@ -85,7 +85,7 @@ export default function RegisterPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Form Card */}
-        <div className="lg:col-span-7 rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <div className="lg:col-span-7 rounded-3xl border border-slate-800 bg-slate-950/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
           <h3 className="text-lg font-black uppercase text-white border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
             <Smartphone className="h-5 w-5 text-sky-400" />
             <span>Mobile Athlete Profile</span>

@@ -99,20 +99,20 @@ export default async function FixturesPage({
         </div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar scroll-smooth w-full sm:w-fit">
           <a
             href="/fixtures?filter=ALL"
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
               filter === "ALL"
                 ? "bg-sky-500 text-white shadow-md shadow-sky-500/30"
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            All
+            All Matches
           </a>
           <a
             href="/fixtures?filter=LIVE"
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
               filter === "LIVE"
                 ? "bg-red-500 text-white shadow-md shadow-red-500/30"
                 : "text-slate-400 hover:text-white"
@@ -122,7 +122,7 @@ export default async function FixturesPage({
           </a>
           <a
             href="/fixtures?filter=FINISHED"
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
               filter === "FINISHED"
                 ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30"
                 : "text-slate-400 hover:text-white"
@@ -132,7 +132,7 @@ export default async function FixturesPage({
           </a>
           <a
             href="/fixtures?filter=SCHEDULED"
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap ${
               filter === "SCHEDULED"
                 ? "bg-yellow-500 text-slate-950 shadow-md shadow-yellow-500/30"
                 : "text-slate-400 hover:text-white"

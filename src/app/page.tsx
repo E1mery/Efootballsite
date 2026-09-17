@@ -143,7 +143,7 @@ export default async function HomePage({
             <span>RWANDA EFOOTBALL ESPORTS LEAGUE • 3 DIVISIONS</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-none">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-tight break-words">
             Competitive <br />
             <span className="efootball-gradient-text">eFootball Rwanda</span>
           </h1>
@@ -249,17 +249,17 @@ export default async function HomePage({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
               {/* WhatsApp Community Link */}
               <a
                 href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-white transition-all shadow-lg hover:scale-105"
+                className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-white transition-all shadow-lg hover:scale-105 min-h-[44px]"
               >
-                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold tracking-wider">Join WhatsApp Community</span>
-                <ExternalLink className="h-3.5 w-3.5 text-slate-300" />
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="text-xs font-bold tracking-wider">WhatsApp</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-300 ml-auto sm:ml-0" />
               </a>
 
               {/* Discord Link */}
@@ -267,11 +267,11 @@ export default async function HomePage({
                 href="https://discord.gg/rbaFrBB5p"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#5865F2]/15 border border-[#5865F2]/40 hover:bg-[#5865F2]/25 text-white transition-all shadow-lg hover:scale-105"
+                className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#5865F2]/15 border border-[#5865F2]/40 hover:bg-[#5865F2]/25 text-white transition-all shadow-lg hover:scale-105 min-h-[44px]"
               >
-                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold tracking-wider">Join Official Discord</span>
-                <ExternalLink className="h-3.5 w-3.5 text-slate-300" />
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="text-xs font-bold tracking-wider">Discord</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-300 ml-auto sm:ml-0" />
               </a>
 
               {/* Instagram Link */}
@@ -279,11 +279,11 @@ export default async function HomePage({
                 href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-gradient-to-r from-pink-600/20 to-purple-600/20 border border-pink-500/40 hover:from-pink-600/30 hover:to-purple-600/30 text-white transition-all shadow-lg hover:scale-105"
+                className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-gradient-to-r from-pink-600/20 to-purple-600/20 border border-pink-500/40 hover:from-pink-600/30 hover:to-purple-600/30 text-white transition-all shadow-lg hover:scale-105 min-h-[44px]"
               >
-                <span className="flex h-2.5 w-2.5 rounded-full bg-pink-500" />
-                <span className="text-xs font-bold tracking-wider">Follow on Instagram</span>
-                <ExternalLink className="h-3.5 w-3.5 text-slate-300" />
+                <span className="flex h-2.5 w-2.5 rounded-full bg-pink-500 shrink-0" />
+                <span className="text-xs font-bold tracking-wider">Instagram</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-300 ml-auto sm:ml-0" />
               </a>
             </div>
           </div>

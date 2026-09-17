@@ -107,10 +107,10 @@ export default async function PlayersPage() {
           All Registered eFootball Mobile Athletes ({allPlayers.length})
         </h2>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/50">
+        <div className="overflow-x-auto no-scrollbar scroll-smooth rounded-xl border border-slate-800 bg-slate-900/50">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 uppercase font-bold text-[11px] text-slate-400 border-b border-slate-800">
-              <tr>
+              <tr className="whitespace-nowrap">
                 <th className="p-3.5">Gamer Tag</th>
                 <th className="p-3.5">Full Name</th>
                 <th className="p-3.5">Konami Mobile ID</th>
@@ -124,7 +124,7 @@ export default async function PlayersPage() {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {allPlayers.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
+                <tr key={p.id} className="hover:bg-slate-800/40 transition-colors whitespace-nowrap">
                   <td className="p-3.5 font-bold text-white">{p.gamerTag}</td>
                   <td className="p-3.5 text-slate-400">{p.fullName}</td>
                   <td className="p-3.5 font-mono text-slate-500">{p.efootballId}</td>

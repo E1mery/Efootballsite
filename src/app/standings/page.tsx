@@ -67,10 +67,10 @@ export default async function StandingsPage({
         </div>
 
         {/* Division Selector Tabs */}
-        <div className="mt-6 flex flex-wrap items-center gap-2 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 w-fit">
+        <div className="mt-6 flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
           <a
             href="/standings?division=Division%201"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap ${
               currentDivision === "Division 1"
                 ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
                 : "text-slate-400 hover:text-white"
@@ -81,7 +81,7 @@ export default async function StandingsPage({
           </a>
           <a
             href="/standings?division=Division%202"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap ${
               currentDivision === "Division 2"
                 ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
                 : "text-slate-400 hover:text-white"
@@ -92,7 +92,7 @@ export default async function StandingsPage({
           </a>
           <a
             href="/standings?division=Division%203"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap ${
               currentDivision === "Division 3"
                 ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
                 : "text-slate-400 hover:text-white"
@@ -133,7 +133,7 @@ export default async function StandingsPage({
       </div>
 
       {/* League Rules Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* UCL Qualification */}
         <div className="rounded-xl border border-sky-500/30 bg-slate-900/40 p-5 space-y-2">
           <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">

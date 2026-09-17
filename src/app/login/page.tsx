@@ -67,7 +67,7 @@ function LoginForm() {
         <div className="absolute -top-16 -left-16 w-60 h-60 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -right-16 w-60 h-60 bg-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative rounded-3xl border border-slate-800 bg-slate-950/90 p-8 shadow-2xl backdrop-blur-xl">
+        <div className="relative rounded-3xl border border-slate-800 bg-slate-950/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-0.5 shadow-lg shadow-sky-500/20 mb-3">

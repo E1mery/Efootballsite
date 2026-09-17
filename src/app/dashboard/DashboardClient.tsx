@@ -549,12 +549,12 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      {/* Navigation Tabs - Mobile Horizontally Scrollable */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         {!isReserved && (
           <button
             onClick={() => setActiveTab("OVERVIEW")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
               activeTab === "OVERVIEW"
                 ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
                 : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -567,7 +567,7 @@ export default function DashboardClient({
 
         <button
           onClick={() => setActiveTab("STANDINGS")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
             activeTab === "STANDINGS"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -579,7 +579,7 @@ export default function DashboardClient({
 
         <button
           onClick={() => setActiveTab("INBOX")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
             activeTab === "INBOX"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -597,7 +597,7 @@ export default function DashboardClient({
         {!isReserved && (
           <button
             onClick={() => setActiveTab("HISTORY")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
               activeTab === "HISTORY"
                 ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
                 : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -610,7 +610,7 @@ export default function DashboardClient({
 
         <button
           onClick={() => setActiveTab("PROFILE")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
             activeTab === "PROFILE"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -973,10 +973,10 @@ export default function DashboardClient({
           </div>
 
           {/* Sub Navigation between Announcements & Direct Admin Messaging */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => setInboxSubTab("ANNOUNCEMENTS")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
                 inboxSubTab === "ANNOUNCEMENTS"
                   ? "bg-yellow-500 text-slate-950 font-black shadow-lg shadow-yellow-500/30"
                   : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -993,7 +993,7 @@ export default function DashboardClient({
 
             <button
               onClick={() => setInboxSubTab("DIRECT_MESSAGES")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
                 inboxSubTab === "DIRECT_MESSAGES"
                   ? "bg-sky-500 text-white font-black shadow-lg shadow-sky-500/30"
                   : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -1530,7 +1530,7 @@ export default function DashboardClient({
       {/* MODAL 1: UPLOAD MATCH RESULT SCREENSHOT */}
       {showResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-950 p-6 sm:p-8 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-800 bg-slate-950 p-5 sm:p-8 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
                 <Upload className="h-5 w-5 text-yellow-400" />
@@ -1642,7 +1642,7 @@ export default function DashboardClient({
       {/* MODAL 2: CLAIM OPPONENT NO-SHOW / FORFEIT */}
       {showForfeitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-lg rounded-3xl border border-red-500/40 bg-slate-950 p-6 sm:p-8 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-red-500/40 bg-slate-950 p-5 sm:p-8 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-black uppercase text-red-400 flex items-center gap-2">
                 <ShieldAlert className="h-5 w-5" />

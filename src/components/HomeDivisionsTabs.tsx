@@ -47,7 +47,7 @@ export default function HomeDivisionsTabs({
   return (
     <div className="space-y-6">
       {/* Division Switcher Buttons */}
-      <div className="flex flex-wrap items-center gap-3 bg-[#080d1a] p-1.5 rounded-2xl border border-slate-800 w-fit">
+      <div className="flex items-center gap-2 bg-[#080d1a] p-1.5 rounded-2xl border border-slate-800 w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
         {(["Division 1", "Division 2", "Division 3"] as const).map((div) => {
           const isActive = activeDivision === div;
           return (
@@ -55,7 +55,7 @@ export default function HomeDivisionsTabs({
               key={div}
               type="button"
               onClick={() => setActiveDivision(div)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 isActive
                   ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"

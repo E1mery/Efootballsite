@@ -91,15 +91,15 @@ export default function ContinentalClient({
   return (
     <div className="space-y-12">
       {/* Navigation Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth w-full sm:w-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => {
               setSelectedCompetition("UCL");
               setVoteError(null);
               setVoteSuccess(null);
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
               selectedCompetition === "UCL"
                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
                 : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -116,7 +116,7 @@ export default function ContinentalClient({
               setVoteError(null);
               setVoteSuccess(null);
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
               selectedCompetition === "EUROPA"
                 ? "bg-amber-600 text-white shadow-lg shadow-amber-600/30"
                 : "text-slate-400 hover:text-white hover:bg-slate-900"

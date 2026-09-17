@@ -829,11 +829,11 @@ export default function AdminClient({
         </div>
       </div>
 
-      {/* Primary Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+      {/* Primary Navigation Tabs - Mobile & Tablet Horizontally Scrollable */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab("DASHBOARD")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "DASHBOARD"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -845,7 +845,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("PENDING_REGISTRATIONS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "PENDING_REGISTRATIONS"
               ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -862,7 +862,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("RESERVE_POOL")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "RESERVE_POOL"
               ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -874,7 +874,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("TABLES")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "TABLES"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -886,7 +886,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("CONTINENTAL")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "CONTINENTAL"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -898,7 +898,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("RESULTS_QUEUE")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "RESULTS_QUEUE"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -915,7 +915,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("FORFEITS_QUEUE")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "FORFEITS_QUEUE"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -932,7 +932,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("ANNOUNCEMENTS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "ANNOUNCEMENTS"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -944,7 +944,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("PLAYERS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "PLAYERS"
               ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -956,7 +956,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("HALL_OF_FAME")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "HALL_OF_FAME"
               ? "bg-yellow-500 text-slate-950 font-black shadow-lg shadow-yellow-500/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -968,7 +968,7 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("MESSAGES")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
             activeTab === "MESSAGES"
               ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
@@ -2925,8 +2925,8 @@ export default function AdminClient({
 
       {/* REPLACE ATHLETE MODAL */}
       {replaceTargetPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="relative max-w-xl w-full rounded-3xl border border-indigo-500/40 bg-slate-950 p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4">
+          <div className="relative max-w-xl w-full max-h-[90vh] overflow-y-auto rounded-3xl border border-indigo-500/40 bg-slate-950 p-4 sm:p-6 space-y-5 shadow-2xl no-scrollbar">
             <div className="flex items-start justify-between border-b border-slate-800 pb-3">
               <div>
                 <div className="flex items-center gap-2 text-indigo-400">
