@@ -25,6 +25,8 @@ import {
   CheckCircle2,
   User,
   Save,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,6 +133,7 @@ export default function DashboardClient({
   const [profileEmail, setProfileEmail] = useState(user?.email || "");
   const [profilePassword, setProfilePassword] = useState("");
   const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
   const [profileUpdating, setProfileUpdating] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
   const [profileErrorMsg, setProfileErrorMsg] = useState("");
@@ -887,32 +890,6 @@ export default function DashboardClient({
             )}
           </div>
 
-          {/* OFFICIAL WHATSAPP COMMUNITY BANNER */}
-          <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black text-white uppercase flex items-center gap-2">
-                  <span>Official eFootball Rwanda WhatsApp Community</span>
-                  <Badge variant="green" className="text-[9px]">ACTIVE</Badge>
-                </h4>
-                <p className="text-xs text-slate-400">
-                  Connect with Rwandan esports athletes, coordinate fixtures, and receive live matchday updates.
-                </p>
-              </div>
-            </div>
-            <a
-              href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/30 shrink-0 transition-all hover:scale-105"
-            >
-              <span>Join Community</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -945,32 +922,6 @@ export default function DashboardClient({
       {/* TAB 2: INBOX & ANNOUNCEMENTS & DIRECT MESSAGING */}
       {activeTab === "INBOX" && (
         <div className="space-y-6">
-          {/* Top WhatsApp Community Banner */}
-          <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black text-white uppercase flex items-center gap-2">
-                  <span>Official eFootball Rwanda WhatsApp Community</span>
-                  <Badge variant="green" className="text-[9px]">JOIN NOW</Badge>
-                </h4>
-                <p className="text-xs text-slate-400">
-                  Connect with league commissioners and active players across all 3 divisions.
-                </p>
-              </div>
-            </div>
-            <a
-              href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/30 shrink-0 transition-all hover:scale-105"
-            >
-              <span>Join Community</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
 
           {/* Sub Navigation between Announcements & Direct Admin Messaging */}
           <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
@@ -1487,26 +1438,56 @@ export default function DashboardClient({
                       <label className="text-xs font-bold uppercase text-slate-300">
                         New Password
                       </label>
-                      <Input
-                        type="password"
-                        value={profilePassword}
-                        onChange={(e) => setProfilePassword(e.target.value)}
-                        placeholder="Minimum 6 characters"
-                        className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-yellow-500"
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showProfilePassword ? "text" : "password"}
+                          value={profilePassword}
+                          onChange={(e) => setProfilePassword(e.target.value)}
+                          placeholder="Minimum 6 characters"
+                          className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-yellow-500 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowProfilePassword(!showProfilePassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                          aria-label={showProfilePassword ? "Hide password" : "Show password"}
+                          title={showProfilePassword ? "Hide password" : "Show password"}
+                        >
+                          {showProfilePassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase text-slate-300">
                         Confirm New Password
                       </label>
-                      <Input
-                        type="password"
-                        value={profileConfirmPassword}
-                        onChange={(e) => setProfileConfirmPassword(e.target.value)}
-                        placeholder="Repeat new password"
-                        className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-yellow-500"
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showProfilePassword ? "text" : "password"}
+                          value={profileConfirmPassword}
+                          onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                          placeholder="Repeat new password"
+                          className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-yellow-500 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowProfilePassword(!showProfilePassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                          aria-label={showProfilePassword ? "Hide password" : "Show password"}
+                          title={showProfilePassword ? "Hide password" : "Show password"}
+                        >
+                          {showProfilePassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

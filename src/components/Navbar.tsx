@@ -104,16 +104,6 @@ export default function Navbar() {
 
         {/* Right Action Bar */}
         <div className="hidden sm:flex items-center gap-2.5">
-          {/* WhatsApp Community Link */}
-          <a
-            href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-900/40 hover:text-emerald-300 transition-all shadow-sm shrink-0"
-          >
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>WhatsApp Community</span>
-          </a>
 
           {isAdminPortal ? (
             /* Inside Admin Portal: Clean Header without player dashboard, home, 3 divisions, or UCL buttons */
@@ -215,16 +205,6 @@ export default function Navbar() {
               })}
 
               <div className="pt-3 border-t border-slate-800/80 space-y-2">
-                <a
-                  href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold text-xs"
-                >
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Join Official WhatsApp Community</span>
-                </a>
 
                 {session?.authenticated ? (
                   session.user?.role === "ADMIN" ? (

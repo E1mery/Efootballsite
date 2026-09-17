@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Smartphone, Lock, User, CheckCircle, ShieldAlert, Trophy, Phone, MessageSquare, AlertCircle } from "lucide-react";
+import { Smartphone, Lock, User, CheckCircle, ShieldAlert, Trophy, Phone, MessageSquare, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ export default function RegisterPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
 
@@ -174,13 +175,29 @@ export default function RegisterPage() {
                 <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
                   Account Password *
                 </label>
-                <Input
-                  type="password"
-                  required
-                  placeholder="Minimum 6 characters"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    placeholder="Minimum 6 characters"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
