@@ -22,6 +22,9 @@ import {
   X,
   Sparkles,
   Lock,
+  CheckCircle2,
+  User,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,39 +60,142 @@ export default function DashboardClient({
 }) {
   const router = useRouter();
 
+  // Dynamic user and player profile state
+  const [currentPlayer, setCurrentPlayer] = useState(player);
+  const [currentUser, setCurrentUser] = useState(user);
+
   // Selected MOTD tab in dashboard
   const [selectedMotdDiv, setSelectedMotdDiv] = useState<string>(
     player.division || "Division 1"
   );
 
-  // Announcement read tracking (Immediate mark-as-read on view)
+  // Announcement read tracking (interactive from localStorage)
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
       const storageKey = `efrl_read_ann_${player.id}`;
       const saved = localStorage.getItem(storageKey);
-      const parsed = new Set<string>(saved ? JSON.parse(saved) : []);
+      if (saved) {
+        setReadAnnouncements(new Set<string>(JSON.parse(saved)));
+      }
+    } catch (e) {
+      console.error("Read receipt load error:", e);
+    }
+  }, [player.id]);
 
-      // Immediately mark all incoming announcements as read
-      const updated = new Set<string>(parsed);
-      announcements.forEach((ann) => {
-        if (!parsed.has(ann.id)) {
-          updated.add(ann.id);
+  const handleMarkAsRead = async (announcementId: string) => {
+    try {
+      const storageKey = `efrl_read_ann_${player.id}`;
+      const updated = new Set(readAnnouncements);
+      updated.add(announcementId);
+      setReadAnnouncements(updated);
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
+
+      await fetch("/api/announcements/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ announcementId }),
+      });
+    } catch (e) {
+      console.error("Failed to mark announcement as read:", e);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const storageKey = `efrl_read_ann_${player.id}`;
+      const updated = new Set(readAnnouncements);
+      announcements.forEach((ann) => updated.add(ann.id));
+      setReadAnnouncements(updated);
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
+
+      await Promise.all(
+        announcements.map((ann) =>
           fetch("/api/announcements/read", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ announcementId: ann.id }),
-          }).catch(() => {});
-        }
+          }).catch(() => {})
+        )
+      );
+    } catch (e) {
+      console.error("Failed to mark all announcements as read:", e);
+    }
+  };
+
+  // Profile Update State
+  const [profileGamerTag, setProfileGamerTag] = useState(player.gamerTag || "");
+  const [profileFullName, setProfileFullName] = useState(player.fullName || "");
+  const [profileWhatsapp, setProfileWhatsapp] = useState(player.whatsapp || "");
+  const [profileEmail, setProfileEmail] = useState(user?.email || "");
+  const [profilePassword, setProfilePassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [profileUpdating, setProfileUpdating] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+  const [profileErrorMsg, setProfileErrorMsg] = useState("");
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileUpdating(true);
+    setProfileSuccessMsg("");
+    setProfileErrorMsg("");
+
+    if (profilePassword && profilePassword.length < 6) {
+      setProfileErrorMsg("New password must be at least 6 characters.");
+      setProfileUpdating(false);
+      return;
+    }
+
+    if (profilePassword && profilePassword !== profileConfirmPassword) {
+      setProfileErrorMsg("New password and confirmation do not match.");
+      setProfileUpdating(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/player/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: profileEmail,
+          gamerTag: profileGamerTag,
+          fullName: profileFullName,
+          whatsapp: profileWhatsapp,
+          password: profilePassword || undefined,
+        }),
       });
 
-      localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
-      setReadAnnouncements(updated);
-    } catch (e) {
-      console.error("Read receipt error:", e);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update profile");
+
+      setProfileSuccessMsg(data.message || "Profile updated successfully!");
+      setProfilePassword("");
+      setProfileConfirmPassword("");
+
+      if (data.player) {
+        setCurrentPlayer(data.player);
+      }
+      if (data.user) {
+        setCurrentUser(data.user);
+        try {
+          const stored = localStorage.getItem("efrl_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            localStorage.setItem(
+              "efrl_user",
+              JSON.stringify({ ...parsed, email: data.user.email, player: data.player || parsed.player })
+            );
+          }
+        } catch (err) {}
+      }
+      router.refresh();
+    } catch (err: any) {
+      setProfileErrorMsg(err.message || "Failed to update profile");
+    } finally {
+      setProfileUpdating(false);
     }
-  }, [announcements, player.id]);
+  };
 
   // 24-hour Countdown Timer State
   const [timeLeft, setTimeLeft] = useState<{
@@ -121,10 +227,13 @@ export default function DashboardClient({
   const [forfeitSuccessMsg, setForfeitSuccessMsg] = useState("");
 
   // Active tab (if player is reserved, default to STANDINGS)
-  const isReserved = player.status === "RESERVED";
-  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "INBOX" | "HISTORY" | "STANDINGS">(
+  const isReserved = currentPlayer.status === "RESERVED";
+  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE">(
     isReserved ? "STANDINGS" : "OVERVIEW"
   );
+
+  // Unread announcements count
+  const unreadAnnouncementsCount = announcements.filter((a) => !readAnnouncements.has(a.id)).length;
 
   // Determine opponent
   const isHomePlayer = activeMatch?.homePlayerId === player.id;
@@ -332,26 +441,26 @@ export default function DashboardClient({
       <div className="rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-6 sm:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-slate-950 font-black text-2xl shadow-xl shadow-yellow-500/20">
-            {player.gamerTag.slice(0, 2).toUpperCase()}
+            {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {player.gamerTag}
+                {currentPlayer.gamerTag}
               </h1>
               <Badge variant={isReserved ? "outline" : "yellow"} className="text-xs">
-                {isReserved ? "RESERVE POOL" : player.division}
+                {isReserved ? "RESERVE POOL" : currentPlayer.division}
               </Badge>
               <Badge variant="default" className="text-[10px] uppercase font-mono">
-                {player.platform}
+                {currentPlayer.platform}
               </Badge>
             </div>
             <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <span>{player.fullName}</span>
+              <span>{currentPlayer.fullName}</span>
               <span>•</span>
-              <span className="font-mono text-slate-500">Konami ID: {player.efootballId}</span>
+              <span className="font-mono text-slate-500">Konami ID: {currentPlayer.efootballId}</span>
               <span>•</span>
-              <span className="text-emerald-400 font-mono">WA: {player.whatsapp}</span>
+              <span className="text-emerald-400 font-mono">WA: {currentPlayer.whatsapp}</span>
             </p>
           </div>
         </div>
@@ -422,9 +531,9 @@ export default function DashboardClient({
         >
           <Bell className="h-4 w-4" />
           <span>Announcements & Inbox</span>
-          {announcements.length > 0 && (
-            <span className="h-4 w-4 rounded-full bg-yellow-400 text-slate-950 text-[10px] font-black flex items-center justify-center">
-              {announcements.length}
+          {unreadAnnouncementsCount > 0 && (
+            <span className="h-4 w-4 rounded-full bg-yellow-400 text-slate-950 text-[10px] font-black flex items-center justify-center animate-pulse">
+              {unreadAnnouncementsCount}
             </span>
           )}
         </button>
@@ -442,6 +551,18 @@ export default function DashboardClient({
             <span>Match History & Proof</span>
           </button>
         )}
+
+        <button
+          onClick={() => setActiveTab("PROFILE")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "PROFILE"
+              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <User className="h-4 w-4" />
+          <span>Profile & Settings</span>
+        </button>
       </div>
 
       {/* TAB: STANDINGS (AVAILABLE TO BOTH ACTIVE AND RESERVE ATHLETES) */}
@@ -741,56 +862,101 @@ export default function DashboardClient({
       {/* TAB 2: INBOX & ANNOUNCEMENTS */}
       {activeTab === "INBOX" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-              <Bell className="h-5 w-5 text-yellow-400" />
-              League Announcements & Direct Messages
-            </h3>
-            <span className="text-xs text-slate-500">{announcements.length} Messages</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div>
+              <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <Bell className="h-5 w-5 text-yellow-400" />
+                League Announcements & Direct Messages
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {unreadAnnouncementsCount > 0
+                  ? `${unreadAnnouncementsCount} unread message${unreadAnnouncementsCount === 1 ? "" : "s"}`
+                  : "All caught up! No unread messages"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {unreadAnnouncementsCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleMarkAllAsRead}
+                  className="h-8 text-xs font-bold border-yellow-500/40 text-yellow-400 hover:bg-yellow-950/40"
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Mark All as Read
+                </Button>
+              )}
+              <span className="text-xs font-mono text-slate-500">{announcements.length} Total</span>
+            </div>
           </div>
 
           {announcements.length === 0 ? (
             <p className="text-xs text-slate-500 italic py-8 text-center">No announcements yet.</p>
           ) : (
             <div className="space-y-4">
-              {announcements.map((ann) => (
-                <div
-                  key={ann.id}
-                  className={`rounded-2xl border p-5 space-y-2 backdrop-blur-xl ${
-                    ann.type === "INDIVIDUAL"
-                      ? "border-sky-500/50 bg-sky-950/20"
-                      : "border-slate-800 bg-slate-900/60"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={ann.type === "INDIVIDUAL" ? "default" : "yellow"}
-                        className="text-[10px]"
-                      >
-                        {ann.type === "INDIVIDUAL" ? "PRIVATE DIRECT MESSAGE" : "LEAGUE BROADCAST"}
-                      </Badge>
-                      {ann.isPinned && (
-                        <Badge variant="live" className="text-[9px]">
-                          PINNED
+              {announcements.map((ann) => {
+                const isRead = readAnnouncements.has(ann.id);
+                return (
+                  <div
+                    key={ann.id}
+                    className={`rounded-2xl border p-5 space-y-3 backdrop-blur-xl transition-all ${
+                      !isRead
+                        ? "border-yellow-500/50 bg-gradient-to-r from-yellow-950/20 to-slate-900/90 shadow-lg shadow-yellow-500/5 ring-1 ring-yellow-500/20"
+                        : ann.type === "INDIVIDUAL"
+                        ? "border-sky-500/30 bg-sky-950/10"
+                        : "border-slate-800 bg-slate-900/40 opacity-80 hover:opacity-100"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!isRead && (
+                          <Badge variant="yellow" className="text-[10px] font-bold animate-pulse">
+                            ● NEW
+                          </Badge>
+                        )}
+                        <Badge
+                          variant={ann.type === "INDIVIDUAL" ? "default" : "secondary"}
+                          className="text-[10px]"
+                        >
+                          {ann.type === "INDIVIDUAL" ? "PRIVATE DIRECT MESSAGE" : "LEAGUE BROADCAST"}
                         </Badge>
-                      )}
-                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                        <CheckCircle className="h-3 w-3" />
-                        Marked as Read
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      {new Date(ann.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                        {ann.isPinned && (
+                          <Badge variant="live" className="text-[9px]">
+                            PINNED
+                          </Badge>
+                        )}
+                        {isRead && (
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700/50">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                            Read
+                          </span>
+                        )}
+                      </div>
 
-                  <h4 className="text-base font-extrabold text-white">{ann.title}</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                    {ann.content}
-                  </p>
-                </div>
-              ))}
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono text-slate-500">
+                          {new Date(ann.createdAt).toLocaleDateString()}
+                        </span>
+                        {!isRead && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleMarkAsRead(ann.id)}
+                            className="h-7 px-3 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-sm"
+                          >
+                            <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                            Mark as Read
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <h4 className="text-base font-extrabold text-white">{ann.title}</h4>
+                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                      {ann.content}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -839,6 +1005,209 @@ export default function DashboardClient({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: PERSONAL INFORMATION & PROFILE SETTINGS */}
+      {/* ========================================================================= */}
+      {activeTab === "PROFILE" && (
+        <div className="space-y-6">
+          <div className="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <User className="h-5 w-5 text-sky-400" />
+                Personal Information & Account Settings
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Update your gamer tag, contact phone number, username, and login password.
+              </p>
+            </div>
+            <Badge variant="secondary" className="font-mono text-xs text-slate-400 self-start sm:self-auto">
+              ID: {currentPlayer.efootballId}
+            </Badge>
+          </div>
+
+          {profileSuccessMsg && (
+            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+              <span>{profileSuccessMsg}</span>
+            </div>
+          )}
+
+          {profileErrorMsg && (
+            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
+              <span>{profileErrorMsg}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Athlete Profile Summary Card */}
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 h-fit backdrop-blur-xl">
+              <div className="text-center space-y-3 pb-4 border-b border-slate-800">
+                <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-600 text-white font-black text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/20">
+                  {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-xl font-black text-white">{currentPlayer.gamerTag}</h4>
+                  <p className="text-xs text-slate-400">{currentPlayer.fullName}</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+                  <Badge variant="yellow" className="text-[10px]">
+                    {currentPlayer.division}
+                  </Badge>
+                  <Badge variant={currentPlayer.status === "ACTIVE" ? "default" : "secondary"} className="text-[10px]">
+                    {currentPlayer.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <span className="text-slate-400">eFootball ID:</span>
+                  <span className="font-mono text-slate-200">{currentPlayer.efootballId}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <span className="text-slate-400">WhatsApp Phone:</span>
+                  <span className="font-mono text-emerald-400 font-semibold">{currentPlayer.whatsapp}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-800/60">
+                  <span className="text-slate-400">Login Username:</span>
+                  <span className="font-mono text-slate-200 truncate max-w-[150px]">{currentUser?.email}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-400">Platform:</span>
+                  <span className="font-mono text-slate-300">{currentPlayer.platform}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Update Form */}
+            <div className="lg:col-span-2 rounded-3xl border border-slate-800 bg-slate-950/80 p-6 sm:p-8 space-y-6 backdrop-blur-xl shadow-xl">
+              <form onSubmit={handleUpdateProfile} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase text-slate-300">
+                      Gamer Tag *
+                    </label>
+                    <Input
+                      value={profileGamerTag}
+                      onChange={(e) => setProfileGamerTag(e.target.value)}
+                      placeholder="e.g. RW_Sniper"
+                      className="bg-slate-900 border-slate-800 text-xs font-bold text-white focus:ring-1 focus:ring-sky-500"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-500 block">
+                      Displayed on fixtures, standings tables, and Match of the Day showdowns.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase text-slate-300">
+                      Full Real Name *
+                    </label>
+                    <Input
+                      value={profileFullName}
+                      onChange={(e) => setProfileFullName(e.target.value)}
+                      placeholder="e.g. Jean Paul"
+                      className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-sky-500"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-500 block">
+                      Your legal name for prize payouts and commissioner verification.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase text-slate-300">
+                      Phone Number / WhatsApp *
+                    </label>
+                    <Input
+                      value={profileWhatsapp}
+                      onChange={(e) => setProfileWhatsapp(e.target.value)}
+                      placeholder="e.g. +250 788 123 456"
+                      className="bg-slate-900 border-slate-800 text-xs font-mono text-emerald-400 focus:ring-1 focus:ring-sky-500"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-500 block">
+                      Mandatory. Opponents use this to contact you for 24-hr match scheduling.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase text-slate-300">
+                      Username / Login Email *
+                    </label>
+                    <Input
+                      type="email"
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-sky-500"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-500 block">
+                      Used to log into your player account portal.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Password Change Section */}
+                <div className="pt-4 border-t border-slate-800/80 space-y-4">
+                  <div>
+                    <h5 className="text-xs font-black uppercase text-yellow-400 tracking-wider">
+                      Security & Password Change
+                    </h5>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Leave password fields blank if you do not wish to change your current login password.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase text-slate-300">
+                        New Password
+                      </label>
+                      <Input
+                        type="password"
+                        value={profilePassword}
+                        onChange={(e) => setProfilePassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase text-slate-300">
+                        Confirm New Password
+                      </label>
+                      <Input
+                        type="password"
+                        value={profileConfirmPassword}
+                        onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                        placeholder="Repeat new password"
+                        className="bg-slate-900 border-slate-800 text-xs text-white focus:ring-1 focus:ring-yellow-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={profileUpdating}
+                    className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs px-6 py-2.5 shadow-lg shadow-sky-600/20"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {profileUpdating ? "Saving Changes..." : "Save Personal Information"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 
