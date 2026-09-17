@@ -16,7 +16,8 @@ async function verifyAdmin() {
 }
 
 // Berger Tables / Round Robin Pairing Algorithm
-function generateRoundRobin(players: { id: string; gamerTag: string }[]) {
+// For Divisions: One-way round trip (1 match only per pairing). UCL & Europa retain two-leg home & away.
+function generateRoundRobin(players: { id: string; gamerTag: string }[], isSingleLeg: boolean = true) {
   const n = players.length;
   const isOdd = n % 2 !== 0;
   const playerList = [...players];
@@ -62,7 +63,12 @@ function generateRoundRobin(players: { id: string; gamerTag: string }[]) {
     teamIndices.splice(1, 0, last);
   }
 
-  // Second Leg (Round Trip / Reverse Fixtures)
+  // If single leg (One-way round trip, 1 match only per pairing for Divisions)
+  if (isSingleLeg) {
+    return firstLegRounds;
+  }
+
+  // Second Leg (Round Trip / Reverse Fixtures for UCL & Europa)
   const secondLegRounds = firstLegRounds.map((r) => ({
     roundNumber: r.roundNumber + roundsCount,
     pairings: r.pairings.map(([home, away]) => [away, home] as [string, string]),

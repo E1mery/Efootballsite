@@ -1,103 +1,126 @@
 import Link from "next/link";
-import { Trophy, Shield, Gamepad2, Send, Heart } from "lucide-react";
+import { Trophy, Shield, Gamepad2, Heart, ExternalLink } from "lucide-react";
+import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-slate-800 bg-slate-950 text-slate-400">
+    <footer className="border-t border-slate-800/80 bg-[#050811] text-slate-400">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand Info */}
+          {/* Brand Info - Clean Gaming Logo (no picture box) */}
           <div className="space-y-4 md:col-span-1">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 via-blue-600 to-emerald-500 p-[2px]">
-                <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-slate-950">
-                  <span className="text-sm font-black text-white">
-                    EF<span className="text-yellow-400">R</span>
-                  </span>
-                </div>
-              </div>
-              <span className="text-lg font-black text-white uppercase tracking-wider">
-                EFOOTBALL RWANDA
-              </span>
-            </div>
+            <EfootballGamingLogo size="sm" showText={true} />
             <p className="text-xs leading-relaxed text-slate-400">
-              The official competitive digital football league in Rwanda. Empowering the youth, celebrating talent, and representing Rwanda on the global esports stage.
+              The official competitive digital football championship in Rwanda. Empowering athletes across 3 divisions with daily 24-hour matchday cycles.
             </p>
-            <div className="flex items-center gap-2 text-xs font-semibold text-sky-400">
+            <div className="flex items-center gap-2 text-xs font-semibold text-cyan-400">
               <Gamepad2 className="h-4 w-4" />
-              <span>Mobile & Console Tournament Series</span>
+              <span>eFootball Mobile Competitive Series</span>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 font-mono">
               Competitions
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link href="/standings" className="hover:text-sky-400 transition-colors">
-                  EFRL Premiership Division 1
+                <Link href="/standings?division=Division%201" className="hover:text-cyan-400 transition-colors">
+                  Premiership (Division 1)
                 </Link>
               </li>
               <li>
-                <Link href="/fixtures" className="hover:text-sky-400 transition-colors">
-                  Matchday Results & Schedules
+                <Link href="/standings?division=Division%202" className="hover:text-cyan-400 transition-colors">
+                  Championship (Division 2)
                 </Link>
               </li>
               <li>
-                <Link href="/standings" className="hover:text-sky-400 transition-colors">
-                  Kigali Super Cup
+                <Link href="/standings?division=Division%203" className="hover:text-cyan-400 transition-colors">
+                  National Academy (Division 3)
                 </Link>
               </li>
               <li>
-                <Link href="/register" className="hover:text-sky-400 transition-colors">
-                  National Qualifiers 2026
+                <Link href="/continental" className="hover:text-cyan-400 transition-colors">
+                  eFootball UCL & Europa League
+                </Link>
+              </li>
+              <li>
+                <Link href="/fixtures" className="hover:text-cyan-400 transition-colors">
+                  Daily Matchday Fixtures
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Community & Venues */}
+          {/* External Resources & Portals */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">
-              Hubs & Venues
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 font-mono">
+              External Resources & Portals
             </h4>
             <ul className="space-y-2 text-xs">
-              <li>BK Arena Esports Lounge, Remera</li>
-              <li>Nyamirambo Youth Center</li>
-              <li>Rubavu Lake Kivu Gaming Center</li>
-              <li>Musanze Volcano Hub</li>
-              <li>Huye University Campus</li>
+              <li>
+                <Link href="/login" className="hover:text-cyan-400 transition-colors">
+                  Player Login Portal
+                </Link>
+              </li>
+              <li>
+                <Link href="/register" className="hover:text-cyan-400 transition-colors">
+                  Season Registration
+                </Link>
+              </li>
+              <li>
+                <Link href="/admin" className="hover:text-cyan-400 transition-colors">
+                  Admin Office (Commissioner)
+                </Link>
+              </li>
+              <li>
+                <Link href="/standings" className="hover:text-cyan-400 transition-colors">
+                  Live Standings & Tables
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Connect */}
+          {/* Connect & Social Media */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">
-              Official Channels
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 font-mono">
+              Official Community & Socials
             </h4>
             <p className="text-xs text-slate-400 mb-3">
-              Follow live tournament broadcasts and player highlight reels.
+              Join our active gaming discord and follow our Instagram for match highlights:
             </p>
-            <div className="space-y-2 text-xs">
-              <div className="text-slate-300 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                <span>Twitch: @efootball_rwanda</span>
-              </div>
-              <div className="text-slate-300">YouTube: Rwanda Esports TV</div>
-              <div className="text-slate-300">Twitter / X: @EfootballRwanda</div>
-              <div className="text-slate-300">Email: league@efootball.rw</div>
+            <div className="space-y-2.5 text-xs">
+              <a
+                href="https://discord.gg/rbaFrBB5p"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-800/80 text-slate-200 transition-all group"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold text-cyan-400 group-hover:text-cyan-300">Join Official Discord</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-slate-500 group-hover:text-white" />
+              </a>
+
+              <a
+                href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-pink-500/50 hover:bg-slate-800/80 text-slate-200 transition-all group"
+              >
+                <span className="h-2 w-2 rounded-full bg-pink-500" />
+                <span className="font-semibold text-pink-400 group-hover:text-pink-300">Official Instagram</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-slate-500 group-hover:text-white" />
+              </a>
             </div>
           </div>
         </div>
 
         {/* Bottom bar */}
         <div className="border-t border-slate-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} Efootball Rwanda League (EFRL). All rights reserved.</p>
+          <p>© {new Date().getFullYear()} eFootball Rwanda League (EFRL). All rights reserved.</p>
           <div className="flex items-center gap-1 text-slate-400">
-            <span>Built with passion in Kigali, Rwanda</span>
-            <Heart className="h-3 w-3 text-red-500 fill-red-500 inline ml-1" />
+            <span>Kigali, Rwanda Digital Esports Championship</span>
           </div>
         </div>
       </div>

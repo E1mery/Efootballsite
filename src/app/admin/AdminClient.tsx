@@ -91,14 +91,27 @@ export default function AdminClient({
 
   // Logout handler
   const handleLogout = async () => {
-    if (!confirm("Are you sure you want to log out of the League Admin Portal?")) return;
+    if (!confirm("Are you sure you want to log out of the League Admin Office?")) return;
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/admin/login");
+      router.push("/?loggedOut=admin");
       router.refresh();
     } catch (err) {
-      router.push("/admin/login");
+      router.push("/?loggedOut=admin");
     }
+  };
+
+  // Score verification inputs state: submissionId -> { home: number, away: number }
+  const [submissionScores, setSubmissionScores] = useState<Record<string, { home: number; away: number }>>({});
+
+  const handleScoreChange = (submissionId: string, side: "home" | "away", val: number) => {
+    setSubmissionScores((prev) => ({
+      ...prev,
+      [submissionId]: {
+        home: side === "home" ? val : (prev[submissionId]?.home ?? 0),
+        away: side === "away" ? val : (prev[submissionId]?.away ?? 0),
+      },
+    }));
   };
 
   // Toggle Registration Open/Close
@@ -222,10 +235,24 @@ export default function AdminClient({
     }
   };
 
-  // Review Result Submission
-  const handleReviewSubmission = async (submissionId: string, decision: "APPROVE" | "REJECT") => {
+  // Review Result Submission with Verified Score (Goals) Insertion
+  const handleReviewSubmission = async (
+    submissionId: string,
+    decision: "APPROVE" | "REJECT",
+    defaultHome: number = 0,
+    defaultAway: number = 0
+  ) => {
     setReviewLoading(submissionId);
     try {
+      const verifiedHomeScore =
+        submissionScores[submissionId]?.home !== undefined
+          ? submissionScores[submissionId].home
+          : defaultHome;
+      const verifiedAwayScore =
+        submissionScores[submissionId]?.away !== undefined
+          ? submissionScores[submissionId].away
+          : defaultAway;
+
       const res = await fetch("/api/admin/approve-submission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -233,6 +260,8 @@ export default function AdminClient({
           actionType: "RESULT_SUBMISSION",
           submissionId,
           decision,
+          verifiedHomeScore,
+          verifiedAwayScore,
         }),
       });
 
@@ -245,6 +274,30 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setReviewLoading(null);
+    }
+  };
+
+  // Execute End of Season Automatic Promotions for Div 2 and Div 3
+  const handleEndSeasonPromotions = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to finalize the season and execute automatic promotions for the top 3 players in Division 2 and Division 3?"
+      )
+    )
+      return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/end-season", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to execute season promotions");
+
+      alert(`Season promotions finalized successfully!\n${data.message}`);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -458,15 +511,15 @@ export default function AdminClient({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Badge variant="destructive" className="font-mono text-[10px] px-2 py-0.5 tracking-wider">
-              COMMISSIONER SUITE
+              ADMIN OFFICE COMMISSIONER
             </Badge>
             <span className="text-xs font-mono text-slate-400">Logged in as: {adminEmail || "admin@efootball.rw"}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight flex items-center gap-2">
-            <span>eFootball Rwanda League Admin Portal</span>
+            <span>eFootball Rwanda Admin Office</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Full control over league registration, round-robin matchdays, 24-hr daily cycles, proof arbitration, and continental tournaments.
+            Full commissioner control over league registration, one-way round robin schedules, score screenshot verification, automated promotions, and continental cups.
           </p>
         </div>
 
@@ -530,7 +583,7 @@ export default function AdminClient({
           }`}
         >
           <Upload className="h-4 w-4" />
-          <span>Results Queue</span>
+          <span>Score Verification & Results Queue</span>
           {pendingSubmissions.length > 0 && (
             <Badge variant="live" className="text-[10px] px-1.5 py-0">
               {pendingSubmissions.length}
@@ -709,10 +762,10 @@ export default function AdminClient({
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-yellow-400" />
-                  <span>Division Round-Robin Schedule Generator (Round-Trip Home & Away)</span>
+                  <span>Division Round-Robin Schedule Generator (One-Way 1 Match per Pairing)</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  Generates paired round-robin matches (round trip / 1 match per leg) for registered players once registration has closed.
+                  Generates paired single round-robin matches (one-way 1 match only per pairing, home only) for registered players once registration has closed.
                 </p>
               </div>
 
@@ -874,6 +927,79 @@ export default function AdminClient({
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Operation 5: End Season & Automatic Promotions */}
+          <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-amber-400" />
+                  <h3 className="text-lg font-black uppercase text-white">
+                    Season Finale & Automatic Promotions
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  At season end, the top 3 players from Division 2 promote to Division 1, and the top 3 from Division 3 promote to Division 2.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleEndSeasonPromotions}
+                disabled={actionLoading}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20"
+              >
+                Execute Season Promotions
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Div 2 Top 3 Preview */}
+              <div className="p-4 rounded-2xl bg-[#070b16] border border-amber-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="yellow" className="text-[10px]">
+                    PROMOTING TO DIVISION 1
+                  </Badge>
+                  <span className="text-[10px] text-slate-400 font-mono">Division 2 (Top 3)</span>
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  {div2Standings.slice(0, 3).map((s, idx) => (
+                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
+                      <span className="font-bold text-white">
+                        #{idx + 1} {s.player?.gamerTag || "Unknown"}
+                      </span>
+                      <span className="font-mono text-amber-400 font-black">{s.points} Pts</span>
+                    </div>
+                  ))}
+                  {div2Standings.length === 0 && (
+                    <p className="text-xs text-slate-500 italic">No Division 2 standings registered.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Div 3 Top 3 Preview */}
+              <div className="p-4 rounded-2xl bg-[#070b16] border border-emerald-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-400">
+                    PROMOTING TO DIVISION 2
+                  </Badge>
+                  <span className="text-[10px] text-slate-400 font-mono">Division 3 (Top 3)</span>
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  {div3Standings.slice(0, 3).map((s, idx) => (
+                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
+                      <span className="font-bold text-white">
+                        #{idx + 1} {s.player?.gamerTag || "Unknown"}
+                      </span>
+                      <span className="font-mono text-emerald-400 font-black">{s.points} Pts</span>
+                    </div>
+                  ))}
+                  {div3Standings.length === 0 && (
+                    <p className="text-xs text-slate-500 italic">No Division 3 standings registered.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1304,8 +1430,8 @@ export default function AdminClient({
                       <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
                       <span className="text-[10px] text-slate-500 block">{sub.match.homePlayer.whatsapp}</span>
                     </div>
-                    <div className="px-4 py-1.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xl font-black text-white tracking-widest">
-                      {sub.homeScore} - {sub.awayScore}
+                    <div className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-400">
+                      Claimed: {sub.homeScore} - {sub.awayScore}
                     </div>
                     <div className="flex-1 text-right">
                       <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
@@ -1338,23 +1464,68 @@ export default function AdminClient({
                     </div>
                   )}
 
+                  {/* Official Score & Goals Verification Inputs */}
+                  <div className="rounded-xl bg-[#080d1e] border border-cyan-500/30 p-3 space-y-2">
+                    <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
+                      Verified Match Goals (Insert From Screenshot):
+                    </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 text-center">
+                        <span className="text-[10px] font-bold text-slate-300 block mb-1">
+                          {sub.match.homePlayer.gamerTag} (Home)
+                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="40"
+                          value={submissionScores[sub.id]?.home ?? sub.homeScore}
+                          onChange={(e) => handleScoreChange(sub.id, "home", Number(e.target.value))}
+                          className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
+                        />
+                      </div>
+
+                      <span className="text-xl font-black text-slate-500 mt-4">-</span>
+
+                      <div className="flex-1 text-center">
+                        <span className="text-[10px] font-bold text-slate-300 block mb-1">
+                          {sub.match.awayPlayer.gamerTag} (Away)
+                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="40"
+                          value={submissionScores[sub.id]?.away ?? sub.awayScore}
+                          onChange={(e) => handleScoreChange(sub.id, "away", Number(e.target.value))}
+                          className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <Button
                       variant="default"
                       size="sm"
                       disabled={reviewLoading === sub.id}
-                      onClick={() => handleReviewSubmission(sub.id, "APPROVE")}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1"
+                      onClick={() =>
+                        handleReviewSubmission(
+                          sub.id,
+                          "APPROVE",
+                          sub.homeScore,
+                          sub.awayScore
+                        )
+                      }
+                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs gap-1.5 shadow-lg shadow-cyan-500/20"
                     >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Approve Result
+                      <CheckCircle2 className="h-4 w-4 text-slate-950" />
+                      Insert Scores & Update Table
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={reviewLoading === sub.id}
                       onClick={() => handleReviewSubmission(sub.id, "REJECT")}
-                      className="font-bold gap-1"
+                      className="font-bold gap-1 text-xs"
                     >
                       <XCircle className="h-4 w-4" />
                       Reject

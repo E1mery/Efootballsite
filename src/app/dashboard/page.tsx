@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import DashboardClient from "./DashboardClient";
+import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
+import { evaluateAllDivisionsMatchOfTheDay } from "@/lib/matchOfTheDay";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,9 @@ export default async function DashboardPage() {
   if (!sessionUserId) {
     redirect("/login");
   }
+
+  // Automatic midnight cycle check
+  await checkAndAutoAdvanceDailyCycle();
 
   const user = await prisma.user.findUnique({
     where: { id: sessionUserId },
@@ -30,10 +35,20 @@ export default async function DashboardPage() {
 
   const player = user.player;
 
-  // Find active 24-hr match for this player
+  // League configuration for current matchday
+  const leagueConfig = await prisma.leagueConfig.upsert({
+    where: { id: "default" },
+    update: {},
+    create: { id: "default", currentMatchday: 1 },
+  });
+
+  const currentRoundName = `Matchday ${leagueConfig.currentMatchday}`;
+
+  // Find active match for this player for current matchday
   const activeMatch = await prisma.match.findFirst({
     where: {
       OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+      round: currentRoundName,
       status: { in: ["SCHEDULED", "LIVE"] },
     },
     include: {
@@ -55,7 +70,7 @@ export default async function DashboardPage() {
       OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
     },
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-    take: 10,
+    take: 15,
   });
 
   // Fetch recent finished matches of this player
@@ -80,6 +95,24 @@ export default async function DashboardPage() {
     },
   });
 
+  // Compute Match of the Day for each division
+  let divisionalMotd: Record<string, any> = {
+    "Division 1": null,
+    "Division 2": null,
+    "Division 3": null,
+  };
+
+  if (leagueConfig.currentMatchday > 1) {
+    const roundMatches = await prisma.match.findMany({
+      where: { round: currentRoundName },
+      include: { homePlayer: true, awayPlayer: true },
+    });
+    const allStandings = await prisma.standing.findMany({
+      orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+    });
+    divisionalMotd = evaluateAllDivisionsMatchOfTheDay(roundMatches, allStandings, leagueConfig.currentMatchday);
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <DashboardClient
@@ -89,6 +122,8 @@ export default async function DashboardPage() {
         announcements={announcements}
         recentMatches={recentMatches}
         standing={currentStanding}
+        leagueConfig={leagueConfig}
+        divisionalMotd={divisionalMotd}
       />
     </div>
   );

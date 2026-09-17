@@ -142,7 +142,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { actionType, submissionId, claimId, decision, adminNotes } = body;
 
-    // 1. Approve or Reject Match Result Screenshot
+    // 1. Approve with verified scores, or Reject Match Result Screenshot
     if (actionType === "RESULT_SUBMISSION") {
       const sub = await prisma.matchSubmission.findUnique({
         where: { id: submissionId },
@@ -151,29 +151,40 @@ export async function POST(req: Request) {
       if (!sub) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
 
       if (decision === "APPROVE") {
+        const { verifiedHomeScore, verifiedAwayScore } = body;
+        const officialHomeScore =
+          typeof verifiedHomeScore === "number" ? verifiedHomeScore : sub.homeScore;
+        const officialAwayScore =
+          typeof verifiedAwayScore === "number" ? verifiedAwayScore : sub.awayScore;
+
         await prisma.matchSubmission.update({
           where: { id: submissionId },
-          data: { status: "APPROVED", adminNotes },
-        });
-
-        // Update match to finished with verified scores & screenshot
-        const updatedMatch = await prisma.match.update({
-          where: { id: sub.matchId },
           data: {
-            homeScore: sub.homeScore,
-            awayScore: sub.awayScore,
-            status: "FINISHED",
-            screenshotUrl: sub.screenshotUrl,
-            notes: "Verified by League Admin from in-game full-time screenshot.",
+            status: "APPROVED",
+            homeScore: officialHomeScore,
+            awayScore: officialAwayScore,
+            adminNotes,
           },
         });
 
-        // Recalculate standings
+        // Update match to finished with verified official goals from screenshot
+        const updatedMatch = await prisma.match.update({
+          where: { id: sub.matchId },
+          data: {
+            homeScore: officialHomeScore,
+            awayScore: officialAwayScore,
+            status: "FINISHED",
+            screenshotUrl: sub.screenshotUrl,
+            notes: adminNotes || `Verified by Admin Office from screenshot (${officialHomeScore} - ${officialAwayScore})`,
+          },
+        });
+
+        // Recalculate standings immediately
         await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
 
         return NextResponse.json({
           success: true,
-          message: "Match result approved! Scores logged and standings updated.",
+          message: `Match scores (${officialHomeScore} - ${officialAwayScore}) officially inserted. Standings table updated!`,
         });
       } else {
         await prisma.matchSubmission.update({
@@ -186,6 +197,59 @@ export async function POST(req: Request) {
           message: "Match result submission rejected.",
         });
       }
+    }
+
+    // 1b. Direct Score Entry by Admin (Without or Overriding Player Submission)
+    if (actionType === "DIRECT_SCORE_ENTRY") {
+      const { matchId, homeScore, awayScore, notes } = body;
+      if (!matchId || typeof homeScore !== "number" || typeof awayScore !== "number") {
+        return NextResponse.json({ error: "Match ID and valid scores are required." }, { status: 400 });
+      }
+
+      const match = await prisma.match.findUnique({ where: { id: matchId } });
+      if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+
+      const updatedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          homeScore,
+          awayScore,
+          status: "FINISHED",
+          notes: notes || `Direct score entry by Admin Office (${homeScore} - ${awayScore})`,
+        },
+      });
+
+      // Recalculate division table
+      await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
+
+      return NextResponse.json({
+        success: true,
+        message: `Scores (${homeScore} - ${awayScore}) registered! Standings table updated.`,
+      });
+    }
+
+    // 1c. Reopen Match / Allow Late Submission
+    if (actionType === "REOPEN_MATCH") {
+      const { matchId, allowLate } = body;
+      const match = await prisma.match.findUnique({ where: { id: matchId } });
+      if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+
+      await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          status: allowLate ? "SCHEDULED" : match.status,
+          notes: allowLate
+            ? "ADMIN_REOPENED - Late submission approved by Admin Office."
+            : "Locked per regular matchday window.",
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: allowLate
+          ? "Fixture unlocked! Players can now submit scores."
+          : "Fixture locked.",
+      });
     }
 
     // 2. Approve or Reject Forfeit Claim

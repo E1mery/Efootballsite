@@ -11,20 +11,22 @@ export interface MatchScoreEvaluation {
 }
 
 /**
- * Calculates the Match of the Day based on official league table standings.
- * User Rule: Except on the first round (Matchday 1).
+ * Evaluates the Match of the Day for a specific division based on standings.
+ * Rule: Except on the first round (Matchday 1).
  */
-export function evaluateMatchOfTheDay(
+export function evaluateDivisionMatchOfTheDay(
   matches: any[],
   standings: any[],
-  roundNumber: number
+  roundNumber: number,
+  division: string
 ): any | null {
   // STRICT RULE: Except on the first round
   if (roundNumber <= 1) {
     return null;
   }
 
-  if (!matches || matches.length === 0) {
+  const divisionMatches = matches.filter((m) => m.division === division);
+  if (!divisionMatches || divisionMatches.length === 0) {
     return null;
   }
 
@@ -35,27 +37,22 @@ export function evaluateMatchOfTheDay(
       rank: s.rank || 1,
       points: s.points || 0,
       goalDifference: s.goalDifference || 0,
-      division: s.division || "Division 1",
+      division: s.division || division,
     });
   }
 
-  const scoredMatches = matches.map((match) => {
-    const home = standingMap.get(match.homePlayerId) || { rank: 20, points: 0, goalDifference: 0, division: match.division };
-    const away = standingMap.get(match.awayPlayerId) || { rank: 20, points: 0, goalDifference: 0, division: match.division };
+  const scoredMatches = divisionMatches.map((match) => {
+    const home = standingMap.get(match.homePlayerId) || { rank: 20, points: 0, goalDifference: 0, division };
+    const away = standingMap.get(match.awayPlayerId) || { rank: 20, points: 0, goalDifference: 0, division };
 
-    // 1. Division Weight: Division 1 (Premiership) > Division 2 > Division 3
-    let divisionWeight = 1000;
-    if (match.division === "Division 2") divisionWeight = 500;
-    if (match.division === "Division 3") divisionWeight = 200;
-
-    // 2. Combined Table Points (Higher table points = bigger clash)
+    // 1. Combined Table Points (Higher table points = bigger clash)
     const pointsScore = (home.points + away.points) * 15;
 
-    // 3. Combined Rank Score: Lower rank is better (#1 vs #2 = sum 3 -> score 37 * 10 = 370)
+    // 2. Combined Rank Score: Lower rank is better (#1 vs #2 = sum 3 -> score 37 * 10 = 370)
     const rankSum = home.rank + away.rank;
     const rankScore = Math.max(0, 42 - rankSum) * 10;
 
-    // 4. Proximity Clash Bonus: If both are top 4 and close in rank
+    // 3. Proximity Clash Bonus: If both are top 4 and close in rank
     let proximityBonus = 0;
     if (home.rank <= 4 && away.rank <= 4) {
       proximityBonus += 150;
@@ -66,20 +63,22 @@ export function evaluateMatchOfTheDay(
       proximityBonus += 50;
     }
 
-    // 5. Goal Difference
+    // 4. Goal Difference
     const gdScore = home.goalDifference + away.goalDifference;
 
-    const totalClashScore = divisionWeight + pointsScore + rankScore + proximityBonus + gdScore;
+    const totalClashScore = pointsScore + rankScore + proximityBonus + gdScore;
 
-    let headline = "HIGH-STAKES LEAGUE SHOWDOWN";
+    let headline = `${division.toUpperCase()} SHOWDOWN`;
     if (home.rank <= 2 && away.rank <= 2) {
-      headline = "TOP OF THE TABLE BLOCKBUSTER (#1 vs #2 Clash)";
+      headline = `${division.toUpperCase()} TITLE CLASH (#1 vs #2 Showdown)`;
     } else if (home.rank <= 4 && away.rank <= 4) {
-      headline = `TOP 4 TITAN CLASH (#${home.rank} vs #${away.rank})`;
-    } else if (home.rank <= 8 && away.rank <= 8) {
-      headline = `UCL QUALIFICATION BATTLE (#${home.rank} vs #${away.rank})`;
+      headline = `${division.toUpperCase()} TOP 4 BATTLE (#${home.rank} vs #${away.rank})`;
+    } else if (division === "Division 1" && home.rank <= 8 && away.rank <= 8) {
+      headline = `UCL QUALIFICATION RACE (#${home.rank} vs #${away.rank})`;
+    } else if ((division === "Division 2" || division === "Division 3") && (home.rank <= 3 || away.rank <= 3)) {
+      headline = `PROMOTION RACE CLASH (#${home.rank} vs #${away.rank})`;
     } else {
-      headline = `${match.division} MATCH OF THE DAY (#${home.rank} vs #${away.rank})`;
+      headline = `${division} MATCH OF THE DAY (#${home.rank} vs #${away.rank})`;
     }
 
     return {
@@ -110,10 +109,39 @@ export function evaluateMatchOfTheDay(
 }
 
 /**
- * Persists the Match of the Day selection in the database.
- * Resets existing isMatchOfTheDay for the round, and flags the highest clash.
+ * Evaluates the Match of the Day across all divisions.
  */
-export async function syncMatchOfTheDay(roundNumber: number): Promise<any | null> {
+export function evaluateAllDivisionsMatchOfTheDay(
+  matches: any[],
+  standings: any[],
+  roundNumber: number
+): Record<string, any | null> {
+  const divisions = ["Division 1", "Division 2", "Division 3"];
+  const result: Record<string, any | null> = {};
+
+  for (const div of divisions) {
+    result[div] = evaluateDivisionMatchOfTheDay(matches, standings, roundNumber, div);
+  }
+
+  return result;
+}
+
+/**
+ * Backward-compatible single MOTD helper
+ */
+export function evaluateMatchOfTheDay(
+  matches: any[],
+  standings: any[],
+  roundNumber: number
+): any | null {
+  const allMotd = evaluateAllDivisionsMatchOfTheDay(matches, standings, roundNumber);
+  return allMotd["Division 1"] || allMotd["Division 2"] || allMotd["Division 3"] || null;
+}
+
+/**
+ * Persists the Match of the Day selections for all divisions in the database.
+ */
+export async function syncMatchOfTheDay(roundNumber: number): Promise<Record<string, any | null>> {
   const roundName = `Matchday ${roundNumber}`;
 
   // Reset existing MOTD flags for this round
@@ -122,9 +150,11 @@ export async function syncMatchOfTheDay(roundNumber: number): Promise<any | null
     data: { isMatchOfTheDay: false },
   });
 
+  const emptyResult = { "Division 1": null, "Division 2": null, "Division 3": null };
+
   // Rule: Except on the first round
   if (roundNumber <= 1) {
-    return null;
+    return emptyResult;
   }
 
   // Fetch candidate matches for this round
@@ -133,23 +163,30 @@ export async function syncMatchOfTheDay(roundNumber: number): Promise<any | null
     include: { homePlayer: true, awayPlayer: true },
   });
 
-  if (matches.length === 0) return null;
+  if (matches.length === 0) return emptyResult;
 
   // Fetch all current standings
   const standings = await prisma.standing.findMany({
     orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
   });
 
-  const selectedMotd = evaluateMatchOfTheDay(matches, standings, roundNumber);
+  const divisionalMotds = evaluateAllDivisionsMatchOfTheDay(matches, standings, roundNumber);
 
-  if (selectedMotd) {
-    await prisma.match.update({
-      where: { id: selectedMotd.id },
-      data: { isMatchOfTheDay: true },
-    });
-
-    return selectedMotd;
+  // Update isMatchOfTheDay = true for each division's winner
+  const motdIdsToUpdate: string[] = [];
+  for (const div of Object.keys(divisionalMotds)) {
+    const motd = divisionalMotds[div];
+    if (motd && motd.id) {
+      motdIdsToUpdate.push(motd.id);
+    }
   }
 
-  return null;
+  if (motdIdsToUpdate.length > 0) {
+    await prisma.match.updateMany({
+      where: { id: { in: motdIdsToUpdate } },
+      data: { isMatchOfTheDay: true },
+    });
+  }
+
+  return divisionalMotds;
 }

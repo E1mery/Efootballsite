@@ -1,384 +1,366 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Trophy, Calendar, Flame, ArrowRight, Smartphone, Award, Clock, ChevronRight, Globe, AlertTriangle, MessageSquare } from "lucide-react";
+import {
+  Trophy,
+  Calendar,
+  Flame,
+  ArrowRight,
+  Gamepad2,
+  Shield,
+  ShieldAlert,
+  Globe,
+  LogIn,
+  UserPlus,
+  ExternalLink,
+  Clock,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import EfootballGamingLogo from "@/components/EfootballGamingLogo";
+import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
+import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import MatchCard from "@/components/MatchCard";
-import StandingsTable from "@/components/StandingsTable";
-import PlayerCard from "@/components/PlayerCard";
-import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
-import { evaluateMatchOfTheDay } from "@/lib/matchOfTheDay";
+import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ loggedOut?: string }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const loggedOutType = params.loggedOut;
+
+  // Run autonomous midnight daily cycle check without requiring admin permission
+  await checkAndAutoAdvanceDailyCycle();
+
   let liveMatches: any[] = [];
   let recentMatches: any[] = [];
-  let upcomingMatches: any[] = [];
   let div1Standings: any[] = [];
-  let allStandings: any[] = [];
-  let topPlayers: any[] = [];
-  let announcements: any[] = [];
+  let div2Standings: any[] = [];
+  let div3Standings: any[] = [];
   let leagueConfig: any = { registrationOpen: true, currentMatchday: 1 };
-  let storedMotd: any = null;
 
   try {
     const results = await Promise.all([
       prisma.match.findMany({
         where: { status: "LIVE" },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-        },
+        include: { homePlayer: true, awayPlayer: true },
         take: 1,
       }),
       prisma.match.findMany({
         where: { status: { in: ["FINISHED", "FORFEIT"] } },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-        },
+        include: { homePlayer: true, awayPlayer: true },
         orderBy: { matchDate: "desc" },
-        take: 3,
-      }),
-      prisma.match.findMany({
-        where: { status: "SCHEDULED" },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-        },
-        orderBy: { matchDate: "asc" },
         take: 3,
       }),
       prisma.standing.findMany({
         where: { division: "Division 1" },
-        include: {
-          player: true,
-        },
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-        take: 6,
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+        take: 20,
       }),
       prisma.standing.findMany({
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        where: { division: "Division 2" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+        take: 20,
       }),
-      prisma.player.findMany({
-        orderBy: { goals: "desc" },
-        take: 4,
-      }),
-      prisma.announcement.findMany({
-        where: { type: "BROADCAST" },
-        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-        take: 1,
+      prisma.standing.findMany({
+        where: { division: "Division 3" },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+        take: 20,
       }),
       prisma.leagueConfig.upsert({
         where: { id: "default" },
         update: {},
         create: { id: "default", registrationOpen: true, currentMatchday: 1 },
       }),
-      prisma.match.findFirst({
-        where: { isMatchOfTheDay: true },
-        include: { homePlayer: true, awayPlayer: true },
-      }),
     ]);
 
     liveMatches = results[0];
     recentMatches = results[1];
-    upcomingMatches = results[2];
-    div1Standings = results[3];
-    allStandings = results[4];
-    topPlayers = results[5];
-    announcements = results[6];
-    leagueConfig = results[7];
-    storedMotd = results[8];
-
-    const currentRoundNum = leagueConfig?.currentMatchday || 1;
-    // Rule: Match of the Day based on table standings except on the first round
-    if (!storedMotd && currentRoundNum > 1) {
-      const roundMatches = await prisma.match.findMany({
-        where: { round: `Matchday ${currentRoundNum}` },
-        include: { homePlayer: true, awayPlayer: true },
-      });
-      storedMotd = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
-    }
+    div1Standings = results[2];
+    div2Standings = results[3];
+    div3Standings = results[4];
+    leagueConfig = results[5];
   } catch (error) {
-    console.error("Database connection or query error on HomePage:", error);
+    console.error("HomePage data query error:", error);
   }
 
-  const matchOfTheDay = storedMotd;
-
   const featuredLiveMatch = liveMatches[0];
-  const latestAnnouncement = announcements[0];
 
   return (
-    <div className="space-y-12 pb-16">
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden border-b border-slate-800/80 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-16 sm:py-24">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-sky-500/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute top-20 right-10 w-[300px] h-[200px] bg-yellow-500/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="relative space-y-16 pb-20 overflow-hidden">
+      {/* Animated eFootball Background */}
+      <AnimatedEfootballBackground />
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          {/* Tagline Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-4 py-1.5 text-xs sm:text-sm font-bold text-sky-400 mb-6 shadow-lg shadow-sky-500/10">
-            <Smartphone className="h-4 w-4 text-yellow-400" />
-            <span>RWANDA EFOOTBALL MOBILE LEAGUE • 3 DIVISIONS • SEASON 2026</span>
+      {/* Post-Logout Notification Banner */}
+      {loggedOutType && (
+        <div className="relative z-20 mx-auto max-w-5xl px-4 pt-6">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-cyan-500/40 bg-[#081226]/90 p-4 backdrop-blur-xl shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                  {loggedOutType === "admin" ? "Admin Office Logged Out" : "Player Account Logged Out"}
+                </h4>
+                <p className="text-xs text-slate-300">
+                  You now have open access to all external resources, standings, match results, and community links below.
+                </p>
+              </div>
+            </div>
+            <Link href={loggedOutType === "admin" ? "/admin/login" : "/login"}>
+              <Button variant="outline" size="sm" className="border-cyan-500/40 text-cyan-300 text-xs font-bold">
+                Sign In Again
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* HERO SECTION */}
+      <section className="relative z-10 pt-12 sm:pt-20 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8">
+        {/* System Gaming Logo and League Badge */}
+        <div className="flex flex-col items-center justify-center gap-4">
+          <EfootballGamingLogo size="xl" showText={false} />
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-bold text-cyan-300 shadow-lg shadow-cyan-500/10">
+            <Gamepad2 className="h-4 w-4 text-amber-400" />
+            <span>RWANDA EFOOTBALL ESPORTS LEAGUE • 3 DIVISIONS</span>
           </div>
 
-          {/* Main Title */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white uppercase max-w-4xl mx-auto leading-none">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-none">
             Competitive <br />
-            <span className="rwanda-gradient-text">eFootball Mobile</span> League
+            <span className="efootball-gradient-text">eFootball Rwanda</span>
           </h1>
 
-          <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Rwanda's official mobile gaming championship. Athletes compete across <strong>Division 1, 2, and 3</strong> (max 20 players each) in daily <strong>24-hour matchday cycles</strong>, coordinate matches on WhatsApp, and qualify for the post-season <strong>eFootball UCL</strong>!
+          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            The official national digital football championship. Athletes compete across <strong>Division 1, 2, and 3</strong> in daily <strong>24-hour matchday cycles</strong>, coordinated via WhatsApp with automated season-end promotions.
           </p>
+        </div>
 
-          {/* CTA Action Buttons */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="yellow" size="lg" className="gap-2 shadow-xl font-black">
-                <Smartphone className="h-5 w-5 text-slate-950" />
-                Player Match Dashboard
-              </Button>
-            </Link>
-            <Link href="/standings">
-              <Button variant="default" size="lg" className="gap-2 font-bold">
-                <Trophy className="h-5 w-5" />
-                View 3 Divisions Standings
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="outline" size="lg" className="gap-2">
-                <Flame className="h-5 w-5 text-yellow-400" />
-                Join Season (Register)
-              </Button>
-            </Link>
-          </div>
+        {/* MAIN USER ACTIONS HUB (What users can do) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 text-left">
+          {/* Action 1: Player Login */}
+          <Link
+            href="/login"
+            className="group p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900 transition-all shadow-xl backdrop-blur-md flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 group-hover:scale-105 transition-transform">
+                <LogIn className="h-5 w-5" />
+              </div>
+              <h3 className="font-black text-sm uppercase text-white tracking-wide">Player Portal</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Sign in to view your 24-hr match, submit scores, and check division MOTD.
+              </p>
+            </div>
+            <span className="mt-4 text-xs font-bold text-cyan-400 group-hover:underline flex items-center gap-1">
+              Enter Portal →
+            </span>
+          </Link>
 
-          {/* Metrics */}
-          <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto border-t border-slate-800/80 pt-8 text-center">
-            <div>
-              <span className="text-2xl sm:text-3xl font-black text-white">3 Tiers</span>
-              <span className="block text-xs uppercase tracking-wider text-slate-400 mt-1 font-semibold">
-                Div 1, Div 2, Div 3
-              </span>
+          {/* Action 2: Registration */}
+          <Link
+            href="/register"
+            className="group p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all shadow-xl backdrop-blur-md flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <h3 className="font-black text-sm uppercase text-white tracking-wide">Join Season</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Register as an athlete in 3 divisions with WhatsApp match scheduling.
+              </p>
             </div>
-            <div>
-              <span className="text-2xl sm:text-3xl font-black text-yellow-400">20 Max</span>
-              <span className="block text-xs uppercase tracking-wider text-slate-400 mt-1 font-semibold">
-                Players / Division
-              </span>
+            <span className="mt-4 text-xs font-bold text-amber-400 group-hover:underline flex items-center gap-1">
+              Register Athlete →
+            </span>
+          </Link>
+
+          {/* Action 3: Admin Office */}
+          <Link
+            href="/admin"
+            className="group p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-red-500/50 hover:bg-slate-900 transition-all shadow-xl backdrop-blur-md flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 group-hover:scale-105 transition-transform">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <h3 className="font-black text-sm uppercase text-white tracking-wide">Admin Office</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Commissioner desk: inspect score screenshots, input verified goals, manage league.
+              </p>
             </div>
-            <div>
-              <span className="text-2xl sm:text-3xl font-black text-emerald-400">24 Hours</span>
-              <span className="block text-xs uppercase tracking-wider text-slate-400 mt-1 font-semibold">
-                Matchday Window
-              </span>
+            <span className="mt-4 text-xs font-bold text-red-400 group-hover:underline flex items-center gap-1">
+              Admin Office Access →
+            </span>
+          </Link>
+
+          {/* Action 4: Continental Cups */}
+          <Link
+            href="/continental"
+            className="group p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900 transition-all shadow-xl backdrop-blur-md flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform">
+                <Globe className="h-5 w-5" />
+              </div>
+              <h3 className="font-black text-sm uppercase text-white tracking-wide">UCL & Europa</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Post-season continental championship with two-legged home and away fixtures.
+              </p>
             </div>
-            <div>
-              <span className="text-2xl sm:text-3xl font-black text-red-400">Bottom 3</span>
-              <span className="block text-xs uppercase tracking-wider text-slate-400 mt-1 font-semibold">
-                Relegation Drop
-              </span>
+            <span className="mt-4 text-xs font-bold text-emerald-400 group-hover:underline flex items-center gap-1">
+              View Continental →
+            </span>
+          </Link>
+        </div>
+      </section>
+
+      {/* SOCIAL MEDIA & EXTERNAL RESOURCES SECTION */}
+      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-slate-800 bg-[#080d1e]/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-400" />
+                <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-wide">
+                  Official Community & Social Channels
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 max-w-xl">
+                Connect with Rwandan esports athletes, find match opponents on Discord, and view match highlights on our official Instagram channel.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Discord Link */}
+              <a
+                href="https://discord.gg/rbaFrBB5p"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#5865F2]/15 border border-[#5865F2]/40 hover:bg-[#5865F2]/25 text-white transition-all shadow-lg hover:scale-105"
+              >
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold tracking-wider">Join Official Discord</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-300" />
+              </a>
+
+              {/* Instagram Link */}
+              <a
+                href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-gradient-to-r from-pink-600/20 to-purple-600/20 border border-pink-500/40 hover:from-pink-600/30 hover:to-purple-600/30 text-white transition-all shadow-lg hover:scale-105"
+              >
+                <span className="flex h-2.5 w-2.5 rounded-full bg-pink-500" />
+                <span className="text-xs font-bold tracking-wider">Follow on Instagram</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-300" />
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* LATEST LEAGUE ANNOUNCEMENT BANNER */}
-      {latestAnnouncement && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 sm:p-5 flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-500 text-slate-950 font-black">
-              📢
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="yellow" className="text-[10px]">
-                  LEAGUE ANNOUNCEMENT
-                </Badge>
-                <span className="text-xs font-bold text-white">{latestAnnouncement.title}</span>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {latestAnnouncement.content}
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* FEATURED LIVE MATCH */}
+      {/* LIVE BROADCAST MATCH (IF ANY) */}
       {featuredLiveMatch && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-2xl border border-red-500/40 bg-gradient-to-r from-red-950/40 via-slate-900/90 to-slate-950/80 p-6 backdrop-blur-xl shadow-2xl">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 border-b border-red-500/20 pb-4">
-              <div className="flex items-center gap-3">
-                <Badge variant="live" className="text-xs px-2.5 py-1">
-                  🔴 CURRENTLY LIVE ON STREAM
-                </Badge>
-                <span className="text-sm font-semibold text-slate-300">
-                  {featuredLiveMatch.round} • eFootball Mobile
-                </span>
-              </div>
+        <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-red-500/40 bg-gradient-to-r from-red-950/40 via-slate-900/90 to-slate-950/80 p-6 backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 border-b border-red-500/20 pb-3">
+              <Badge variant="destructive" className="text-xs px-2.5 py-1 uppercase font-bold">
+                🔴 CURRENTLY LIVE ON STREAM
+              </Badge>
+              <span className="text-xs font-semibold text-slate-300">
+                {featuredLiveMatch.round} • {featuredLiveMatch.division}
+              </span>
             </div>
             <MatchCard match={featuredLiveMatch} />
           </div>
         </section>
       )}
 
-      {/* OFFICIAL MATCH OF THE DAY SECTION */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {matchOfTheDay ? (
-          <MatchOfTheDayCard match={matchOfTheDay} />
-        ) : (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-yellow-400" />
-              <span className="font-bold text-slate-300 uppercase tracking-wider">
-                Match of the Day Engine:
-              </span>
-              <span>
-                Based on current table standings. Selection activates from <strong>Matchday 2 onwards</strong>.
-              </span>
+      {/* ALL 3 DIVISIONS STANDINGS TABLES */}
+      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-amber-400" />
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight">
+                All Divisions Official Standings
+              </h2>
             </div>
-            <Badge variant="secondary" className="font-mono text-[10px] w-fit">
-              Round 1 Excluded by Official Rule
+            <p className="text-xs text-slate-400 mt-1">
+              Live tournament rankings across Division 1, Division 2, and Division 3.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 font-mono text-[10px]">
+              MATCHDAY {leagueConfig.currentMatchday}
+            </Badge>
+            <Badge variant="outline" className="border-amber-500/30 text-amber-400 font-mono text-[10px]">
+              24-HR CYCLE
             </Badge>
           </div>
-        )}
-      </section>
-
-      {/* TWO-COLUMN CONTENT: MATCHES vs STANDINGS */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Recent & Upcoming Matches */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-sky-400" />
-                <h2 className="text-xl font-black uppercase text-white tracking-wide">
-                  Daily 24-Hr Matchday Fixtures
-                </h2>
-              </div>
-              <Link
-                href="/fixtures"
-                className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1"
-              >
-                All Fixtures <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Latest Verified Results
-              </h3>
-              {recentMatches.length === 0 ? (
-                <p className="text-xs text-slate-500 italic p-4 border border-slate-800 rounded-xl bg-slate-900/40">
-                  No verified results yet. Submit results with screenshots on your player dashboard!
-                </p>
-              ) : (
-                recentMatches.map((match) => <MatchCard key={match.id} match={match} />)
-              )}
-            </div>
-
-            <div className="space-y-4 pt-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
-                Active 24-Hour Schedule (Expiring 12:00 AM)
-              </h3>
-              {upcomingMatches.length === 0 ? (
-                <p className="text-xs text-slate-500 italic p-4 border border-slate-800 rounded-xl bg-slate-900/40">
-                  New daily fixtures will drop automatically at 12:00 AM midnight.
-                </p>
-              ) : (
-                upcomingMatches.map((match) => <MatchCard key={match.id} match={match} />)
-              )}
-            </div>
-          </div>
-
-          {/* Right Column: Standings & Golden Boot */}
-          <div className="lg:col-span-5 space-y-8">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-400" />
-                  <h2 className="text-xl font-black uppercase text-white tracking-wide">
-                    Division 1 Standings
-                  </h2>
-                </div>
-                <Link
-                  href="/standings"
-                  className="text-xs font-bold text-yellow-400 hover:text-yellow-300 flex items-center gap-1"
-                >
-                  All 3 Divisions <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-1">
-                <StandingsTable
-                  standings={div1Standings}
-                  divisionName="Division 1"
-                  compact={true}
-                />
-              </div>
-            </div>
-
-            {/* Top Scorers */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-emerald-400" />
-                  <h2 className="text-xl font-black uppercase text-white tracking-wide">
-                    Top Goalscorers
-                  </h2>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {topPlayers.map((player, idx) => (
-                  <PlayerCard key={player.id} player={player} rank={idx + 1} />
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
+
+        {/* Home Divisions Tabs displaying all 3 division tables */}
+        <HomeDivisionsTabs
+          div1Standings={div1Standings}
+          div2Standings={div2Standings}
+          div3Standings={div3Standings}
+        />
       </section>
 
-      {/* 3 DIVISIONS TILES */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* MAIN SYSTEM FEATURES & RULES */}
+      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-2xl border border-sky-500/30 bg-slate-900/70 p-6 space-y-3">
-            <Badge variant="default">1ST DIVISION</Badge>
-            <h3 className="text-lg font-black uppercase text-white">Premiership (Mobile)</h3>
+          <div className="rounded-2xl border border-cyan-500/20 bg-[#080d1e]/70 p-6 space-y-3 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <Badge variant="default" className="text-[10px] bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                1 MATCH PER PAIRING
+              </Badge>
+              <Clock className="h-4 w-4 text-cyan-400" />
+            </div>
+            <h3 className="text-base font-black uppercase text-white">One-Way 24-Hr Matchdays</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Max 20 mobile players. Top 8 advance to UCL, 9th–12th to Europa League. Bottom 3 relegated to 2nd Division.
+              Every matchday runs on a strict 24-hour window expiring at 12:00 AM midnight. All division fixtures are single round robin (1 match only).
             </p>
-            <Link href="/standings?division=Division%201" className="inline-block text-xs font-bold text-sky-400 hover:underline">
-              View Division 1 Table →
-            </Link>
           </div>
 
-          <div className="rounded-2xl border border-yellow-500/30 bg-slate-900/70 p-6 space-y-3">
-            <Badge variant="yellow">2ND DIVISION</Badge>
-            <h3 className="text-lg font-black uppercase text-white">Championship (Mobile)</h3>
+          <div className="rounded-2xl border border-amber-500/20 bg-[#080d1e]/70 p-6 space-y-3 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <Badge variant="yellow" className="text-[10px] bg-amber-500/20 text-amber-300 border-amber-500/30">
+                AUTOMATIC PROMOTION
+              </Badge>
+              <Trophy className="h-4 w-4 text-amber-400" />
+            </div>
+            <h3 className="text-base font-black uppercase text-white">Division 2 & 3 Top 3 Promoted</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Max 20 mobile players. Top 3 promoted to Div 1. Top 4 qualify for UCL. Bottom 3 relegated to 3rd Division.
+              At the end of the season, the top 3 ranked players in Division 2 earn automatic promotion to Division 1, and the top 3 in Division 3 promote to Division 2.
             </p>
-            <Link href="/standings?division=Division%202" className="inline-block text-xs font-bold text-yellow-400 hover:underline">
-              View Division 2 Table →
-            </Link>
           </div>
 
-          <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/70 p-6 space-y-3">
-            <Badge variant="green">3RD DIVISION</Badge>
-            <h3 className="text-lg font-black uppercase text-white">National Academy (Mobile)</h3>
+          <div className="rounded-2xl border border-emerald-500/20 bg-[#080d1e]/70 p-6 space-y-3 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                POST-SEASON
+              </Badge>
+              <Globe className="h-4 w-4 text-emerald-400" />
+            </div>
+            <h3 className="text-base font-black uppercase text-white">eFootball UCL & Europa</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Max 20 mobile players. Top 3 promoted to Div 2. Top 4 qualify for UCL. Bottom 3 relegated to Open Qualifiers.
+              Continental cup showdowns featuring 16 top performers from all divisions in group stages followed by two-legged home & away knockouts.
             </p>
-            <Link href="/standings?division=Division%203" className="inline-block text-xs font-bold text-emerald-400 hover:underline">
-              View Division 3 Table →
-            </Link>
           </div>
         </div>
       </section>

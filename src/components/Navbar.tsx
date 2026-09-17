@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Trophy, Calendar, Users, Award, Shield, Menu, X, Flame, ShieldAlert, Globe, Smartphone, User, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -23,42 +24,18 @@ export default function Navbar() {
     { name: "Home", href: "/", icon: Shield },
     { name: "3 Divisions", href: "/standings", icon: Trophy },
     { name: "UCL & Europa", href: "/continental", icon: Globe },
-    { name: "Player Dashboard", href: "/dashboard", icon: Smartphone },
-    { name: "Admin Center", href: "/admin", icon: ShieldAlert },
+    { name: "Admin Office", href: "/admin", icon: ShieldAlert },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-xl transition-all">
-      {/* Rwandan Esports Color Ribbon */}
-      <div className="h-1 w-full flex">
-        <div className="h-full w-1/2 bg-[#00A1DE]" />
-        <div className="h-full w-1/4 bg-[#FAD201]" />
-        <div className="h-full w-1/4 bg-[#10B981]" />
-      </div>
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#060913]/90 backdrop-blur-xl transition-all">
+      {/* Sleek Cyan / Gold Esports Accent Line */}
+      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-amber-400 opacity-80" />
 
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
-        {/* Brand Logo */}
+        {/* Gaming Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 via-blue-600 to-emerald-500 p-[2px] shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
-            <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-slate-950">
-              <Smartphone className="h-5 w-5 text-yellow-400" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-black tracking-wider text-white uppercase group-hover:text-sky-400 transition-colors">
-                EFOOTBALL RWANDA
-              </span>
-              <Badge variant="live" className="text-[9px] py-0 px-1.5 uppercase font-mono">
-                MOBILE ONLY
-              </Badge>
-            </div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest -mt-1 flex items-center gap-1">
-              <span>Div 1 • Div 2 • Div 3</span>
-              <span>•</span>
-              <span className="text-yellow-400">24-Hr Matchdays</span>
-            </p>
-          </div>
+          <EfootballGamingLogo size="md" showText={true} />
         </Link>
 
         {/* Desktop Navigation Links */}
@@ -70,13 +47,13 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-slate-800 text-sky-400 shadow-inner border border-sky-500/30"
+                    ? "bg-cyan-500/10 text-cyan-400 shadow-inner border border-cyan-500/30"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-sky-400" : "text-slate-400"}`} />
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-cyan-400" : "text-slate-400"}`} />
                 <span>{link.name}</span>
               </Link>
             );

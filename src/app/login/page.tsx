@@ -7,6 +7,7 @@ import { Smartphone, Lock, User, ShieldCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import EfootballLoader from "@/components/EfootballLoader";
 
 function LoginForm() {
   const router = useRouter();
@@ -164,13 +165,48 @@ function LoginForm() {
             <div className="pt-2">
               <Link
                 href="/admin/login"
-                className="text-[11px] font-mono text-red-400 hover:text-red-300 flex items-center justify-center gap-1 hover:underline"
+                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-1 hover:underline"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Go to Dedicated League Admin Portal →
+                Go to Dedicated League Admin Office →
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* External Resources & Community Links */}
+        <div className="rounded-2xl border border-slate-800 bg-[#080d1e]/80 p-4 space-y-3">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+            External Community & League Tables (Open Access)
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href="https://discord.gg/rbaFrBB5p"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
+            >
+              Official Discord ↗
+            </a>
+            <a
+              href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-pink-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
+            >
+              Official Instagram ↗
+            </a>
+          </div>
+        </div>
+
+        {/* Back Link */}
+        <div className="text-center">
+          <Link
+            href="/"
+            className="text-xs text-slate-500 hover:text-cyan-400 transition-colors uppercase font-bold tracking-wider"
+          >
+            ← Back to eFootball Rwanda League Homepage
+          </Link>
         </div>
       </div>
     </div>
@@ -179,7 +215,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 text-xs text-slate-500">Loading...</div>}>
+    <Suspense fallback={<div className="py-24 flex justify-center"><EfootballLoader size="md" text="Loading Player Portal..." /></div>}>
       <LoginForm />
     </Suspense>
   );

@@ -20,10 +20,14 @@ import {
   ChevronRight,
   Send,
   X,
+  Sparkles,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
+import EfootballLoader from "@/components/EfootballLoader";
 
 export default function DashboardClient({
   player,
@@ -32,6 +36,8 @@ export default function DashboardClient({
   announcements,
   recentMatches,
   standing,
+  leagueConfig,
+  divisionalMotd = {},
 }: {
   player: any;
   user: any;
@@ -39,8 +45,44 @@ export default function DashboardClient({
   announcements: any[];
   recentMatches: any[];
   standing: any;
+  leagueConfig?: any;
+  divisionalMotd?: Record<string, any>;
 }) {
   const router = useRouter();
+
+  // Selected MOTD tab in dashboard
+  const [selectedMotdDiv, setSelectedMotdDiv] = useState<string>(
+    player.division || "Division 1"
+  );
+
+  // Announcement read tracking (Immediate mark-as-read on view)
+  const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const storageKey = `efrl_read_ann_${player.id}`;
+      const saved = localStorage.getItem(storageKey);
+      const parsed = new Set<string>(saved ? JSON.parse(saved) : []);
+
+      // Immediately mark all incoming announcements as read
+      const updated = new Set<string>(parsed);
+      announcements.forEach((ann) => {
+        if (!parsed.has(ann.id)) {
+          updated.add(ann.id);
+          fetch("/api/announcements/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ announcementId: ann.id }),
+          }).catch(() => {});
+        }
+      });
+
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
+      setReadAnnouncements(updated);
+    } catch (e) {
+      console.error("Read receipt error:", e);
+    }
+  }, [announcements, player.id]);
 
   // 24-hour Countdown Timer State
   const [timeLeft, setTimeLeft] = useState<{
@@ -101,6 +143,13 @@ export default function DashboardClient({
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
   }, [activeMatch?.deadlineDate]);
+
+  // Check if active match options are locked
+  const isMatchLocked = Boolean(
+    activeMatch &&
+    (timeLeft.isExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
+    !activeMatch.notes?.includes("ADMIN_REOPENED")
+  );
 
   // Copy WhatsApp Number helper
   const handleCopyWhatsApp = (num: string) => {
@@ -189,7 +238,7 @@ export default function DashboardClient({
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    router.push("/?loggedOut=player");
     router.refresh();
   };
 
@@ -424,29 +473,43 @@ export default function DashboardClient({
                   Coordinate with your opponent on WhatsApp, complete the match on eFootball Mobile, and upload a screenshot of the post-game score screen before the 24-hour timer expires.
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                  <Button
-                    variant="yellow"
-                    size="lg"
-                    disabled={timeLeft.isExpired}
-                    onClick={() => setShowResultModal(true)}
-                    className="font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {timeLeft.isExpired ? "Window Closed" : "Upload Match Result Screenshot"}
-                  </Button>
+                {isMatchLocked ? (
+                  <div className="w-full sm:w-auto p-3.5 rounded-2xl bg-red-950/40 border border-red-500/40 text-xs text-red-300 flex items-center gap-3">
+                    <Lock className="h-5 w-5 text-red-400 shrink-0" />
+                    <div>
+                      <span className="font-black uppercase tracking-wider text-red-200 block">
+                        Fixture Expired & Locked
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Previous match options are closed per 24-hr midnight rule unless reopened by the Admin Office.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <Button
+                      variant="yellow"
+                      size="lg"
+                      disabled={timeLeft.isExpired}
+                      onClick={() => setShowResultModal(true)}
+                      className="font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload Match Result Screenshot
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    disabled={timeLeft.isExpired}
-                    onClick={() => setShowForfeitModal(true)}
-                    className="font-bold text-xs sm:text-sm gap-2 border-red-500/40 text-red-400 hover:bg-red-950/20 w-full sm:w-auto"
-                  >
-                    <ShieldAlert className="h-4 w-4" />
-                    Claim Opponent Forfeit (Proof)
-                  </Button>
-                </div>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      disabled={timeLeft.isExpired}
+                      onClick={() => setShowForfeitModal(true)}
+                      className="font-bold text-xs sm:text-sm gap-2 border-red-500/40 text-red-400 hover:bg-red-950/20 w-full sm:w-auto"
+                    >
+                      <ShieldAlert className="h-4 w-4" />
+                      Claim Opponent Forfeit (Proof)
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -465,6 +528,56 @@ export default function DashboardClient({
               </Link>
             </div>
           )}
+
+          {/* DIVISION MATCH OF THE DAY SECTION */}
+          <div className="space-y-4 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-400" />
+                <h3 className="text-lg font-black uppercase text-white tracking-wide">
+                  Match of the Day (By Division)
+                </h3>
+              </div>
+
+              {/* Division Selector Tabs for MOTD */}
+              <div className="flex items-center gap-1.5 bg-[#080d1e] p-1 rounded-xl border border-slate-800">
+                {(["Division 1", "Division 2", "Division 3"] as const).map((div) => {
+                  const isSelected = selectedMotdDiv === div;
+                  return (
+                    <button
+                      key={div}
+                      type="button"
+                      onClick={() => setSelectedMotdDiv(div)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
+                        isSelected
+                          ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {div === player.division ? `${div} (Yours)` : div}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {divisionalMotd[selectedMotdDiv] ? (
+              <MatchOfTheDayCard match={divisionalMotd[selectedMotdDiv]} />
+            ) : (
+              <div className="rounded-2xl border border-slate-800 bg-[#080d1e]/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="font-bold text-slate-300">
+                    {selectedMotdDiv} Match of the Day:
+                  </span>
+                  <span>Activates from Matchday 2 onwards based on table rankings.</span>
+                </div>
+                <Badge variant="secondary" className="font-mono text-[10px] w-fit">
+                  Matchday {leagueConfig?.currentMatchday || 1}
+                </Badge>
+              </div>
+            )}
+          </div>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -519,7 +632,7 @@ export default function DashboardClient({
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge
                         variant={ann.type === "INDIVIDUAL" ? "default" : "yellow"}
                         className="text-[10px]"
@@ -531,6 +644,10 @@ export default function DashboardClient({
                           PINNED
                         </Badge>
                       )}
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <CheckCircle className="h-3 w-3" />
+                        Marked as Read
+                      </span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-500">
                       {new Date(ann.createdAt).toLocaleDateString()}

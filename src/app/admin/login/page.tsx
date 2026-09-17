@@ -117,10 +117,13 @@ export default function AdminLoginPage() {
               className="w-full bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider py-6 rounded-xl shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
-                <span>Authenticating Portal Access...</span>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span>Entering Admin Office...</span>
+                </div>
               ) : (
                 <>
-                  <span>Enter Admin Portal</span>
+                  <span>Enter Admin Office</span>
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -132,9 +135,34 @@ export default function AdminLoginPage() {
             <span className="flex items-center gap-1">
               <Lock className="h-3 w-3 text-slate-500" /> End-to-End Encrypted
             </span>
-            <Link href="/login" className="text-sky-400 hover:underline flex items-center gap-1 font-semibold">
+            <Link href="/login" className="text-cyan-400 hover:underline flex items-center gap-1 font-semibold">
               <Gamepad2 className="h-3 w-3" /> Player Portal
             </Link>
+          </div>
+        </div>
+
+        {/* External Resources & Community Quick Links */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 space-y-3">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+            External Resources & Community (Open Access)
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href="https://discord.gg/rbaFrBB5p"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
+            >
+              Official Discord ↗
+            </a>
+            <a
+              href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-pink-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
+            >
+              Instagram Highlights ↗
+            </a>
           </div>
         </div>
 
@@ -142,7 +170,7 @@ export default function AdminLoginPage() {
         <div className="text-center">
           <Link
             href="/"
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors uppercase font-bold tracking-wider"
+            className="text-xs text-slate-500 hover:text-cyan-400 transition-colors uppercase font-bold tracking-wider"
           >
             ← Back to eFootball Rwanda League Homepage
           </Link>

@@ -87,21 +87,23 @@ export async function POST(req: Request) {
       create: { id: "default", currentMatchday: nextMatchday },
     });
 
-    // 4. Select Match of the Day based on table standings (Rule: except on first round)
-    let motdInfo = "";
+    // 4. Select Match of the Day for EACH division based on table standings
     if (nextMatchday > 1) {
       const { syncMatchOfTheDay } = await import("@/lib/matchOfTheDay");
-      const motd = await syncMatchOfTheDay(nextMatchday);
-      if (motd) {
-        motdInfo = ` 🌟 MATCH OF THE DAY: ${motd.homePlayer?.gamerTag} vs ${motd.awayPlayer?.gamerTag} (${motd.motdHeadline})!`;
-      }
+      await syncMatchOfTheDay(nextMatchday);
+    }
+
+    // If no more matches remain in the next round, the season has ended!
+    if (updatedMatches.count === 0) {
+      const { promoteTopPlayersAtSeasonEnd } = await import("@/lib/seasonPromotion");
+      await promoteTopPlayersAtSeasonEnd();
     }
 
     // 5. Create Announcement
     await prisma.announcement.create({
       data: {
         title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Midnight Window)`,
-        content: `The system has automatically dropped all ${nextRoundName} fixtures.${motdInfo} Contact your opponent via WhatsApp immediately. Submissions and proof upload buttons will remain active until 12:00 AM cutoff.`,
+        content: `The system has automatically dropped all ${nextRoundName} fixtures. Contact your opponent via WhatsApp immediately. Submissions and proof upload buttons will remain active until 12:00 AM cutoff.`,
         type: "BROADCAST",
         isPinned: true,
       },
