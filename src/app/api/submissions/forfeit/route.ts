@@ -29,13 +29,69 @@ export async function POST(req: Request) {
       );
     }
 
-    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        submissions: {
+          where: { status: { not: "REJECTED" } },
+          include: { submittedByPlayer: true },
+        },
+        forfeitClaims: {
+          where: { status: { not: "REJECTED" } },
+          include: { claimantPlayer: true },
+        },
+      },
+    });
+
     if (!match) {
-      return NextResponse.json({ error: "Match not found." }, { status: 404 });
+      return NextResponse.json({ error: "Match fixture not found." }, { status: 404 });
+    }
+
+    // Verify player is a participant in this fixture
+    if (match.homePlayerId !== user.player.id && match.awayPlayerId !== user.player.id) {
+      return NextResponse.json(
+        { error: "Unauthorized. You are not a registered athlete for this fixture." },
+        { status: 403 }
+      );
+    }
+
+    // If match is already completed
+    if (match.status === "FINISHED" || match.status === "FORFEIT") {
+      return NextResponse.json(
+        { error: "This match is already finalized. Submissions are closed." },
+        { status: 400 }
+      );
+    }
+
+    // LINKED UPLOAD ENFORCEMENT:
+    // If either player has already submitted a match result
+    if (match.submissions.length > 0) {
+      const activeSub = match.submissions[0];
+      const submitter = activeSub.submittedByPlayer?.gamerTag || "an athlete";
+      return NextResponse.json(
+        {
+          error: `Match results have already been uploaded by @${submitter}. Forfeit claims are closed while the result is under review.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // If either player has already lodged a forfeit claim
+    if (match.forfeitClaims.length > 0) {
+      const activeClaim = match.forfeitClaims[0];
+      const claimant = activeClaim.claimantPlayer?.gamerTag || "an athlete";
+      return NextResponse.json(
+        {
+          error: `A forfeit claim has already been lodged by @${claimant}. The upload window is closed for both players while under league arbitration.`,
+        },
+        { status: 400 }
+      );
     }
 
     // Check if 24-hr window has expired
-    if (new Date() > new Date(match.deadlineDate)) {
+    if (new Date() > new Date(match.deadlineDate) && !match.allowLateSubmission) {
       return NextResponse.json(
         {
           error:
@@ -58,6 +114,18 @@ export async function POST(req: Request) {
         status: "PENDING",
       },
     });
+
+    // Notify accused player that a forfeit claim has been submitted
+    if (accusedPlayerId) {
+      await prisma.announcement.create({
+        data: {
+          title: `Forfeit Claim Lodged (${match.round})`,
+          content: `@${user.player.gamerTag} has lodged a forfeit claim for your ${match.round} match with WhatsApp unresponsiveness proof. The upload window is closed while the League Admin arbitrates the claim.`,
+          type: "INDIVIDUAL",
+          targetPlayerId: accusedPlayerId,
+        },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,

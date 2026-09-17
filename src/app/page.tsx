@@ -24,6 +24,7 @@ import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackgroun
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import MatchCard from "@/components/MatchCard";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
+import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,10 @@ export default async function HomePage({
 }) {
   const params = searchParams ? await searchParams : {};
   const loggedOutType = params.loggedOut;
+
+  if (!loggedOutType) {
+    await redirectAdminToPortal();
+  }
 
   // Run autonomous midnight daily cycle check without requiring admin permission
   await checkAndAutoAdvanceDailyCycle();

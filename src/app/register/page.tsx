@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Smartphone, Lock, User, CheckCircle, ShieldAlert, Trophy, Phone, MessageSquare, AlertCircle, Eye, EyeOff } from "lucide-react";
@@ -10,6 +10,21 @@ import { Badge } from "@/components/ui/badge";
 
 export default function RegisterPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("efrl_user");
+      if (cached) {
+        try {
+          const user = JSON.parse(cached);
+          if (user.role === "ADMIN") {
+            router.replace("/admin");
+          }
+        } catch (e) {}
+      }
+    }
+  }, [router]);
+
   const [formData, setFormData] = useState({
     fullName: "",
     gamerTag: "",
@@ -93,12 +108,12 @@ export default function RegisterPage() {
           </h3>
 
           {registrationOpen === false && (
-            <div className="mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs text-amber-300 flex items-start gap-3">
-              <ShieldAlert className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="mb-6 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 p-4 text-xs text-cyan-300 flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 text-cyan-400 shrink-0 mt-0.5" />
               <div>
-                <p className="font-black uppercase tracking-wider text-amber-400">Registration Is Currently Closed</p>
+                <p className="font-black uppercase tracking-wider text-cyan-400">Division Entry Closed — Open for Reserve Pool</p>
                 <p className="mt-1 text-slate-300">
-                  The League Administrator has temporarily closed registrations. Please log in if you already have an account, or check back soon.
+                  Official division schedules are set, but you can still register! All new registrants join the <strong>League Reserve Pool</strong>. Reserve athletes can vote in Match of the Day (MOTD) polls, track all division tables, and be called up as official replacement players.
                 </p>
               </div>
             </div>
@@ -226,12 +241,12 @@ export default function RegisterPage() {
                 variant="yellow"
                 size="lg"
                 className="w-full font-black text-slate-950 shadow-xl shadow-yellow-500/20"
-                disabled={loading || registrationOpen === false}
+                disabled={loading}
               >
                 {loading
                   ? "Submitting Profile..."
                   : registrationOpen === false
-                  ? "Registration Closed"
+                  ? "Register for Official League Reserve Pool"
                   : "Submit Registration for League Review"}
               </Button>
             </div>

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import StandingsTable from "@/components/StandingsTable";
 import { Trophy, ShieldCheck, Flame, Info, AlertTriangle, ArrowDown, ArrowUp, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function StandingsPage({
 }: {
   searchParams: Promise<{ division?: string }>;
 }) {
+  await redirectAdminToPortal();
   const params = await searchParams;
   const currentDivision = params.division || "Division 1";
 

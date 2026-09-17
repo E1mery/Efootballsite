@@ -38,11 +38,18 @@ export default async function AdminPage() {
     reservePlayers,
     hallOfFameEntries,
     playerMessages,
+    reviews,
   ] = await Promise.all([
     prisma.match.findMany({
-      include: { homePlayer: true, awayPlayer: true },
-      orderBy: { matchDate: "desc" },
-      take: 200,
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        submissions: {
+          include: { submittedByPlayer: true },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+      orderBy: [{ round: "asc" }, { matchDate: "asc" }],
     }),
     prisma.matchSubmission.findMany({
       where: { status: "PENDING" },
@@ -114,10 +121,12 @@ export default async function AdminPage() {
     }),
     prisma.player.findMany({
       where: { status: "PENDING_APPROVAL" },
+      include: { user: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.player.findMany({
       where: { status: "RESERVED" },
+      include: { user: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.hallOfFame.findMany({
@@ -132,6 +141,20 @@ export default async function AdminPage() {
             fullName: true,
             division: true,
             whatsapp: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.feedbackReview.findMany({
+      include: {
+        player: {
+          select: {
+            id: true,
+            gamerTag: true,
+            fullName: true,
+            division: true,
             avatar: true,
           },
         },
@@ -160,6 +183,7 @@ export default async function AdminPage() {
         initialReservePlayers={reservePlayers}
         initialHallOfFame={hallOfFameEntries}
         initialPlayerMessages={playerMessages}
+        initialReviews={reviews}
       />
     </div>
   );

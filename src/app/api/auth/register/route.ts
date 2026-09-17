@@ -56,7 +56,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create User and Player in PENDING_APPROVAL status (no caps, Commissioner will admit or place on reserve)
+    // Check League Configuration (is division entry closed?)
+    const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+    const isDivisionEntryClosed = config ? !config.registrationOpen : false;
+
+    // Create User and Player in PENDING_APPROVAL status
+    // If division registration is closed, player goes directly to the Reserve Pool
+    const assignedDivision = isDivisionEntryClosed ? "RESERVE" : preferredDivision;
+
     const passwordHash = hashPassword(password);
     const user = await prisma.user.create({
       data: {
@@ -73,16 +80,15 @@ export async function POST(req: Request) {
         fullName: fullName.trim(),
         efootballId: sanitizedKonami,
         whatsapp: whatsapp.trim(),
-        division: preferredDivision, // Requested division, pending admin confirmation
-        status: "PENDING_APPROVAL",
+        division: assignedDivision,
+        status: isDivisionEntryClosed ? "RESERVED" : "PENDING_APPROVAL",
         platform: "eFootball Mobile",
         overallRating: 85,
       },
     });
 
-    // NOTE: Standings record is NOT created yet.
-    // The League Commissioner will review and either admit the player to an active division
-    // or place them in the Reserve Pool.
+    // NOTE: Standings record is NOT created yet for unadmitted players.
+    // If placed on reserve, the player can immediately explore standings and vote on MOTD.
 
     // Robust session cookie creation (dual-write to headers and cookieStore)
     const host = req.headers.get("host") || "";

@@ -17,6 +17,20 @@ export async function GET(req: Request) {
 
     if (playerId) {
       whereClause.OR.push({ targetPlayerId: playerId });
+
+      // Exclude announcements marked as read > 24 hours ago
+      const expiredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const expiredReads = await prisma.announcementRead.findMany({
+        where: {
+          playerId,
+          readAt: { lt: expiredCutoff },
+        },
+        select: { announcementId: true },
+      });
+
+      if (expiredReads.length > 0) {
+        whereClause.id = { notIn: expiredReads.map((r) => r.announcementId) };
+      }
     }
 
     const announcements = await prisma.announcement.findMany({

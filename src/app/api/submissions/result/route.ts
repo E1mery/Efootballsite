@@ -29,23 +29,80 @@ export async function POST(req: Request) {
       );
     }
 
-    const match = await prisma.match.findUnique({ where: { id: matchId } });
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        submissions: {
+          where: { status: { not: "REJECTED" } },
+          include: { submittedByPlayer: true },
+        },
+        forfeitClaims: {
+          where: { status: { not: "REJECTED" } },
+          include: { claimantPlayer: true },
+        },
+      },
+    });
+
     if (!match) {
       return NextResponse.json({ error: "Match fixture not found." }, { status: 404 });
     }
 
-    // Check if 24-hr window has expired
-    if (new Date() > new Date(match.deadlineDate)) {
+    // Verify player is a participant in this fixture
+    if (match.homePlayerId !== user.player.id && match.awayPlayerId !== user.player.id) {
+      return NextResponse.json(
+        { error: "Unauthorized. You are not a registered athlete for this fixture." },
+        { status: 403 }
+      );
+    }
+
+    // If match is already completed
+    if (match.status === "FINISHED" || match.status === "FORFEIT") {
+      return NextResponse.json(
+        { error: "This match is already finalized. Uploads are closed." },
+        { status: 400 }
+      );
+    }
+
+    // LINKED UPLOAD ENFORCEMENT:
+    // If either player has already submitted a match result (status not rejected)
+    if (match.submissions.length > 0) {
+      const activeSub = match.submissions[0];
+      const submitter = activeSub.submittedByPlayer?.gamerTag || "an athlete";
       return NextResponse.json(
         {
-          error:
-            "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Result submissions are closed.",
+          error: `A match result has already been uploaded by @${submitter}. The upload page is closed for both players while awaiting admin verification.`,
         },
         { status: 400 }
       );
     }
 
-    // Create submission for admin review
+    // If either player has already lodged a forfeit claim (status not rejected)
+    if (match.forfeitClaims.length > 0) {
+      const activeClaim = match.forfeitClaims[0];
+      const claimant = activeClaim.claimantPlayer?.gamerTag || "an athlete";
+      return NextResponse.json(
+        {
+          error: `A forfeit claim has already been lodged by @${claimant}. The upload window is closed for both players while under league arbitration.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if deadline has passed, allowing submissions if admin approved late entry
+    const isPastDeadline = new Date() > new Date(match.deadlineDate);
+    if (isPastDeadline && !match.allowLateSubmission) {
+      return NextResponse.json(
+        {
+          error:
+            "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Please contact the League Admin to request a deadline extension.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create submission for admin review with status PENDING
     const submission = await prisma.matchSubmission.create({
       data: {
         matchId,
@@ -57,6 +114,20 @@ export async function POST(req: Request) {
         status: "PENDING",
       },
     });
+
+    // Notify opponent that result was uploaded and upload window is closed
+    const opponentId =
+      match.homePlayerId === user.player.id ? match.awayPlayerId : match.homePlayerId;
+    if (opponentId) {
+      await prisma.announcement.create({
+        data: {
+          title: `Match Result Uploaded (${match.round})`,
+          content: `@${user.player.gamerTag} has uploaded the match result screenshot (${homeScore} - ${awayScore}) for your ${match.round} fixture. The upload window is now closed for both athletes while the League Admin verifies the proof.`,
+          type: "INDIVIDUAL",
+          targetPlayerId: opponentId,
+        },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,

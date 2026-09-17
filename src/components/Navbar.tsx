@@ -53,6 +53,13 @@ export default function Navbar() {
       });
   }, [pathname]);
 
+  useEffect(() => {
+    // If admin is authenticated, restrict navigation strictly to /admin
+    if (session?.authenticated && session.user?.role === "ADMIN" && !pathname?.startsWith("/admin")) {
+      window.location.replace("/admin");
+    }
+  }, [session, pathname]);
+
   const navLinks = [
     { name: "Home", href: "/", icon: Shield },
     { name: "3 Divisions", href: "/standings", icon: Trophy },
@@ -72,7 +79,7 @@ export default function Navbar() {
             <EfootballGamingLogo size="md" showText={true} />
           </Link>
           {isAdminPortal && (
-            <Badge variant="destructive" className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex">
+            <Badge variant="destructive" className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex font-bold">
               COMMISSIONER OFFICE
             </Badge>
           )}
@@ -104,20 +111,12 @@ export default function Navbar() {
 
         {/* Right Action Bar */}
         <div className="hidden sm:flex items-center gap-2.5">
-
           {isAdminPortal ? (
-            /* Inside Admin Portal: Clean Header without player dashboard, home, 3 divisions, or UCL buttons */
-            <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="font-bold text-xs gap-1.5 border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-white"
-                >
-                  <ExternalLink className="h-3.5 w-3.5 text-cyan-400" />
-                  <span>Public League Portal</span>
-                </Button>
-              </Link>
+            /* Inside Admin Portal: Clean Header without any public portal links */
+            <div className="flex items-center gap-2">
+              <Badge variant="destructive" className="font-mono text-xs tracking-wider uppercase px-3 py-1 font-bold shadow-md shadow-red-600/20">
+                COMMISSIONER CONSOLE
+              </Badge>
             </div>
           ) : session?.authenticated ? (
             session.user?.role === "ADMIN" ? (
@@ -153,36 +152,22 @@ export default function Navbar() {
         </div>
 
         {/* Mobile menu toggle */}
-        <div className="flex lg:hidden">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="inline-flex items-center justify-center p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 min-h-[44px] min-w-[44px]"
-            aria-label="Toggle Navigation Menu"
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
+        {!isAdminPortal && (
+          <div className="flex lg:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 min-h-[44px] min-w-[44px]"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile menu dropdown */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isAdminPortal && (
         <div className="lg:hidden border-b border-slate-800 bg-[#060913]/98 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2">
-          {isAdminPortal ? (
-            /* Clean Admin mobile drawer */
-            <div className="space-y-3">
-              <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 text-xs text-red-300 font-mono">
-                Admin Office Active
-              </div>
-              <Link
-                href="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-bold text-xs"
-              >
-                <ExternalLink className="h-4 w-4 text-cyan-400" />
-                <span>Return to Public League Portal</span>
-              </Link>
-            </div>
-          ) : (
             <>
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
@@ -236,7 +221,6 @@ export default function Navbar() {
                 )}
               </div>
             </>
-          )}
         </div>
       )}
     </header>

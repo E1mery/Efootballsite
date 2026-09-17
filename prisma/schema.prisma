@@ -63,6 +63,8 @@ model Player {
   forfeitClaimsMade      ForfeitClaim[]   @relation("ClaimantPlayer")
   forfeitClaimsAgainst   ForfeitClaim[]   @relation("AccusedPlayer")
   announcementsReceived  Announcement[]   @relation("TargetPlayer")
+  announcementReads      AnnouncementRead[]
+  feedbackReviews        FeedbackReview[]
   uclGroupSlots          UclGroupSlot[]
   directMessages         PlayerMessage[]
 
@@ -106,6 +108,8 @@ model Match {
   status            String            @default("SCHEDULED") // SCHEDULED, LIVE, FINISHED, FORFEIT
   matchDate         DateTime          @default(now())
   deadlineDate      DateTime          // 24-hour match window (expires 12:00 AM)
+  allowLateSubmission Boolean           @default(false)
+  extendedDeadlineDate DateTime?
   notes             String?
   screenshotUrl     String?
   isMatchOfTheDay   Boolean           @default(false) // Match of the Day based on table standings (from Round 2 onwards)
@@ -195,6 +199,7 @@ model Announcement {
   targetPlayer   Player?   @relation("TargetPlayer", fields: [targetPlayerId], references: [id], onDelete: Cascade)
   
   isPinned       Boolean   @default(false)
+  reads          AnnouncementRead[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
@@ -254,4 +259,32 @@ model PlayerMessage {
   @@index([playerId])
   @@index([status])
 }
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  playerId       String
+  player         Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
+
+  @@unique([announcementId, playerId])
+  @@index([playerId])
+  @@index([readAt])
+}
+
+model FeedbackReview {
+  id        String   @id @default(cuid())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  rating    Int      // 1 to 5 stars
+  category  String   @default("GENERAL") // GENERAL, TOURNAMENT, ORGANIZATION, PLATFORM, MATCHMAKING
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([playerId])
+  @@index([createdAt])
+}
+
 

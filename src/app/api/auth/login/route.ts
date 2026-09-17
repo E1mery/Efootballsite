@@ -75,8 +75,23 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
+    response.cookies.set("efrl_role", user.role, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
     const cookieStore = await cookies();
     cookieStore.set("efrl_session", user.id, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    cookieStore.set("efrl_role", user.role, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",

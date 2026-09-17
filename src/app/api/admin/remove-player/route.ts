@@ -80,28 +80,30 @@ export async function DELETE(req: Request) {
       }).catch(() => {});
     }
 
-    // 7. Recalculate standings ranks for the affected division
-    const remainingStandings = await prisma.standing.findMany({
-      where: { division: division },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-    });
+    // 7. Recalculate standings ranks for the affected division and post announcement (only for active/reserved roster athletes)
+    if (player.status !== "PENDING_APPROVAL") {
+      const remainingStandings = await prisma.standing.findMany({
+        where: { division: division },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+      });
 
-    for (let i = 0; i < remainingStandings.length; i++) {
-      await prisma.standing.update({
-        where: { id: remainingStandings[i].id },
-        data: { rank: i + 1 },
+      for (let i = 0; i < remainingStandings.length; i++) {
+        await prisma.standing.update({
+          where: { id: remainingStandings[i].id },
+          data: { rank: i + 1 },
+        });
+      }
+
+      // 8. Log league announcement of player removal
+      await prisma.announcement.create({
+        data: {
+          title: `⚠️ ROSTER UPDATE: ${gamerTag} Removed from League`,
+          content: `Athlete ${gamerTag} has been officially removed from ${division} by the League Commissioner. Standings and unplayed fixtures have been adjusted accordingly.`,
+          type: "BROADCAST",
+          isPinned: false,
+        },
       });
     }
-
-    // 8. Log league announcement of player removal
-    await prisma.announcement.create({
-      data: {
-        title: `⚠️ ROSTER UPDATE: ${gamerTag} Removed from League`,
-        content: `Athlete ${gamerTag} has been officially removed from ${division} by the League Commissioner. Standings and unplayed fixtures have been adjusted accordingly.`,
-        type: "BROADCAST",
-        isPinned: false,
-      },
-    });
 
     return NextResponse.json({
       success: true,

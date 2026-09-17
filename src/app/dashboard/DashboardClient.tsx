@@ -27,6 +27,10 @@ import {
   Save,
   Eye,
   EyeOff,
+  Calendar,
+  Star,
+  Unlock,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +43,7 @@ export default function DashboardClient({
   player,
   user,
   activeMatch,
+  allPlayerMatches = [],
   announcements,
   recentMatches,
   standing,
@@ -47,10 +52,12 @@ export default function DashboardClient({
   div1Standings = [],
   div2Standings = [],
   div3Standings = [],
+  initialReview = null,
 }: {
   player: any;
   user: any;
   activeMatch: any;
+  allPlayerMatches?: any[];
   announcements: any[];
   recentMatches: any[];
   standing: any;
@@ -59,6 +66,7 @@ export default function DashboardClient({
   div1Standings?: any[];
   div2Standings?: any[];
   div3Standings?: any[];
+  initialReview?: any;
 }) {
   const router = useRouter();
 
@@ -287,9 +295,47 @@ export default function DashboardClient({
 
   // Active tab (if player is reserved, default to STANDINGS)
   const isReserved = currentPlayer.status === "RESERVED";
-  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE">(
+  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "FEEDBACK" | "PROFILE";
+  const [activeTab, setActiveTab] = useState<DashboardTab>(
     isReserved ? "STANDINGS" : "OVERVIEW"
   );
+
+  // Rating & Review State
+  const [userRating, setUserRating] = useState<number>(initialReview?.rating || 5);
+  const [reviewCategory, setReviewCategory] = useState<string>(initialReview?.category || "GENERAL");
+  const [reviewComment, setReviewComment] = useState<string>(initialReview?.comment || "");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccessMsg, setReviewSuccessMsg] = useState("");
+  const [reviewErrorMsg, setReviewErrorMsg] = useState("");
+  const [activeReview, setActiveReview] = useState<any>(initialReview);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingReview(true);
+    setReviewSuccessMsg("");
+    setReviewErrorMsg("");
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: userRating,
+          category: reviewCategory,
+          comment: reviewComment.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit review");
+      setReviewSuccessMsg(data.message || "Thank you for your rating & feedback!");
+      if (data.review) {
+        setActiveReview(data.review);
+      }
+    } catch (err: any) {
+      setReviewErrorMsg(err.message || "Failed to submit review");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   // Unread announcements count
   const unreadAnnouncementsCount = announcements.filter((a) => !readAnnouncements.has(a.id)).length;
@@ -326,12 +372,48 @@ export default function DashboardClient({
   const isMatchLocked = Boolean(
     activeMatch &&
     (timeLeft.isExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
-    !activeMatch.notes?.includes("ADMIN_REOPENED")
+    !activeMatch.notes?.includes("ADMIN_REOPENED") &&
+    !activeMatch.allowLateSubmission
   );
 
-  // Check if player has already submitted score or claimed forfeit
-  const hasSubmittedResult = Boolean(activeMatch?.submissions && activeMatch.submissions.length > 0);
-  const hasClaimedForfeit = Boolean(activeMatch?.forfeitClaims && activeMatch.forfeitClaims.length > 0);
+  // Linked submission & forfeit status for this match (shared between both athletes)
+  const sharedSubmission =
+    activeMatch?.submissions?.find((s: any) => s.status !== "REJECTED") ||
+    activeMatch?.submissions?.[0] ||
+    null;
+  const hasSubmittedResult = Boolean(sharedSubmission);
+  const isSubmissionPending = sharedSubmission?.status === "PENDING";
+  const isSubmissionApproved =
+    sharedSubmission?.status === "APPROVED" || activeMatch?.status === "FINISHED";
+
+  const sharedForfeit =
+    activeMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
+    activeMatch?.forfeitClaims?.[0] ||
+    null;
+  const hasClaimedForfeit = Boolean(sharedForfeit);
+
+  const submitterGamerTag =
+    sharedSubmission?.submittedByPlayer?.gamerTag ||
+    (sharedSubmission?.submittedByPlayerId === player.id
+      ? player.gamerTag
+      : opponent?.gamerTag || "Opponent");
+  const isMySubmission = sharedSubmission?.submittedByPlayerId === player.id;
+
+  const claimantGamerTag =
+    sharedForfeit?.claimantPlayer?.gamerTag ||
+    (sharedForfeit?.claimantPlayerId === player.id
+      ? player.gamerTag
+      : opponent?.gamerTag || "Opponent");
+  const isMyClaim = sharedForfeit?.claimantPlayerId === player.id;
+
+  // Is uploading closed for both players?
+  const isUploadClosedForBoth = Boolean(
+    isMatchLocked ||
+    hasSubmittedResult ||
+    hasClaimedForfeit ||
+    (timeLeft.isExpired && !activeMatch?.allowLateSubmission)
+  );
+
   const isOneHourWarning = Boolean(
     activeMatch &&
     !isMatchLocked &&
@@ -580,6 +662,20 @@ export default function DashboardClient({
           </button>
         )}
 
+        {!isReserved && (
+          <button
+            onClick={() => setActiveTab("CALENDAR")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+              activeTab === "CALENDAR"
+                ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-900"
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Match Calendar</span>
+          </button>
+        )}
+
         <button
           onClick={() => setActiveTab("STANDINGS")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
@@ -622,6 +718,18 @@ export default function DashboardClient({
             <span>Match History & Proof</span>
           </button>
         )}
+
+        <button
+          onClick={() => setActiveTab("FEEDBACK")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+            activeTab === "FEEDBACK"
+              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <Star className="h-4 w-4" />
+          <span>Rate & Feedback</span>
+        </button>
 
         <button
           onClick={() => setActiveTab("PROFILE")}
@@ -812,13 +920,170 @@ export default function DashboardClient({
                 </div>
               )}
 
+              {/* LATE DEADLINE EXTENDED NOTICE */}
+              {activeMatch?.allowLateSubmission && (
+                <div className="mt-4 p-4 rounded-2xl border border-emerald-500/50 bg-emerald-950/30 flex items-center gap-3 text-emerald-300">
+                  <Unlock className="h-5 w-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="font-black uppercase tracking-wider text-xs block text-emerald-200">
+                      ⏰ Deadline Extended by Admin Office
+                    </span>
+                    <span className="text-[11px] text-slate-300">
+                      The League Commissioner has granted a deadline extension for this match. You are permitted to upload your match score and screenshot proof.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* LINKED RESULT SUBMISSION STATUS CARD (CLOSED FOR BOTH) */}
+              {hasSubmittedResult && (
+                <div
+                  className={`mt-6 p-5 sm:p-6 rounded-2xl border ${
+                    isSubmissionApproved
+                      ? "border-emerald-500/50 bg-emerald-950/30"
+                      : "border-amber-500/50 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-slate-950/90 ring-1 ring-amber-500/30"
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3 mb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isSubmissionApproved ? (
+                        <Badge variant="green" className="font-black text-xs uppercase gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          MATCH RESULT APPROVED & SAVED TO HISTORY
+                        </Badge>
+                      ) : (
+                        <Badge variant="yellow" className="font-black text-xs uppercase gap-1 animate-pulse">
+                          <Clock className="h-3.5 w-3.5" />
+                          RESULT SUBMITTED — STATUS: PENDING ADMIN APPROVAL
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-[10px] text-slate-300 border-slate-700 font-bold">
+                        Uploaded by: @{submitterGamerTag} {isMySubmission ? "(You)" : "(Opponent)"}
+                      </Badge>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      Submitted: {sharedSubmission?.createdAt ? new Date(sharedSubmission.createdAt).toLocaleString() : "Recently"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-slate-400 block">Submitted Score</span>
+                      <span className="text-3xl font-black font-mono text-white">
+                        {sharedSubmission?.homeScore} - {sharedSubmission?.awayScore}
+                      </span>
+                      {sharedSubmission?.notes && (
+                        <p className="text-xs text-slate-400 mt-1 italic">&quot;{sharedSubmission.notes}&quot;</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      {sharedSubmission?.screenshotUrl && (
+                        <a
+                          href={sharedSubmission.screenshotUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-sky-400 font-bold hover:bg-slate-800 transition"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View Screenshot Proof
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-800/70 flex items-center gap-2.5 text-xs text-amber-300/90">
+                    <Lock className="h-4 w-4 text-amber-400 shrink-0" />
+                    <span>
+                      <strong>Linked Fixture Lock:</strong> Result proof has been registered by @{submitterGamerTag}. The uploading page is closed for both athletes while the Commissioner Office verifies the screenshot.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* LINKED FORFEIT CLAIM STATUS CARD (CLOSED FOR BOTH) */}
+              {!hasSubmittedResult && hasClaimedForfeit && (
+                <div className="mt-6 p-5 sm:p-6 rounded-2xl border border-red-500/50 bg-gradient-to-r from-red-950/40 via-slate-900/90 to-slate-950/90 ring-1 ring-red-500/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3 mb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="destructive" className="font-black text-xs uppercase gap-1 animate-pulse">
+                        <ShieldAlert className="h-3.5 w-3.5" />
+                        FORFEIT CLAIM — UNDER ADMIN ARBITRATION
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] text-slate-300 border-slate-700 font-bold">
+                        Lodged by: @{claimantGamerTag} {isMyClaim ? "(You)" : "(Opponent)"}
+                      </Badge>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      Lodged: {sharedForfeit?.createdAt ? new Date(sharedForfeit.createdAt).toLocaleString() : "Recently"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-slate-400 block">Claim Reason</span>
+                      <p className="text-xs text-slate-200 mt-1 italic">&quot;{sharedForfeit?.reason}&quot;</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      {sharedForfeit?.proofScreenshotUrl && (
+                        <a
+                          href={sharedForfeit.proofScreenshotUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold hover:bg-slate-800 transition"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View WhatsApp Proof
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-800/70 flex items-center gap-2.5 text-xs text-red-300/90">
+                    <Lock className="h-4 w-4 text-red-400 shrink-0" />
+                    <span>
+                      <strong>Linked Fixture Lock:</strong> A forfeit walkover claim has been filed by @{claimantGamerTag}. The uploading window is closed for both athletes while the Commissioner Office arbitrates the claim.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Match Action Buttons (Result Upload & Forfeit Proof) */}
               <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-xs text-slate-400 max-w-md">
                   Coordinate with your opponent on WhatsApp, complete the match on eFootball Mobile, and upload a screenshot of the post-game score screen before the 24-hour timer expires.
                 </p>
 
-                {isMatchLocked ? (
+                {hasSubmittedResult ? (
+                  <div className="w-full sm:w-auto p-3.5 sm:p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-3">
+                    <Lock className="h-5 w-5 text-amber-400 shrink-0" />
+                    <div>
+                      <span className="font-black uppercase tracking-wider text-white block">
+                        Uploading Closed for Both Athletes
+                      </span>
+                      <span className="text-[11px] text-slate-300">
+                        {isMySubmission
+                          ? "You uploaded the match score and proof. Uploading is closed for both you and your opponent."
+                          : `@${submitterGamerTag} uploaded the match score and proof. Uploading is closed for both players while awaiting admin approval.`}
+                      </span>
+                    </div>
+                  </div>
+                ) : hasClaimedForfeit ? (
+                  <div className="w-full sm:w-auto p-3.5 sm:p-4 rounded-2xl bg-red-950/30 border border-red-500/40 text-xs text-red-200 flex items-center gap-3">
+                    <Lock className="h-5 w-5 text-red-400 shrink-0" />
+                    <div>
+                      <span className="font-black uppercase tracking-wider text-white block">
+                        Uploading Closed for Both Athletes
+                      </span>
+                      <span className="text-[11px] text-slate-300">
+                        {isMyClaim
+                          ? "You filed a forfeit walkover claim. Submissions are closed for both athletes."
+                          : `@${claimantGamerTag} filed a forfeit claim against you. Submissions are closed pending arbitration.`}
+                      </span>
+                    </div>
+                  </div>
+                ) : isMatchLocked ? (
                   <div className="w-full sm:w-auto p-3.5 rounded-2xl bg-red-950/40 border border-red-500/40 text-xs text-red-300 flex items-center gap-3">
                     <Lock className="h-5 w-5 text-red-400 shrink-0" />
                     <div>
@@ -835,7 +1100,7 @@ export default function DashboardClient({
                     <Button
                       variant="yellow"
                       size="lg"
-                      disabled={timeLeft.isExpired}
+                      disabled={timeLeft.isExpired && !activeMatch?.allowLateSubmission}
                       onClick={() => setShowResultModal(true)}
                       className="font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto"
                     >
@@ -846,7 +1111,7 @@ export default function DashboardClient({
                     <Button
                       variant="outline"
                       size="lg"
-                      disabled={timeLeft.isExpired}
+                      disabled={timeLeft.isExpired && !activeMatch?.allowLateSubmission}
                       onClick={() => setShowForfeitModal(true)}
                       className="font-bold text-xs sm:text-sm gap-2 border-red-500/40 text-red-400 hover:bg-red-950/20 w-full sm:w-auto"
                     >
@@ -1312,6 +1577,232 @@ export default function DashboardClient({
       )}
 
       {/* ========================================================================= */}
+      {/* TAB: CALENDAR MODE (ALL SEASON MATCH FIXTURES) */}
+      {/* ========================================================================= */}
+      {activeTab === "CALENDAR" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-slate-800 bg-slate-950/80 shadow-xl">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="yellow">SEASON CALENDAR</Badge>
+                <Badge variant="secondary">{allPlayerMatches.length} Total Matches</Badge>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
+                <Calendar className="h-6 w-6 text-cyan-400" />
+                <span>My Season Match Calendar</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Complete timeline of all your league fixtures across all matchdays. Your active match is highlighted below with full score and screenshot submission controls.
+              </p>
+            </div>
+          </div>
+
+          {allPlayerMatches.length === 0 ? (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-3">
+              <Calendar className="h-12 w-12 text-slate-600 mx-auto" />
+              <h4 className="text-base font-bold text-white uppercase">No Matches Scheduled Yet</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                The League Commissioner has not yet generated the official round-robin schedule for your division. Please check back once registration closes.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allPlayerMatches.map((m: any) => {
+                const isCurrentActive = m.id === activeMatch?.id;
+                const isHome = m.homePlayerId === player.id;
+                const matchOpponent = isHome ? m.awayPlayer : m.homePlayer;
+                const isFinished = m.status === "FINISHED";
+                const isForfeit = m.status === "FORFEIT";
+                const sub = m.submissions?.find((s: any) => s.status !== "REJECTED") || m.submissions?.[0];
+                const forfeit = m.forfeitClaims?.find((f: any) => f.status !== "REJECTED") || m.forfeitClaims?.[0];
+                const hasSubOrForfeit = Boolean(sub || forfeit);
+                const isPending = sub?.status === "PENDING";
+                const isForfeitPending = forfeit?.status === "PENDING";
+                const isApprovedSub = sub?.status === "APPROVED" || isFinished;
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`rounded-3xl border p-5 sm:p-6 transition-all backdrop-blur-xl shadow-xl space-y-4 ${
+                      isCurrentActive
+                        ? "border-cyan-500/60 bg-gradient-to-r from-cyan-950/30 via-slate-900/90 to-slate-950/90 ring-2 ring-cyan-500/30"
+                        : isFinished || isForfeit
+                        ? "border-slate-800 bg-slate-950/60"
+                        : "border-slate-800/80 bg-slate-950/40"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={isCurrentActive ? "yellow" : "secondary"} className="text-xs font-mono font-bold">
+                          {m.round}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {m.division}
+                        </Badge>
+                        {isCurrentActive && (
+                          <Badge variant="live" className="text-[10px] animate-pulse">
+                            ⚡ CURRENT MATCHDAY (ACTIVE NOW)
+                          </Badge>
+                        )}
+                        {isFinished && (
+                          <Badge variant="green" className="text-[10px] font-black">
+                            APPROVED / COMPLETED
+                          </Badge>
+                        )}
+                        {isForfeit && (
+                          <Badge variant="destructive" className="text-[10px] font-black">
+                            FORFEIT (WALKOVER)
+                          </Badge>
+                        )}
+                        {isPending && (
+                          <Badge variant="yellow" className="text-[10px] font-black animate-pulse">
+                            RESULT PENDING ADMIN APPROVAL
+                          </Badge>
+                        )}
+                        {isForfeitPending && !isPending && (
+                          <Badge variant="destructive" className="text-[10px] font-black animate-pulse">
+                            FORFEIT CLAIM UNDER ARBITRATION
+                          </Badge>
+                        )}
+                        {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && (
+                          <Badge variant="secondary" className="text-[10px] text-slate-400">
+                            UPCOMING
+                          </Badge>
+                        )}
+                      </div>
+
+                      <span className="text-[11px] font-mono text-slate-400">
+                        Scheduled: {new Date(m.matchDate).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* Match Pairing Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-4">
+                        {/* You */}
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[140px]">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block">
+                            {isHome ? "HOME (YOU)" : "AWAY (YOU)"}
+                          </span>
+                          <span className="font-bold text-sm text-white block">{player.gamerTag}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{player.efootballId}</span>
+                        </div>
+
+                        {/* VS Score Box */}
+                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-center min-w-[90px]">
+                          {isFinished || isForfeit ? (
+                            <span className="text-xl font-black font-mono text-cyan-400">
+                              {m.homeScore} : {m.awayScore}
+                            </span>
+                          ) : sub ? (
+                            <div>
+                              <span className="text-base font-black font-mono text-amber-400">
+                                {sub.homeScore} : {sub.awayScore}
+                              </span>
+                              <span className="text-[9px] text-amber-400 block uppercase font-mono">Pending</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-black text-slate-500">VS</span>
+                          )}
+                        </div>
+
+                        {/* Opponent */}
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[140px]">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                            {isHome ? "AWAY OPPONENT" : "HOME OPPONENT"}
+                          </span>
+                          <span className="font-bold text-sm text-white block">{matchOpponent?.gamerTag || "TBD"}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{matchOpponent?.efootballId || ""}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions & Status Details */}
+                      <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-2">
+                        {isCurrentActive && !hasSubOrForfeit && !isFinished && !isForfeit && (
+                          <Button
+                            variant="yellow"
+                            size="sm"
+                            disabled={timeLeft.isExpired && !activeMatch?.allowLateSubmission}
+                            onClick={() => setShowResultModal(true)}
+                            className="font-bold text-xs gap-1.5 shadow-md shadow-yellow-500/20"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload Result Screenshot
+                          </Button>
+                        )}
+
+                        {isCurrentActive && hasSubOrForfeit && !isFinished && !isForfeit && (
+                          <span className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                            <Lock className="h-3.5 w-3.5 text-amber-400" />
+                            {sub ? "Result Uploaded (Closed)" : "Forfeit Lodged (Closed)"}
+                          </span>
+                        )}
+
+                        {sub?.screenshotUrl && (
+                          <a
+                            href={sub.screenshotUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-sky-400 font-bold hover:bg-slate-800"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Proof
+                          </a>
+                        )}
+
+                        {forfeit?.proofScreenshotUrl && (
+                          <a
+                            href={forfeit.proofScreenshotUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold hover:bg-slate-800"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Forfeit Proof
+                          </a>
+                        )}
+
+                        {matchOpponent?.whatsapp && isCurrentActive && (
+                          <a
+                            href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pending review notice */}
+                    {isPending && (
+                      <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
+                        <Clock className="h-4 w-4 shrink-0 text-amber-400 animate-pulse" />
+                        <span>
+                          Screenshot submitted ({sub.homeScore} - {sub.awayScore}) by @{sub.submittedByPlayer?.gamerTag || "player"}. Awaiting official commissioner review. Uploading is closed for both athletes.
+                        </span>
+                      </div>
+                    )}
+
+                    {isForfeitPending && (
+                      <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4 shrink-0 text-red-400 animate-pulse" />
+                        <span>
+                          Forfeit claim lodged by @{forfeit.claimantPlayer?.gamerTag || "claimant"} ({forfeit.reason}). Awaiting administrator arbitration. Uploading is closed for both athletes.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* TAB 4: PERSONAL INFORMATION & PROFILE SETTINGS */}
       {/* ========================================================================= */}
       {activeTab === "PROFILE" && (
@@ -1544,6 +2035,164 @@ export default function DashboardClient({
         </div>
       )}
 
+      {/* TAB 7: RATE & FEEDBACK */}
+      {activeTab === "FEEDBACK" && (
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-slate-800 bg-[#080d1e]/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+            <div className="border-b border-slate-800/80 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  <Star className="h-6 w-6 fill-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black uppercase text-white tracking-wide">
+                    Rate & League Feedback
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Your voice shapes the future of eFootball Rwanda League. Share your experience and rating with the administration.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {reviewSuccessMsg && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-3 animate-in fade-in">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+                <span className="font-semibold">{reviewSuccessMsg}</span>
+              </div>
+            )}
+
+            {reviewErrorMsg && (
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0" />
+                <span className="font-semibold">{reviewErrorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitReview} className="space-y-6">
+              {/* Star Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block">
+                  Overall Rating
+                </label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setUserRating(star)}
+                      className={`p-2 rounded-xl border transition-all ${
+                        userRating >= star
+                          ? "border-amber-400/60 bg-amber-400/10 text-amber-400 shadow-md shadow-amber-500/20"
+                          : "border-slate-800 bg-slate-900/60 text-slate-600 hover:text-slate-400"
+                      }`}
+                    >
+                      <Star
+                        className={`h-7 w-7 ${
+                          userRating >= star ? "fill-amber-400" : "fill-none"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-3 text-sm font-black text-amber-400">
+                    {userRating === 5 && "5 / 5 - Outstanding ⭐⭐⭐⭐⭐"}
+                    {userRating === 4 && "4 / 5 - Very Good ⭐⭐⭐⭐"}
+                    {userRating === 3 && "3 / 5 - Satisfactory ⭐⭐⭐"}
+                    {userRating === 2 && "2 / 5 - Needs Improvement ⭐⭐"}
+                    {userRating === 1 && "1 / 5 - Poor ⭐"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Category Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block">
+                  Feedback Category
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { id: "GENERAL", label: "General League" },
+                    { id: "TOURNAMENT", label: "Tournament & Rules" },
+                    { id: "MATCHMAKING", label: "Schedule & Deadlines" },
+                    { id: "PLATFORM", label: "Website & Tech" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setReviewCategory(cat.id)}
+                      className={`px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
+                        reviewCategory === cat.id
+                          ? "border-amber-500 bg-amber-500/20 text-white shadow-md shadow-amber-500/10"
+                          : "border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comment Textarea */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block">
+                  Detailed Feedback or Suggestions
+                </label>
+                <textarea
+                  rows={4}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Share what you enjoy, issues you experienced, or suggestions to make the eFootball Rwanda League even better..."
+                  className="w-full rounded-2xl border border-slate-800 bg-slate-900/90 p-4 text-xs text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-6 py-2.5 shadow-lg shadow-amber-500/20"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {submittingReview ? "Submitting..." : activeReview ? "Update Review" : "Submit Rating & Review"}
+                </Button>
+              </div>
+            </form>
+
+            {/* Current Active Review Display */}
+            {activeReview && (
+              <div className="mt-8 pt-6 border-t border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    Your Registered League Feedback
+                  </h4>
+                  <span className="text-[11px] text-slate-500">
+                    Last updated: {new Date(activeReview.updatedAt || activeReview.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center text-amber-400">
+                      {[...Array(activeReview.rating || 5)].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-amber-400" />
+                      ))}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] text-slate-300 border-slate-700">
+                      {activeReview.category || "GENERAL"}
+                    </Badge>
+                  </div>
+                  {activeReview.comment && (
+                    <p className="text-xs text-slate-200 leading-relaxed italic">
+                      "{activeReview.comment}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* MODAL 1: UPLOAD MATCH RESULT SCREENSHOT */}
       {showResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -1567,91 +2216,121 @@ export default function DashboardClient({
               </div>
             )}
 
-            <form onSubmit={handleSubmitResult} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {hasSubmittedResult ? (
+              <div className="p-6 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-center space-y-4">
+                <Lock className="h-10 w-10 text-amber-400 mx-auto" />
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                    {activeMatch.homePlayer.gamerTag} Score
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    required
-                    value={homeScore}
-                    onChange={(e) => setHomeScore(e.target.value)}
-                  />
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Match score and proof screenshot have already been uploaded by <strong>@{submitterGamerTag}</strong>.
+                    The uploading window is closed for both athletes while awaiting Commissioner approval.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                    {activeMatch.awayPlayer.gamerTag} Score
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    required
-                    value={awayScore}
-                    onChange={(e) => setAwayScore(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Upload Screenshot File */}
-              <div>
-                <label className="block text-xs font-bold text-yellow-400 uppercase mb-1">
-                  Upload eFootball Mobile Result Screenshot *
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  required={!resultScreenshot}
-                  onChange={(e) => handleFileChange(e, setResultScreenshot)}
-                  className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Attach in-game full-time screen showing final score and gamer tags.
-                </span>
-              </div>
-
-              {/* Screenshot Preview */}
-              {resultScreenshot && (
-                <div className="rounded-xl overflow-hidden border border-slate-800 max-h-48">
-                  <img
-                    src={resultScreenshot}
-                    alt="Result Screenshot Preview"
-                    className="w-full h-auto object-cover"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                  Match Comments (Optional)
-                </label>
-                <Input
-                  placeholder="e.g. Great game, win in extra time"
-                  value={resultNotes}
-                  onChange={(e) => setResultNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowResultModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="yellow"
-                  disabled={submittingResult}
-                  className="font-bold"
-                >
-                  {submittingResult ? "Submitting..." : "Send Screenshot to Admin"}
+                <Button variant="outline" size="sm" onClick={() => setShowResultModal(false)} className="text-xs">
+                  Close Window
                 </Button>
               </div>
-            </form>
+            ) : hasClaimedForfeit ? (
+              <div className="p-6 rounded-2xl bg-red-950/30 border border-red-500/40 text-center space-y-4">
+                <Lock className="h-10 w-10 text-red-400 mx-auto" />
+                <div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    A forfeit walkover claim has already been filed by <strong>@{claimantGamerTag}</strong>.
+                    Result uploads are closed for both athletes while under league arbitration.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowResultModal(false)} className="text-xs">
+                  Close Window
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitResult} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                      {activeMatch?.homePlayer?.gamerTag} Score
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      required
+                      value={homeScore}
+                      onChange={(e) => setHomeScore(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                      {activeMatch?.awayPlayer?.gamerTag} Score
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      required
+                      value={awayScore}
+                      onChange={(e) => setAwayScore(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Upload Screenshot File */}
+                <div>
+                  <label className="block text-xs font-bold text-yellow-400 uppercase mb-1">
+                    Upload eFootball Mobile Result Screenshot *
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    required={!resultScreenshot}
+                    onChange={(e) => handleFileChange(e, setResultScreenshot)}
+                    className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Attach in-game full-time screen showing final score and gamer tags.
+                  </span>
+                </div>
+
+                {/* Screenshot Preview */}
+                {resultScreenshot && (
+                  <div className="rounded-xl overflow-hidden border border-slate-800 max-h-48">
+                    <img
+                      src={resultScreenshot}
+                      alt="Result Screenshot Preview"
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                    Match Comments (Optional)
+                  </label>
+                  <Input
+                    placeholder="e.g. Great game, win in extra time"
+                    value={resultNotes}
+                    onChange={(e) => setResultNotes(e.target.value)}
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowResultModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="yellow"
+                    disabled={submittingResult}
+                    className="font-bold"
+                  >
+                    {submittingResult ? "Submitting..." : "Send Screenshot to Admin"}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
@@ -1679,63 +2358,93 @@ export default function DashboardClient({
               </div>
             )}
 
-            <form onSubmit={handleSubmitForfeit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                  Upload Proof Screenshot *
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  required={!forfeitScreenshot}
-                  onChange={(e) => handleFileChange(e, setForfeitScreenshot)}
-                  className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-500 file:text-white hover:file:bg-red-400 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Attach WhatsApp chat screenshot or eFootball mobile room invite showing opponent did not respond.
-                </span>
+            {hasSubmittedResult ? (
+              <div className="p-6 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-center space-y-4">
+                <Lock className="h-10 w-10 text-amber-400 mx-auto" />
+                <div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Match score and proof screenshot have already been uploaded by <strong>@{submitterGamerTag}</strong>.
+                    Forfeit claims cannot be submitted while the match result is awaiting admin verification.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowForfeitModal(false)} className="text-xs">
+                  Close Window
+                </Button>
               </div>
+            ) : hasClaimedForfeit ? (
+              <div className="p-6 rounded-2xl bg-red-950/30 border border-red-500/40 text-center space-y-4">
+                <Lock className="h-10 w-10 text-red-400 mx-auto" />
+                <div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    A forfeit walkover claim has already been filed by <strong>@{claimantGamerTag}</strong>.
+                    The uploading window is closed for both athletes while under league arbitration.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowForfeitModal(false)} className="text-xs">
+                  Close Window
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitForfeit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                    Upload Proof Screenshot *
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    required={!forfeitScreenshot}
+                    onChange={(e) => handleFileChange(e, setForfeitScreenshot)}
+                    className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-500 file:text-white hover:file:bg-red-400 cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Attach WhatsApp chat screenshot or eFootball mobile room invite showing opponent did not respond.
+                  </span>
+                </div>
 
-              {forfeitScreenshot && (
-                <div className="rounded-xl overflow-hidden border border-slate-800 max-h-48">
-                  <img
-                    src={forfeitScreenshot}
-                    alt="Proof Screenshot Preview"
-                    className="w-full h-auto object-cover"
+                {forfeitScreenshot && (
+                  <div className="rounded-xl overflow-hidden border border-slate-800 max-h-48">
+                    <img
+                      src={forfeitScreenshot}
+                      alt="Proof Screenshot Preview"
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                    Explanation / Reason *
+                  </label>
+                  <Input
+                    required
+                    placeholder="e.g. Opponent didn't answer WhatsApp for 6 hours before cutoff."
+                    value={forfeitReason}
+                    onChange={(e) => setForfeitReason(e.target.value)}
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                  Explanation / Reason *
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. Opponent didn't answer WhatsApp for 6 hours before cutoff."
-                  value={forfeitReason}
-                  onChange={(e) => setForfeitReason(e.target.value)}
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowForfeitModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="destructive"
-                  disabled={submittingForfeit}
-                  className="font-bold"
-                >
-                  {submittingForfeit ? "Submitting Claim..." : "Submit Forfeit Proof"}
-                </Button>
-              </div>
-            </form>
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowForfeitModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={submittingForfeit}
+                    className="font-bold"
+                  >
+                    {submittingForfeit ? "Submitting Claim..." : "Submit Forfeit Proof"}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

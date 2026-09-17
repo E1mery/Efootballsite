@@ -45,12 +45,15 @@ export async function POST(req: Request) {
           },
         });
 
-        // Recalculate standings immediately
-        await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
+        // Check if admin requested immediate recalculation (otherwise batch updated via master button)
+        const { recalculate = false } = body;
+        if (recalculate) {
+          await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
+        }
 
         return NextResponse.json({
           success: true,
-          message: `Match scores (${officialHomeScore} - ${officialAwayScore}) officially inserted. Standings table updated!`,
+          message: `Match scores (${officialHomeScore} - ${officialAwayScore}) officially verified and saved. Click "Update League Table Standings" when ready to sync tables.`,
         });
       } else {
         await prisma.matchSubmission.update({

@@ -1,8 +1,30 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Trophy, Shield, Gamepad2, Heart, ExternalLink } from "lucide-react";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 
 export default function Footer() {
+  const pathname = usePathname();
+  const isAdminPortal = pathname?.startsWith("/admin");
+
+  if (isAdminPortal) {
+    return (
+      <footer className="border-t border-slate-900 bg-[#050811] text-slate-500 py-6 px-4 mt-auto">
+        <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between text-xs gap-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-bold text-slate-300">eFootball Rwanda League (EFRL) Admin Office</span>
+            <span className="text-slate-600">•</span>
+            <span className="font-mono text-slate-400">Commissioner Workspace</span>
+          </div>
+          <p className="text-slate-600">Authorized administrative personnel only. Session protected.</p>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="border-t border-slate-800/80 bg-[#050811] text-slate-400">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

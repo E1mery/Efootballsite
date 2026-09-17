@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, Lock, Mail, ArrowRight, ShieldAlert, Gamepad2, Eye, EyeOff } from "lucide-react";
@@ -15,6 +15,20 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("efrl_user");
+      if (cached) {
+        try {
+          const user = JSON.parse(cached);
+          if (user.role === "ADMIN") {
+            router.replace("/admin");
+          }
+        } catch (e) {}
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,47 +166,14 @@ export default function AdminLoginPage() {
           {/* Quick Notice */}
           <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
             <span className="flex items-center gap-1">
-              <Lock className="h-3 w-3 text-slate-500" /> End-to-End Encrypted
+              <Lock className="h-3 w-3 text-red-400" /> End-to-End Encrypted Session
             </span>
-            <Link href="/login" className="text-cyan-400 hover:underline flex items-center gap-1 font-semibold">
-              <Gamepad2 className="h-3 w-3" /> Player Portal
-            </Link>
+            <span className="font-mono text-slate-500 text-[11px]">Authorized Admins Only</span>
           </div>
         </div>
 
-        {/* External Resources & Community Quick Links */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 space-y-3">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-            External Resources & Community (Open Access)
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="https://discord.gg/rbaFrBB5p"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
-            >
-              Official Discord ↗
-            </a>
-            <a
-              href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-pink-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
-            >
-              Instagram Highlights ↗
-            </a>
-          </div>
-        </div>
-
-        {/* Back Link */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="text-xs text-slate-500 hover:text-cyan-400 transition-colors uppercase font-bold tracking-wider"
-          >
-            ← Back to eFootball Rwanda League Homepage
-          </Link>
+        <div className="text-center text-[11px] text-slate-500">
+          eFootball Rwanda League (EFRL) • Commissioner Office Security Portal
         </div>
       </div>
     </div>

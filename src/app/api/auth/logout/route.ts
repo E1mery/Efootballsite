@@ -9,9 +9,16 @@ export async function POST() {
     expires: new Date(0),
     maxAge: 0,
   });
+  response.cookies.set("efrl_role", "", {
+    httpOnly: true,
+    path: "/",
+    expires: new Date(0),
+    maxAge: 0,
+  });
 
   const cookieStore = await cookies();
   cookieStore.delete("efrl_session");
+  cookieStore.delete("efrl_role");
 
   return response;
 }

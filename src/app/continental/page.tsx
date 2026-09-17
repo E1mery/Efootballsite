@@ -2,10 +2,12 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import ContinentalClient from "./ContinentalClient";
+import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContinentalCupsPage() {
+  await redirectAdminToPortal();
   const cookieStore = await cookies();
   const sessionUserId = cookieStore.get("efrl_session")?.value;
 

@@ -23,10 +23,12 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ authenticated: false, user: null });
+      const resp = NextResponse.json({ authenticated: false, user: null });
+      resp.cookies.delete("efrl_role");
+      return resp;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       authenticated: true,
       user: {
         id: user.id,
@@ -35,7 +37,19 @@ export async function GET() {
       },
       player: user.player,
     });
+
+    response.cookies.set("efrl_role", user.role, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    return response;
   } catch (err) {
-    return NextResponse.json({ authenticated: false, user: null });
+    const resp = NextResponse.json({ authenticated: false, user: null });
+    resp.cookies.delete("efrl_role");
+    return resp;
   }
 }

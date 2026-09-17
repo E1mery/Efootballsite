@@ -66,15 +66,37 @@ export default async function DashboardPage() {
         homePlayer: true,
         awayPlayer: true,
         submissions: {
-          where: { submittedByPlayerId: player.id },
+          include: { submittedByPlayer: true },
+          orderBy: { createdAt: "desc" },
         },
         forfeitClaims: {
-          where: { claimantPlayerId: player.id },
+          include: { claimantPlayer: true, accusedPlayer: true },
+          orderBy: { createdAt: "desc" },
         },
       },
       orderBy: { matchDate: "desc" },
     });
   }
+
+  // Fetch all matches of this player across the entire season for Calendar Mode
+  const allPlayerMatches = await prisma.match.findMany({
+    where: {
+      OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+    },
+    include: {
+      homePlayer: true,
+      awayPlayer: true,
+      submissions: {
+        include: { submittedByPlayer: true },
+        orderBy: { createdAt: "desc" },
+      },
+      forfeitClaims: {
+        include: { claimantPlayer: true, accusedPlayer: true },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+    orderBy: [{ round: "asc" }, { matchDate: "asc" }],
+  });
 
   // Fetch announcements for this player
   let announcements = await prisma.announcement.findMany({
@@ -82,8 +104,20 @@ export default async function DashboardPage() {
       OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
     },
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-    take: 20,
+    take: 30,
   });
+
+  // Remove announcements that were marked as read > 24 hours ago to create space
+  const expiredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const expiredReads = await prisma.announcementRead.findMany({
+    where: {
+      playerId: player.id,
+      readAt: { lt: expiredCutoff },
+    },
+    select: { announcementId: true },
+  });
+  const expiredReadIds = new Set(expiredReads.map((r) => r.announcementId));
+  announcements = announcements.filter((ann) => !expiredReadIds.has(ann.id));
 
   // Filter out fixture-specific announcements for reserved or pending players
   if (player.status === "RESERVED" || player.status === "PENDING_APPROVAL") {
@@ -96,6 +130,11 @@ export default async function DashboardPage() {
     );
   }
 
+  // Fetch player's existing feedback review if any
+  const myReview = await prisma.feedbackReview.findFirst({
+    where: { playerId: player.id },
+  });
+
   // Fetch recent finished matches of this player
   const recentMatches = await prisma.match.findMany({
     where: {
@@ -107,7 +146,7 @@ export default async function DashboardPage() {
       awayPlayer: true,
     },
     orderBy: { matchDate: "desc" },
-    take: 5,
+    take: 10,
   });
 
   // Fetch division standing for player
@@ -137,14 +176,14 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // Compute Match of the Day for each division
+  // Compute Match of the Day for each division (all athletes including reserve can view & vote)
   let divisionalMotd: Record<string, any> = {
     "Division 1": null,
     "Division 2": null,
     "Division 3": null,
   };
 
-  if (leagueConfig.currentMatchday > 1 && player.status === "ACTIVE") {
+  if (leagueConfig.currentMatchday > 1) {
     const roundMatches = await prisma.match.findMany({
       where: { round: currentRoundName },
       include: { homePlayer: true, awayPlayer: true },
@@ -161,6 +200,7 @@ export default async function DashboardPage() {
         player={player}
         user={user}
         activeMatch={activeMatch}
+        allPlayerMatches={allPlayerMatches}
         announcements={announcements}
         recentMatches={recentMatches}
         standing={currentStanding}
@@ -169,6 +209,7 @@ export default async function DashboardPage() {
         div1Standings={div1Standings}
         div2Standings={div2Standings}
         div3Standings={div3Standings}
+        initialReview={myReview}
       />
     </div>
   );

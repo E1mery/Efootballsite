@@ -3,6 +3,7 @@ import MatchCard from "@/components/MatchCard";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
 import { Calendar, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function FixturesPage({
 }: {
   searchParams: Promise<{ filter?: string; division?: string }>;
 }) {
+  await redirectAdminToPortal();
   const params = await searchParams;
   const filter = params.filter || "ALL";
   const division = params.division || "ALL";
