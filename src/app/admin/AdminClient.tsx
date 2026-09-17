@@ -338,6 +338,11 @@ export default function AdminClient({
 
   // Score verification inputs state: submissionId -> { home: number, away: number }
   const [submissionScores, setSubmissionScores] = useState<Record<string, { home: number; away: number }>>({});
+  const [scoreQueueSubTab, setScoreQueueSubTab] = useState<"SUBMISSIONS" | "DIRECT_ENTRY">("SUBMISSIONS");
+  const [matchScores, setMatchScores] = useState<Record<string, { home: number; away: number; touched?: boolean }>>({});
+  const [selectedMatchdayRound, setSelectedMatchdayRound] = useState<string>(`Matchday ${leagueConfig.currentMatchday}`);
+  const [selectedMatchDivision, setSelectedMatchDivision] = useState<string>("ALL");
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const handleScoreChange = (submissionId: string, side: "home" | "away", val: number) => {
     setSubmissionScores((prev) => ({
@@ -345,6 +350,17 @@ export default function AdminClient({
       [submissionId]: {
         home: side === "home" ? val : (prev[submissionId]?.home ?? 0),
         away: side === "away" ? val : (prev[submissionId]?.away ?? 0),
+      },
+    }));
+  };
+
+  const handleDirectMatchScoreChange = (matchId: string, side: "home" | "away", val: number) => {
+    setMatchScores((prev) => ({
+      ...prev,
+      [matchId]: {
+        home: side === "home" ? val : (prev[matchId]?.home ?? 0),
+        away: side === "away" ? val : (prev[matchId]?.away ?? 0),
+        touched: true,
       },
     }));
   };
@@ -525,6 +541,94 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setReviewLoading(null);
+    }
+  };
+
+  // Batch approve all pending submissions at the same time (Update tables once & notify users)
+  const handleBatchApproveSubmissions = async () => {
+    if (pendingSubmissions.length === 0) return;
+    if (
+      !confirm(
+        `Insert verified goals for ALL ${pendingSubmissions.length} played matches simultaneously? The league table will update once, and an official broadcast notification will be sent to all users.`
+      )
+    ) {
+      return;
+    }
+
+    setBatchLoading(true);
+    try {
+      const updates = pendingSubmissions.map((sub) => ({
+        matchId: sub.matchId,
+        submissionId: sub.id,
+        homeScore: submissionScores[sub.id]?.home !== undefined ? submissionScores[sub.id].home : (sub.homeScore ?? 0),
+        awayScore: submissionScores[sub.id]?.away !== undefined ? submissionScores[sub.id].away : (sub.awayScore ?? 0),
+      }));
+
+      const res = await fetch("/api/admin/batch-update-scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates,
+          matchdayName: `Matchday ${leagueConfig.currentMatchday}`,
+          notifyUsers: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to batch update match scores");
+
+      alert(`Batch Goal Verification Complete!\n${data.message}`);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  // Batch update matchday goals directly entered by admin (Update tables once & notify users)
+  const handleBatchDirectMatchScores = async () => {
+    const touchedIds = Object.keys(matchScores).filter((id) => matchScores[id]?.touched);
+    if (touchedIds.length === 0) {
+      alert("Please enter goals for at least one match before saving.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Insert goals for ${touchedIds.length} played matches simultaneously? League tables will update once and a broadcast notification will be dispatched to all users.`
+      )
+    ) {
+      return;
+    }
+
+    setBatchLoading(true);
+    try {
+      const updates = touchedIds.map((matchId) => ({
+        matchId,
+        homeScore: matchScores[matchId].home,
+        awayScore: matchScores[matchId].away,
+      }));
+
+      const res = await fetch("/api/admin/batch-update-scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates,
+          matchdayName: selectedMatchdayRound,
+          notifyUsers: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to batch update scores");
+
+      alert(`Batch Goals Saved!\n${data.message}`);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setBatchLoading(false);
     }
   };
 
@@ -2102,143 +2206,415 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "RESULTS_QUEUE" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
             <div>
-              <h3 className="text-lg font-black uppercase text-white">Results Verification Queue</h3>
+              <h3 className="text-lg font-black uppercase text-white tracking-wide">
+                Match Results & Standings Update Hub
+              </h3>
               <p className="text-xs text-slate-400">
-                Inspect player-uploaded end-game screenshot proof. Approving instantly updates official league standings.
+                Insert match goals for all played games simultaneously. The league table recalculates once, and all users automatically receive an official standings update broadcast.
               </p>
             </div>
-            <Badge variant="live">{pendingSubmissions.length} Pending</Badge>
+
+            {/* Sub-tab Switcher */}
+            <div className="flex items-center gap-2 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start md:self-auto">
+              <button
+                type="button"
+                onClick={() => setScoreQueueSubTab("SUBMISSIONS")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                  scoreQueueSubTab === "SUBMISSIONS"
+                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>Proof Screenshots</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                    scoreQueueSubTab === "SUBMISSIONS"
+                      ? "bg-slate-950 text-cyan-400"
+                      : "bg-slate-800 text-slate-300"
+                  }`}
+                >
+                  {pendingSubmissions.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setScoreQueueSubTab("DIRECT_ENTRY")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                  scoreQueueSubTab === "DIRECT_ENTRY"
+                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>Direct Matchday Scoring</span>
+                <Badge variant="live" className="text-[9px] px-1 py-0">BATCH</Badge>
+              </button>
+            </div>
           </div>
 
-          {pendingSubmissions.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-500 space-y-3">
-              <CheckCircle2 className="h-10 w-10 mx-auto text-slate-600" />
-              <p className="font-bold">Queue is clear! No pending match score screenshots to review.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {pendingSubmissions.map((sub) => (
-                <div
-                  key={sub.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl relative"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <span className="text-xs font-mono text-sky-400 font-bold">{sub.match.round}</span>
-                    <Badge variant="live" className="text-[10px]">
-                      Submitted by: {sub.submittedByPlayer.gamerTag}
-                    </Badge>
+          {/* SUB-TAB 1: PENDING PROOF SCREENSHOTS */}
+          {scoreQueueSubTab === "SUBMISSIONS" && (
+            <div className="space-y-6">
+              {pendingSubmissions.length > 0 && (
+                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-950 to-emerald-950/30 p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+                      <span className="text-sm font-black text-white uppercase tracking-wider">
+                        Simultaneous Batch Score Insertion ({pendingSubmissions.length} Pending)
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300">
+                      Verify goals in the cards below. Clicking this saves all played matches at once, recalculates all league tables in a single atomic update, and notifies all registered players.
+                    </p>
                   </div>
-
-                  <div className="flex items-center justify-between py-2 text-center">
-                    <div className="flex-1 text-left">
-                      <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
-                      <span className="text-[10px] text-slate-500 block">{sub.match.homePlayer.whatsapp}</span>
-                    </div>
-                    <div className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-400">
-                      Claimed: {sub.homeScore} - {sub.awayScore}
-                    </div>
-                    <div className="flex-1 text-right">
-                      <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
-                      <span className="text-[10px] text-slate-500 block">{sub.match.awayPlayer.whatsapp}</span>
-                    </div>
-                  </div>
-
-                  {sub.screenshotUrl && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-300">Konami Full-Time Screenshot:</span>
-                        <button
-                          type="button"
-                          onClick={() => setInspectImage(sub.screenshotUrl)}
-                          className="text-sky-400 hover:underline flex items-center gap-1 text-[11px]"
-                        >
-                          <Eye className="h-3 w-3" /> View Fullscreen
-                        </button>
-                      </div>
-                      <div
-                        className="rounded-xl overflow-hidden border border-slate-800 h-44 cursor-pointer"
-                        onClick={() => setInspectImage(sub.screenshotUrl)}
-                      >
-                        <img
-                          src={sub.screenshotUrl}
-                          alt="Full time score screenshot"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Official Score & Goals Verification Inputs */}
-                  <div className="rounded-xl bg-[#080d1e] border border-cyan-500/30 p-3 space-y-2">
-                    <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
-                      Verified Match Goals (Insert From Screenshot):
-                    </span>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 text-center">
-                        <span className="text-[10px] font-bold text-slate-300 block mb-1">
-                          {sub.match.homePlayer.gamerTag} (Home)
-                        </span>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="40"
-                          value={submissionScores[sub.id]?.home ?? sub.homeScore}
-                          onChange={(e) => handleScoreChange(sub.id, "home", Number(e.target.value))}
-                          className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
-                        />
-                      </div>
-
-                      <span className="text-xl font-black text-slate-500 mt-4">-</span>
-
-                      <div className="flex-1 text-center">
-                        <span className="text-[10px] font-bold text-slate-300 block mb-1">
-                          {sub.match.awayPlayer.gamerTag} (Away)
-                        </span>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="40"
-                          value={submissionScores[sub.id]?.away ?? sub.awayScore}
-                          onChange={(e) => handleScoreChange(sub.id, "away", Number(e.target.value))}
-                          className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      disabled={reviewLoading === sub.id}
-                      onClick={() =>
-                        handleReviewSubmission(
-                          sub.id,
-                          "APPROVE",
-                          sub.homeScore,
-                          sub.awayScore
-                        )
-                      }
-                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs gap-1.5 shadow-lg shadow-cyan-500/20"
-                    >
+                  <Button
+                    disabled={batchLoading}
+                    onClick={handleBatchApproveSubmissions}
+                    className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg shadow-emerald-500/20 whitespace-nowrap"
+                  >
+                    {batchLoading ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
                       <CheckCircle2 className="h-4 w-4 text-slate-950" />
-                      Insert Scores & Update Table
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={reviewLoading === sub.id}
-                      onClick={() => handleReviewSubmission(sub.id, "REJECT")}
-                      className="font-bold gap-1 text-xs"
+                    )}
+                    Insert All {pendingSubmissions.length} Match Goals & Update Tables Once
+                  </Button>
+                </div>
+              )}
+
+              {pendingSubmissions.length === 0 ? (
+                <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-500 space-y-3">
+                  <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500" />
+                  <p className="font-bold text-slate-300">Queue is clear! No pending match score screenshots to review.</p>
+                  <p className="text-xs text-slate-500">
+                    Switch to the "Direct Matchday Scoring" tab to enter goals for any matchday fixtures directly.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {pendingSubmissions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl relative"
                     >
-                      <XCircle className="h-4 w-4" />
-                      Reject
+                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                        <span className="text-xs font-mono text-sky-400 font-bold">{sub.match.round}</span>
+                        <Badge variant="live" className="text-[10px]">
+                          Submitted by: {sub.submittedByPlayer.gamerTag}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 text-center">
+                        <div className="flex-1 text-left">
+                          <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
+                          <span className="text-[10px] text-slate-500 block">{sub.match.homePlayer.whatsapp}</span>
+                        </div>
+                        <div className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-400">
+                          Claimed: {sub.homeScore} - {sub.awayScore}
+                        </div>
+                        <div className="flex-1 text-right">
+                          <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
+                          <span className="text-[10px] text-slate-500 block">{sub.match.awayPlayer.whatsapp}</span>
+                        </div>
+                      </div>
+
+                      {sub.screenshotUrl && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-300">Konami Full-Time Screenshot:</span>
+                            <button
+                              type="button"
+                              onClick={() => setInspectImage(sub.screenshotUrl)}
+                              className="text-sky-400 hover:underline flex items-center gap-1 text-[11px]"
+                            >
+                              <Eye className="h-3 w-3" /> View Fullscreen
+                            </button>
+                          </div>
+                          <div
+                            className="rounded-xl overflow-hidden border border-slate-800 h-44 cursor-pointer"
+                            onClick={() => setInspectImage(sub.screenshotUrl)}
+                          >
+                            <img
+                              src={sub.screenshotUrl}
+                              alt="Full time score screenshot"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Official Score & Goals Verification Inputs */}
+                      <div className="rounded-xl bg-[#080d1e] border border-cyan-500/30 p-3 space-y-2">
+                        <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
+                          Verified Match Goals (Insert From Screenshot):
+                        </span>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 text-center">
+                            <span className="text-[10px] font-bold text-slate-300 block mb-1">
+                              {sub.match.homePlayer.gamerTag} (Home)
+                            </span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="40"
+                              value={submissionScores[sub.id]?.home ?? sub.homeScore}
+                              onChange={(e) => handleScoreChange(sub.id, "home", Number(e.target.value))}
+                              className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
+                            />
+                          </div>
+
+                          <span className="text-xl font-black text-slate-500 mt-4">-</span>
+
+                          <div className="flex-1 text-center">
+                            <span className="text-[10px] font-bold text-slate-300 block mb-1">
+                              {sub.match.awayPlayer.gamerTag} (Away)
+                            </span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="40"
+                              value={submissionScores[sub.id]?.away ?? sub.awayScore}
+                              onChange={(e) => handleScoreChange(sub.id, "away", Number(e.target.value))}
+                              className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={reviewLoading === sub.id}
+                          onClick={() =>
+                            handleReviewSubmission(
+                              sub.id,
+                              "APPROVE",
+                              submissionScores[sub.id]?.home ?? sub.homeScore,
+                              submissionScores[sub.id]?.away ?? sub.awayScore
+                            )
+                          }
+                          className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs gap-1.5 shadow-lg shadow-cyan-500/20"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-slate-950" />
+                          Approve Individually
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reviewLoading === sub.id}
+                          onClick={() => handleReviewSubmission(sub.id, "REJECT")}
+                          className="font-bold gap-1 text-xs"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-TAB 2: DIRECT MATCHDAY GOALS ENTRY */}
+          {scoreQueueSubTab === "DIRECT_ENTRY" && (
+            <div className="space-y-6">
+              {/* Filter and Master Action Header */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div>
+                      <label className="text-[10px] font-mono font-bold text-slate-400 uppercase block mb-1">
+                        Select Matchday Round
+                      </label>
+                      <select
+                        value={selectedMatchdayRound}
+                        onChange={(e) => setSelectedMatchdayRound(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-cyan-500"
+                      >
+                        {Array.from(new Set(matches.map((m: any) => m.round)))
+                          .filter(Boolean)
+                          .map((r: any) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        {!matches.some((m: any) => m.round === `Matchday ${leagueConfig.currentMatchday}`) && (
+                          <option value={`Matchday ${leagueConfig.currentMatchday}`}>
+                            Matchday {leagueConfig.currentMatchday} (Current)
+                          </option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-mono font-bold text-slate-400 uppercase block mb-1">
+                        Filter Division
+                      </label>
+                      <select
+                        value={selectedMatchDivision}
+                        onChange={(e) => setSelectedMatchDivision(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-cyan-500"
+                      >
+                        <option value="ALL">All Divisions</option>
+                        <option value="Division 1">Division 1</option>
+                        <option value="Division 2">Division 2</option>
+                        <option value="Division 3">Division 3</option>
+                        <option value="UCL">UCL</option>
+                        <option value="Europa">Europa</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end lg:self-auto">
+                    <Button
+                      disabled={batchLoading}
+                      onClick={handleBatchDirectMatchScores}
+                      className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg shadow-emerald-500/20"
+                    >
+                      {batchLoading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 text-slate-950" />
+                      )}
+                      Save Entered Goals, Update Table Once & Notify Users
                     </Button>
                   </div>
                 </div>
-              ))}
+
+                <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-3">
+                  <span>
+                    Type the goals scored by each player for their played match. You can fill multiple or all matches in this matchday and click the button above to apply them simultaneously.
+                  </span>
+                  <span className="font-mono text-cyan-400 font-bold shrink-0 ml-4">
+                    {Object.keys(matchScores).filter((id) => matchScores[id]?.touched).length} matches edited
+                  </span>
+                </div>
+              </div>
+
+              {/* Match Fixtures List */}
+              {(() => {
+                const filteredMatches = matches.filter((m: any) => {
+                  const matchesRound = !selectedMatchdayRound || m.round === selectedMatchdayRound;
+                  const matchesDiv = selectedMatchDivision === "ALL" || m.division === selectedMatchDivision;
+                  return matchesRound && matchesDiv;
+                });
+
+                if (filteredMatches.length === 0) {
+                  return (
+                    <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-500 space-y-3">
+                      <Calendar className="h-10 w-10 mx-auto text-slate-600" />
+                      <p className="font-bold text-slate-300">No matches found for {selectedMatchdayRound} ({selectedMatchDivision}).</p>
+                      <p className="text-xs text-slate-500">Generate fixtures or select another matchday round above.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredMatches.map((match: any) => {
+                      const isEdited = matchScores[match.id]?.touched;
+                      const currentHomeScore =
+                        matchScores[match.id]?.home !== undefined
+                          ? matchScores[match.id].home
+                          : (match.homeScore ?? "");
+                      const currentAwayScore =
+                        matchScores[match.id]?.away !== undefined
+                          ? matchScores[match.id].away
+                          : (match.awayScore ?? "");
+
+                      return (
+                        <div
+                          key={match.id}
+                          className={`rounded-2xl border p-4 transition space-y-3 bg-slate-950/90 ${
+                            isEdited
+                              ? "border-emerald-500/60 shadow-lg shadow-emerald-500/10"
+                              : "border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px] font-mono border-slate-700 text-slate-300">
+                                {match.division}
+                              </Badge>
+                              <span className="text-[11px] font-mono text-slate-400">{match.round}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {match.status === "FINISHED" ? (
+                                <Badge variant="live" className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  FINISHED ({match.homeScore} - {match.awayScore})
+                                </Badge>
+                              ) : (
+                                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">
+                                  {match.status}
+                                </span>
+                              )}
+                              {isEdited && (
+                                <span className="text-[10px] text-emerald-400 font-black tracking-wide">
+                                  ● MODIFIED
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Home & Away Scoring Inputs */}
+                          <div className="flex items-center justify-between gap-3 py-1">
+                            {/* Home Side */}
+                            <div className="flex-1 text-left space-y-1">
+                              <span className="text-xs font-black text-white block truncate">
+                                {match.homePlayer?.gamerTag || "Home Player"}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block truncate">
+                                {match.homePlayer?.whatsapp || ""}
+                              </span>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="40"
+                                placeholder="Goals"
+                                value={currentHomeScore}
+                                onChange={(e) =>
+                                  handleDirectMatchScoreChange(match.id, "home", Number(e.target.value))
+                                }
+                                className="h-9 text-center font-mono text-base font-black bg-slate-900 border-slate-700 text-cyan-300 focus:border-cyan-400"
+                              />
+                            </div>
+
+                            {/* Divider / VS */}
+                            <div className="flex flex-col items-center justify-center px-1 shrink-0 pt-4">
+                              <span className="text-xs font-mono font-bold text-slate-500">VS</span>
+                            </div>
+
+                            {/* Away Side */}
+                            <div className="flex-1 text-right space-y-1">
+                              <span className="text-xs font-black text-white block truncate">
+                                {match.awayPlayer?.gamerTag || "Away Player"}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block truncate">
+                                {match.awayPlayer?.whatsapp || ""}
+                              </span>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="40"
+                                placeholder="Goals"
+                                value={currentAwayScore}
+                                onChange={(e) =>
+                                  handleDirectMatchScoreChange(match.id, "away", Number(e.target.value))
+                                }
+                                className="h-9 text-center font-mono text-base font-black bg-slate-900 border-slate-700 text-cyan-300 focus:border-cyan-400"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

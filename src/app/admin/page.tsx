@@ -42,7 +42,7 @@ export default async function AdminPage() {
     prisma.match.findMany({
       include: { homePlayer: true, awayPlayer: true },
       orderBy: { matchDate: "desc" },
-      take: 40,
+      take: 200,
     }),
     prisma.matchSubmission.findMany({
       where: { status: "PENDING" },
