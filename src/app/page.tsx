@@ -250,6 +250,18 @@ export default async function HomePage({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              {/* WhatsApp Community Link */}
+              <a
+                href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-white transition-all shadow-lg hover:scale-105"
+              >
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold tracking-wider">Join WhatsApp Community</span>
+                <ExternalLink className="h-3.5 w-3.5 text-slate-300" />
+              </a>
+
               {/* Discord Link */}
               <a
                 href="https://discord.gg/rbaFrBB5p"

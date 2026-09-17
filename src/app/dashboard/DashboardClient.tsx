@@ -226,6 +226,62 @@ export default function DashboardClient({
   const [submittingForfeit, setSubmittingForfeit] = useState(false);
   const [forfeitSuccessMsg, setForfeitSuccessMsg] = useState("");
 
+  // Direct messaging to admin state
+  const [inboxSubTab, setInboxSubTab] = useState<"ANNOUNCEMENTS" | "DIRECT_MESSAGES">("ANNOUNCEMENTS");
+  const [playerMessages, setPlayerMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [msgSubject, setMsgSubject] = useState("");
+  const [msgContent, setMsgContent] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [msgSuccess, setMsgSuccess] = useState("");
+  const [msgError, setMsgError] = useState("");
+
+  const fetchPlayerMessages = async () => {
+    setLoadingMessages(true);
+    try {
+      const res = await fetch("/api/messages");
+      const data = await res.json();
+      if (data.messages) {
+        setPlayerMessages(data.messages);
+      }
+    } catch (err) {
+      console.error("Failed to load messages", err);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlayerMessages();
+  }, []);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!msgSubject.trim() || !msgContent.trim()) return;
+    setSendingMessage(true);
+    setMsgSuccess("");
+    setMsgError("");
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: msgSubject.trim(), content: msgContent.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send message");
+      setMsgSuccess(data.message || "Message sent to league commissioners!");
+      setMsgSubject("");
+      setMsgContent("");
+      if (data.data) {
+        setPlayerMessages((prev) => [data.data, ...prev]);
+      }
+    } catch (err: any) {
+      setMsgError(err.message || "Failed to send message");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   // Active tab (if player is reserved, default to STANDINGS)
   const isReserved = currentPlayer.status === "RESERVED";
   const [activeTab, setActiveTab] = useState<"OVERVIEW" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE">(
@@ -831,6 +887,33 @@ export default function DashboardClient({
             )}
           </div>
 
+          {/* OFFICIAL WHATSAPP COMMUNITY BANNER */}
+          <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase flex items-center gap-2">
+                  <span>Official eFootball Rwanda WhatsApp Community</span>
+                  <Badge variant="green" className="text-[9px]">ACTIVE</Badge>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Connect with Rwandan esports athletes, coordinate fixtures, and receive live matchday updates.
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/30 shrink-0 transition-all hover:scale-105"
+            >
+              <span>Join Community</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-center">
@@ -859,104 +942,337 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* TAB 2: INBOX & ANNOUNCEMENTS */}
+      {/* TAB 2: INBOX & ANNOUNCEMENTS & DIRECT MESSAGING */}
       {activeTab === "INBOX" && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-            <div>
-              <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                <Bell className="h-5 w-5 text-yellow-400" />
-                League Announcements & Direct Messages
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {unreadAnnouncementsCount > 0
-                  ? `${unreadAnnouncementsCount} unread message${unreadAnnouncementsCount === 1 ? "" : "s"}`
-                  : "All caught up! No unread messages"}
-              </p>
+        <div className="space-y-6">
+          {/* Top WhatsApp Community Banner */}
+          <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase flex items-center gap-2">
+                  <span>Official eFootball Rwanda WhatsApp Community</span>
+                  <Badge variant="green" className="text-[9px]">JOIN NOW</Badge>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Connect with league commissioners and active players across all 3 divisions.
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              {unreadAnnouncementsCount > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleMarkAllAsRead}
-                  className="h-8 text-xs font-bold border-yellow-500/40 text-yellow-400 hover:bg-yellow-950/40"
-                >
-                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Mark All as Read
-                </Button>
-              )}
-              <span className="text-xs font-mono text-slate-500">{announcements.length} Total</span>
-            </div>
+            <a
+              href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/30 shrink-0 transition-all hover:scale-105"
+            >
+              <span>Join Community</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
 
-          {announcements.length === 0 ? (
-            <p className="text-xs text-slate-500 italic py-8 text-center">No announcements yet.</p>
-          ) : (
+          {/* Sub Navigation between Announcements & Direct Admin Messaging */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+            <button
+              onClick={() => setInboxSubTab("ANNOUNCEMENTS")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                inboxSubTab === "ANNOUNCEMENTS"
+                  ? "bg-yellow-500 text-slate-950 font-black shadow-lg shadow-yellow-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <Bell className="h-4 w-4" />
+              <span>Official Announcements</span>
+              {unreadAnnouncementsCount > 0 && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black">
+                  {unreadAnnouncementsCount}
+                </Badge>
+              )}
+            </button>
+
+            <button
+              onClick={() => setInboxSubTab("DIRECT_MESSAGES")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                inboxSubTab === "DIRECT_MESSAGES"
+                  ? "bg-sky-500 text-white font-black shadow-lg shadow-sky-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <Send className="h-4 w-4" />
+              <span>Direct Messages to Admins</span>
+              {playerMessages.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-mono">
+                  {playerMessages.length}
+                </Badge>
+              )}
+            </button>
+          </div>
+
+          {/* SUB-TAB 1: OFFICIAL ANNOUNCEMENTS */}
+          {inboxSubTab === "ANNOUNCEMENTS" && (
             <div className="space-y-4">
-              {announcements.map((ann) => {
-                const isRead = readAnnouncements.has(ann.id);
-                return (
-                  <div
-                    key={ann.id}
-                    className={`rounded-2xl border p-5 space-y-3 backdrop-blur-xl transition-all ${
-                      !isRead
-                        ? "border-yellow-500/50 bg-gradient-to-r from-yellow-950/20 to-slate-900/90 shadow-lg shadow-yellow-500/5 ring-1 ring-yellow-500/20"
-                        : ann.type === "INDIVIDUAL"
-                        ? "border-sky-500/30 bg-sky-950/10"
-                        : "border-slate-800 bg-slate-900/40 opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {!isRead && (
-                          <Badge variant="yellow" className="text-[10px] font-bold animate-pulse">
-                            ● NEW
-                          </Badge>
-                        )}
-                        <Badge
-                          variant={ann.type === "INDIVIDUAL" ? "default" : "secondary"}
-                          className="text-[10px]"
-                        >
-                          {ann.type === "INDIVIDUAL" ? "PRIVATE DIRECT MESSAGE" : "LEAGUE BROADCAST"}
-                        </Badge>
-                        {ann.isPinned && (
-                          <Badge variant="live" className="text-[9px]">
-                            PINNED
-                          </Badge>
-                        )}
-                        {isRead && (
-                          <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700/50">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                            Read
-                          </span>
-                        )}
-                      </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+                <div>
+                  <h4 className="text-sm font-black uppercase text-white">Broadcasts & Notices</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {unreadAnnouncementsCount > 0
+                      ? `${unreadAnnouncementsCount} unread announcement${unreadAnnouncementsCount === 1 ? "" : "s"}`
+                      : "All caught up! No unread announcements"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {unreadAnnouncementsCount > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleMarkAllAsRead}
+                      className="h-8 text-xs font-bold border-yellow-500/40 text-yellow-400 hover:bg-yellow-950/40"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Mark All as Read
+                    </Button>
+                  )}
+                  <span className="text-xs font-mono text-slate-500">{announcements.length} Total</span>
+                </div>
+              </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-mono text-slate-500">
-                          {new Date(ann.createdAt).toLocaleDateString()}
+              {announcements.length === 0 ? (
+                <p className="text-xs text-slate-500 italic py-8 text-center">No announcements yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {announcements.map((ann) => {
+                    const isRead = readAnnouncements.has(ann.id);
+                    return (
+                      <div
+                        key={ann.id}
+                        className={`rounded-2xl border p-5 space-y-3 backdrop-blur-xl transition-all ${
+                          !isRead
+                            ? "border-yellow-500/50 bg-gradient-to-r from-yellow-950/20 to-slate-900/90 shadow-lg shadow-yellow-500/5 ring-1 ring-yellow-500/20"
+                            : ann.type === "INDIVIDUAL"
+                            ? "border-sky-500/30 bg-sky-950/10"
+                            : "border-slate-800 bg-slate-900/40 opacity-80 hover:opacity-100"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {!isRead && (
+                              <Badge variant="yellow" className="text-[10px] font-bold animate-pulse">
+                                ● NEW
+                              </Badge>
+                            )}
+                            <Badge
+                              variant={ann.type === "INDIVIDUAL" ? "default" : "secondary"}
+                              className="text-[10px]"
+                            >
+                              {ann.type === "INDIVIDUAL" ? "COMMISSIONER DIRECT NOTICE" : "LEAGUE BROADCAST"}
+                            </Badge>
+                            {ann.isPinned && (
+                              <Badge variant="live" className="text-[9px]">
+                                PINNED
+                              </Badge>
+                            )}
+                            {isRead && (
+                              <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700/50">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                                Read
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-mono text-slate-500">
+                              {new Date(ann.createdAt).toLocaleDateString()}
+                            </span>
+                            {!isRead && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleMarkAsRead(ann.id)}
+                                className="h-7 px-3 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-sm"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                Mark as Read
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        <h4 className="text-base font-extrabold text-white">{ann.title}</h4>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                          {ann.content}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-TAB 2: DIRECT MESSAGES TO ADMINS */}
+          {inboxSubTab === "DIRECT_MESSAGES" && (
+            <div className="space-y-6">
+              {/* Message Composer Card */}
+              <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-6 sm:p-7 space-y-4 backdrop-blur-xl shadow-xl">
+                <div className="border-b border-slate-800 pb-3">
+                  <h4 className="text-sm font-black uppercase text-white flex items-center gap-2">
+                    <Send className="h-4 w-4 text-sky-400" />
+                    <span>Write Direct Message to League Commissioners</span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Have an inquiry regarding match scheduling, dispute, division status, or rules? Submit your message directly to the admin desk.
+                  </p>
+                </div>
+
+                {msgSuccess && (
+                  <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+                    <span>{msgSuccess}</span>
+                  </div>
+                )}
+
+                {msgError && (
+                  <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
+                    <span>{msgError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSendMessage} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase text-slate-300">
+                      Subject / Topic *
+                    </label>
+                    <Input
+                      value={msgSubject}
+                      onChange={(e) => setMsgSubject(e.target.value)}
+                      placeholder="e.g. Inquiry regarding Matchday 3 fixture or division placement"
+                      className="bg-slate-900 border-slate-800 text-xs font-semibold text-white focus:ring-1 focus:ring-sky-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase text-slate-300">
+                      Message Details *
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={msgContent}
+                      onChange={(e) => setMsgContent(e.target.value)}
+                      placeholder="Type your message, query, or report for the administrators..."
+                      className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-sky-500 resize-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={sendingMessage || !msgSubject.trim() || !msgContent.trim()}
+                      className="font-bold text-xs bg-sky-500 hover:bg-sky-400 text-white shadow-lg shadow-sky-500/30"
+                    >
+                      {sendingMessage ? (
+                        <span>Sending to Admins...</span>
+                      ) : (
+                        <span className="flex items-center gap-1.5">
+                          <Send className="h-3.5 w-3.5" />
+                          <span>Send Message to Admins</span>
                         </span>
-                        {!isRead && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleMarkAsRead(ann.id)}
-                            className="h-7 px-3 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-sm"
-                          >
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                            Mark as Read
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
 
-                    <h4 className="text-base font-extrabold text-white">{ann.title}</h4>
-                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                      {ann.content}
+              {/* Message History & Replies */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+                    Your Inquiries & Commissioner Replies ({playerMessages.length})
+                  </h4>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={fetchPlayerMessages}
+                    disabled={loadingMessages}
+                    className="h-7 text-[11px] text-slate-400 hover:text-white"
+                  >
+                    Refresh
+                  </Button>
+                </div>
+
+                {loadingMessages && playerMessages.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-6 text-center italic">Loading your inquiries...</p>
+                ) : playerMessages.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-8 text-center space-y-2">
+                    <MessageSquare className="h-8 w-8 text-slate-600 mx-auto" />
+                    <p className="text-xs text-slate-400 font-semibold">No direct inquiries sent yet.</p>
+                    <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                      Whenever you send a message above, you will see the administrator's reply here.
                     </p>
                   </div>
-                );
-              })}
+                ) : (
+                  <div className="space-y-4">
+                    {playerMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-4 backdrop-blur-xl shadow-md"
+                      >
+                        {/* Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-black text-white">{msg.subject}</span>
+                            <Badge
+                              variant={msg.status === "REPLIED" ? "green" : "yellow"}
+                              className="text-[10px] font-bold"
+                            >
+                              {msg.status === "REPLIED" ? "COMMISSIONER REPLIED" : "PENDING ADMIN REVIEW"}
+                            </Badge>
+                          </div>
+                          <span className="text-[11px] font-mono text-slate-500">
+                            Sent: {new Date(msg.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+
+                        {/* Player Content */}
+                        <div className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/60">
+                          <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
+                            Your Message:
+                          </span>
+                          {msg.content}
+                        </div>
+
+                        {/* Admin Reply Block */}
+                        {msg.adminReply ? (
+                          <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="green" className="text-[9px] font-black uppercase tracking-wider">
+                                  OFFICIAL COMMISSIONER RESPONSE
+                                </Badge>
+                              </div>
+                              {msg.repliedAt && (
+                                <span className="text-[10px] font-mono text-emerald-400/80">
+                                  {new Date(msg.repliedAt).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-emerald-200 leading-relaxed whitespace-pre-wrap">
+                              {msg.adminReply}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-amber-400/80 bg-amber-950/20 border border-amber-500/20 p-3 rounded-xl">
+                            <Clock className="h-4 w-4 shrink-0 text-amber-400" />
+                            <span>This message is in the league administrator queue. You will see their reply here once reviewed.</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

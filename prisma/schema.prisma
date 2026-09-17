@@ -13,6 +13,9 @@ model LeagueConfig {
   currentMatchday  Int      @default(1)
   uclStarted       Boolean  @default(false)
   europaStarted    Boolean  @default(false)
+  div1MaxPlayers   Int      @default(20)
+  div2MaxPlayers   Int      @default(20)
+  div3MaxPlayers   Int      @default(20)
   updatedAt        DateTime @updatedAt
 }
 
@@ -61,6 +64,7 @@ model Player {
   forfeitClaimsAgainst   ForfeitClaim[]   @relation("AccusedPlayer")
   announcementsReceived  Announcement[]   @relation("TargetPlayer")
   uclGroupSlots          UclGroupSlot[]
+  directMessages         PlayerMessage[]
 
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
@@ -234,3 +238,20 @@ model MotdPollVote {
   @@unique([matchId, voterId])
   @@index([matchId])
 }
+
+model PlayerMessage {
+  id         String    @id @default(cuid())
+  playerId   String
+  player     Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  subject    String
+  content    String
+  status     String    @default("PENDING") // PENDING, REPLIED, CLOSED
+  adminReply String?
+  repliedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([playerId])
+  @@index([status])
+}
+

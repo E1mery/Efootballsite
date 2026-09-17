@@ -37,6 +37,7 @@ export default async function AdminPage() {
     pendingPlayers,
     reservePlayers,
     hallOfFameEntries,
+    playerMessages,
   ] = await Promise.all([
     prisma.match.findMany({
       include: { homePlayer: true, awayPlayer: true },
@@ -122,6 +123,21 @@ export default async function AdminPage() {
     prisma.hallOfFame.findMany({
       orderBy: [{ season: "desc" }, { createdAt: "desc" }],
     }),
+    (prisma as any).playerMessage.findMany({
+      include: {
+        player: {
+          select: {
+            id: true,
+            gamerTag: true,
+            fullName: true,
+            division: true,
+            whatsapp: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   return (
@@ -143,6 +159,7 @@ export default async function AdminPage() {
         initialPendingPlayers={pendingPlayers}
         initialReservePlayers={reservePlayers}
         initialHallOfFame={hallOfFameEntries}
+        initialPlayerMessages={playerMessages}
       />
     </div>
   );

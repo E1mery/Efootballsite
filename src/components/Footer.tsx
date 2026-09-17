@@ -92,6 +92,17 @@ export default function Footer() {
             </p>
             <div className="space-y-2.5 text-xs">
               <a
+                href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-900/40 text-slate-200 transition-all group"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold text-emerald-400 group-hover:text-emerald-300">Join WhatsApp Community</span>
+                <ExternalLink className="h-3 w-3 ml-auto text-slate-500 group-hover:text-white" />
+              </a>
+
+              <a
                 href="https://discord.gg/rbaFrBB5p"
                 target="_blank"
                 rel="noopener noreferrer"

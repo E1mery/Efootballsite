@@ -27,6 +27,9 @@ export async function GET() {
         currentMatchday: 1,
         uclStarted: false,
         europaStarted: false,
+        div1MaxPlayers: 20,
+        div2MaxPlayers: 20,
+        div3MaxPlayers: 20,
       },
     });
 
@@ -44,13 +47,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { registrationOpen, uclStarted, europaStarted, currentMatchday } = body;
+    const {
+      registrationOpen,
+      uclStarted,
+      europaStarted,
+      currentMatchday,
+      div1MaxPlayers,
+      div2MaxPlayers,
+      div3MaxPlayers,
+    } = body;
 
     const dataToUpdate: any = {};
     if (typeof registrationOpen === "boolean") dataToUpdate.registrationOpen = registrationOpen;
     if (typeof uclStarted === "boolean") dataToUpdate.uclStarted = uclStarted;
     if (typeof europaStarted === "boolean") dataToUpdate.europaStarted = europaStarted;
     if (typeof currentMatchday === "number") dataToUpdate.currentMatchday = currentMatchday;
+    if (typeof div1MaxPlayers === "number" && div1MaxPlayers > 0) dataToUpdate.div1MaxPlayers = div1MaxPlayers;
+    if (typeof div2MaxPlayers === "number" && div2MaxPlayers > 0) dataToUpdate.div2MaxPlayers = div2MaxPlayers;
+    if (typeof div3MaxPlayers === "number" && div3MaxPlayers > 0) dataToUpdate.div3MaxPlayers = div3MaxPlayers;
 
     const updatedConfig = await prisma.leagueConfig.upsert({
       where: { id: "default" },

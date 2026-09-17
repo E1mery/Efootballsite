@@ -40,6 +40,32 @@ export async function POST(req: Request) {
       const validDivisions = ["Division 1", "Division 2", "Division 3"];
       const targetDivision = validDivisions.includes(division) ? division : "Division 1";
 
+      // Check division capacity limit
+      const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+      const maxLimit =
+        targetDivision === "Division 1"
+          ? (config?.div1MaxPlayers ?? 20)
+          : targetDivision === "Division 2"
+          ? (config?.div2MaxPlayers ?? 20)
+          : (config?.div3MaxPlayers ?? 20);
+
+      const currentActiveCount = await prisma.player.count({
+        where: {
+          division: targetDivision,
+          status: { in: ["ACTIVE", "WARNING"] },
+          id: { not: playerId },
+        },
+      });
+
+      if (currentActiveCount >= maxLimit) {
+        return NextResponse.json(
+          {
+            error: `${targetDivision} is currently full (${currentActiveCount}/${maxLimit} athletes). To add more players, please extend the participant capacity for ${targetDivision} in League Controls.`,
+          },
+          { status: 400 }
+        );
+      }
+
       const updatedPlayer = await prisma.player.update({
         where: { id: playerId },
         data: {

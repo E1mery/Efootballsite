@@ -33,6 +33,7 @@ import {
   Sparkles,
   PlusCircle,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,7 @@ export default function AdminClient({
   initialPendingPlayers = [],
   initialReservePlayers = [],
   initialHallOfFame = [],
+  initialPlayerMessages = [],
 }: {
   matches: any[];
   pendingSubmissions: any[];
@@ -72,6 +74,7 @@ export default function AdminClient({
   initialPendingPlayers?: any[];
   initialReservePlayers?: any[];
   initialHallOfFame?: any[];
+  initialPlayerMessages?: any[];
 }) {
   const router = useRouter();
 
@@ -85,7 +88,8 @@ export default function AdminClient({
     | "FORFEITS_QUEUE"
     | "ANNOUNCEMENTS"
     | "PLAYERS"
-    | "HALL_OF_FAME";
+    | "HALL_OF_FAME"
+    | "MESSAGES";
 
   const [activeTab, setActiveTab] = useState<TabType>("DASHBOARD");
   const [tableSubTab, setTableSubTab] = useState<"DIV1" | "DIV2" | "DIV3" | "UCL" | "EUROPA">("DIV1");
@@ -95,6 +99,19 @@ export default function AdminClient({
   const [reservePlayers, setReservePlayers] = useState<any[]>(initialReservePlayers);
   const [hallOfFame, setHallOfFame] = useState<any[]>(initialHallOfFame);
   const [playersList, setPlayersList] = useState<any[]>(allPlayers);
+  const [playerMessages, setPlayerMessages] = useState<any[]>(initialPlayerMessages);
+
+  // Direct Inquiries & Reply State
+  const [replyingMessageId, setReplyingMessageId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  // Division Participant Capacity State (Default: 20 per division)
+  const [div1Max, setDiv1Max] = useState<number>(leagueConfig?.div1MaxPlayers ?? 20);
+  const [div2Max, setDiv2Max] = useState<number>(leagueConfig?.div2MaxPlayers ?? 20);
+  const [div3Max, setDiv3Max] = useState<number>(leagueConfig?.div3MaxPlayers ?? 20);
+  const [savingCapacity, setSavingCapacity] = useState(false);
+  const [capacitySuccessMsg, setCapacitySuccessMsg] = useState("");
 
   // Pending approval selection state: playerId -> selectedDivision
   const [pendingDivSelection, setPendingDivSelection] = useState<Record<string, string>>({});
@@ -580,8 +597,66 @@ export default function AdminClient({
     }
   };
 
+  // Save Division Participant Capacity
+  const handleSaveCapacity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingCapacity(true);
+    setCapacitySuccessMsg("");
+    try {
+      const res = await fetch("/api/admin/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div1MaxPlayers: Number(div1Max),
+          div2MaxPlayers: Number(div2Max),
+          div3MaxPlayers: Number(div3Max),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update division capacity");
+      setCapacitySuccessMsg(data.message || "Division capacities saved successfully!");
+      setTimeout(() => setCapacitySuccessMsg(""), 4000);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingCapacity(false);
+    }
+  };
+
+  // Reply to Player Message
+  const handleReplyToMessage = async (messageId: string) => {
+    if (!replyText.trim()) return;
+    setSubmittingReply(true);
+    try {
+      const res = await fetch("/api/admin/messages/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId,
+          replyContent: replyText.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send reply");
+      alert(data.message || "Reply sent successfully!");
+      if (data.data) {
+        setPlayerMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? data.data : m))
+        );
+      }
+      setReplyingMessageId(null);
+      setReplyText("");
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
   // Helper for standings table rendering
-  const renderStandingsTable = (title: string, standings: any[], badgeColor: string) => {
+  const renderStandingsTable = (title: string, standings: any[], badgeColor: string, maxLimit: number = 20) => {
     return (
       <div className="rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
         <div className="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40">
@@ -590,7 +665,7 @@ export default function AdminClient({
             <h3 className="text-lg font-black uppercase text-white tracking-wide">{title}</h3>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            {standings.length} Registered Competitors (Max 20)
+            {standings.length} Registered Competitors (Max {maxLimit})
           </span>
         </div>
 
@@ -890,6 +965,23 @@ export default function AdminClient({
           <Crown className="h-4 w-4 text-yellow-400" />
           <span>Hall of Fame ({hallOfFame.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("MESSAGES")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "MESSAGES"
+              ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <MessageSquare className="h-4 w-4 text-indigo-400" />
+          <span>Player Inquiries ({playerMessages.length})</span>
+          {playerMessages.filter((m) => m.status === "PENDING").length > 0 && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black animate-pulse">
+              {playerMessages.filter((m) => m.status === "PENDING").length}
+            </Badge>
+          )}
+        </button>
       </div>
 
       {/* ========================================================================= */}
@@ -999,20 +1091,110 @@ export default function AdminClient({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
                 <span className="text-xs font-bold text-sky-400 block">Division 1 Registered</span>
-                <span className="text-2xl font-black text-white">{div1Standings.length} / 20</span>
+                <span className="text-2xl font-black text-white">{div1Standings.length} / {div1Max}</span>
                 <span className="text-[11px] text-slate-500 block mt-1">Premiership Division</span>
               </div>
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
                 <span className="text-xs font-bold text-yellow-400 block">Division 2 Registered</span>
-                <span className="text-2xl font-black text-white">{div2Standings.length} / 20</span>
+                <span className="text-2xl font-black text-white">{div2Standings.length} / {div2Max}</span>
                 <span className="text-[11px] text-slate-500 block mt-1">Championship Division</span>
               </div>
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
                 <span className="text-xs font-bold text-emerald-400 block">Division 3 Registered</span>
-                <span className="text-2xl font-black text-white">{div3Standings.length} / 20</span>
+                <span className="text-2xl font-black text-white">{div3Standings.length} / {div3Max}</span>
                 <span className="text-[11px] text-slate-500 block mt-1">National Academy</span>
               </div>
             </div>
+          </div>
+
+          {/* Operation 1B: Division Participant Capacity Controller */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                  <Users className="h-5 w-5 text-indigo-400" />
+                  <span>Division Participant Capacity Settings</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Admins can extend the maximum participant capacity per division (default: 20 athletes). Continental UCL and Europa League remain fixed at 16 qualification slots.
+                </p>
+              </div>
+
+              {capacitySuccessMsg && (
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 px-3 py-1.5 rounded-xl">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{capacitySuccessMsg}</span>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveCapacity} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
+                  <label className="text-xs font-bold uppercase text-sky-400 block">
+                    Division 1 Capacity
+                  </label>
+                  <p className="text-[11px] text-slate-400">Premiership maximum participants.</p>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={div1Max}
+                    onChange={(e) => setDiv1Max(Number(e.target.value))}
+                    className="bg-slate-950 border-slate-700 text-sm font-bold font-mono text-white"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-500 block">Current active: {div1Standings.length} athletes</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
+                  <label className="text-xs font-bold uppercase text-yellow-400 block">
+                    Division 2 Capacity
+                  </label>
+                  <p className="text-[11px] text-slate-400">Championship maximum participants.</p>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={div2Max}
+                    onChange={(e) => setDiv2Max(Number(e.target.value))}
+                    className="bg-slate-950 border-slate-700 text-sm font-bold font-mono text-white"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-500 block">Current active: {div2Standings.length} athletes</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
+                  <label className="text-xs font-bold uppercase text-emerald-400 block">
+                    Division 3 Capacity
+                  </label>
+                  <p className="text-[11px] text-slate-400">National Academy maximum participants.</p>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={div3Max}
+                    onChange={(e) => setDiv3Max(Number(e.target.value))}
+                    className="bg-slate-950 border-slate-700 text-sm font-bold font-mono text-white"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-500 block">Current active: {div3Standings.length} athletes</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <span className="text-[11px] text-slate-400">
+                  UCL & Europa League: <strong>16 Fixed Slots</strong> (Top 8 Div 1 + Top 4 Div 2 + Top 4 Div 3 - Unchanged).
+                </span>
+                <Button
+                  type="submit"
+                  disabled={savingCapacity}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30"
+                >
+                  {savingCapacity ? "Saving..." : "Save Division Capacity Limits"}
+                </Button>
+              </div>
+            </form>
           </div>
 
           {/* Operation 2: Round Robin Schedule Generator */}
@@ -1569,13 +1751,13 @@ export default function AdminClient({
           </div>
 
           {/* Division 1 Table */}
-          {tableSubTab === "DIV1" && renderStandingsTable("Division 1 Premiership Standings", div1Standings, "bg-sky-400")}
+          {tableSubTab === "DIV1" && renderStandingsTable("Division 1 Premiership Standings", div1Standings, "bg-sky-400", div1Max)}
 
           {/* Division 2 Table */}
-          {tableSubTab === "DIV2" && renderStandingsTable("Division 2 Championship Standings", div2Standings, "bg-yellow-400")}
+          {tableSubTab === "DIV2" && renderStandingsTable("Division 2 Championship Standings", div2Standings, "bg-yellow-400", div2Max)}
 
           {/* Division 3 Table */}
-          {tableSubTab === "DIV3" && renderStandingsTable("Division 3 Academy Standings", div3Standings, "bg-emerald-400")}
+          {tableSubTab === "DIV3" && renderStandingsTable("Division 3 Academy Standings", div3Standings, "bg-emerald-400", div3Max)}
 
           {/* UCL Tables */}
           {tableSubTab === "UCL" && (
@@ -2550,6 +2732,194 @@ export default function AdminClient({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: PLAYER SUPPORT & DIRECT MESSAGES */}
+      {/* ========================================================================= */}
+      {activeTab === "MESSAGES" && (
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-indigo-500/30 bg-indigo-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-indigo-400">
+                <MessageSquare className="h-5 w-5" />
+                <h3 className="text-lg font-black uppercase text-white">Player Support & Direct Inquiries Desk</h3>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Direct inquiries submitted by athletes from their dashboard. Write official commissioner responses which appear immediately in the athlete&apos;s conversation thread and trigger a direct announcement to their portal.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs px-3 py-1 font-mono">
+                {playerMessages.length} Total Messages
+              </Badge>
+              {playerMessages.filter((m) => m.status === "PENDING").length > 0 && (
+                <Badge variant="destructive" className="text-xs px-3 py-1 font-mono animate-pulse">
+                  {playerMessages.filter((m) => m.status === "PENDING").length} Pending Reply
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {playerMessages.length === 0 ? (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-2">
+              <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-2" />
+              <h4 className="text-base font-bold text-white uppercase">No Player Inquiries Yet</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                When athletes write direct messages to the league administrators from their personal dashboards, they will appear here for you to interact and reply.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {playerMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`rounded-3xl border p-6 space-y-4 backdrop-blur-xl transition-all shadow-xl ${
+                    msg.status === "PENDING"
+                      ? "border-amber-500/50 bg-gradient-to-r from-amber-950/20 via-slate-900/90 to-slate-950/90 ring-1 ring-amber-500/20"
+                      : "border-slate-800 bg-slate-950/80"
+                  }`}
+                >
+                  {/* Athlete & Message Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-600 text-white font-black text-sm flex items-center justify-center shrink-0">
+                        {msg.player?.gamerTag?.slice(0, 2).toUpperCase() || "PL"}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-black text-white">{msg.player?.gamerTag}</h4>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {msg.player?.division}
+                          </Badge>
+                          <Badge
+                            variant={msg.status === "REPLIED" ? "green" : "yellow"}
+                            className="text-[10px] font-bold"
+                          >
+                            {msg.status === "REPLIED" ? "REPLIED" : "PENDING REPLY"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                          <span>{msg.player?.fullName}</span>
+                          {msg.player?.whatsapp && (
+                            <a
+                              href={`https://wa.me/${msg.player.whatsapp.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-400 hover:underline flex items-center gap-1 font-mono"
+                            >
+                              <MessageSquare className="h-3 w-3" />
+                              <span>{msg.player.whatsapp}</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="text-[11px] font-mono text-slate-500 self-start sm:self-auto">
+                      Received: {new Date(msg.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Subject and Content */}
+                  <div className="space-y-2 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+                    <span className="text-[10px] font-bold uppercase text-sky-400 tracking-wider block">
+                      Topic / Subject:
+                    </span>
+                    <h5 className="text-sm font-bold text-white">{msg.subject}</h5>
+                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-800/50">
+                      {msg.content}
+                    </p>
+                  </div>
+
+                  {/* Existing Admin Reply */}
+                  {msg.adminReply && replyingMessageId !== msg.id && (
+                    <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="green" className="text-[9px] font-black uppercase">
+                            YOUR OFFICIAL REPLY SENT
+                          </Badge>
+                          {msg.repliedAt && (
+                            <span className="text-[10px] font-mono text-emerald-400/70">
+                              {new Date(msg.repliedAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setReplyingMessageId(msg.id);
+                            setReplyText(msg.adminReply || "");
+                          }}
+                          className="h-6 text-[11px] text-emerald-400 hover:text-white"
+                        >
+                          Edit Reply
+                        </Button>
+                      </div>
+                      <p className="text-xs text-emerald-200 leading-relaxed whitespace-pre-wrap">
+                        {msg.adminReply}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Reply Input Form */}
+                  {replyingMessageId === msg.id ? (
+                    <div className="rounded-2xl border border-indigo-500/40 bg-slate-900 p-4 space-y-3">
+                      <label className="text-xs font-bold uppercase text-indigo-400 block">
+                        Write Official Reply to {msg.player?.gamerTag}:
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Type official response from the League Commissioner..."
+                        className="w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                        required
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setReplyingMessageId(null);
+                            setReplyText("");
+                          }}
+                          className="text-xs"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={submittingReply || !replyText.trim()}
+                          onClick={() => handleReplyToMessage(msg.id)}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                        >
+                          {submittingReply ? "Sending..." : "Submit Reply to Athlete"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : !msg.adminReply ? (
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setReplyingMessageId(msg.id);
+                          setReplyText("");
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                      >
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Reply to Athlete</span>
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
