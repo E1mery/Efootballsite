@@ -588,9 +588,7 @@ export default function AdminClient({
 
     if (!confirm(confirmMsg)) return;
 
-    const secondConfirm = prompt(`Type "RESET" in all caps to confirm tournament schedule reset for ${division}:`);
-    if (secondConfirm !== "RESET") {
-      alert("Reset cancelled.");
+    if (!confirm(`CONFIRMATION: Are you 100% certain you want to permanently DELETE all generated matches and reset standings to 0 for ${division}? Click OK to proceed.`)) {
       return;
     }
 
@@ -2788,6 +2786,373 @@ export default function AdminClient({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: ALL GENERATED MATCHES & TOURNAMENT RESET HUB */}
+      {/* ========================================================================= */}
+      {activeTab === "ALL_MATCHES" && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="yellow">SEASON FIXTURES HUB</Badge>
+                <Badge variant="secondary">{matches.length} Total Matches Generated</Badge>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
+                <Calendar className="h-6 w-6 text-cyan-400" />
+                <span>All Generated Matches & Schedule Controls</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                Browse every fixture generated for the league. Reset generated matches, extend late submission deadlines, inspect score proofs, and trigger table updates.
+              </p>
+            </div>
+
+            {/* Master Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => handleResetTournament("ALL")}
+                disabled={resettingTournament}
+                variant="destructive"
+                className="font-black text-xs uppercase tracking-wider gap-2 shadow-lg shadow-rose-600/20"
+              >
+                <RotateCcw className={`h-4 w-4 ${resettingTournament ? "animate-spin" : ""}`} />
+                {resettingTournament ? "Resetting Matches..." : "Reset All Generated Matches"}
+              </Button>
+
+              <Button
+                onClick={() => handleRecalculateStandings("ALL")}
+                disabled={recalculatingStandings}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider gap-2 shadow-lg shadow-emerald-600/30"
+              >
+                <RefreshCw className={`h-4 w-4 ${recalculatingStandings ? "animate-spin" : ""}`} />
+                {recalculatingStandings ? "Updating..." : "⚡ Update League Table Standings"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Division Reset Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl border border-sky-500/30 bg-slate-950/80 space-y-2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-sky-400">Division 1 Fixtures</span>
+                  <Badge variant="secondary" className="text-[10px] font-mono">
+                    {matches.filter((m: any) => m.division === "Division 1").length} Matches
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Premiership scheduled fixtures & standings.</p>
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleResetTournament("Division 1")}
+                disabled={resettingTournament}
+                className="w-full text-xs font-bold gap-1 mt-2"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset Division 1 Matches
+              </Button>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-yellow-500/30 bg-slate-950/80 space-y-2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-yellow-400">Division 2 Fixtures</span>
+                  <Badge variant="secondary" className="text-[10px] font-mono">
+                    {matches.filter((m: any) => m.division === "Division 2").length} Matches
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Championship scheduled fixtures & standings.</p>
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleResetTournament("Division 2")}
+                disabled={resettingTournament}
+                className="w-full text-xs font-bold gap-1 mt-2"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset Division 2 Matches
+              </Button>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-emerald-500/30 bg-slate-950/80 space-y-2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-emerald-400">Division 3 Fixtures</span>
+                  <Badge variant="secondary" className="text-[10px] font-mono">
+                    {matches.filter((m: any) => m.division === "Division 3").length} Matches
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">National Academy scheduled fixtures & standings.</p>
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleResetTournament("Division 3")}
+                disabled={resettingTournament}
+                className="w-full text-xs font-bold gap-1 mt-2"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset Division 3 Matches
+              </Button>
+            </div>
+          </div>
+
+          {/* Filtering & Search Toolbar */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/90 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xl">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Round filter */}
+              <select
+                value={allMatchesFilterRound}
+                onChange={(e) => setAllMatchesFilterRound(e.target.value)}
+                className="bg-slate-900 border border-slate-800 text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500"
+              >
+                <option value="ALL">All Matchday Rounds</option>
+                {Array.from(new Set(matches.map((m: any) => m.round)))
+                  .filter(Boolean)
+                  .map((r: any) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+              </select>
+
+              {/* Division filter */}
+              <select
+                value={allMatchesFilterDiv}
+                onChange={(e) => setAllMatchesFilterDiv(e.target.value)}
+                className="bg-slate-900 border border-slate-800 text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500"
+              >
+                <option value="ALL">All Divisions</option>
+                <option value="Division 1">Division 1</option>
+                <option value="Division 2">Division 2</option>
+                <option value="Division 3">Division 3</option>
+                <option value="UCL">Champions League</option>
+                <option value="EUROPA">Europa League</option>
+              </select>
+
+              {/* Status filter */}
+              <select
+                value={allMatchesFilterStatus}
+                onChange={(e) => setAllMatchesFilterStatus(e.target.value)}
+                className="bg-slate-900 border border-slate-800 text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="LIVE">Live Window</option>
+                <option value="FINISHED">Finished / Approved</option>
+                <option value="FORFEIT">Forfeit Walkover</option>
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative min-w-[240px]">
+              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search athlete, WA, ID..."
+                value={allMatchesSearch}
+                onChange={(e) => setAllMatchesSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+              {allMatchesSearch && (
+                <button
+                  onClick={() => setAllMatchesSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs font-bold"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filtered Matches Display */}
+          {(() => {
+            const filtered = matches.filter((m: any) => {
+              const matchRound = allMatchesFilterRound === "ALL" || m.round === allMatchesFilterRound;
+              const matchDiv = allMatchesFilterDiv === "ALL" || m.division === allMatchesFilterDiv;
+              const matchStatus = allMatchesFilterStatus === "ALL" || m.status === allMatchesFilterStatus;
+
+              const search = allMatchesSearch.trim().toLowerCase();
+              const matchSearch =
+                !search ||
+                m.homePlayer?.gamerTag?.toLowerCase().includes(search) ||
+                m.awayPlayer?.gamerTag?.toLowerCase().includes(search) ||
+                m.homePlayer?.fullName?.toLowerCase().includes(search) ||
+                m.awayPlayer?.fullName?.toLowerCase().includes(search) ||
+                m.homePlayer?.efootballId?.toLowerCase().includes(search) ||
+                m.awayPlayer?.efootballId?.toLowerCase().includes(search);
+
+              return matchRound && matchDiv && matchStatus && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center space-y-3">
+                  <Calendar className="h-10 w-10 mx-auto text-slate-600" />
+                  <p className="font-bold text-slate-300">No generated matches found matching your filters.</p>
+                  <p className="text-xs text-slate-500">
+                    If no matches have been generated yet, visit the Dashboard tab to run the Division Schedule Generator.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setAllMatchesFilterRound("ALL");
+                      setAllMatchesFilterDiv("ALL");
+                      setAllMatchesFilterStatus("ALL");
+                      setAllMatchesSearch("");
+                    }}
+                    className="text-xs mt-2"
+                  >
+                    Reset Filters
+                  </Button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                  <span>Showing <strong>{filtered.length}</strong> of {matches.length} fixtures</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filtered.map((m: any) => {
+                    const isFinished = m.status === "FINISHED";
+                    const isForfeit = m.status === "FORFEIT";
+                    const sub = m.submissions?.[0];
+                    const hasScreenshot = Boolean(m.screenshotUrl || sub?.screenshotUrl);
+                    const screenshotToInspect = m.screenshotUrl || sub?.screenshotUrl;
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl hover:border-slate-700 transition"
+                      >
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="yellow" className="text-xs font-mono">
+                              {m.round}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {m.division}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {m.allowLateSubmission && (
+                              <Badge variant="secondary" className="text-[10px] text-emerald-400 bg-emerald-950/30 border-emerald-500/30">
+                                ⏰ LATE UPLOAD ON
+                              </Badge>
+                            )}
+                            <Badge
+                              variant={
+                                isFinished
+                                  ? "green"
+                                  : isForfeit
+                                  ? "destructive"
+                                  : sub
+                                  ? "yellow"
+                                  : "secondary"
+                              }
+                              className="text-[10px]"
+                            >
+                              {isFinished
+                                ? "FINISHED"
+                                : isForfeit
+                                ? "FORFEIT"
+                                : sub
+                                ? "PENDING REVIEW"
+                                : m.status}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Pairing & Score */}
+                        <div className="grid grid-cols-12 gap-3 items-center text-center">
+                          {/* Home Player */}
+                          <div className="col-span-5 text-left space-y-0.5">
+                            <span className="text-[10px] font-bold uppercase text-slate-500 block">HOME</span>
+                            <span className="font-black text-white text-sm block truncate">
+                              {m.homePlayer?.gamerTag}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block font-mono">
+                              {m.homePlayer?.efootballId || "No ID"}
+                            </span>
+                          </div>
+
+                          {/* Score Box */}
+                          <div className="col-span-2 flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 border border-slate-800">
+                            {isFinished || isForfeit ? (
+                              <span className="text-base font-black font-mono text-cyan-400">
+                                {m.homeScore} - {m.awayScore}
+                              </span>
+                            ) : sub ? (
+                              <div>
+                                <span className="text-sm font-black font-mono text-amber-400">
+                                  {sub.homeScore} - {sub.awayScore}
+                                </span>
+                                <span className="text-[8px] text-amber-400 uppercase block font-mono">Pending</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-black text-slate-500 font-mono">VS</span>
+                            )}
+                          </div>
+
+                          {/* Away Player */}
+                          <div className="col-span-5 text-right space-y-0.5">
+                            <span className="text-[10px] font-bold uppercase text-slate-500 block">AWAY</span>
+                            <span className="font-black text-white text-sm block truncate">
+                              {m.awayPlayer?.gamerTag}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block font-mono">
+                              {m.awayPlayer?.efootballId || "No ID"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Deadline & Admin Controls */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
+                          <span className="text-[11px] font-mono text-slate-400">
+                            Deadline: {new Date(m.deadlineDate).toLocaleDateString()}
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            {hasScreenshot && (
+                              <button
+                                type="button"
+                                onClick={() => setInspectImage(screenshotToInspect)}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-400 hover:text-sky-300 py-1 px-2 rounded-lg bg-slate-900 border border-slate-800"
+                              >
+                                <Eye className="h-3 w-3" />
+                                Proof
+                              </button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleExtendDeadline(m.id)}
+                              disabled={extendingMatchId === m.id}
+                              className="text-[11px] h-7 px-2.5 font-bold border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/30"
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Extend Deadline
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
