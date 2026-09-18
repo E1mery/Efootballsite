@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Smartphone, Lock, User, ShieldCheck, AlertCircle, Eye, EyeOff, KeyRound, X, CheckCircle2, Clock, RefreshCw, ArrowRight } from "lucide-react";
+import { Smartphone, Lock, User, ShieldCheck, AlertCircle, Eye, EyeOff, KeyRound, X, CheckCircle2, Clock, RefreshCw, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -207,6 +207,17 @@ function LoginForm() {
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
       <div className="relative w-full max-w-md">
+        {/* Back to Home Button */}
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl px-3.5 py-2 group shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-slate-400 group-hover:text-yellow-400" />
+            <span>Back to Home</span>
+          </Link>
+        </div>
+
         {/* Ambient glow */}
         <div className="absolute -top-16 -left-16 w-60 h-60 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -right-16 w-60 h-60 bg-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
