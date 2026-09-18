@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Smartphone, Lock, User, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Smartphone, Lock, User, ShieldCheck, AlertCircle, Eye, EyeOff, KeyRound, X, CheckCircle2, Clock, RefreshCw, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,19 @@ function LoginForm() {
       ? "Access Denied: You must be logged in as an Administrator to access the Admin Control Center."
       : ""
   );
+
+  // Forgot password flow state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotStatus, setForgotStatus] = useState<"IDLE" | "PENDING" | "APPROVED">("IDLE");
+  const [forgotMessage, setForgotMessage] = useState("");
+  const [forgotError, setForgotError] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -72,6 +85,122 @@ function LoginForm() {
       setError(err.message || "Invalid credentials");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestReset = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotError("Please enter your registered email address.");
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError("");
+    setForgotMessage("");
+
+    try {
+      const res = await fetch("/api/auth/forgot-password/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit request.");
+
+      setForgotStatus(data.status || "PENDING");
+      setForgotMessage(data.message || "Request sent to Commissioner.");
+    } catch (err: any) {
+      setForgotError(err.message || "An error occurred. Please try again.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleCheckStatus = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotError("Please enter your registered email address.");
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError("");
+    setForgotMessage("");
+
+    try {
+      const res = await fetch("/api/auth/forgot-password/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to check status.");
+
+      if (data.status === "APPROVED") {
+        setForgotStatus("APPROVED");
+        setForgotMessage(data.message);
+      } else if (data.status === "PENDING") {
+        setForgotStatus("PENDING");
+        setForgotMessage(data.message);
+      } else if (data.status === "NOT_FOUND") {
+        setForgotStatus("IDLE");
+        setForgotError(data.message);
+      } else {
+        setForgotStatus("IDLE");
+        setForgotMessage(data.message);
+      }
+    } catch (err: any) {
+      setForgotError(err.message || "An error occurred.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      setForgotError("Please fill out both password fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setForgotError("Passwords do not match. Please re-type.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setForgotError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotError("");
+    setForgotMessage("");
+
+    try {
+      const res = await fetch("/api/auth/forgot-password/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          newPassword,
+          confirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset password.");
+
+      setResetSuccess(true);
+      setForgotMessage(data.message || "Password updated successfully! Logging you in...");
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("efrl_user", JSON.stringify({ ...data.user, player: data.player }));
+      }
+
+      setTimeout(() => {
+        router.push(data.redirectUrl || "/dashboard");
+        router.refresh();
+      }, 1500);
+    } catch (err: any) {
+      setForgotError(err.message || "Failed to reset password.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -143,9 +272,25 @@ function LoginForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-300 uppercase">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (identifier.includes("@")) {
+                      setForgotEmail(identifier.trim());
+                    }
+                    setForgotError("");
+                    setForgotMessage("");
+                    setShowForgotModal(true);
+                  }}
+                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -182,6 +327,199 @@ function LoginForm() {
               {loading ? "Verifying..." : isAdminRequired ? "Authenticate as Admin" : "Sign In"}
             </Button>
           </form>
+
+          {/* FORGOT PASSWORD MODAL */}
+          {showForgotModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+              <div className="relative w-full max-w-md rounded-3xl border border-slate-800 bg-[#070b18] p-6 sm:p-8 shadow-2xl space-y-6">
+                {/* Close button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotModal(false);
+                    setForgotStatus("IDLE");
+                    setForgotError("");
+                    setForgotMessage("");
+                    setResetSuccess(false);
+                  }}
+                  className="absolute right-4 top-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                {/* Modal Header */}
+                <div className="text-center space-y-2">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <KeyRound className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-black uppercase text-white tracking-tight">
+                    {forgotStatus === "APPROVED"
+                      ? "Set Your New Password"
+                      : "Forgot Your Password?"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {forgotStatus === "APPROVED"
+                      ? "The Commissioner has granted permission. Enter and confirm your new password below."
+                      : "Enter your registered email address. The system will send a reset request to the League Commissioner for approval."}
+                  </p>
+                </div>
+
+                {/* Error & Message Alerts */}
+                {forgotError && (
+                  <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-400 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+
+                {forgotMessage && (
+                  <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-3 text-xs text-cyan-300 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-cyan-400" />
+                    <span>{forgotMessage}</span>
+                  </div>
+                )}
+
+                {/* STEP 1: REQUEST OR CHECK APPROVAL */}
+                {forgotStatus !== "APPROVED" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                        Your Registered Email Address
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="email"
+                          required
+                          placeholder="athlete@example.rw"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          className="pl-9"
+                        />
+                        <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      </div>
+                    </div>
+
+                    {forgotStatus === "PENDING" ? (
+                      <div className="space-y-3">
+                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 text-xs">
+                          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-amber-400">
+                            <Clock className="h-4 w-4 animate-spin" />
+                            <span>Waiting for Admin Approval</span>
+                          </div>
+                          <p className="text-slate-300 leading-relaxed">
+                            Your password reset request has been logged. The League Commissioner will grant permission in the Admin Office. Once approved, click the button below to set your new password.
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="yellow"
+                          onClick={handleCheckStatus}
+                          disabled={forgotLoading}
+                          className="w-full font-black text-slate-950 gap-2 min-h-[44px]"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${forgotLoading ? "animate-spin" : ""}`} />
+                          <span>{forgotLoading ? "Checking..." : "Check Commissioner Approval & Continue"}</span>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="yellow"
+                          onClick={() => handleRequestReset()}
+                          disabled={forgotLoading}
+                          className="w-full font-black text-slate-950 min-h-[44px]"
+                        >
+                          {forgotLoading ? "Sending Request..." : "Send Reset Request to Admin"}
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleCheckStatus}
+                          disabled={forgotLoading}
+                          className="w-full text-xs font-bold text-slate-300 min-h-[44px]"
+                        >
+                          <Clock className="h-4 w-4 mr-1.5" />
+                          I Already Requested – Check Approval Status
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* STEP 2: ENTER NEW PASSWORD & CONFIRM (WHEN APPROVED) */}
+                {forgotStatus === "APPROVED" && (
+                  <form onSubmit={handleConfirmReset} className="space-y-4">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span>Commissioner Permission Granted: Enter your new password</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type={showNewPassword ? "text" : "password"}
+                          required
+                          minLength={6}
+                          placeholder="Enter at least 6 characters"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="pl-9 pr-10"
+                        />
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                        Confirm New Password
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          required
+                          minLength={6}
+                          placeholder="Retype your new password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="pl-9 pr-10"
+                        />
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      variant="yellow"
+                      disabled={forgotLoading || resetSuccess}
+                      className="w-full font-black text-slate-950 min-h-[44px]"
+                    >
+                      {forgotLoading ? "Updating Password..." : resetSuccess ? "Logging in..." : "Set New Password & Sign In"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Registration link */}
           <div className="mt-6 text-center text-xs text-slate-400 border-t border-slate-900 pt-5 space-y-2">

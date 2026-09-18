@@ -45,6 +45,7 @@ import {
   UserPlus,
   RotateCcw,
   Star,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +70,7 @@ export default function AdminClient({
   initialHallOfFame = [],
   initialPlayerMessages = [],
   initialReviews = [],
+  initialPasswordResets = [],
 }: {
   matches: any[];
   pendingSubmissions: any[];
@@ -88,6 +90,7 @@ export default function AdminClient({
   initialHallOfFame?: any[];
   initialPlayerMessages?: any[];
   initialReviews?: any[];
+  initialPasswordResets?: any[];
 }) {
   const router = useRouter();
 
@@ -104,7 +107,8 @@ export default function AdminClient({
     | "PLAYERS"
     | "HALL_OF_FAME"
     | "MESSAGES"
-    | "REVIEWS";
+    | "REVIEWS"
+    | "PASSWORD_RESETS";
 
   const [activeTab, setActiveTab] = useState<TabType>("DASHBOARD");
   const [tableSubTab, setTableSubTab] = useState<"DIV1" | "DIV2" | "DIV3" | "UCL" | "EUROPA">("DIV1");
@@ -116,6 +120,7 @@ export default function AdminClient({
   const [playersList, setPlayersList] = useState<any[]>(allPlayers);
   const [playerMessages, setPlayerMessages] = useState<any[]>(initialPlayerMessages);
   const [reviewsList, setReviewsList] = useState<any[]>(initialReviews);
+  const [passwordResets, setPasswordResets] = useState<any[]>(initialPasswordResets);
 
   // New admin operations state
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
@@ -135,6 +140,11 @@ export default function AdminClient({
   const [batchApproving, setBatchApproving] = useState(false);
   const [refreshingPending, setRefreshingPending] = useState(false);
 
+  // Password resets search & filters & actions
+  const [resetSearch, setResetSearch] = useState("");
+  const [resetStatusFilter, setResetStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "COMPLETED">("ALL");
+  const [resetActionLoading, setResetActionLoading] = useState<string | null>(null);
+
   // Sync state when props update from server actions / router.refresh()
   useEffect(() => {
     setPendingPlayers(initialPendingPlayers);
@@ -151,6 +161,10 @@ export default function AdminClient({
   useEffect(() => {
     setReviewsList(initialReviews);
   }, [initialReviews]);
+
+  useEffect(() => {
+    setPasswordResets(initialPasswordResets);
+  }, [initialPasswordResets]);
 
   // Direct Inquiries & Reply State
   const [replyingMessageId, setReplyingMessageId] = useState<string | null>(null);
@@ -192,6 +206,23 @@ export default function AdminClient({
       const matchEmail = p.user?.email?.toLowerCase().includes(q);
       const matchEfId = p.efootballId?.toLowerCase().includes(q);
       return Boolean(matchTag || matchName || matchWa || matchEmail || matchEfId);
+    }
+    return true;
+  });
+
+  // Filtered password reset requests based on status filter and search query
+  const filteredPasswordResets = passwordResets.filter((r) => {
+    if (resetStatusFilter !== "ALL" && r.status !== resetStatusFilter) {
+      return false;
+    }
+    if (resetSearch.trim()) {
+      const q = resetSearch.toLowerCase().trim();
+      const matchEmail = r.email?.toLowerCase().includes(q);
+      const matchTag = r.player?.gamerTag?.toLowerCase().includes(q);
+      const matchName = r.player?.fullName?.toLowerCase().includes(q);
+      const matchWa = r.player?.whatsapp?.toLowerCase().includes(q);
+      const matchDiv = r.player?.division?.toLowerCase().includes(q);
+      return Boolean(matchEmail || matchTag || matchName || matchWa || matchDiv);
     }
     return true;
   });
@@ -1069,6 +1100,76 @@ export default function AdminClient({
     }
   };
 
+  // Handler: Approve Password Reset Request
+  const handleApprovePasswordReset = async (requestId: string, gamerTag?: string) => {
+    if (
+      !confirm(
+        `Grant password reset permission to athlete "${gamerTag || "User"}"?\n\nOnce approved, the user will be able to enter a new password on the sign-in page and immediately log into their account.`
+      )
+    ) {
+      return;
+    }
+
+    setResetActionLoading(requestId);
+    try {
+      const res = await fetch("/api/admin/password-resets/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to approve password reset request");
+
+      alert(data.message || "Password reset request approved successfully!");
+      setPasswordResets((prev) =>
+        prev.map((r) =>
+          r.id === requestId
+            ? { ...r, status: "APPROVED", approvedAt: new Date().toISOString() }
+            : r
+        )
+      );
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setResetActionLoading(null);
+    }
+  };
+
+  // Handler: Delete or Reject Password Reset Request
+  const handleDeletePasswordReset = async (requestId: string, action: "DELETE" | "REJECT") => {
+    const promptText =
+      action === "DELETE"
+        ? "Are you sure you want to delete this password reset record?"
+        : "Are you sure you want to reject this password reset request?";
+    if (!confirm(promptText)) return;
+
+    setResetActionLoading(requestId);
+    try {
+      const res = await fetch("/api/admin/password-resets/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update password reset request");
+
+      alert(data.message || "Request updated successfully");
+      if (action === "DELETE") {
+        setPasswordResets((prev) => prev.filter((r) => r.id !== requestId));
+      } else {
+        setPasswordResets((prev) =>
+          prev.map((r) => (r.id === requestId ? { ...r, status: "REJECTED" } : r))
+        );
+      }
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setResetActionLoading(null);
+    }
+  };
+
   // Helper for standings table rendering
   const renderStandingsTable = (title: string, standings: any[], badgeColor: string, maxLimit: number = 20) => {
     return (
@@ -1427,6 +1528,23 @@ export default function AdminClient({
           <Star className={`h-4 w-4 ${activeTab === "REVIEWS" ? "text-slate-950" : "text-amber-400"}`} />
           <span>Ratings & Reviews ({reviewsList.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("PASSWORD_RESETS")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+            activeTab === "PASSWORD_RESETS"
+              ? "bg-rose-500 text-white font-black shadow-lg shadow-rose-500/30"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <KeyRound className={`h-4 w-4 ${activeTab === "PASSWORD_RESETS" ? "text-white" : "text-rose-400"}`} />
+          <span>Password Resets ({passwordResets.length})</span>
+          {passwordResets.filter((r) => r.status === "PENDING").length > 0 && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black animate-pulse">
+              {passwordResets.filter((r) => r.status === "PENDING").length}
+            </Badge>
+          )}
+        </button>
       </div>
 
       {/* ========================================================================= */}
@@ -1458,6 +1576,35 @@ export default function AdminClient({
                 className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg shadow-amber-500/20"
               >
                 <span>Review Approvals</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Action Required Alert: Password Reset Requests */}
+          {passwordResets.filter((r) => r.status === "PENDING").length > 0 && (
+            <div className="rounded-3xl border border-rose-500/50 bg-gradient-to-r from-rose-950/40 via-slate-950 to-slate-950 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 shrink-0">
+                  <KeyRound className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black uppercase text-white">Action Required: Password Reset Requests</h3>
+                    <Badge variant="destructive" className="font-mono text-xs">
+                      {passwordResets.filter((r) => r.status === "PENDING").length} Waiting
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    {passwordResets.filter((r) => r.status === "PENDING").length} athlete(s) forgot their password and requested permission to reset it.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setActiveTab("PASSWORD_RESETS")}
+                className="bg-rose-500 hover:bg-rose-400 text-white font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg shadow-rose-500/20"
+              >
+                <span>Review Reset Requests</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -5015,6 +5162,303 @@ export default function AdminClient({
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: PASSWORD RESETS AUTHORIZATION */}
+      {/* ========================================================================= */}
+      {activeTab === "PASSWORD_RESETS" && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="rounded-3xl border border-rose-500/30 bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-950 p-6 sm:p-8 relative overflow-hidden shadow-xl">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider">
+                  <KeyRound className="h-3.5 w-3.5" />
+                  <span>Access Recovery Management</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+                  Password Reset Approvals
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  When an athlete forgets their password, they submit their email to request authorization. As League Admin, verify the athlete&apos;s request and approve permission so they can configure a new password and immediately log into their account.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => router.refresh()}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-xs text-slate-300"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>Refresh Queue</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filters */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search by gamer tag, email, name, WhatsApp..."
+                value={resetSearch}
+                onChange={(e) => setResetSearch(e.target.value)}
+                className="pl-9 bg-slate-900 border-slate-800 text-xs text-white"
+              />
+            </div>
+
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {(["ALL", "PENDING", "APPROVED", "COMPLETED"] as const).map((status) => {
+                const count =
+                  status === "ALL"
+                    ? passwordResets.length
+                    : passwordResets.filter((r) => r.status === status).length;
+                const active = resetStatusFilter === status;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setResetStatusFilter(status)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                      active
+                        ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20"
+                        : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800"
+                    }`}
+                  >
+                    <span>{status === "ALL" ? "All Requests" : status.charAt(0) + status.slice(1).toLowerCase()}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        active ? "bg-slate-950/60 text-white" : "bg-slate-800 text-slate-400"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* List of Requests */}
+          {filteredPasswordResets.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-slate-800 bg-slate-950/60 space-y-3">
+              <div className="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+                <KeyRound className="h-6 w-6" />
+              </div>
+              <h4 className="text-base font-bold text-white uppercase">No Password Reset Requests Found</h4>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                {resetSearch
+                  ? "No requests matched your search filter criteria."
+                  : "There are currently no password reset requests submitted by users."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredPasswordResets.map((req) => {
+                const athlete = req.player;
+                const isPending = req.status === "PENDING";
+                const isApproved = req.status === "APPROVED";
+                const isCompleted = req.status === "COMPLETED";
+                const isLoading = resetActionLoading === req.id;
+
+                return (
+                  <div
+                    key={req.id}
+                    className={`rounded-2xl border p-5 transition-all space-y-4 ${
+                      isPending
+                        ? "border-amber-500/40 bg-gradient-to-b from-amber-950/20 to-slate-950 shadow-lg shadow-amber-950/10"
+                        : isApproved
+                        ? "border-emerald-500/40 bg-gradient-to-b from-emerald-950/20 to-slate-950"
+                        : "border-slate-800 bg-slate-950/80"
+                    }`}
+                  >
+                    {/* Athlete Info & Status Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-sm text-slate-200 shrink-0">
+                          {athlete?.gamerTag ? athlete.gamerTag.substring(0, 2).toUpperCase() : "USR"}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-black text-sm text-white">
+                              {athlete?.gamerTag || "Unknown Player"}
+                            </h4>
+                            {athlete?.division && (
+                              <Badge variant="outline" className="text-[10px] border-slate-700 bg-slate-900/80 text-sky-400">
+                                {athlete.division}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            {athlete?.fullName || "Registered Member"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      {isPending && (
+                        <Badge variant="yellow" className="text-[10px] font-black uppercase animate-pulse flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Pending Approval</span>
+                        </Badge>
+                      )}
+                      {isApproved && (
+                        <Badge variant="secondary" className="text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Approved (Awaiting Reset)</span>
+                        </Badge>
+                      )}
+                      {isCompleted && (
+                        <Badge variant="secondary" className="text-[10px] font-black uppercase bg-sky-500/20 text-sky-300 border-sky-500/40 flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          <span>Completed</span>
+                        </Badge>
+                      )}
+                      {req.status === "REJECTED" && (
+                        <Badge variant="destructive" className="text-[10px] font-black uppercase flex items-center gap-1">
+                          <XCircle className="h-3 w-3" />
+                          <span>Rejected</span>
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Contact & Request Details */}
+                    <div className="space-y-2 rounded-xl bg-slate-900/60 p-3 border border-slate-800/80 text-xs">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="text-slate-400 flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Email:</span>
+                        </span>
+                        <div className="flex items-center gap-1 font-mono font-medium text-white">
+                          <span>{req.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyKonamiId(req.id, req.email)}
+                            className="p-1 text-slate-400 hover:text-white"
+                            title="Copy email"
+                          >
+                            {copiedId === req.id ? (
+                              <Check className="h-3 w-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {athlete?.whatsapp && (
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 text-slate-400" />
+                            <span>WhatsApp:</span>
+                          </span>
+                          <a
+                            href={`https://wa.me/${athlete.whatsapp.replace(/[^0-9]/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-emerald-400 hover:underline flex items-center gap-1"
+                          >
+                            {athlete.whatsapp}
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-slate-400 text-[11px] pt-1 border-t border-slate-800">
+                        <span>Requested At:</span>
+                        <span className="font-mono text-slate-300">
+                          {new Date(req.createdAt).toLocaleDateString()} {new Date(req.createdAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+
+                      {req.approvedAt && (
+                        <div className="flex items-center justify-between text-emerald-400/80 text-[11px]">
+                          <span>Approved At:</span>
+                          <span className="font-mono">
+                            {new Date(req.approvedAt).toLocaleDateString()} {new Date(req.approvedAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      )}
+
+                      {req.completedAt && (
+                        <div className="flex items-center justify-between text-sky-400/80 text-[11px]">
+                          <span>Password Reset At:</span>
+                          <span className="font-mono">
+                            {new Date(req.completedAt).toLocaleDateString()} {new Date(req.completedAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      {isPending && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeletePasswordReset(req.id, "REJECT")}
+                            disabled={isLoading}
+                            className="text-xs border-slate-700 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400"
+                          >
+                            <XCircle className="h-3.5 w-3.5 mr-1" />
+                            Decline
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprovePasswordReset(req.id, athlete?.gamerTag)}
+                            disabled={isLoading}
+                            className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1.5 shadow-md shadow-emerald-600/20"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {isLoading ? "Approving..." : "Approve Permission"}
+                          </Button>
+                        </>
+                      )}
+
+                      {isApproved && (
+                        <div className="w-full flex items-center justify-between">
+                          <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                            <Check className="h-3.5 w-3.5" />
+                            Ready for user to reset
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeletePasswordReset(req.id, "DELETE")}
+                            disabled={isLoading}
+                            className="text-xs border-slate-800 hover:bg-slate-900 text-slate-400"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+
+                      {(isCompleted || req.status === "REJECTED") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeletePasswordReset(req.id, "DELETE")}
+                          disabled={isLoading}
+                          className="text-xs border-slate-800 hover:bg-slate-900 text-slate-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                          Delete Log
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

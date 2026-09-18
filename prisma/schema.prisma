@@ -334,4 +334,18 @@ model TrophyPollVote {
   @@index([predictedWinnerPlayerId])
 }
 
+model PasswordResetRequest {
+  id          String    @id @default(cuid())
+  email       String
+  status      String    @default("PENDING") // PENDING, APPROVED, COMPLETED, REJECTED
+  requestedAt DateTime  @default(now())
+  approvedAt  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
 

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AdminClient from "./AdminClient";
+import { ensurePasswordResetTable } from "@/lib/passwordReset";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export default async function AdminPage() {
     redirect("/admin/login?error=admin_required");
   }
 
+  await ensurePasswordResetTable();
+
   const [
     matches,
     pendingSubmissions,
@@ -39,6 +42,7 @@ export default async function AdminPage() {
     hallOfFameEntries,
     playerMessages,
     reviews,
+    passwordResets,
   ] = await Promise.all([
     prisma.match.findMany({
       include: {
@@ -161,7 +165,34 @@ export default async function AdminPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    (prisma as any).passwordResetRequest.findMany({
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
+
+  // Enrich password reset requests with user and athlete details
+  const resetEmails: string[] = Array.from(new Set(passwordResets.map((r: any) => String(r.email))));
+  const resetUsers =
+    resetEmails.length > 0
+      ? await prisma.user.findMany({
+          where: { email: { in: resetEmails } },
+          include: { player: true },
+        })
+      : [];
+
+  const userMap = new Map<string, any>();
+  for (const u of resetUsers) {
+    userMap.set(u.email, u);
+  }
+
+  const enrichedPasswordResets = passwordResets.map((r: any) => {
+    const u = userMap.get(r.email);
+    return {
+      ...r,
+      user: u ? { id: u.id, email: u.email, role: u.role } : null,
+      player: u?.player || null,
+    };
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
@@ -184,7 +215,9 @@ export default async function AdminPage() {
         initialHallOfFame={hallOfFameEntries}
         initialPlayerMessages={playerMessages}
         initialReviews={reviews}
+        initialPasswordResets={enrichedPasswordResets}
       />
     </div>
   );
 }
+
