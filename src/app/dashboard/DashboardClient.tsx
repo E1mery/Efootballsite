@@ -697,6 +697,23 @@ export default function DashboardClient({
     !hasClaimedForfeit
   );
 
+  // Autonomous 1-Hour Reminder Pulse:
+  // When active match has < 1 hr remaining and neither player has submitted,
+  // automatically trigger system endpoint so both athletes receive individual reminder notifications.
+  useEffect(() => {
+    if (isOneHourWarning) {
+      fetch("/api/cron/reminders", { method: "POST" }).catch(() => {});
+    }
+  }, [isOneHourWarning, timeLeft.minutes]);
+
+  // Periodic system reminder pulse (every 2 minutes while active in portal)
+  useEffect(() => {
+    const pulseTimer = setInterval(() => {
+      fetch("/api/cron/reminders", { method: "POST" }).catch(() => {});
+    }, 2 * 60 * 1000);
+    return () => clearInterval(pulseTimer);
+  }, []);
+
   // Copy WhatsApp Number helper
   const handleCopyWhatsApp = (num: string) => {
     navigator.clipboard.writeText(num);

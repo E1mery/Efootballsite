@@ -1834,6 +1834,11 @@ export default function AdminClient({
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Automated 1-Hr System Reminders Active</span>
+                </div>
+
                 <Button
                   onClick={handleTriggerReminders}
                   disabled={actionLoading}
@@ -1841,7 +1846,7 @@ export default function AdminClient({
                   className="border-amber-500/50 text-amber-300 hover:bg-amber-950/30 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
                 >
                   <Bell className="h-3.5 w-3.5 text-amber-400" />
-                  <span>Trigger 1-Hr Reminders</span>
+                  <span>Manual Check Reminders</span>
                 </Button>
 
                 <Button

@@ -21,6 +21,9 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
     const currentMatchday = config?.currentMatchday || 1;
     const currentRoundName = `Matchday ${currentMatchday}`;
 
+    // Always run automated 1-hour match reminders check for any expiring unsubmitted matches
+    await checkAndSendOneHourMatchReminders();
+
     // Look for any match in the current matchday to check the deadline
     const sampleMatch = await prisma.match.findFirst({
       where: { round: currentRoundName },
@@ -34,8 +37,6 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
 
     const now = new Date();
     if (now < new Date(sampleMatch.deadlineDate)) {
-      // Deadline has not expired yet: Automatically check & send 1-hour reminders to unplayed athletes
-      await checkAndSendOneHourMatchReminders();
       return { advanced: false, currentMatchday };
     }
 

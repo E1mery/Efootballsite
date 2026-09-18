@@ -8,8 +8,8 @@ export interface ReminderResult {
 
 /**
  * Checks all active matches expiring within 1 hour.
- * For each match, if a player has neither uploaded a result screenshot
- * nor claimed an opponent forfeit, sends an automated individual warning announcement.
+ * For each match without an uploaded result screenshot or forfeit claim proof,
+ * sends an automated individual warning announcement to the unsubmitted players.
  */
 export async function checkAndSendOneHourMatchReminders(): Promise<ReminderResult> {
   const result: ReminderResult = {
@@ -20,14 +20,16 @@ export async function checkAndSendOneHourMatchReminders(): Promise<ReminderResul
 
   try {
     const now = new Date();
-    // Eligible window: matches whose deadline is within 60 minutes from now (now <= deadlineDate <= now + 60 mins)
+    // Matches whose deadline is within the next 60 minutes
     const oneHourAhead = new Date(now.getTime() + 60 * 60 * 1000);
+    // Include grace window of past 5 minutes in case exact rollover is pending
+    const graceWindowPast = new Date(now.getTime() - 5 * 60 * 1000);
 
     const upcomingMatches = await prisma.match.findMany({
       where: {
         status: { in: ["SCHEDULED", "LIVE"] },
         deadlineDate: {
-          gte: now,
+          gte: graceWindowPast,
           lte: oneHourAhead,
         },
       },
@@ -42,6 +44,19 @@ export async function checkAndSendOneHourMatchReminders(): Promise<ReminderResul
     result.checkedCount = upcomingMatches.length;
 
     for (const match of upcomingMatches) {
+      // 1. If this match already has an accepted or pending submission, results have been submitted!
+      const hasValidSubmission = match.submissions.some(
+        (s) => s.status === "PENDING" || s.status === "APPROVED"
+      );
+      const hasValidForfeit = match.forfeitClaims.some(
+        (f) => f.status === "PENDING" || f.status === "APPROVED"
+      );
+
+      if (hasValidSubmission || hasValidForfeit) {
+        // Result or forfeit claim already submitted, no reminder needed
+        continue;
+      }
+
       const deadlineStr = new Date(match.deadlineDate).toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -49,28 +64,19 @@ export async function checkAndSendOneHourMatchReminders(): Promise<ReminderResul
 
       const uniqueMarker = `[REMINDER-1HR-${match.id}]`;
 
-      // 1. Check Home Player
-      const homeHasSubmitted = match.submissions.some(
-        (s) => s.submittedByPlayerId === match.homePlayerId
-      );
-      const homeHasClaimedForfeit = match.forfeitClaims.some(
-        (f) => f.claimantPlayerId === match.homePlayerId
-      );
+      // 2. Notify Home Player if not yet reminded
+      const homeAlreadySent = await prisma.announcement.findFirst({
+        where: {
+          targetPlayerId: match.homePlayerId,
+          title: { contains: uniqueMarker },
+        },
+      });
 
-      if (!homeHasSubmitted && !homeHasClaimedForfeit) {
-        // Player has neither played (uploaded result) nor claimed forfeit
-        const alreadySent = await prisma.announcement.findFirst({
-          where: {
-            targetPlayerId: match.homePlayerId,
-            title: { contains: uniqueMarker },
-          },
-        });
-
-        if (!alreadySent) {
-          await prisma.announcement.create({
-            data: {
-              title: `⏰ 1-Hour Match Deadline Reminder vs ${match.awayPlayer.gamerTag} ${uniqueMarker}`,
-              content: `URGENT MATCHDAY DEADLINE WARNING:
+      if (!homeAlreadySent) {
+        await prisma.announcement.create({
+          data: {
+            title: `⏰ 1-Hour Match Deadline Reminder vs ${match.awayPlayer.gamerTag} ${uniqueMarker}`,
+            content: `URGENT AUTOMATED MATCHDAY DEADLINE WARNING:
 Your scheduled ${match.division} match vs ${match.awayPlayer.gamerTag} (${match.round}) expires in less than 1 hour (Cutoff: ${deadlineStr})!
 
 Our system records confirm you have NOT:
@@ -83,41 +89,31 @@ REQUIRED ACTION NOW:
 3. If your opponent does not respond or cannot be reached, submit "Claim Opponent Forfeit" with your chat proof BEFORE the 1-hour window expires.
 
 ⚠️ IMPORTANT: If the deadline passes without an uploaded score or forfeit claim, this fixture is registered as an unplayed forfeit, counting toward your 3-match disqualification limit.`,
-              type: "INDIVIDUAL",
-              targetPlayerId: match.homePlayerId,
-              isPinned: true,
-            },
-          });
-
-          result.remindersSent++;
-          result.details.push(
-            `Sent 1-hr reminder to ${match.homePlayer.gamerTag} for match vs ${match.awayPlayer.gamerTag}`
-          );
-        }
-      }
-
-      // 2. Check Away Player
-      const awayHasSubmitted = match.submissions.some(
-        (s) => s.submittedByPlayerId === match.awayPlayerId
-      );
-      const awayHasClaimedForfeit = match.forfeitClaims.some(
-        (f) => f.claimantPlayerId === match.awayPlayerId
-      );
-
-      if (!awayHasSubmitted && !awayHasClaimedForfeit) {
-        // Player has neither played (uploaded result) nor claimed forfeit
-        const alreadySent = await prisma.announcement.findFirst({
-          where: {
-            targetPlayerId: match.awayPlayerId,
-            title: { contains: uniqueMarker },
+            type: "INDIVIDUAL",
+            targetPlayerId: match.homePlayerId,
+            isPinned: true,
           },
         });
 
-        if (!alreadySent) {
-          await prisma.announcement.create({
-            data: {
-              title: `⏰ 1-Hour Match Deadline Reminder vs ${match.homePlayer.gamerTag} ${uniqueMarker}`,
-              content: `URGENT MATCHDAY DEADLINE WARNING:
+        result.remindersSent++;
+        result.details.push(
+          `Sent automated 1-hr reminder to ${match.homePlayer.gamerTag} for match vs ${match.awayPlayer.gamerTag}`
+        );
+      }
+
+      // 3. Notify Away Player if not yet reminded
+      const awayAlreadySent = await prisma.announcement.findFirst({
+        where: {
+          targetPlayerId: match.awayPlayerId,
+          title: { contains: uniqueMarker },
+        },
+      });
+
+      if (!awayAlreadySent) {
+        await prisma.announcement.create({
+          data: {
+            title: `⏰ 1-Hour Match Deadline Reminder vs ${match.homePlayer.gamerTag} ${uniqueMarker}`,
+            content: `URGENT AUTOMATED MATCHDAY DEADLINE WARNING:
 Your scheduled ${match.division} match vs ${match.homePlayer.gamerTag} (${match.round}) expires in less than 1 hour (Cutoff: ${deadlineStr})!
 
 Our system records confirm you have NOT:
@@ -130,17 +126,16 @@ REQUIRED ACTION NOW:
 3. If your opponent does not respond or cannot be reached, submit "Claim Opponent Forfeit" with your chat proof BEFORE the 1-hour window expires.
 
 ⚠️ IMPORTANT: If the deadline passes without an uploaded score or forfeit claim, this fixture is registered as an unplayed forfeit, counting toward your 3-match disqualification limit.`,
-              type: "INDIVIDUAL",
-              targetPlayerId: match.awayPlayerId,
-              isPinned: true,
-            },
-          });
+            type: "INDIVIDUAL",
+            targetPlayerId: match.awayPlayerId,
+            isPinned: true,
+          },
+        });
 
-          result.remindersSent++;
-          result.details.push(
-            `Sent 1-hr reminder to ${match.awayPlayer.gamerTag} for match vs ${match.homePlayer.gamerTag}`
-          );
-        }
+        result.remindersSent++;
+        result.details.push(
+          `Sent automated 1-hr reminder to ${match.awayPlayer.gamerTag} for match vs ${match.homePlayer.gamerTag}`
+        );
       }
     }
   } catch (error: any) {
@@ -149,4 +144,37 @@ REQUIRED ACTION NOW:
   }
 
   return result;
+}
+
+// In-memory timestamp to prevent excessive DB queries
+let lastAutoReminderCheckTime = 0;
+const AUTO_REMINDER_THROTTLE_MS = 45 * 1000; // Run at most once every 45s
+
+/**
+ * Throttled execution helper that automatically triggers the 1-hour reminder check.
+ * Safe to invoke on any server route or background request.
+ */
+export async function runAutoRemindersIfDue(): Promise<ReminderResult | null> {
+  const now = Date.now();
+  if (now - lastAutoReminderCheckTime < AUTO_REMINDER_THROTTLE_MS) {
+    return null;
+  }
+  lastAutoReminderCheckTime = now;
+  return checkAndSendOneHourMatchReminders();
+}
+
+// Register global in-process interval daemon for long-running Node server environments (disabled during build)
+const isBuilding =
+  process.env.NEXT_PHASE === "phase-production-build" ||
+  process.env.npm_lifecycle_event === "build";
+
+if (!isBuilding && typeof globalThis !== "undefined") {
+  const g = globalThis as any;
+  if (!g.__efootball_reminder_daemon) {
+    g.__efootball_reminder_daemon = setInterval(() => {
+      checkAndSendOneHourMatchReminders().catch((err) => {
+        console.error("Autonomous reminder daemon error:", err);
+      });
+    }, 60 * 1000); // Pulse every 60 seconds
+  }
 }
