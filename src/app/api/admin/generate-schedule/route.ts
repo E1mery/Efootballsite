@@ -121,9 +121,13 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Fetch active registered players in this division (excludes PENDING_APPROVAL and RESERVED)
+      // Fetch active registered players in this division (strictly league participants, never RESERVED or PENDING_APPROVAL)
       const players = await prisma.player.findMany({
-        where: { division: divName, isDisqualified: false, status: "ACTIVE" },
+        where: {
+          division: divName,
+          isDisqualified: false,
+          status: { in: ["ACTIVE", "WARNING"], not: "RESERVED" },
+        },
         select: { id: true, gamerTag: true },
         orderBy: { createdAt: "asc" },
       });

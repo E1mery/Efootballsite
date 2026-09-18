@@ -94,6 +94,16 @@ export async function POST(req: Request) {
         });
       }
 
+      // Reassign all unplayed matches (SCHEDULED and LIVE) from outgoing player to the newly activated player
+      await prisma.match.updateMany({
+        where: { homePlayerId: targetPlayer.id, status: { in: ["SCHEDULED", "LIVE"] } },
+        data: { homePlayerId: reservePlayer.id },
+      });
+      await prisma.match.updateMany({
+        where: { awayPlayerId: targetPlayer.id, status: { in: ["SCHEDULED", "LIVE"] } },
+        data: { awayPlayerId: reservePlayer.id },
+      });
+
       // 3. Activate reserve player in this division
       await prisma.player.update({
         where: { id: reservePlayer.id },

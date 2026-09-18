@@ -66,73 +66,82 @@ export default async function DashboardPage() {
     },
   };
 
-  // Find active match for this player using prioritized lookup hierarchy:
-  // 1. Scheduled or Live match in current league round
-  let activeMatch = await prisma.match.findFirst({
-    where: {
-      OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-      round: currentRoundName,
-      status: { in: ["SCHEDULED", "LIVE"] },
-    },
-    include: matchInclude,
-    orderBy: { matchDate: "asc" },
-  });
+  // Check if player is actively participating in the league vs. on standby in the reserve pool
+  const isReserved = player.status === "RESERVED";
+  const isParticipating = !isReserved && (player.status === "ACTIVE" || player.status === "WARNING");
 
-  // 2. Earliest scheduled or live match for this player across all stages (Divisions, UCL, Europa)
-  if (!activeMatch) {
-    activeMatch = await prisma.match.findFirst({
-      where: {
-        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-        status: { in: ["SCHEDULED", "LIVE"] },
-      },
-      include: matchInclude,
-      orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
-    });
-  }
+  let activeMatch = null;
+  let allPlayerMatches: any[] = [];
 
-  // 3. Match in current round that was played/pending/finished (so user sees their result and status)
-  if (!activeMatch) {
+  // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool
+  if (isParticipating) {
+    // 1. Scheduled or Live match in current league round
     activeMatch = await prisma.match.findFirst({
       where: {
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
         round: currentRoundName,
+        status: { in: ["SCHEDULED", "LIVE"] },
       },
       include: matchInclude,
-      orderBy: { matchDate: "desc" },
+      orderBy: { matchDate: "asc" },
     });
-  }
 
-  // 4. Most recent match of this player
-  if (!activeMatch) {
-    activeMatch = await prisma.match.findFirst({
+    // 2. Earliest scheduled or live match for this player across all stages (Divisions, UCL, Europa)
+    if (!activeMatch) {
+      activeMatch = await prisma.match.findFirst({
+        where: {
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        include: matchInclude,
+        orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
+      });
+    }
+
+    // 3. Match in current round that was played/pending/finished (so user sees their result and status)
+    if (!activeMatch) {
+      activeMatch = await prisma.match.findFirst({
+        where: {
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          round: currentRoundName,
+        },
+        include: matchInclude,
+        orderBy: { matchDate: "desc" },
+      });
+    }
+
+    // 4. Most recent match of this player
+    if (!activeMatch) {
+      activeMatch = await prisma.match.findFirst({
+        where: {
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+        },
+        include: matchInclude,
+        orderBy: { matchDate: "desc" },
+      });
+    }
+
+    // Fetch all matches of this player across the entire season for Calendar Mode
+    const allPlayerMatchesRaw = await prisma.match.findMany({
       where: {
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
       },
       include: matchInclude,
-      orderBy: { matchDate: "desc" },
+      orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+    });
+
+    // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
+    allPlayerMatches = [...allPlayerMatchesRaw].sort((a, b) => {
+      const getRoundNum = (roundStr: string) => {
+        const m = roundStr?.match(/\d+/);
+        return m ? parseInt(m[0], 10) : 999;
+      };
+      const numA = getRoundNum(a.round || "");
+      const numB = getRoundNum(b.round || "");
+      if (numA !== numB) return numA - numB;
+      return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
     });
   }
-
-  // Fetch all matches of this player across the entire season for Calendar Mode
-  const allPlayerMatchesRaw = await prisma.match.findMany({
-    where: {
-      OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-    },
-    include: matchInclude,
-    orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
-  });
-
-  // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
-  const allPlayerMatches = [...allPlayerMatchesRaw].sort((a, b) => {
-    const getRoundNum = (roundStr: string) => {
-      const m = roundStr?.match(/\d+/);
-      return m ? parseInt(m[0], 10) : 999;
-    };
-    const numA = getRoundNum(a.round || "");
-    const numB = getRoundNum(b.round || "");
-    if (numA !== numB) return numA - numB;
-    return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-  });
 
   // Fetch announcements for this player
   let announcements = await prisma.announcement.findMany({
@@ -155,8 +164,8 @@ export default async function DashboardPage() {
   const expiredReadIds = new Set(expiredReads.map((r) => r.announcementId));
   announcements = announcements.filter((ann) => !expiredReadIds.has(ann.id));
 
-  // Only filter out fixture announcements if player is strictly in reserve pool with NO matches generated
-  if (player.status === "RESERVED" && allPlayerMatches.length === 0) {
+  // If player is in the reserve pool, filter out match fixture broadcasts
+  if (isReserved) {
     announcements = announcements.filter(
       (ann) =>
         !ann.title.includes("Matchday") &&

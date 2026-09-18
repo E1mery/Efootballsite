@@ -341,13 +341,18 @@ export default function DashboardClient({
   // Targeted match state for result/forfeit modal (can be opened from Overview or directly from Calendar cards)
   const [actionMatch, setActionMatch] = useState<any>(null);
 
-  // Compute robust active match:
-  // 1. Initial server-provided active match
-  // 2. Current matchday scheduled or live match from allPlayerMatches
-  // 3. Earliest unplayed scheduled or live match
-  // 4. Any match from current matchday (even if pending/finished so user sees score & proof)
-  // 5. Most recent fixture
+  // Check if player is on standby in reserve pool
+  const isReserved = player.status === "RESERVED" || player?.status === "RESERVED";
+
+  // Compute robust active match (strictly for participating players, NEVER for reserve pool players):
+  // 1. If reserved, activeMatch is strictly null
+  // 2. Initial server-provided active match
+  // 3. Current matchday scheduled or live match from allPlayerMatches
+  // 4. Earliest unplayed scheduled or live match
+  // 5. Any match from current matchday (even if pending/finished so user sees score & proof)
+  // 6. Most recent fixture
   const activeMatch = useMemo(() => {
+    if (isReserved) return null;
     if (initialActiveMatch) return initialActiveMatch;
     if (!allPlayerMatches || allPlayerMatches.length === 0) return null;
 
@@ -366,7 +371,7 @@ export default function DashboardClient({
     if (anyCurrentRound) return anyCurrentRound;
 
     return allPlayerMatches[0] || null;
-  }, [initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
+  }, [isReserved, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
 
   // Dynamic user and player profile state
   const [currentPlayer, setCurrentPlayer] = useState(player);
@@ -594,13 +599,17 @@ export default function DashboardClient({
     }
   };
 
-  // Active tab (only default to STANDINGS if athlete is in reserve pool with no scheduled fixtures)
-  const isReserved = currentPlayer.status === "RESERVED";
-  const isReservedWithoutMatches = isReserved && allPlayerMatches.length === 0;
+  // Active tab: Reserve athletes are on STANDINGS by default and do not participate in match tabs
   type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "FEEDBACK" | "PROFILE";
   const [activeTab, setActiveTab] = useState<DashboardTab>(
-    isReservedWithoutMatches ? "STANDINGS" : "OVERVIEW"
+    isReserved ? "STANDINGS" : "OVERVIEW"
   );
+
+  useEffect(() => {
+    if (isReserved && (activeTab === "OVERVIEW" || activeTab === "CALENDAR" || activeTab === "HISTORY")) {
+      setActiveTab("STANDINGS");
+    }
+  }, [isReserved, activeTab]);
 
   // Standings sub-category state: Domestic Divisions, UCL, Europa
   const [standingsCategory, setStandingsCategory] = useState<"DIVISIONS" | "UCL" | "EUROPA">("DIVISIONS");
@@ -986,52 +995,56 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* Reserve Athlete Status Banner (only shown if player is in reserve pool and has no scheduled fixtures) */}
-      {isReservedWithoutMatches && (
+      {/* Reserve Athlete Status Banner */}
+      {isReserved && (
         <div className="rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-5 space-y-2">
           <div className="flex items-center gap-2 text-cyan-400">
             <Sparkles className="h-5 w-5 shrink-0" />
             <h3 className="text-sm font-black uppercase tracking-wider">Official Reserve Athlete (Standby Roster)</h3>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            You are registered in the official League Reserve Pool. You are not currently scheduled in daily match fixtures, but you remain eligible as an official replacement athlete whenever an active league slot opens. You can explore all division tables and league announcements below.
+            You are registered in the official League Reserve Pool on standby. Generated match fixtures and daily 24-hr schedules are available exclusively to active athletes participating in Division 1, 2, and 3. As soon as an active roster slot opens and the League Commissioner promotes you into a division, your season match calendar and live 24-hr match controls will become active. You can explore all division tables, continental standings, and league announcements below.
           </p>
         </div>
       )}
 
       {/* Navigation Tabs - Mobile Horizontally Scrollable */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
-        <button
-          onClick={() => setActiveTab("OVERVIEW")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
-            activeTab === "OVERVIEW"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
-          }`}
-        >
-          <Smartphone className="h-4 w-4" />
-          <span>Today's 24-Hr Match</span>
-          {activeMatch && (
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          )}
-        </button>
+        {!isReserved && (
+          <>
+            <button
+              onClick={() => setActiveTab("OVERVIEW")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+                activeTab === "OVERVIEW"
+                  ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <Smartphone className="h-4 w-4" />
+              <span>Today's 24-Hr Match</span>
+              {activeMatch && (
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+            </button>
 
-        <button
-          onClick={() => setActiveTab("CALENDAR")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
-            activeTab === "CALENDAR"
-              ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
-          }`}
-        >
-          <Calendar className="h-4 w-4" />
-          <span>Match Calendar</span>
-          {allPlayerMatches.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-cyan-300">
-              {allPlayerMatches.length}
-            </span>
-          )}
-        </button>
+            <button
+              onClick={() => setActiveTab("CALENDAR")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+                activeTab === "CALENDAR"
+                  ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Match Calendar</span>
+              {allPlayerMatches.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-cyan-300">
+                  {allPlayerMatches.length}
+                </span>
+              )}
+            </button>
+          </>
+        )}
 
         <button
           onClick={() => setActiveTab("STANDINGS")}
@@ -1062,17 +1075,19 @@ export default function DashboardClient({
           )}
         </button>
 
-        <button
-          onClick={() => setActiveTab("HISTORY")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
-            activeTab === "HISTORY"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
-          }`}
-        >
-          <Trophy className="h-4 w-4" />
-          <span>Match History & Proof</span>
-        </button>
+        {!isReserved && (
+          <button
+            onClick={() => setActiveTab("HISTORY")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+              activeTab === "HISTORY"
+                ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-900"
+            }`}
+          >
+            <Trophy className="h-4 w-4" />
+            <span>Match History & Proof</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab("FEEDBACK")}
@@ -1201,7 +1216,7 @@ export default function DashboardClient({
       )}
 
       {/* TAB 1: OVERVIEW & ACTIVE 24-HOUR MATCH */}
-      {activeTab === "OVERVIEW" && (
+      {!isReserved && activeTab === "OVERVIEW" && (
         <div className="space-y-8">
           {activeMatch ? (
             <div className="rounded-3xl border-2 border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
@@ -1988,7 +2003,7 @@ export default function DashboardClient({
       )}
 
       {/* TAB 3: MATCH HISTORY & PROOF */}
-      {activeTab === "HISTORY" && (
+      {!isReserved && activeTab === "HISTORY" && (
         <div className="space-y-4">
           <h3 className="text-lg font-black uppercase text-white border-b border-slate-800 pb-3">
             Completed Match History
@@ -2036,7 +2051,7 @@ export default function DashboardClient({
       {/* ========================================================================= */}
       {/* TAB: CALENDAR MODE (ALL SEASON MATCH FIXTURES) */}
       {/* ========================================================================= */}
-      {activeTab === "CALENDAR" && (
+      {!isReserved && activeTab === "CALENDAR" && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-slate-800 bg-slate-950/80 shadow-xl">
             <div>
