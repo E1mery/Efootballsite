@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Trophy, Shield, Menu, X, ShieldAlert, Globe, User, LogIn, ExternalLink } from "lucide-react";
+import { Trophy, Shield, Menu, X, ShieldAlert, Globe, User, LogIn, ExternalLink, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
@@ -62,6 +62,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "Home", href: "/", icon: Shield },
+    { name: "Fixtures", href: "/fixtures", icon: Calendar },
     { name: "3 Divisions", href: "/standings", icon: Trophy },
     { name: "UCL & Europa", href: "/continental", icon: Globe },
     { name: "Admin Office", href: "/admin", icon: ShieldAlert },

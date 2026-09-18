@@ -2978,6 +2978,11 @@ export default function AdminClient({
                 <option value="ALL">All Matchday Rounds</option>
                 {Array.from(new Set(matches.map((m: any) => m.round)))
                   .filter(Boolean)
+                  .sort((a: any, b: any) => {
+                    const numA = parseInt(String(a).replace(/\D/g, "") || "0", 10);
+                    const numB = parseInt(String(b).replace(/\D/g, "") || "0", 10);
+                    return numA - numB;
+                  })
                   .map((r: any) => (
                     <option key={r} value={r}>
                       {r}
