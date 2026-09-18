@@ -53,49 +53,85 @@ export default async function DashboardPage() {
 
   const currentRoundName = `Matchday ${leagueConfig.currentMatchday}`;
 
-  // Find active match for this player for current matchday (only applicable if active)
-  let activeMatch = null;
-  if (player.status === "ACTIVE") {
+  const matchInclude = {
+    homePlayer: true,
+    awayPlayer: true,
+    submissions: {
+      include: { submittedByPlayer: true },
+      orderBy: { createdAt: "desc" as const },
+    },
+    forfeitClaims: {
+      include: { claimantPlayer: true, accusedPlayer: true },
+      orderBy: { createdAt: "desc" as const },
+    },
+  };
+
+  // Find active match for this player using prioritized lookup hierarchy:
+  // 1. Scheduled or Live match in current league round
+  let activeMatch = await prisma.match.findFirst({
+    where: {
+      OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+      round: currentRoundName,
+      status: { in: ["SCHEDULED", "LIVE"] },
+    },
+    include: matchInclude,
+    orderBy: { matchDate: "asc" },
+  });
+
+  // 2. Earliest scheduled or live match for this player across all stages (Divisions, UCL, Europa)
+  if (!activeMatch) {
+    activeMatch = await prisma.match.findFirst({
+      where: {
+        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+        status: { in: ["SCHEDULED", "LIVE"] },
+      },
+      include: matchInclude,
+      orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
+    });
+  }
+
+  // 3. Match in current round that was played/pending/finished (so user sees their result and status)
+  if (!activeMatch) {
     activeMatch = await prisma.match.findFirst({
       where: {
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
         round: currentRoundName,
-        status: { in: ["SCHEDULED", "LIVE"] },
       },
-      include: {
-        homePlayer: true,
-        awayPlayer: true,
-        submissions: {
-          include: { submittedByPlayer: true },
-          orderBy: { createdAt: "desc" },
-        },
-        forfeitClaims: {
-          include: { claimantPlayer: true, accusedPlayer: true },
-          orderBy: { createdAt: "desc" },
-        },
+      include: matchInclude,
+      orderBy: { matchDate: "desc" },
+    });
+  }
+
+  // 4. Most recent match of this player
+  if (!activeMatch) {
+    activeMatch = await prisma.match.findFirst({
+      where: {
+        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
       },
+      include: matchInclude,
       orderBy: { matchDate: "desc" },
     });
   }
 
   // Fetch all matches of this player across the entire season for Calendar Mode
-  const allPlayerMatches = await prisma.match.findMany({
+  const allPlayerMatchesRaw = await prisma.match.findMany({
     where: {
       OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
     },
-    include: {
-      homePlayer: true,
-      awayPlayer: true,
-      submissions: {
-        include: { submittedByPlayer: true },
-        orderBy: { createdAt: "desc" },
-      },
-      forfeitClaims: {
-        include: { claimantPlayer: true, accusedPlayer: true },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-    orderBy: [{ round: "asc" }, { matchDate: "asc" }],
+    include: matchInclude,
+    orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+  });
+
+  // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
+  const allPlayerMatches = [...allPlayerMatchesRaw].sort((a, b) => {
+    const getRoundNum = (roundStr: string) => {
+      const m = roundStr?.match(/\d+/);
+      return m ? parseInt(m[0], 10) : 999;
+    };
+    const numA = getRoundNum(a.round || "");
+    const numB = getRoundNum(b.round || "");
+    if (numA !== numB) return numA - numB;
+    return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
   });
 
   // Fetch announcements for this player
@@ -119,8 +155,8 @@ export default async function DashboardPage() {
   const expiredReadIds = new Set(expiredReads.map((r) => r.announcementId));
   announcements = announcements.filter((ann) => !expiredReadIds.has(ann.id));
 
-  // Filter out fixture-specific announcements for reserved or pending players
-  if (player.status === "RESERVED" || player.status === "PENDING_APPROVAL") {
+  // Only filter out fixture announcements if player is strictly in reserve pool with NO matches generated
+  if (player.status === "RESERVED" && allPlayerMatches.length === 0) {
     announcements = announcements.filter(
       (ann) =>
         !ann.title.includes("Matchday") &&
