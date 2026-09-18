@@ -9,6 +9,7 @@ let tableEnsured = false;
 export async function ensurePasswordResetTable() {
   if (tableEnsured) return;
   try {
+    // 1. Create table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "PasswordResetRequest" (
         "id" TEXT NOT NULL PRIMARY KEY,
@@ -19,10 +20,27 @@ export async function ensurePasswordResetTable() {
         "completedAt" TIMESTAMP(3),
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE INDEX IF NOT EXISTS "PasswordResetRequest_email_idx" ON "PasswordResetRequest"("email");
-      CREATE INDEX IF NOT EXISTS "PasswordResetRequest_status_idx" ON "PasswordResetRequest"("status");
+      )
     `);
+
+    // 2. Create index on email
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "PasswordResetRequest_email_idx" ON "PasswordResetRequest"("email")
+      `);
+    } catch (idxErr) {
+      console.warn("Index email warning:", idxErr);
+    }
+
+    // 3. Create index on status
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "PasswordResetRequest_status_idx" ON "PasswordResetRequest"("status")
+      `);
+    } catch (idxErr) {
+      console.warn("Index status warning:", idxErr);
+    }
+
     tableEnsured = true;
   } catch (err) {
     console.error("ensurePasswordResetTable error:", err);

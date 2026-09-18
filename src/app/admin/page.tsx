@@ -22,8 +22,6 @@ export default async function AdminPage() {
     redirect("/admin/login?error=admin_required");
   }
 
-  await ensurePasswordResetTable();
-
   const [
     matches,
     pendingSubmissions,
@@ -42,7 +40,6 @@ export default async function AdminPage() {
     hallOfFameEntries,
     playerMessages,
     reviews,
-    passwordResets,
   ] = await Promise.all([
     prisma.match.findMany({
       include: {
@@ -165,20 +162,35 @@ export default async function AdminPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    (prisma as any).passwordResetRequest.findMany({
-      orderBy: { createdAt: "desc" },
-    }),
   ]);
 
+  // Safely fetch password reset requests without risking crashing the admin portal
+  let passwordResets: any[] = [];
+  try {
+    await ensurePasswordResetTable();
+    passwordResets = await (prisma as any).passwordResetRequest.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err) {
+    console.error("Safely caught passwordResetRequest query error:", err);
+    passwordResets = [];
+  }
+
   // Enrich password reset requests with user and athlete details
-  const resetEmails: string[] = Array.from(new Set(passwordResets.map((r: any) => String(r.email))));
-  const resetUsers =
-    resetEmails.length > 0
-      ? await prisma.user.findMany({
-          where: { email: { in: resetEmails } },
-          include: { player: true },
-        })
-      : [];
+  const resetEmails: string[] = Array.from(
+    new Set(passwordResets.map((r: any) => String(r.email)).filter(Boolean))
+  );
+  let resetUsers: any[] = [];
+  try {
+    if (resetEmails.length > 0) {
+      resetUsers = await prisma.user.findMany({
+        where: { email: { in: resetEmails } },
+        include: { player: true },
+      });
+    }
+  } catch (uErr) {
+    console.error("Safely caught resetUsers query error:", uErr);
+  }
 
   const userMap = new Map<string, any>();
   for (const u of resetUsers) {
