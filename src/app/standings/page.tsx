@@ -103,6 +103,20 @@ export default async function StandingsPage({
             <ShieldCheck className="h-4 w-4" />
             <span>3rd Division (National Academy)</span>
           </a>
+          <a
+            href="/continental"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-indigo-400 hover:text-white hover:bg-indigo-950/40 border border-indigo-500/30"
+          >
+            <Trophy className="h-4 w-4 text-indigo-400" />
+            <span>eFootball UCL Groups</span>
+          </a>
+          <a
+            href="/continental"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-amber-400 hover:text-white hover:bg-amber-950/40 border border-amber-500/30"
+          >
+            <Flame className="h-4 w-4 text-amber-400" />
+            <span>eFootball Europa Groups</span>
+          </a>
         </div>
       </div>
 

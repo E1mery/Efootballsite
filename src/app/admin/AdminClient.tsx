@@ -557,8 +557,8 @@ export default function AdminClient({
   const handleGenerateSchedule = async (division: string) => {
     const confirmMsg =
       division === "ALL"
-        ? "Generate round-robin scheduled matches (round trip home & away) for ALL divisions?"
-        : `Generate round-robin scheduled matches for ${division}?`;
+        ? "Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, all players play every round) for ALL divisions?"
+        : `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing) for ${division}?`;
     if (!confirm(confirmMsg)) return;
 
     setActionLoading(true);
@@ -755,6 +755,38 @@ export default function AdminClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Draw failed");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Generate Continental Fixtures (Group stage, QF, SF, Final)
+  const handleGenerateContinentalFixtures = async (
+    competition: "UCL" | "EUROPA",
+    stage: "GROUP" | "QUARTER_FINAL" | "SEMI_FINAL" | "FINAL"
+  ) => {
+    const stageLabels: Record<string, string> = {
+      GROUP: "Group Stage Fixtures (2-legged matches)",
+      QUARTER_FINAL: "Quarter-Finals (Top 2 from each group, 2-legged matches)",
+      SEMI_FINAL: "Semi-Finals (2-legged matches)",
+      FINAL: "Grand Final (Single-match showdown) & Launch Trophy Prediction Poll",
+    };
+
+    if (!confirm(`Generate ${competition} ${stageLabels[stage]}?`)) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/continental/generate-fixtures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ competition, stage }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate fixtures");
       alert(data.message);
       router.refresh();
     } catch (err: any) {
@@ -1685,8 +1717,17 @@ export default function AdminClient({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <span className="text-xs font-bold text-sky-400 block">Division 1 Schedule</span>
-                <p className="text-[11px] text-slate-400">Generate round-robin fixtures strictly for Division 1.</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-sky-400 block">Division 1 Schedule</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                    {div1Standings.length} Players {div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? `(${div1Standings.length - 1} rounds)` : "(Odd: needs even)"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {div1Standings.length % 2 === 0 && div1Standings.length >= 2
+                    ? `1 leg only: 10 matches/day, each player plays ${div1Standings.length - 1} matches with 0 intervals.`
+                    : `Needs an even number of players (e.g. 20) so all players play every round with no intervals.`}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
@@ -1710,8 +1751,17 @@ export default function AdminClient({
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <span className="text-xs font-bold text-yellow-400 block">Division 2 Schedule</span>
-                <p className="text-[11px] text-slate-400">Generate round-robin fixtures strictly for Division 2.</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-yellow-400 block">Division 2 Schedule</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                    {div2Standings.length} Players {div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? `(${div2Standings.length - 1} rounds)` : "(Odd: needs even)"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {div2Standings.length % 2 === 0 && div2Standings.length >= 2
+                    ? `1 leg only: all players play every round, each plays ${div2Standings.length - 1} matches.`
+                    : `Needs an even number of players so all players play every round with no intervals.`}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
@@ -1735,8 +1785,17 @@ export default function AdminClient({
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                <span className="text-xs font-bold text-emerald-400 block">Division 3 Schedule</span>
-                <p className="text-[11px] text-slate-400">Generate round-robin fixtures strictly for Division 3.</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 block">Division 3 Schedule</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                    {div3Standings.length} Players {div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? `(${div3Standings.length - 1} rounds)` : "(Odd: needs even)"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {div3Standings.length % 2 === 0 && div3Standings.length >= 2
+                    ? `1 leg only: all players play every round, each plays ${div3Standings.length - 1} matches.`
+                    : `Needs an even number of players so all players play every round with no intervals.`}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
@@ -3188,7 +3247,7 @@ export default function AdminClient({
                   16 Total Players: <strong>Top 8 from Division 1</strong>, <strong>Top 4 from Division 2</strong>, <strong>Top 4 from Division 3</strong>.
                 </p>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
                   {leagueConfig.uclStarted ? (
                     <Button
                       onClick={() => handleToggleCompetition("UCL", false)}
@@ -3207,7 +3266,7 @@ export default function AdminClient({
                       size="sm"
                       className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
                     >
-                      Unlock & Launch UCL
+                      Unlock & Launch UCL Draws
                     </Button>
                   )}
 
@@ -3220,6 +3279,51 @@ export default function AdminClient({
                   >
                     <Shuffle className="h-3 w-3" /> Auto Seeded Draw
                   </Button>
+                </div>
+
+                {/* Fixture & Knockout Stage Controllers */}
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Fixture & Knockout Controllers:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("UCL", "GROUP")}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      variant="outline"
+                      size="sm"
+                      className="text-[11px] font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                    >
+                      1. Generate Group Stage (2-Leg)
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("UCL", "QUARTER_FINAL")}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      variant="outline"
+                      size="sm"
+                      className="text-[11px] font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                    >
+                      2. Advance to Quarter-Finals
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("UCL", "SEMI_FINAL")}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      variant="outline"
+                      size="sm"
+                      className="text-[11px] font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                    >
+                      3. Advance to Semi-Finals
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("UCL", "FINAL")}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      variant="default"
+                      size="sm"
+                      className="text-[11px] font-bold bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-black"
+                    >
+                      4. Generate Final & Poll
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -3238,7 +3342,7 @@ export default function AdminClient({
                   16 Total Players: <strong>Div 1 (ranks 9-12)</strong>, <strong>Div 2 (ranks 5-10)</strong>, <strong>Div 3 (ranks 5-10)</strong>.
                 </p>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
                   {leagueConfig.europaStarted ? (
                     <Button
                       onClick={() => handleToggleCompetition("EUROPA", false)}
@@ -3257,7 +3361,7 @@ export default function AdminClient({
                       size="sm"
                       className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold"
                     >
-                      Unlock & Launch Europa
+                      Unlock & Launch Europa Draws
                     </Button>
                   )}
 
@@ -3270,6 +3374,51 @@ export default function AdminClient({
                   >
                     <Shuffle className="h-3 w-3" /> Auto Seeded Draw
                   </Button>
+                </div>
+
+                {/* Fixture & Knockout Stage Controllers */}
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Fixture & Knockout Controllers:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("EUROPA", "GROUP")}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      variant="outline"
+                      size="sm"
+                      className="text-[11px] font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                    >
+                      1. Generate Group Stage (2-Leg)
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("EUROPA", "QUARTER_FINAL")}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      variant="outline"
+                      size="sm"
+                      className="text-[11px] font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                    >
+                      2. Advance to Quarter-Finals
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("EUROPA", "SEMI_FINAL")}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      variant="outline"
+                      size="sm"
+                      className="text-[11px] font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                    >
+                      3. Advance to Semi-Finals
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContinentalFixtures("EUROPA", "FINAL")}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      variant="default"
+                      size="sm"
+                      className="text-[11px] font-bold bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-black"
+                    >
+                      4. Generate Final & Poll
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3407,7 +3556,64 @@ export default function AdminClient({
                         </div>
                       </div>
 
-                      {sub.screenshotUrl && (
+                      {sub.leg2ScreenshotUrl ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-yellow-400">2-Legged Match Proofs (Both Legs):</span>
+                            {sub.aggregateHomeScore !== null && (
+                              <span className="font-mono font-bold text-emerald-400 text-[11px]">
+                                Submitted Agg: {sub.aggregateHomeScore} - {sub.aggregateAwayScore}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Leg 1 Screenshot</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setInspectImage(sub.screenshotUrl)}
+                                  className="text-sky-400 hover:underline"
+                                >
+                                  Zoom
+                                </button>
+                              </div>
+                              <div
+                                className="rounded-xl overflow-hidden border border-slate-800 h-36 cursor-pointer"
+                                onClick={() => setInspectImage(sub.screenshotUrl)}
+                              >
+                                <img
+                                  src={sub.screenshotUrl}
+                                  alt="Leg 1 screenshot"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Leg 2 Screenshot</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setInspectImage(sub.leg2ScreenshotUrl)}
+                                  className="text-amber-400 hover:underline"
+                                >
+                                  Zoom
+                                </button>
+                              </div>
+                              <div
+                                className="rounded-xl overflow-hidden border border-slate-800 h-36 cursor-pointer"
+                                onClick={() => setInspectImage(sub.leg2ScreenshotUrl)}
+                              >
+                                <img
+                                  src={sub.leg2ScreenshotUrl}
+                                  alt="Leg 2 screenshot"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : sub.screenshotUrl && (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-bold text-slate-300">Konami Full-Time Screenshot:</span>

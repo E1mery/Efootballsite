@@ -169,6 +169,7 @@ export async function POST(req: Request) {
           }),
         ]);
 
+        // 1 Div 1 in each group (Groups A, B, C, D)
         for (let i = 0; i < 4; i++) {
           if (div1E[i]) {
             await prisma.uclGroupSlot.create({
@@ -182,17 +183,37 @@ export async function POST(req: Request) {
             });
           }
         }
+
+        // 6 Div 2: 2 in Group A, 2 in Group B, 1 in Group C, 1 in Group D (never 3 per group)
+        const div2Distribution = ["Group A", "Group A", "Group B", "Group B", "Group C", "Group D"];
         for (let i = 0; i < div2E.length; i++) {
-          const grp = groups[i % 4];
-          await prisma.uclGroupSlot.create({
-            data: {
-              competition: "EUROPA",
-              groupName: grp,
-              playerId: div2E[i].playerId,
-              playerDivision: "Division 2",
-              slotIndex: 2 + Math.floor(i / 4),
-            },
-          });
+          if (div2E[i] && div2Distribution[i]) {
+            await prisma.uclGroupSlot.create({
+              data: {
+                competition: "EUROPA",
+                groupName: div2Distribution[i],
+                playerId: div2E[i].playerId,
+                playerDivision: "Division 2",
+                slotIndex: 2,
+              },
+            });
+          }
+        }
+
+        // 6 Div 3: 1 in Group A, 1 in Group B, 2 in Group C, 2 in Group D (never 3 per group)
+        const div3Distribution = ["Group A", "Group B", "Group C", "Group C", "Group D", "Group D"];
+        for (let i = 0; i < div3E.length; i++) {
+          if (div3E[i] && div3Distribution[i]) {
+            await prisma.uclGroupSlot.create({
+              data: {
+                competition: "EUROPA",
+                groupName: div3Distribution[i],
+                playerId: div3E[i].playerId,
+                playerDivision: "Division 3",
+                slotIndex: 3,
+              },
+            });
+          }
         }
       }
 
@@ -235,34 +256,16 @@ export async function POST(req: Request) {
     }
 
     // ENFORCE STRICT DIVISION SEPARATION:
-    // "no players who were in the same division choose same groups in either Ucl or Europa league"
-    // Count how many players in this group are already from votingPlayer's division
+    // "the system must make sure no 3 players from the same division vote for the same group in ucl or Europa"
     const sameDivisionPlayers = existingInGroup.filter(
       (slot) => slot.playerDivision === votingPlayer.division
     );
 
-    if (votingPlayer.division === "Division 2" && sameDivisionPlayers.length >= 1) {
+    if (sameDivisionPlayers.length >= 2) {
+      const existingNames = sameDivisionPlayers.map((s) => s.player?.gamerTag || "player").join(" and ");
       return NextResponse.json(
         {
-          error: `Group Violation: ${groupName} already has a player from Division 2 (${sameDivisionPlayers[0].player.gamerTag}). Rules strictly prohibit players from the same division sharing a group!`,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (votingPlayer.division === "Division 3" && sameDivisionPlayers.length >= 1) {
-      return NextResponse.json(
-        {
-          error: `Group Violation: ${groupName} already has a player from Division 3 (${sameDivisionPlayers[0].player.gamerTag}). Rules strictly prohibit players from the same division sharing a group!`,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (votingPlayer.division === "Division 1" && sameDivisionPlayers.length >= 2) {
-      return NextResponse.json(
-        {
-          error: `Group Violation: ${groupName} already has 2 Division 1 players. Please select another group to maintain division balance!`,
+          error: `Group Allocation Rule: ${groupName} already contains 2 athletes from ${votingPlayer.division} (${existingNames}). League regulations strictly state that no 3 players from the same division can vote for or be in the same group!`,
         },
         { status: 400 }
       );

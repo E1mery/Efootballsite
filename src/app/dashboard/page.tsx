@@ -158,7 +158,7 @@ export default async function DashboardPage() {
   });
 
   // Fetch all 3 division standings so reserve and active athletes can view all tables
-  const [div1Standings, div2Standings, div3Standings] = await Promise.all([
+  const [div1Standings, div2Standings, div3Standings, uclTournament, europaTournament, uclSlots, europaSlots] = await Promise.all([
     prisma.standing.findMany({
       where: { division: "Division 1" },
       include: { player: true },
@@ -174,7 +174,37 @@ export default async function DashboardPage() {
       include: { player: true },
       orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
+    prisma.tournament.findFirst({ where: { type: "UCL" } }),
+    prisma.tournament.findFirst({ where: { type: "EUROPA" } }),
+    prisma.uclGroupSlot.findMany({
+      where: { competition: "UCL" },
+      include: { player: true },
+      orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+    }),
+    prisma.uclGroupSlot.findMany({
+      where: { competition: "EUROPA" },
+      include: { player: true },
+      orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+    }),
   ]);
+
+  let uclGroupStandings: any[] = [];
+  if (uclTournament) {
+    uclGroupStandings = await prisma.standing.findMany({
+      where: { tournamentId: uclTournament.id },
+      include: { player: true },
+      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+    });
+  }
+
+  let europaGroupStandings: any[] = [];
+  if (europaTournament) {
+    europaGroupStandings = await prisma.standing.findMany({
+      where: { tournamentId: europaTournament.id },
+      include: { player: true },
+      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+    });
+  }
 
   // Compute Match of the Day for each division (all athletes including reserve can view & vote)
   let divisionalMotd: Record<string, any> = {
@@ -209,6 +239,10 @@ export default async function DashboardPage() {
         div1Standings={div1Standings}
         div2Standings={div2Standings}
         div3Standings={div3Standings}
+        uclGroupStandings={uclGroupStandings}
+        europaGroupStandings={europaGroupStandings}
+        uclSlots={uclSlots}
+        europaSlots={europaSlots}
         initialReview={myReview}
       />
     </div>

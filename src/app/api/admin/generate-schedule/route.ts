@@ -129,7 +129,21 @@ export async function POST(req: Request) {
       });
 
       if (players.length < 2) {
-        summary[divName] = `Need at least 2 players to generate round-robin schedule (currently ${players.length}).`;
+        const msg = `Need at least 2 players to generate round-robin schedule (currently ${players.length}).`;
+        if (division !== "ALL") {
+          return NextResponse.json({ error: msg }, { status: 400 });
+        }
+        summary[divName] = msg;
+        continue;
+      }
+
+      // Every round all players must play with no intervals/byes -> Requires an even number of players (e.g. 20)
+      if (players.length % 2 !== 0) {
+        const msg = `Cannot generate schedule for ${divName}: has an odd number of players (${players.length}). To ensure all players play every round with no intervals or byes, the division must have an even number of players (e.g. 20 players).`;
+        if (division !== "ALL") {
+          return NextResponse.json({ error: msg }, { status: 400 });
+        }
+        summary[divName] = msg;
         continue;
       }
 
@@ -169,8 +183,8 @@ export async function POST(req: Request) {
         },
       });
 
-      // Generate round-robin schedule (round trip home & away)
-      const allRounds = generateRoundRobin(players);
+      // Generate single-leg round-robin schedule (1 match only per pairing, 1 leg only, no second leg)
+      const allRounds = generateRoundRobin(players, true);
       let divMatchesCount = 0;
 
       const now = new Date();

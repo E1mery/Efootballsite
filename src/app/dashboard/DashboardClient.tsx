@@ -31,6 +31,7 @@ import {
   Star,
   Unlock,
   RotateCcw,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,265 @@ import { Badge } from "@/components/ui/badge";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
 import EfootballLoader from "@/components/EfootballLoader";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
+
+interface ContinentalGroupStandingsViewProps {
+  competition: "UCL" | "EUROPA";
+  standings: any[];
+  slots: any[];
+  currentPlayerId: string;
+}
+
+function ContinentalGroupStandingsView({
+  competition,
+  standings,
+  slots,
+  currentPlayerId,
+}: ContinentalGroupStandingsViewProps) {
+  const isUcl = competition === "UCL";
+  const compTitle = isUcl
+    ? "eFootball Champions League (UCL)"
+    : "eFootball Europa League";
+
+  const groups = ["Group A", "Group B", "Group C", "Group D"];
+  const hasAnyData = standings.length > 0 || slots.length > 0;
+
+  if (!hasAnyData) {
+    return (
+      <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-10 text-center space-y-4">
+        <div className={`inline-flex p-4 rounded-2xl ${isUcl ? "bg-indigo-500/10 text-indigo-400" : "bg-amber-500/10 text-amber-400"}`}>
+          {isUcl ? <Star className="h-8 w-8" /> : <Flame className="h-8 w-8" />}
+        </div>
+        <h4 className="text-lg font-black uppercase text-white">
+          {compTitle} Group Stage Standings
+        </h4>
+        <p className="text-xs text-slate-400 max-w-md mx-auto">
+          Group draws have not been finalized yet. Once qualified athletes are drawn into Groups A, B, C, and D, the live standings and qualification ladders will update automatically here.
+        </p>
+        <Link
+          href="/continental"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-400 hover:text-white bg-slate-900 border border-slate-800 transition-all"
+        >
+          <span>Check Continental Center & Qualified Slots</span>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Informative Header Banner */}
+      <div className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        isUcl
+          ? "border-indigo-500/30 bg-indigo-950/20"
+          : "border-amber-500/30 bg-amber-950/20"
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full border ${
+              isUcl
+                ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+                : "bg-amber-500/20 border-amber-500/40 text-amber-300"
+            }`}>
+              {isUcl ? "TIER 1 CONTINENTAL" : "TIER 2 CONTINENTAL"}
+            </span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              4 Groups • 16 Athletes
+            </span>
+          </div>
+          <h4 className="text-base sm:text-lg font-black uppercase text-white flex items-center gap-2">
+            {isUcl ? <Star className="h-5 w-5 text-indigo-400" /> : <Flame className="h-5 w-5 text-amber-400" />}
+            <span>{compTitle} Official Group Standings</span>
+          </h4>
+          <p className="text-xs text-slate-300">
+            Top 2 players from each group advance to the 2-legged Quarter-Finals. Points are earned from simultaneous 2-leg matches.
+          </p>
+        </div>
+
+        <Link
+          href="/continental"
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all shrink-0 ${
+            isUcl
+              ? "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"
+              : "bg-amber-600 hover:bg-amber-500 shadow-amber-600/30"
+          }`}
+        >
+          <span>View Matches & Draws</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      {/* Grid of 4 Groups */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {groups.map((grp) => {
+          let grpStandings = standings.filter(
+            (s) => s.division?.includes(grp) || s.division?.includes(grp.toLowerCase())
+          );
+
+          const grpSlots = slots.filter((s) => s.groupName === grp);
+
+          if (grpStandings.length === 0 && grpSlots.length > 0) {
+            grpStandings = grpSlots.map((sl, idx) => ({
+              id: sl.id,
+              playerId: sl.playerId,
+              player: sl.player,
+              rank: idx + 1,
+              played: 0,
+              won: 0,
+              drawn: 0,
+              lost: 0,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              goalDifference: 0,
+              points: 0,
+              form: "-",
+            }));
+          }
+
+          return (
+            <div
+              key={grp}
+              className="rounded-2xl border border-slate-800 bg-[#080d1c]/90 overflow-hidden shadow-xl backdrop-blur-md flex flex-col"
+            >
+              {/* Group Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/50">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isUcl ? "bg-indigo-400" : "bg-amber-400"}`} />
+                  <h5 className="text-sm font-black uppercase tracking-wide text-white">{grp}</h5>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-bold text-emerald-400 border-emerald-500/40 bg-emerald-950/20">
+                  Top 2 → Quarter-Finals
+                </Badge>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto p-2">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800/80 text-[10px] uppercase font-bold text-slate-400">
+                      <th className="py-2.5 px-3">#</th>
+                      <th className="py-2.5 px-3">Athlete</th>
+                      <th className="py-2.5 px-2 text-center">P</th>
+                      <th className="py-2.5 px-2 text-center">W</th>
+                      <th className="py-2.5 px-2 text-center">D</th>
+                      <th className="py-2.5 px-2 text-center">L</th>
+                      <th className="py-2.5 px-2 text-center">GD</th>
+                      <th className="py-2.5 px-3 text-right">Pts</th>
+                      <th className="py-2.5 px-3 text-center">Form</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/40">
+                    {grpStandings.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="py-8 text-center text-xs text-slate-500">
+                          Group slots not yet drawn
+                        </td>
+                      </tr>
+                    ) : (
+                      grpStandings.map((s, idx) => {
+                        const isTop2 = idx < 2;
+                        const isMe = s.playerId === currentPlayerId;
+
+                        return (
+                          <tr
+                            key={s.id || s.playerId}
+                            className={`transition-colors ${
+                              isMe
+                                ? "bg-sky-500/10 font-bold"
+                                : isTop2
+                                ? "bg-emerald-950/15"
+                                : "hover:bg-slate-900/40"
+                            }`}
+                          >
+                            <td className="py-2.5 px-3 font-mono">
+                              <span
+                                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black ${
+                                  isTop2
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                    : "text-slate-500"
+                                }`}
+                              >
+                                {idx + 1}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                                  {s.player?.gamerTag?.charAt(0)?.toUpperCase() || "P"}
+                                </div>
+                                <div className="truncate max-w-[130px] sm:max-w-[160px]">
+                                  <span className="font-bold text-white truncate block">
+                                    {s.player?.gamerTag || "Unknown Player"}
+                                  </span>
+                                  {s.player?.division && (
+                                    <span className="text-[9px] text-slate-400 font-mono block">
+                                      {s.player.division}
+                                    </span>
+                                  )}
+                                </div>
+                                {isMe && (
+                                  <Badge variant="yellow" className="text-[8px] px-1 py-0 font-black shrink-0">
+                                    YOU
+                                  </Badge>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{s.played ?? 0}</td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{s.won ?? 0}</td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{s.drawn ?? 0}</td>
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-300">{s.lost ?? 0}</td>
+                            <td className="py-2.5 px-2 text-center font-mono">
+                              <span
+                                className={
+                                  (s.goalDifference ?? 0) > 0
+                                    ? "text-emerald-400 font-bold"
+                                    : (s.goalDifference ?? 0) < 0
+                                    ? "text-red-400"
+                                    : "text-slate-400"
+                                }
+                              >
+                                {(s.goalDifference ?? 0) > 0 ? `+${s.goalDifference}` : s.goalDifference ?? 0}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-black text-yellow-400 text-sm">
+                              {s.points ?? 0}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              {s.form && s.form !== "-" ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  {s.form.split(",").slice(-3).map((res: string, fIdx: number) => (
+                                    <span
+                                      key={fIdx}
+                                      className={`inline-block w-4 h-4 rounded text-[9px] font-black leading-4 text-center ${
+                                        res === "W"
+                                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                                          : res === "L"
+                                          ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                                          : "bg-slate-800 text-slate-400 border border-slate-700"
+                                      }`}
+                                    >
+                                      {res}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-600">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardClient({
   player,
@@ -52,6 +312,10 @@ export default function DashboardClient({
   div1Standings = [],
   div2Standings = [],
   div3Standings = [],
+  uclGroupStandings = [],
+  europaGroupStandings = [],
+  uclSlots = [],
+  europaSlots = [],
   initialReview = null,
 }: {
   player: any;
@@ -66,6 +330,10 @@ export default function DashboardClient({
   div1Standings?: any[];
   div2Standings?: any[];
   div3Standings?: any[];
+  uclGroupStandings?: any[];
+  europaGroupStandings?: any[];
+  uclSlots?: any[];
+  europaSlots?: any[];
   initialReview?: any;
 }) {
   const router = useRouter();
@@ -226,7 +494,10 @@ export default function DashboardClient({
   // Result form state
   const [homeScore, setHomeScore] = useState<number | string>(0);
   const [awayScore, setAwayScore] = useState<number | string>(0);
+  const [leg2HomeScore, setLeg2HomeScore] = useState<number | string>(0);
+  const [leg2AwayScore, setLeg2AwayScore] = useState<number | string>(0);
   const [resultScreenshot, setResultScreenshot] = useState("");
+  const [leg2ResultScreenshot, setLeg2ResultScreenshot] = useState("");
   const [resultNotes, setResultNotes] = useState("");
   const [submittingResult, setSubmittingResult] = useState(false);
   const [resultSuccessMsg, setResultSuccessMsg] = useState("");
@@ -299,6 +570,9 @@ export default function DashboardClient({
   const [activeTab, setActiveTab] = useState<DashboardTab>(
     isReserved ? "STANDINGS" : "OVERVIEW"
   );
+
+  // Standings sub-category state: Domestic Divisions, UCL, Europa
+  const [standingsCategory, setStandingsCategory] = useState<"DIVISIONS" | "UCL" | "EUROPA">("DIVISIONS");
 
   // Rating & Review State
   const [userRating, setUserRating] = useState<number>(initialReview?.rating || 5);
@@ -448,17 +722,32 @@ export default function DashboardClient({
     setSubmittingResult(true);
     setResultSuccessMsg("");
 
+    const isTwoLegged =
+      activeMatch?.stage === "GROUP" ||
+      activeMatch?.stage === "QUARTER_FINAL" ||
+      activeMatch?.stage === "SEMI_FINAL";
+
     try {
+      const payload: any = {
+        matchId: activeMatch.id,
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore),
+        screenshotUrl: resultScreenshot,
+        notes: resultNotes,
+      };
+
+      if (isTwoLegged) {
+        payload.leg2HomeScore = Number(leg2HomeScore);
+        payload.leg2AwayScore = Number(leg2AwayScore);
+        payload.leg2ScreenshotUrl = leg2ResultScreenshot;
+        payload.aggregateHomeScore = Number(homeScore) + Number(leg2HomeScore);
+        payload.aggregateAwayScore = Number(awayScore) + Number(leg2AwayScore);
+      }
+
       const res = await fetch("/api/submissions/result", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matchId: activeMatch.id,
-          homeScore: Number(homeScore),
-          awayScore: Number(awayScore),
-          screenshotUrl: resultScreenshot,
-          notes: resultNotes,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -747,20 +1036,101 @@ export default function DashboardClient({
       {/* TAB: STANDINGS (AVAILABLE TO BOTH ACTIVE AND RESERVE ATHLETES) */}
       {activeTab === "STANDINGS" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-1">
-            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-400" />
-              <span>Official League Standings</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Live standings across Division 1, Division 2, and Division 3.
-            </p>
+          {/* Header Card with Continental Switcher */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="yellow">OFFICIAL TOURNAMENT TABLES</Badge>
+                <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
+                  Live Esports Rankings
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black uppercase text-white flex items-center gap-2">
+                <Trophy className="h-6 w-6 text-yellow-400" />
+                <span>eFootball League & Continental Standings</span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Live rankings across 3 Domestic Divisions, eFootball UCL, and Europa League groups.
+              </p>
+            </div>
+
+            {/* Direct Tournament Center Link */}
+            <Link
+              href="/continental"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all shrink-0"
+            >
+              <Trophy className="h-4 w-4" />
+              <span>Continental Cup Center</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
           </div>
-          <HomeDivisionsTabs
-            div1Standings={div1Standings}
-            div2Standings={div2Standings}
-            div3Standings={div3Standings}
-          />
+
+          {/* Category Switcher Tabs: Divisions, UCL, Europa */}
+          <div className="flex items-center gap-2 bg-[#080d1a] p-1.5 rounded-2xl border border-slate-800 w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
+            <button
+              type="button"
+              onClick={() => setStandingsCategory("DIVISIONS")}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                standingsCategory === "DIVISIONS"
+                  ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Trophy className="h-4 w-4" />
+              <span>3 Domestic Divisions</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStandingsCategory("UCL")}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                standingsCategory === "UCL"
+                  ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Star className="h-4 w-4 text-indigo-300" />
+              <span>eFootball UCL Groups</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 text-indigo-300 border border-indigo-500/30">
+                16 Players
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStandingsCategory("EUROPA")}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                standingsCategory === "EUROPA"
+                  ? "bg-amber-600 text-white font-black shadow-lg shadow-amber-600/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Flame className="h-4 w-4 text-amber-300" />
+              <span>eFootball Europa Groups</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500/30">
+                16 Players
+              </span>
+            </button>
+          </div>
+
+          {/* VIEW 1: DOMESTIC 3 DIVISIONS */}
+          {standingsCategory === "DIVISIONS" && (
+            <HomeDivisionsTabs
+              div1Standings={div1Standings}
+              div2Standings={div2Standings}
+              div3Standings={div3Standings}
+            />
+          )}
+
+          {/* VIEW 2 & 3: CONTINENTAL GROUP STANDINGS (UCL & EUROPA) */}
+          {(standingsCategory === "UCL" || standingsCategory === "EUROPA") && (
+            <ContinentalGroupStandingsView
+              competition={standingsCategory}
+              standings={standingsCategory === "UCL" ? uclGroupStandings : europaGroupStandings}
+              slots={standingsCategory === "UCL" ? uclSlots : europaSlots}
+              currentPlayerId={currentPlayer.id}
+            />
+          )}
         </div>
       )}
 
@@ -2246,59 +2616,176 @@ export default function DashboardClient({
               </div>
             ) : (
               <form onSubmit={handleSubmitResult} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                      {activeMatch?.homePlayer?.gamerTag} Score
-                    </label>
-                    <Input
-                      type="number"
-                      min="0"
-                      required
-                      value={homeScore}
-                      onChange={(e) => setHomeScore(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                      {activeMatch?.awayPlayer?.gamerTag} Score
-                    </label>
-                    <Input
-                      type="number"
-                      min="0"
-                      required
-                      value={awayScore}
-                      onChange={(e) => setAwayScore(e.target.value)}
-                    />
-                  </div>
-                </div>
+                {activeMatch?.stage === "GROUP" || activeMatch?.stage === "QUARTER_FINAL" || activeMatch?.stage === "SEMI_FINAL" ? (
+                  <div className="space-y-4">
+                    <div className="rounded-xl bg-indigo-950/40 border border-indigo-500/30 p-3 text-xs text-indigo-300">
+                      <span className="font-bold block">2-Legged Match (Played Simultaneously):</span>
+                      <span>Enter scores and upload full-time result screenshots for BOTH Leg 1 and Leg 2. Aggregate goals are calculated automatically.</span>
+                    </div>
 
-                {/* Upload Screenshot File */}
-                <div>
-                  <label className="block text-xs font-bold text-yellow-400 uppercase mb-1">
-                    Upload eFootball Mobile Result Screenshot *
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    required={!resultScreenshot}
-                    onChange={(e) => handleFileChange(e, setResultScreenshot)}
-                    className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
-                  />
-                  <span className="text-[10px] text-slate-500 mt-1 block">
-                    Attach in-game full-time screen showing final score and gamer tags.
-                  </span>
-                </div>
+                    {/* Leg 1 Section */}
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                      <span className="text-xs font-black uppercase text-yellow-400 block">Leg 1 Match Details</span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                            {activeMatch?.homePlayer?.gamerTag} (Leg 1)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            required
+                            value={homeScore}
+                            onChange={(e) => setHomeScore(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                            {activeMatch?.awayPlayer?.gamerTag} (Leg 1)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            required
+                            value={awayScore}
+                            onChange={(e) => setAwayScore(e.target.value)}
+                          />
+                        </div>
+                      </div>
 
-                {/* Screenshot Preview */}
-                {resultScreenshot && (
-                  <div className="rounded-xl overflow-hidden border border-slate-800 max-h-48">
-                    <img
-                      src={resultScreenshot}
-                      alt="Result Screenshot Preview"
-                      className="w-full h-auto object-cover"
-                    />
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
+                          Leg 1 Result Screenshot *
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          required={!resultScreenshot}
+                          onChange={(e) => handleFileChange(e, setResultScreenshot)}
+                          className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
+                        />
+                      </div>
+                      {resultScreenshot && (
+                        <div className="rounded-lg overflow-hidden border border-slate-800 max-h-32">
+                          <img src={resultScreenshot} alt="Leg 1 Preview" className="w-full h-auto object-cover" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Leg 2 Section */}
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                      <span className="text-xs font-black uppercase text-amber-400 block">Leg 2 Match Details</span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                            {activeMatch?.homePlayer?.gamerTag} (Leg 2)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            required
+                            value={leg2HomeScore}
+                            onChange={(e) => setLeg2HomeScore(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                            {activeMatch?.awayPlayer?.gamerTag} (Leg 2)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            required
+                            value={leg2AwayScore}
+                            onChange={(e) => setLeg2AwayScore(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
+                          Leg 2 Result Screenshot *
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          required={!leg2ResultScreenshot}
+                          onChange={(e) => handleFileChange(e, setLeg2ResultScreenshot)}
+                          className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
+                        />
+                      </div>
+                      {leg2ResultScreenshot && (
+                        <div className="rounded-lg overflow-hidden border border-slate-800 max-h-32">
+                          <img src={leg2ResultScreenshot} alt="Leg 2 Preview" className="w-full h-auto object-cover" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Aggregate Score Display */}
+                    <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-center">
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 block">Calculated Aggregate Goals</span>
+                      <span className="text-lg font-black text-white font-mono">
+                        {activeMatch?.homePlayer?.gamerTag} {Number(homeScore) + Number(leg2HomeScore)} - {Number(awayScore) + Number(leg2AwayScore)} {activeMatch?.awayPlayer?.gamerTag}
+                      </span>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                          {activeMatch?.homePlayer?.gamerTag} Score
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          required
+                          value={homeScore}
+                          onChange={(e) => setHomeScore(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                          {activeMatch?.awayPlayer?.gamerTag} Score
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          required
+                          value={awayScore}
+                          onChange={(e) => setAwayScore(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Upload Screenshot File */}
+                    <div>
+                      <label className="block text-xs font-bold text-yellow-400 uppercase mb-1">
+                        Upload eFootball Mobile Result Screenshot *
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        required={!resultScreenshot}
+                        onChange={(e) => handleFileChange(e, setResultScreenshot)}
+                        className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Attach in-game full-time screen showing final score and gamer tags.
+                      </span>
+                    </div>
+
+                    {/* Screenshot Preview */}
+                    {resultScreenshot && (
+                      <div className="rounded-xl overflow-hidden border border-slate-800 max-h-48">
+                        <img
+                          src={resultScreenshot}
+                          alt="Result Screenshot Preview"
+                          className="w-full h-auto object-cover"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div>

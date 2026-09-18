@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { recalculateStandings } from "@/lib/recalculateStandings";
+import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 
 export async function POST(req: Request) {
   try {
@@ -17,11 +18,32 @@ export async function POST(req: Request) {
       if (!sub) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
 
       if (decision === "APPROVE") {
-        const { verifiedHomeScore, verifiedAwayScore } = body;
+        const {
+          verifiedHomeScore,
+          verifiedAwayScore,
+          verifiedLeg2HomeScore,
+          verifiedLeg2AwayScore,
+          verifiedAggregateHomeScore,
+          verifiedAggregateAwayScore,
+        } = body;
         const officialHomeScore =
           typeof verifiedHomeScore === "number" ? verifiedHomeScore : sub.homeScore;
         const officialAwayScore =
           typeof verifiedAwayScore === "number" ? verifiedAwayScore : sub.awayScore;
+        const officialLeg2Home =
+          typeof verifiedLeg2HomeScore === "number" ? verifiedLeg2HomeScore : sub.leg2HomeScore;
+        const officialLeg2Away =
+          typeof verifiedLeg2AwayScore === "number" ? verifiedLeg2AwayScore : sub.leg2AwayScore;
+
+        const officialAggHome =
+          typeof verifiedAggregateHomeScore === "number"
+            ? verifiedAggregateHomeScore
+            : sub.aggregateHomeScore ?? (officialLeg2Home !== null ? officialHomeScore + (officialLeg2Home || 0) : officialHomeScore);
+
+        const officialAggAway =
+          typeof verifiedAggregateAwayScore === "number"
+            ? verifiedAggregateAwayScore
+            : sub.aggregateAwayScore ?? (officialLeg2Away !== null ? officialAwayScore + (officialLeg2Away || 0) : officialAwayScore);
 
         await prisma.matchSubmission.update({
           where: { id: submissionId },
@@ -29,6 +51,10 @@ export async function POST(req: Request) {
             status: "APPROVED",
             homeScore: officialHomeScore,
             awayScore: officialAwayScore,
+            leg2HomeScore: officialLeg2Home,
+            leg2AwayScore: officialLeg2Away,
+            aggregateHomeScore: officialAggHome,
+            aggregateAwayScore: officialAggAway,
             adminNotes,
           },
         });
@@ -39,21 +65,40 @@ export async function POST(req: Request) {
           data: {
             homeScore: officialHomeScore,
             awayScore: officialAwayScore,
+            leg2HomeScore: officialLeg2Home,
+            leg2AwayScore: officialLeg2Away,
+            aggregateHomeScore: officialAggHome,
+            aggregateAwayScore: officialAggAway,
             status: "FINISHED",
             screenshotUrl: sub.screenshotUrl,
-            notes: adminNotes || `Verified by Admin Office from screenshot (${officialHomeScore} - ${officialAwayScore})`,
+            leg2ScreenshotUrl: sub.leg2ScreenshotUrl,
+            notes: adminNotes || (officialLeg2Home !== null
+              ? `Verified 2-Leg Match (Leg 1: ${officialHomeScore}-${officialAwayScore}, Leg 2: ${officialLeg2Home}-${officialLeg2Away}, Agg: ${officialAggHome}-${officialAggAway})`
+              : `Verified by Admin Office (${officialHomeScore} - ${officialAwayScore})`),
           },
         });
 
-        // Check if admin requested immediate recalculation (otherwise batch updated via master button)
-        const { recalculate = false } = body;
-        if (recalculate) {
-          await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
-        }
+        // Always recalculate standings immediately upon match result verification
+        const divToRecalc = updatedMatch.stage === "GROUP" && updatedMatch.groupName
+          ? `${updatedMatch.division} ${updatedMatch.groupName}`
+          : updatedMatch.division;
+        await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+
+        // Notify participating players and broadcast standings update to all platform users
+        const matchSummary = officialAggHome !== null
+          ? `Agg: ${officialAggHome} - ${officialAggAway}`
+          : `${officialHomeScore} - ${officialAwayScore}`;
+
+        await notifyStandingsUpdate({
+          tournamentType: updatedMatch.division,
+          competitionName: updatedMatch.division,
+          groupName: updatedMatch.groupName,
+          matchSummary,
+        });
 
         return NextResponse.json({
           success: true,
-          message: `Match scores (${officialHomeScore} - ${officialAwayScore}) officially verified and saved. Click "Update League Table Standings" when ready to sync tables.`,
+          message: `Match scores (Official: ${officialHomeScore} - ${officialAwayScore}${officialAggHome !== null ? `, Agg: ${officialAggHome} - ${officialAggAway}` : ""}) officially verified and saved.`,
         });
       } else {
         await prisma.matchSubmission.update({
@@ -88,12 +133,22 @@ export async function POST(req: Request) {
         },
       });
 
-      // Recalculate division table
-      await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
+      // Recalculate table
+      const divToRecalc = updatedMatch.stage === "GROUP" && updatedMatch.groupName
+        ? `${updatedMatch.division} ${updatedMatch.groupName}`
+        : updatedMatch.division;
+      await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+
+      await notifyStandingsUpdate({
+        tournamentType: updatedMatch.division,
+        competitionName: updatedMatch.division,
+        groupName: updatedMatch.groupName,
+        matchSummary: `${homeScore} - ${awayScore}`,
+      });
 
       return NextResponse.json({
         success: true,
-        message: `Scores (${homeScore} - ${awayScore}) registered! Standings table updated.`,
+        message: `Scores (${homeScore} - ${awayScore}) registered! Standings table updated and participants notified.`,
       });
     }
 
@@ -176,7 +231,17 @@ export async function POST(req: Request) {
         });
 
         // Recalculate standings
-        await recalculateStandings(updatedMatch.tournamentId, updatedMatch.division);
+        const divToRecalc = updatedMatch.stage === "GROUP" && updatedMatch.groupName
+          ? `${updatedMatch.division} ${updatedMatch.groupName}`
+          : updatedMatch.division;
+        await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+
+        await notifyStandingsUpdate({
+          tournamentType: updatedMatch.division,
+          competitionName: updatedMatch.division,
+          groupName: updatedMatch.groupName,
+          matchSummary: "3-0 Forfeit Walkover",
+        });
 
         return NextResponse.json({
           success: true,

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 
+import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
+
 async function verifyAdmin() {
   const cookieStore = await cookies();
   const sessionUserId = cookieStore.get("efrl_session")?.value;
@@ -26,33 +28,67 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { division = "ALL" } = body;
 
-    const divisions =
-      division === "ALL"
-        ? ["Division 1", "Division 2", "Division 3"]
-        : [division];
-
     const results: any = {};
+    const groups = ["Group A", "Group B", "Group C", "Group D"];
 
-    for (const divName of divisions) {
-      const tournament = await prisma.tournament.findFirst({
-        where: {
-          name: { contains: divName },
-          type: "DIVISION",
-        },
-      });
-
-      if (!tournament) {
-        results[divName] = "Tournament not found in database";
-        continue;
+    // Recalculate Divisions
+    if (division === "ALL" || division.startsWith("Division")) {
+      const targetDivs = division === "ALL" ? ["Division 1", "Division 2", "Division 3"] : [division];
+      for (const divName of targetDivs) {
+        const tournament = await prisma.tournament.findFirst({
+          where: { name: { contains: divName }, type: "DIVISION" },
+        });
+        if (tournament) {
+          await recalculateStandings(tournament.id, divName);
+          await notifyStandingsUpdate({
+            tournamentType: "DIVISION",
+            competitionName: divName,
+            matchSummary: "Table recalculated by Commissioner",
+          });
+          results[divName] = "Recalculated & notified";
+        }
       }
+    }
 
-      await recalculateStandings(tournament.id, divName);
-      results[divName] = "Standings table recalculated successfully";
+    // Recalculate UCL
+    if (division === "ALL" || division === "UCL") {
+      const uclTournament = await prisma.tournament.findFirst({ where: { type: "UCL" } });
+      if (uclTournament) {
+        for (const grp of groups) {
+          const grpKey = `UCL ${grp}`;
+          await recalculateStandings(uclTournament.id, grpKey);
+          await notifyStandingsUpdate({
+            tournamentType: "UCL",
+            competitionName: "UCL",
+            groupName: grp,
+            matchSummary: "Table recalculated by Commissioner",
+          });
+          results[grpKey] = "Recalculated & notified";
+        }
+      }
+    }
+
+    // Recalculate EUROPA
+    if (division === "ALL" || division === "EUROPA") {
+      const europaTournament = await prisma.tournament.findFirst({ where: { type: "EUROPA" } });
+      if (europaTournament) {
+        for (const grp of groups) {
+          const grpKey = `EUROPA ${grp}`;
+          await recalculateStandings(europaTournament.id, grpKey);
+          await notifyStandingsUpdate({
+            tournamentType: "EUROPA",
+            competitionName: "EUROPA",
+            groupName: grp,
+            matchSummary: "Table recalculated by Commissioner",
+          });
+          results[grpKey] = "Recalculated & notified";
+        }
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully recalculated standings table for ${division === "ALL" ? "all divisions" : division}.`,
+      message: `Successfully recalculated standings tables and notified participating players for ${division}.`,
       results,
     });
   } catch (err: any) {

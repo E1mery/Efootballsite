@@ -5,19 +5,45 @@ import { prisma } from "@/lib/prisma";
  * Updates points, wins, draws, losses, goals for, goals against, goal difference, form, and position rank.
  */
 export async function recalculateStandings(tournamentId: string, division: string) {
+  const isGroup = division.includes("Group");
+  const groupMatch = division.match(/Group [A-D]/i);
+  const groupName = groupMatch ? groupMatch[0] : null;
+  const comp = division.toUpperCase().includes("EUROPA") ? "EUROPA" : "UCL";
+
+  let matchWhere: any = {
+    tournamentId,
+    status: { in: ["FINISHED", "FORFEIT"] },
+    homeScore: { not: null },
+    awayScore: { not: null },
+  };
+
+  if (isGroup && groupName) {
+    matchWhere.OR = [
+      { division },
+      { groupName },
+      { division: { contains: groupName } },
+    ];
+  } else {
+    matchWhere.division = division;
+  }
+
   const finishedMatches = await prisma.match.findMany({
-    where: {
-      tournamentId,
-      division,
-      status: { in: ["FINISHED", "FORFEIT"] },
-      homeScore: { not: null },
-      awayScore: { not: null },
-    },
+    where: matchWhere,
     orderBy: { matchDate: "asc" },
   });
 
+  let standingsWhere: any = { tournamentId };
+  if (isGroup && groupName) {
+    standingsWhere.OR = [
+      { division },
+      { division: { contains: groupName } },
+    ];
+  } else {
+    standingsWhere.division = division;
+  }
+
   const standings = await prisma.standing.findMany({
-    where: { tournamentId, division },
+    where: standingsWhere,
   });
 
   const playerStats: Record<
@@ -50,8 +76,12 @@ export async function recalculateStandings(tournamentId: string, division: strin
   for (const m of finishedMatches) {
     const hId = m.homePlayerId;
     const aId = m.awayPlayerId;
-    const hS = m.homeScore ?? 0;
-    const aS = m.awayScore ?? 0;
+    const hS = m.aggregateHomeScore !== null && m.aggregateHomeScore !== undefined
+      ? m.aggregateHomeScore
+      : (m.homeScore ?? 0);
+    const aS = m.aggregateAwayScore !== null && m.aggregateAwayScore !== undefined
+      ? m.aggregateAwayScore
+      : (m.awayScore ?? 0);
 
     if (!playerStats[hId]) {
       playerStats[hId] = { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0, form: [] };
@@ -104,6 +134,8 @@ export async function recalculateStandings(tournamentId: string, division: strin
     const st = playerStats[pId];
     const last5 = st.form.slice(-5).join(",") || "D";
 
+    const canonicalDiv = isGroup && groupName ? `${comp} ${groupName}` : division;
+
     await prisma.standing.upsert({
       where: {
         tournamentId_playerId: {
@@ -112,6 +144,7 @@ export async function recalculateStandings(tournamentId: string, division: strin
         },
       },
       update: {
+        division: canonicalDiv,
         rank: i + 1,
         played: st.played,
         won: st.won,
@@ -125,7 +158,7 @@ export async function recalculateStandings(tournamentId: string, division: strin
       },
       create: {
         tournamentId,
-        division,
+        division: canonicalDiv,
         playerId: pId,
         rank: i + 1,
         played: st.played,

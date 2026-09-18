@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { recalculateStandings } from "@/lib/recalculateStandings";
+import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 
 export async function POST(req: Request) {
   try {
@@ -87,11 +88,14 @@ export async function POST(req: Request) {
 
       updatedMatchIds.push(matchId);
 
-      const key = `${match.tournamentId}__${match.division}`;
+      const targetDiv = match.stage === "GROUP" && match.groupName
+        ? `${match.division} ${match.groupName}`
+        : match.division;
+      const key = `${match.tournamentId}__${targetDiv}`;
       if (!affectedDivisions.has(key)) {
         affectedDivisions.set(key, {
           tournamentId: match.tournamentId,
-          division: match.division,
+          division: targetDiv,
         });
       }
     }
@@ -100,29 +104,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No valid match scores could be processed." }, { status: 400 });
     }
 
-    // 1. Recalculate standings for each affected division EXACTLY ONCE
+    // 1. Recalculate standings for each affected division/group EXACTLY ONCE
     for (const { tournamentId, division } of affectedDivisions.values()) {
       await recalculateStandings(tournamentId, division);
-    }
 
-    // 2. Publish broadcast notification/announcement so all users get notified that tables are updated
-    if (notifyUsers) {
-      const roundLabel = matchdayName ? `(${matchdayName})` : "";
-      const divList = Array.from(affectedDivisions.values())
-        .map((d) => d.division)
-        .join(", ");
-
-      await prisma.announcement.create({
-        data: {
-          title: `📢 Official League Standings Updated! ${roundLabel}`,
-          content: `The League Commissioner has officially recorded and verified the goals for all played matches ${roundLabel}.
-
-The official league standings tables for ${divList} have been updated once with verified points, goal difference, and rankings.
-
-Check the 3 Divisions Standings tab to review your updated position!`,
-          type: "BROADCAST",
-          isPinned: true,
-        },
+      // Notify participating players of standings update
+      const compType = division.includes("EUROPA") ? "EUROPA" : division.includes("UCL") ? "UCL" : "DIVISION";
+      const grpMatch = division.match(/Group [A-D]/i);
+      await notifyStandingsUpdate({
+        tournamentType: compType,
+        competitionName: division,
+        groupName: grpMatch ? grpMatch[0] : null,
+        matchSummary: matchdayName || "Batch verified results",
       });
     }
 

@@ -20,7 +20,18 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { matchId, homeScore, awayScore, screenshotUrl, notes } = body;
+    const {
+      matchId,
+      homeScore,
+      awayScore,
+      leg2HomeScore,
+      leg2AwayScore,
+      aggregateHomeScore,
+      aggregateAwayScore,
+      screenshotUrl,
+      leg2ScreenshotUrl,
+      notes,
+    } = body;
 
     if (!matchId || homeScore === undefined || awayScore === undefined || !screenshotUrl) {
       return NextResponse.json(
@@ -48,6 +59,30 @@ export async function POST(req: Request) {
     if (!match) {
       return NextResponse.json({ error: "Match fixture not found." }, { status: 404 });
     }
+
+    const isTwoLegged =
+      match.stage === "GROUP" || match.stage === "QUARTER_FINAL" || match.stage === "SEMI_FINAL";
+
+    if (isTwoLegged && !leg2ScreenshotUrl) {
+      return NextResponse.json(
+        {
+          error:
+            "This fixture is a 2-legged continental matchup played simultaneously. Please upload screenshots for BOTH Leg 1 and Leg 2.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Calculate aggregates if not explicitly supplied
+    const calculatedAggHome =
+      aggregateHomeScore !== undefined
+        ? Number(aggregateHomeScore)
+        : Number(homeScore) + (leg2HomeScore !== undefined ? Number(leg2HomeScore) : 0);
+
+    const calculatedAggAway =
+      aggregateAwayScore !== undefined
+        ? Number(aggregateAwayScore)
+        : Number(awayScore) + (leg2AwayScore !== undefined ? Number(leg2AwayScore) : 0);
 
     // Verify player is a participant in this fixture
     if (match.homePlayerId !== user.player.id && match.awayPlayerId !== user.player.id) {
@@ -109,7 +144,12 @@ export async function POST(req: Request) {
         submittedByPlayerId: user.player.id,
         homeScore: Number(homeScore),
         awayScore: Number(awayScore),
+        leg2HomeScore: leg2HomeScore !== undefined ? Number(leg2HomeScore) : null,
+        leg2AwayScore: leg2AwayScore !== undefined ? Number(leg2AwayScore) : null,
+        aggregateHomeScore: isTwoLegged ? calculatedAggHome : null,
+        aggregateAwayScore: isTwoLegged ? calculatedAggAway : null,
         screenshotUrl,
+        leg2ScreenshotUrl: leg2ScreenshotUrl || null,
         notes: notes || null,
         status: "PENDING",
       },

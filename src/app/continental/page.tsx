@@ -21,6 +21,11 @@ export default async function ContinentalCupsPage() {
   let div3Europa: any[] = [];
   let uclSlots: any[] = [];
   let europaSlots: any[] = [];
+  let uclMatches: any[] = [];
+  let europaMatches: any[] = [];
+  let uclGroupStandings: any[] = [];
+  let europaGroupStandings: any[] = [];
+  let ongoingDivisionMatches: number = 0;
 
   try {
     if (sessionUserId) {
@@ -97,23 +102,70 @@ export default async function ContinentalCupsPage() {
     div2Europa = resultsEuropa[1];
     div3Europa = resultsEuropa[2];
 
-    const resultsSlots = await Promise.all([
-      prisma.uclGroupSlot.findMany({
-        where: { competition: "UCL" },
-        include: { player: true },
-        orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
-      }),
-      prisma.uclGroupSlot.findMany({
-        where: { competition: "EUROPA" },
-        include: { player: true },
-        orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+    const [resultsSlots, uclTournament, europaTournament, divMatchCount] = await Promise.all([
+      Promise.all([
+        prisma.uclGroupSlot.findMany({
+          where: { competition: "UCL" },
+          include: { player: true },
+          orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+        }),
+        prisma.uclGroupSlot.findMany({
+          where: { competition: "EUROPA" },
+          include: { player: true },
+          orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+        }),
+      ]),
+      prisma.tournament.findFirst({ where: { type: "UCL" } }),
+      prisma.tournament.findFirst({ where: { type: "EUROPA" } }),
+      prisma.match.count({
+        where: {
+          tournament: { type: "DIVISION" },
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
       }),
     ]);
     uclSlots = resultsSlots[0];
     europaSlots = resultsSlots[1];
+    ongoingDivisionMatches = divMatchCount;
+
+    if (uclTournament) {
+      const [m, s] = await Promise.all([
+        prisma.match.findMany({
+          where: { tournamentId: uclTournament.id },
+          include: { homePlayer: true, awayPlayer: true, submissions: true },
+          orderBy: [{ stage: "asc" }, { matchDate: "asc" }],
+        }),
+        prisma.standing.findMany({
+          where: { tournamentId: uclTournament.id },
+          include: { player: true },
+          orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+        }),
+      ]);
+      uclMatches = m;
+      uclGroupStandings = s;
+    }
+
+    if (europaTournament) {
+      const [m, s] = await Promise.all([
+        prisma.match.findMany({
+          where: { tournamentId: europaTournament.id },
+          include: { homePlayer: true, awayPlayer: true, submissions: true },
+          orderBy: [{ stage: "asc" }, { matchDate: "asc" }],
+        }),
+        prisma.standing.findMany({
+          where: { tournamentId: europaTournament.id },
+          include: { player: true },
+          orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+        }),
+      ]);
+      europaMatches = m;
+      europaGroupStandings = s;
+    }
   } catch (error) {
     console.error("Continental page fetch error:", error);
   }
+
+  const isDivisionSeasonFinished = ongoingDivisionMatches === 0;
 
   const uclQualified = [
     ...div1Standings.map((s, idx) => ({ ...s, seedLabel: `Div 1 #${idx + 1}` })),
@@ -151,6 +203,11 @@ export default async function ContinentalCupsPage() {
         europaQualified={europaQualified}
         uclSlots={uclSlots}
         europaSlots={europaSlots}
+        uclMatches={uclMatches}
+        europaMatches={europaMatches}
+        uclGroupStandings={uclGroupStandings}
+        europaGroupStandings={europaGroupStandings}
+        isDivisionSeasonFinished={isDivisionSeasonFinished}
         currentPlayer={currentPlayer}
       />
     </div>

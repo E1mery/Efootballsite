@@ -67,6 +67,7 @@ model Player {
   feedbackReviews        FeedbackReview[]
   uclGroupSlots          UclGroupSlot[]
   directMessages         PlayerMessage[]
+  trophyPredictions      TrophyPollVote[]
 
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
@@ -102,8 +103,14 @@ model Match {
   
   homeScore         Int?
   awayScore         Int?
+  leg2HomeScore     Int?
+  leg2AwayScore     Int?
+  aggregateHomeScore Int?
+  aggregateAwayScore Int?
   
   round             String            @default("Matchday 1")
+  stage             String            @default("DIVISION") // DIVISION, GROUP, QUARTER_FINAL, SEMI_FINAL, FINAL
+  groupName         String?           // Group A, Group B, Group C, Group D
   platform          String            @default("eFootball Mobile")
   status            String            @default("SCHEDULED") // SCHEDULED, LIVE, FINISHED, FORFEIT
   matchDate         DateTime          @default(now())
@@ -112,6 +119,7 @@ model Match {
   extendedDeadlineDate DateTime?
   notes             String?
   screenshotUrl     String?
+  leg2ScreenshotUrl String?
   isMatchOfTheDay   Boolean           @default(false) // Match of the Day based on table standings (from Round 2 onwards)
 
   submissions       MatchSubmission[]
@@ -120,6 +128,12 @@ model Match {
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+
+  @@index([homePlayerId])
+  @@index([awayPlayerId])
+  @@index([round])
+  @@index([status])
+  @@index([division])
 }
 
 model Standing {
@@ -148,6 +162,8 @@ model Standing {
   updatedAt         DateTime    @updatedAt
 
   @@unique([tournamentId, playerId])
+  @@index([playerId])
+  @@index([division])
 }
 
 model MatchSubmission {
@@ -160,13 +176,22 @@ model MatchSubmission {
   
   homeScore           Int
   awayScore           Int
-  screenshotUrl       String    // Screenshot showing full-time score
+  leg2HomeScore       Int?
+  leg2AwayScore       Int?
+  aggregateHomeScore  Int?
+  aggregateAwayScore  Int?
+  screenshotUrl       String    // Screenshot showing Leg 1 score
+  leg2ScreenshotUrl   String?   // Screenshot showing Leg 2 score
   notes               String?
   status              String    @default("PENDING") // PENDING, APPROVED, REJECTED
   adminNotes          String?
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+
+  @@index([matchId])
+  @@index([submittedByPlayerId])
+  @@index([status])
 }
 
 model ForfeitClaim {
@@ -187,6 +212,10 @@ model ForfeitClaim {
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+
+  @@index([matchId])
+  @@index([claimantPlayerId])
+  @@index([status])
 }
 
 model Announcement {
@@ -202,6 +231,9 @@ model Announcement {
   reads          AnnouncementRead[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  @@index([targetPlayerId])
+  @@index([type])
 }
 
 model UclGroupSlot {
@@ -285,6 +317,21 @@ model FeedbackReview {
 
   @@index([playerId])
   @@index([createdAt])
+}
+
+model TrophyPollVote {
+  id                      String   @id @default(cuid())
+  competition             String   // "UCL" or "EUROPA"
+  matchId                 String?
+  voterId                 String   // Player ID or User ID
+  predictedWinnerPlayerId String
+  predictedWinner         Player   @relation(fields: [predictedWinnerPlayerId], references: [id], onDelete: Cascade)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([competition, voterId])
+  @@index([competition])
+  @@index([predictedWinnerPlayerId])
 }
 
 
