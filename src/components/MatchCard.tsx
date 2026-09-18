@@ -181,11 +181,11 @@ export default function MatchCard({ match }: MatchProps) {
 
       {/* Aggregate Score for 2-Legged Tournaments */}
       {isTwoLegged && match.aggregateHomeScore !== null && match.aggregateHomeScore !== undefined && (
-        <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-center text-[11px]">
-          <span className="font-mono font-black text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
+        <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-center text-[10px] sm:text-[11px]">
+          <span className="font-mono font-black text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 rounded-lg text-center break-words max-w-full inline-block leading-relaxed">
             Aggregate: {match.homePlayer?.gamerTag} {match.aggregateHomeScore} - {match.aggregateAwayScore} {match.awayPlayer?.gamerTag}
             {match.leg2HomeScore !== null && match.leg2HomeScore !== undefined && (
-              <span className="text-slate-400 ml-1.5 font-normal">
+              <span className="text-slate-400 ml-1.5 font-normal block xs:inline">
                 (Leg 1: {match.homeScore}-{match.awayScore}, Leg 2: {match.leg2HomeScore}-{match.leg2AwayScore})
               </span>
             )}

@@ -41,8 +41,8 @@ export default function StandingsTable({
   compact = false,
 }: StandingsTableProps) {
   return (
-    <div className="w-full">
-      <Table>
+    <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
+      <Table className="min-w-[620px] sm:min-w-[720px]">
         <TableHeader>
           <TableRow>
             <TableHead className="w-14 text-center">Pos</TableHead>

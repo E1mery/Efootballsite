@@ -239,10 +239,10 @@ export default function ContinentalClient({
       )}
 
       {/* Tournament Stage Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab("DRAWS")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
             activeTab === "DRAWS"
               ? selectedCompetition === "UCL"
                 ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
@@ -259,7 +259,7 @@ export default function ContinentalClient({
 
         <button
           onClick={() => setActiveTab("GROUPS")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
             activeTab === "GROUPS"
               ? selectedCompetition === "UCL"
                 ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
@@ -278,7 +278,7 @@ export default function ContinentalClient({
 
         <button
           onClick={() => setActiveTab("KNOCKOUT")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
             activeTab === "KNOCKOUT"
               ? selectedCompetition === "UCL"
                 ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
@@ -293,7 +293,7 @@ export default function ContinentalClient({
         {pollData?.active && (
           <button
             onClick={() => setActiveTab("TROPHY_POLL")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all animate-pulse ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all animate-pulse shrink-0 whitespace-nowrap min-h-[38px] ${
               activeTab === "TROPHY_POLL"
                 ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
                 : "text-yellow-400 hover:bg-yellow-500/10"

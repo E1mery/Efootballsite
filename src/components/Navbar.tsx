@@ -152,12 +152,37 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile menu toggle */}
+        {/* Mobile menu toggle & quick action */}
         {!isAdminPortal && (
-          <div className="flex lg:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
+            {session?.authenticated ? (
+              <Link href={session.user?.role === "ADMIN" ? "/admin" : "/dashboard"}>
+                <Button
+                  size="sm"
+                  variant={session.user?.role === "ADMIN" ? "destructive" : "yellow"}
+                  className="h-8 px-2.5 text-[11px] font-black"
+                >
+                  <User className="h-3.5 w-3.5 mr-1" />
+                  <span className="max-w-[75px] truncate">
+                    {session.player?.gamerTag || (session.user?.role === "ADMIN" ? "Admin" : "Portal")}
+                  </span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/login">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2.5 text-[11px] font-bold border-slate-700 text-slate-200"
+                >
+                  <LogIn className="h-3 w-3 mr-1" />
+                  <span>Log In</span>
+                </Button>
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 min-h-[44px] min-w-[44px]"
+              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 min-h-[40px] min-w-[40px]"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

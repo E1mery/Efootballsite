@@ -1224,8 +1224,8 @@ export default function AdminClient({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto no-scrollbar scroll-smooth">
+          <table className="w-full text-left text-xs min-w-[840px]">
             <thead className="bg-slate-900/80 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-800">
               <tr>
                 <th className="px-4 py-3 text-center">Pos</th>
@@ -2702,8 +2702,8 @@ export default function AdminClient({
                 <h3 className="text-lg font-black uppercase text-white">Standby Athletes</h3>
                 <span className="text-xs font-mono text-slate-400">{reservePlayers.length} Total</span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto no-scrollbar scroll-smooth">
+                <table className="w-full text-left text-xs min-w-[760px]">
                   <thead className="bg-slate-900/80 text-[11px] font-black uppercase text-slate-400 border-b border-slate-800">
                     <tr>
                       <th className="px-4 py-3">Gamer Tag</th>
@@ -4509,8 +4509,8 @@ export default function AdminClient({
               <span className="text-xs font-mono text-slate-400">{playersList.length} Total</span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto no-scrollbar scroll-smooth">
+              <table className="w-full text-left text-xs min-w-[800px]">
                 <thead className="bg-slate-900/80 text-[11px] font-black uppercase text-slate-400 border-b border-slate-800">
                   <tr>
                     <th className="px-4 py-3">Gamer Tag</th>

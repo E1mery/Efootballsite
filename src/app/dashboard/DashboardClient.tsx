@@ -894,21 +894,23 @@ export default function DashboardClient({
       <div className="mx-auto max-w-4xl space-y-8 py-6">
         <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-950 to-slate-950 p-6 sm:p-10 shadow-2xl backdrop-blur-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-2xl shadow-lg">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="flex h-13 w-13 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-xl sm:text-2xl shadow-lg">
                 {player.gamerTag.slice(0, 2).toUpperCase()}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-black text-white">{player.gamerTag}</h1>
-                  <Badge variant="yellow" className="text-xs">PENDING APPROVAL</Badge>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white truncate max-w-full">{player.gamerTag}</h1>
+                  <Badge variant="yellow" className="text-[10px] sm:text-xs">PENDING APPROVAL</Badge>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Requested Division: <strong className="text-white">{player.division}</strong> • WA: <span className="text-emerald-400 font-mono">{player.whatsapp}</span>
+                <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span>Requested Division: <strong className="text-white">{player.division}</strong></span>
+                  <span className="hidden xs:inline">•</span>
+                  <span>WA: <span className="text-emerald-400 font-mono">{player.whatsapp}</span></span>
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="text-xs gap-2">
+            <Button variant="outline" size="sm" onClick={handleLogout} className="text-xs gap-2 shrink-0 self-start sm:self-auto">
               <LogOut className="h-4 w-4" /> Sign Out
             </Button>
           </div>
@@ -961,38 +963,38 @@ export default function DashboardClient({
   return (
     <div className="space-y-8">
       {/* Top Welcome Bar */}
-      <div className="rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-6 sm:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-slate-950 font-black text-2xl shadow-xl shadow-yellow-500/20">
+      <div className="rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="flex h-13 w-13 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-slate-950 font-black text-xl sm:text-2xl shadow-xl shadow-yellow-500/20">
             {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight truncate max-w-full">
                 {currentPlayer.gamerTag}
               </h1>
-              <Badge variant={isReserved ? "outline" : "yellow"} className="text-xs">
+              <Badge variant={isReserved ? "outline" : "yellow"} className="text-[10px] sm:text-xs">
                 {isReserved ? "RESERVE POOL" : currentPlayer.division}
               </Badge>
-              <Badge variant="default" className="text-[10px] uppercase font-mono">
+              <Badge variant="default" className="text-[9px] sm:text-[10px] uppercase font-mono">
                 {currentPlayer.platform}
               </Badge>
             </div>
-            <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <span>{currentPlayer.fullName}</span>
-              <span>•</span>
-              <span className="font-mono text-slate-500">Konami ID: {currentPlayer.efootballId}</span>
-              <span>•</span>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="truncate max-w-[160px] sm:max-w-none">{currentPlayer.fullName}</span>
+              <span className="hidden xs:inline">•</span>
+              <span className="font-mono text-slate-500">ID: {currentPlayer.efootballId}</span>
+              <span className="hidden xs:inline">•</span>
               <span className="text-emerald-400 font-mono">WA: {currentPlayer.whatsapp}</span>
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800/80">
+          <div className="text-left md:text-right">
             <span className="text-[10px] font-bold text-slate-500 uppercase block">Status / Rank</span>
-            <span className="text-xl font-black text-yellow-400">
+            <span className="text-lg sm:text-xl font-black text-yellow-400">
               {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
           </div>
