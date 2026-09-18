@@ -126,6 +126,7 @@ export default function AdminClient({
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
   const [resettingTournament, setResettingTournament] = useState(false);
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
+  const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
 
   // All Matches filter state
   const [allMatchesFilterRound, setAllMatchesFilterRound] = useState<string>("ALL");
@@ -704,6 +705,33 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setExtendingMatchId(null);
+    }
+  };
+
+  // Reopen Submissions for a Match (Unlocks Player Dashboard Result & Forfeit Buttons)
+  const handleReopenSubmissions = async (matchId: string, defaultHours: number = 24) => {
+    if (
+      !confirm(
+        "Reopen submission buttons for this fixture? Both athletes will receive permission to upload/re-upload scores and screenshot proof, and deadline will be extended."
+      )
+    ) {
+      return;
+    }
+    setReopeningMatchId(matchId);
+    try {
+      const res = await fetch("/api/admin/reopen-submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, extensionHours: defaultHours }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reopen submissions");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setReopeningMatchId(null);
     }
   };
 
@@ -3360,6 +3388,18 @@ export default function AdminClient({
                               <Clock className="h-3 w-3 mr-1" />
                               Extend Deadline
                             </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReopenSubmissions(m.id)}
+                              disabled={reopeningMatchId === m.id}
+                              className="text-[11px] h-7 px-2.5 font-bold border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/30"
+                              title="Reopen submission and forfeit buttons for both athletes"
+                            >
+                              <Unlock className="h-3 w-3 mr-1" />
+                              {reopeningMatchId === m.id ? "Reopening..." : "Reopen Submissions"}
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -3861,6 +3901,17 @@ export default function AdminClient({
                           <XCircle className="h-4 w-4" />
                           Reject
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reopeningMatchId === sub.matchId}
+                          onClick={() => handleReopenSubmissions(sub.matchId)}
+                          className="font-bold gap-1 text-xs border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/20"
+                          title="Reopen submission buttons for this fixture"
+                        >
+                          <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                          Reopen
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -4150,26 +4201,37 @@ export default function AdminClient({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
                     <Button
                       variant="destructive"
                       size="sm"
                       disabled={reviewLoading === claim.id}
                       onClick={() => handleReviewForfeit(claim.id, "APPROVE")}
-                      className="font-bold gap-1"
+                      className="font-bold gap-1 text-xs"
                     >
                       <CheckCircle2 className="h-4 w-4" />
-                      Approve 3-0 Walkover
+                      Approve 3-0
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={reviewLoading === claim.id}
                       onClick={() => handleReviewForfeit(claim.id, "REJECT")}
-                      className="font-bold gap-1"
+                      className="font-bold gap-1 text-xs"
                     >
                       <XCircle className="h-4 w-4" />
                       Reject Claim
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={reopeningMatchId === claim.matchId}
+                      onClick={() => handleReopenSubmissions(claim.matchId)}
+                      className="font-bold gap-1 text-xs border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/20"
+                      title="Clear forfeit and reopen submission buttons for both athletes"
+                    >
+                      <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                      Reopen Match
                     </Button>
                   </div>
                 </div>
@@ -5015,6 +5077,18 @@ export default function AdminClient({
                           >
                             <Clock className="h-3.5 w-3.5 text-amber-400" />
                             <span>{extendingMatchId === match.id ? "Extending..." : "Extend Deadline"}</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReopenSubmissions(match.id, 24)}
+                            disabled={reopeningMatchId === match.id}
+                            className="text-xs gap-1 h-8 border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/20"
+                            title="Reopen submission and forfeit buttons for both players"
+                          >
+                            <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>{reopeningMatchId === match.id ? "Reopening..." : "Reopen Submissions"}</span>
                           </Button>
                         </div>
                       </div>

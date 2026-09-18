@@ -92,17 +92,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const isReopenedByAdmin = Boolean(
+      match.allowLateSubmission || match.notes?.includes("ADMIN_REOPENED")
+    );
+
     // If match is already completed
-    if (match.status === "FINISHED" || match.status === "FORFEIT") {
+    if ((match.status === "FINISHED" || match.status === "FORFEIT") && !isReopenedByAdmin) {
       return NextResponse.json(
-        { error: "This match is already finalized. Uploads are closed." },
+        { error: "This match is already finalized. Uploads are closed unless reopened by the Commissioner." },
         { status: 400 }
       );
     }
 
     // LINKED UPLOAD ENFORCEMENT:
     // If either player has already submitted a match result (status not rejected)
-    if (match.submissions.length > 0) {
+    if (match.submissions.length > 0 && !isReopenedByAdmin) {
       const activeSub = match.submissions[0];
       const submitter = activeSub.submittedByPlayer?.gamerTag || "an athlete";
       return NextResponse.json(
@@ -114,7 +118,7 @@ export async function POST(req: Request) {
     }
 
     // If either player has already lodged a forfeit claim (status not rejected)
-    if (match.forfeitClaims.length > 0) {
+    if (match.forfeitClaims.length > 0 && !isReopenedByAdmin) {
       const activeClaim = match.forfeitClaims[0];
       const claimant = activeClaim.claimantPlayer?.gamerTag || "an athlete";
       return NextResponse.json(
@@ -125,9 +129,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if deadline has passed, allowing submissions if admin approved late entry
+    // Check if deadline has passed, allowing submissions if admin approved late entry or reopened
     const isPastDeadline = new Date() > new Date(match.deadlineDate);
-    if (isPastDeadline && !match.allowLateSubmission) {
+    if (isPastDeadline && !isReopenedByAdmin) {
       return NextResponse.json(
         {
           error:
@@ -135,6 +139,14 @@ export async function POST(req: Request) {
         },
         { status: 400 }
       );
+    }
+
+    // If reopened by admin and has prior pending submission, supersede them
+    if (isReopenedByAdmin && match.submissions.length > 0) {
+      await prisma.matchSubmission.updateMany({
+        where: { matchId: match.id, status: "PENDING" },
+        data: { status: "REPLACED", adminNotes: "Superseded by reopened submission" },
+      });
     }
 
     // Create submission for admin review with status PENDING

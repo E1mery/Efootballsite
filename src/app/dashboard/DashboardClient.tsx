@@ -686,20 +686,27 @@ export default function DashboardClient({
     return () => clearInterval(interval);
   }, [activeMatch?.deadlineDate]);
 
+  // Check if admin granted late submission or reopened submission permission
+  const isAdminPermissionGranted = Boolean(
+    activeMatch &&
+    (activeMatch.allowLateSubmission ||
+     activeMatch.notes?.includes("ADMIN_REOPENED") ||
+     activeMatch.notes?.includes("REOPEN"))
+  );
+
   // Check if active match options are locked
   const isMatchLocked = Boolean(
     activeMatch &&
     (timeLeft.isExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
-    !activeMatch.notes?.includes("ADMIN_REOPENED") &&
-    !activeMatch.allowLateSubmission
+    !isAdminPermissionGranted
   );
 
   // Linked submission & forfeit status for this match (shared between both athletes)
   const sharedSubmission =
-    activeMatch?.submissions?.find((s: any) => s.status !== "REJECTED") ||
+    activeMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
     activeMatch?.submissions?.[0] ||
     null;
-  const hasSubmittedResult = Boolean(sharedSubmission);
+  const hasSubmittedResult = Boolean(sharedSubmission && sharedSubmission.status !== "REPLACED");
   const isSubmissionPending = sharedSubmission?.status === "PENDING";
   const isSubmissionApproved =
     sharedSubmission?.status === "APPROVED" || activeMatch?.status === "FINISHED";
@@ -726,10 +733,7 @@ export default function DashboardClient({
 
   // Is uploading closed for both players?
   const isUploadClosedForBoth = Boolean(
-    isMatchLocked ||
-    hasSubmittedResult ||
-    hasClaimedForfeit ||
-    (timeLeft.isExpired && !activeMatch?.allowLateSubmission)
+    !isAdminPermissionGranted && (isMatchLocked || hasSubmittedResult || hasClaimedForfeit || timeLeft.isExpired)
   );
 
   const isOneHourWarning = Boolean(
@@ -1514,7 +1518,48 @@ export default function DashboardClient({
                   Coordinate with your opponent on WhatsApp, complete the match on eFootball Mobile, and upload a screenshot of the post-game score screen before the 24-hour timer expires.
                 </p>
 
-                {hasSubmittedResult ? (
+                {isAdminPermissionGranted && activeMatch?.status !== "FINISHED" ? (
+                  <div className="w-full sm:w-auto space-y-3">
+                    <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 text-xs text-emerald-200 flex items-center gap-2.5">
+                      <Unlock className="h-5 w-5 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-white block">
+                          Commissioner Submission Permission Active
+                        </span>
+                        <span className="text-[11px] text-emerald-300">
+                          The League Commissioner has granted permission to upload/re-upload scores and screenshot proof for this match.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        variant="yellow"
+                        size="lg"
+                        onClick={() => {
+                          setActionMatch(activeMatch);
+                          setShowResultModal(true);
+                        }}
+                        className="font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto"
+                      >
+                        <Upload className="h-4 w-4" />
+                        {hasSubmittedResult ? "Re-upload Match Result Screenshot" : "Upload Match Result Screenshot"}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={() => {
+                          setActionMatch(activeMatch);
+                          setShowForfeitModal(true);
+                        }}
+                        className="font-bold text-xs sm:text-sm gap-2 border-red-500/40 text-red-400 hover:bg-red-950/20 w-full sm:w-auto"
+                      >
+                        <ShieldAlert className="h-4 w-4" />
+                        Claim Opponent Forfeit (Proof)
+                      </Button>
+                    </div>
+                  </div>
+                ) : hasSubmittedResult ? (
                   <div className="w-full sm:w-auto p-3.5 sm:p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-3">
                     <Lock className="h-5 w-5 text-amber-400 shrink-0" />
                     <div>
@@ -2264,34 +2309,16 @@ export default function DashboardClient({
 
                       {/* Actions & Status Details */}
                       <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-2">
-                        {!hasSubOrForfeit && !isFinished && !isForfeit && (
-                          <>
-                            <Button
-                              variant="yellow"
-                              size="sm"
-                              onClick={() => {
-                                setActionMatch(m);
-                                setShowResultModal(true);
-                              }}
-                              className="font-bold text-xs gap-1.5 shadow-md shadow-yellow-500/20"
-                            >
-                              <Upload className="h-3.5 w-3.5" />
-                              Upload Result Screenshot
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setActionMatch(m);
-                                setShowForfeitModal(true);
-                              }}
-                              className="font-bold text-xs gap-1.5 border-red-500/40 text-red-400 hover:bg-red-950/20"
-                            >
-                              <ShieldAlert className="h-3.5 w-3.5" />
-                              Forfeit
-                            </Button>
-                          </>
+                        {isCurrentActive && !isFinished && !isForfeit && (
+                          <Button
+                            variant="yellow"
+                            size="sm"
+                            onClick={() => setActiveTab("OVERVIEW")}
+                            className="font-bold text-xs gap-1.5 shadow-md shadow-yellow-500/20"
+                          >
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>Play in Today&apos;s Match</span>
+                          </Button>
                         )}
 
                         {hasSubOrForfeit && !isFinished && !isForfeit && (

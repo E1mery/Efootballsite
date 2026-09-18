@@ -57,17 +57,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const isReopenedByAdmin = Boolean(
+      match.allowLateSubmission || match.notes?.includes("ADMIN_REOPENED")
+    );
+
     // If match is already completed
-    if (match.status === "FINISHED" || match.status === "FORFEIT") {
+    if ((match.status === "FINISHED" || match.status === "FORFEIT") && !isReopenedByAdmin) {
       return NextResponse.json(
-        { error: "This match is already finalized. Submissions are closed." },
+        { error: "This match is already finalized. Submissions are closed unless reopened by the Commissioner." },
         { status: 400 }
       );
     }
 
     // LINKED UPLOAD ENFORCEMENT:
     // If either player has already submitted a match result
-    if (match.submissions.length > 0) {
+    if (match.submissions.length > 0 && !isReopenedByAdmin) {
       const activeSub = match.submissions[0];
       const submitter = activeSub.submittedByPlayer?.gamerTag || "an athlete";
       return NextResponse.json(
@@ -79,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     // If either player has already lodged a forfeit claim
-    if (match.forfeitClaims.length > 0) {
+    if (match.forfeitClaims.length > 0 && !isReopenedByAdmin) {
       const activeClaim = match.forfeitClaims[0];
       const claimant = activeClaim.claimantPlayer?.gamerTag || "an athlete";
       return NextResponse.json(
@@ -91,7 +95,7 @@ export async function POST(req: Request) {
     }
 
     // Check if 24-hr window has expired
-    if (new Date() > new Date(match.deadlineDate) && !match.allowLateSubmission) {
+    if (new Date() > new Date(match.deadlineDate) && !isReopenedByAdmin) {
       return NextResponse.json(
         {
           error:
@@ -99,6 +103,14 @@ export async function POST(req: Request) {
         },
         { status: 400 }
       );
+    }
+
+    // If reopened by admin and has prior claims, mark them replaced
+    if (isReopenedByAdmin && match.forfeitClaims.length > 0) {
+      await prisma.forfeitClaim.updateMany({
+        where: { matchId: match.id, status: "PENDING" },
+        data: { status: "REJECTED", adminNotes: "Superseded by reopened claim" },
+      });
     }
 
     const accusedPlayerId =
