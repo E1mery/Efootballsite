@@ -42,6 +42,7 @@ import {
   Phone,
   Mail,
   ArrowRight,
+  ArrowDown,
   UserPlus,
   RotateCcw,
   Star,
@@ -985,22 +986,33 @@ export default function AdminClient({
     }
   };
 
-  // Execute End of Season Automatic Promotions for Div 2 and Div 3
-  const handleEndSeasonPromotions = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to finalize the season and execute automatic promotions for the top 3 players in Division 2 and Division 3?"
-      )
-    )
-      return;
+  // Execute End of Season Relegations and/or Promotions
+  const handleExecuteSeasonTransition = async (
+    action: "ALL" | "RELEGATE_ONLY" | "PROMOTE_ONLY" = "ALL"
+  ) => {
+    let confirmMsg =
+      "Are you sure you want to finalize the season and execute BOTH promotions (Top 3 of Div 2 & 3) AND relegations (Bottom 3 of Div 1 & 2)?";
+    if (action === "RELEGATE_ONLY") {
+      confirmMsg =
+        "Are you sure you want to trigger DIVISION RELEGATIONS now?\n\n• Bottom 3 in Division 1 -> Relegated to Division 2\n• Bottom 3 in Division 2 -> Relegated to Division 3\n\nAll relegated athletes will immediately access their new division data and schedules.";
+    } else if (action === "PROMOTE_ONLY") {
+      confirmMsg =
+        "Are you sure you want to trigger DIVISION PROMOTIONS?\n\n• Top 3 in Division 2 -> Promoted to Division 1\n• Top 3 in Division 3 -> Promoted to Division 2";
+    }
+
+    if (!confirm(confirmMsg)) return;
 
     setActionLoading(true);
     try {
-      const res = await fetch("/api/admin/end-season", { method: "POST" });
+      const res = await fetch("/api/admin/end-season", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to execute season promotions");
+      if (!res.ok) throw new Error(data.error || "Failed to execute season transition");
 
-      alert(`Season promotions finalized successfully!\n${data.message}`);
+      alert(`Operation Completed Successfully!\n\n${data.message}`);
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -1244,7 +1256,10 @@ export default function AdminClient({
                   const rank = idx + 1;
                   const isTop8Ucl = rank <= 8 && s.division === "Division 1";
                   const isTop4Ucl = rank <= 4 && (s.division === "Division 2" || s.division === "Division 3");
-                  const isRelegation = rank > 17; // Last 3 of 20
+                  const isRelegation =
+                    (s.division === "Division 1" || s.division === "Division 2") &&
+                    standings.length >= 4 &&
+                    rank > standings.length - 3;
 
                   return (
                     <tr
@@ -1318,6 +1333,10 @@ export default function AdminClient({
                         {s.isDisqualified ? (
                           <Badge variant="destructive" className="text-[10px]">
                             Disqualified
+                          </Badge>
+                        ) : isRelegation ? (
+                          <Badge variant="destructive" className="text-[9px] bg-red-500/20 text-red-400 border-red-500/40">
+                            Relegation ({s.division === "Division 1" ? "Div 2" : "Div 3"})
                           </Badge>
                         ) : s.consecutiveMissed >= 2 ? (
                           <Badge variant="yellow" className="text-[10px]">
@@ -2109,43 +2128,102 @@ export default function AdminClient({
             </div>
           </div>
 
-          {/* Operation 5: End Season & Automatic Promotions */}
+          {/* Operation 5: End Season Finale: Promotions & Relegations */}
           <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
                 <div className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-amber-400" />
                   <h3 className="text-lg font-black uppercase text-white">
-                    Season Finale & Automatic Promotions
+                    Season Finale: Promotions & Relegations
                   </h3>
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  At season end, the top 3 players from Division 2 promote to Division 1, and the top 3 from Division 3 promote to Division 2.
+                  At season end, the bottom 3 from Division 1 relegate to Division 2, the bottom 3 from Division 2 relegate to Division 3, while the top 3 from Division 2 promote to Division 1 and top 3 from Division 3 promote to Division 2.
                 </p>
               </div>
 
-              <Button
-                onClick={handleEndSeasonPromotions}
-                disabled={actionLoading}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20"
-              >
-                Execute Season Promotions
-              </Button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <Button
+                  onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
+                  disabled={actionLoading}
+                  className="bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/20"
+                >
+                  <ArrowDown className="h-3.5 w-3.5 mr-1" />
+                  Relegate Bottom 3
+                </Button>
+                <Button
+                  onClick={() => handleExecuteSeasonTransition("ALL")}
+                  disabled={actionLoading}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  Execute Full Transition
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Div 2 Top 3 Preview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Div 1 Bottom 3 Preview (Relegation to Div 2) */}
+              <div className="p-4 rounded-2xl bg-[#070b16] border border-red-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="destructive" className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/40">
+                    RELEGATING TO DIV 2
+                  </Badge>
+                  <span className="text-[10px] text-slate-400 font-mono">Div 1 (Bottom 3)</span>
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  {div1Standings.length >= 4 ? (
+                    div1Standings.slice(-3).map((s, idx) => (
+                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
+                        <span className="font-bold text-white truncate max-w-[130px]">
+                          #{div1Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
+                        </span>
+                        <span className="font-mono text-red-400 font-black">{s.points} Pts</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Need at least 4 Division 1 players.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Div 2 Bottom 3 Preview (Relegation to Div 3) */}
+              <div className="p-4 rounded-2xl bg-[#070b16] border border-red-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="destructive" className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/40">
+                    RELEGATING TO DIV 3
+                  </Badge>
+                  <span className="text-[10px] text-slate-400 font-mono">Div 2 (Bottom 3)</span>
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  {div2Standings.length >= 4 ? (
+                    div2Standings.slice(-3).map((s, idx) => (
+                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
+                        <span className="font-bold text-white truncate max-w-[130px]">
+                          #{div2Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
+                        </span>
+                        <span className="font-mono text-red-400 font-black">{s.points} Pts</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Need at least 4 Division 2 players.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Div 2 Top 3 Preview (Promoting to Div 1) */}
               <div className="p-4 rounded-2xl bg-[#070b16] border border-amber-500/30 space-y-2">
                 <div className="flex items-center justify-between">
                   <Badge variant="yellow" className="text-[10px]">
-                    PROMOTING TO DIVISION 1
+                    PROMOTING TO DIV 1
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">Division 2 (Top 3)</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Div 2 (Top 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
                   {div2Standings.slice(0, 3).map((s, idx) => (
                     <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white truncate max-w-[130px]">
                         #{idx + 1} {s.player?.gamerTag || "Unknown"}
                       </span>
                       <span className="font-mono text-amber-400 font-black">{s.points} Pts</span>
@@ -2157,18 +2235,18 @@ export default function AdminClient({
                 </div>
               </div>
 
-              {/* Div 3 Top 3 Preview */}
+              {/* Div 3 Top 3 Preview (Promoting to Div 2) */}
               <div className="p-4 rounded-2xl bg-[#070b16] border border-emerald-500/30 space-y-2">
                 <div className="flex items-center justify-between">
                   <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-400">
-                    PROMOTING TO DIVISION 2
+                    PROMOTING TO DIV 2
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">Division 3 (Top 3)</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Div 3 (Top 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
                   {div3Standings.slice(0, 3).map((s, idx) => (
                     <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white truncate max-w-[130px]">
                         #{idx + 1} {s.player?.gamerTag || "Unknown"}
                       </span>
                       <span className="font-mono text-emerald-400 font-black">{s.points} Pts</span>
@@ -2766,6 +2844,47 @@ export default function AdminClient({
               <RefreshCw className={`h-4 w-4 mr-2 ${recalculatingStandings ? "animate-spin" : ""}`} />
               {recalculatingStandings ? "Updating Tables..." : "⚡ Update League Table Standings"}
             </Button>
+          </div>
+
+          {/* Relegations & Promotions Commissioner Trigger Bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-950/30 via-slate-950 to-amber-950/20 shadow-xl">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="destructive" className="text-[10px] font-black bg-red-500/20 text-red-400 border-red-500/40">
+                  RELEGATION & PROMOTION DISPATCH
+                </Badge>
+                <span className="text-xs font-mono text-slate-400">Commissioner Authority</span>
+              </div>
+              <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
+                <ArrowDown className="h-4 w-4 text-red-400" />
+                <span>Trigger Official Division Relegations & Promotions</span>
+              </h3>
+              <p className="text-xs text-slate-300">
+                • <strong>Div 1</strong>: Bottom 3 relegated to Div 2 &bull; <strong>Div 2</strong>: Bottom 3 relegated to Div 3, Top 3 promoted to Div 1 &bull; <strong>Div 3</strong>: Top 3 promoted to Div 2.<br />
+                Relegated players automatically transition their portal and calendar access to their new division.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <Button
+                onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
+                disabled={actionLoading}
+                className="bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg shadow-red-600/20"
+                title="Move bottom 3 players in Division 1 to Division 2, and bottom 3 in Division 2 to Division 3"
+              >
+                <ArrowDown className="h-3.5 w-3.5 mr-1" />
+                Relegate Bottom 3
+              </Button>
+              <Button
+                onClick={() => handleExecuteSeasonTransition("ALL")}
+                disabled={actionLoading}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg shadow-amber-500/20"
+                title="Execute both promotions and relegations in one transaction"
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1" />
+                Full Season Transition
+              </Button>
+            </div>
           </div>
 
           {/* Table Sub-Navigation */}

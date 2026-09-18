@@ -1212,6 +1212,11 @@ export default function DashboardClient({
               div1Standings={div1Standings}
               div2Standings={div2Standings}
               div3Standings={div3Standings}
+              defaultDivision={
+                currentPlayer.division === "Division 2" || currentPlayer.division === "Division 3"
+                  ? (currentPlayer.division as "Division 2" | "Division 3")
+                  : "Division 1"
+              }
             />
           )}
 

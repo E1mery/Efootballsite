@@ -81,20 +81,23 @@ export default function StandingsTable({
             let isPromotion = false;
             let isRelegation = false;
 
+            const totalRows = standings.length;
+            const isBottomThree = totalRows >= 4 && rank > totalRows - 3;
+
             if (divisionName === "Division 1") {
               if (rank <= 8) isUcl = true;
               else if (rank <= 12) isEuropa = true;
-              if (rank >= 18) isRelegation = true;
+              if (isBottomThree) isRelegation = true;
             } else if (divisionName === "Division 2") {
               if (rank <= 3) isPromotion = true;
               if (rank <= 4) isUcl = true;
               else if (rank <= 10) isEuropa = true;
-              if (rank >= 18) isRelegation = true;
+              if (isBottomThree) isRelegation = true;
             } else if (divisionName === "Division 3") {
               if (rank <= 3) isPromotion = true;
               if (rank <= 4) isUcl = true;
               else if (rank <= 10) isEuropa = true;
-              if (rank >= 18) isRelegation = true;
+              // Division 3 is lowest domestic tier
             }
 
             const cleanWa = row.player.whatsapp?.replace(/[^0-9]/g, "") || "";
@@ -105,6 +108,8 @@ export default function StandingsTable({
                 className={`group transition-colors ${
                   isDisqualified
                     ? "bg-red-950/20 hover:bg-red-950/30 opacity-75"
+                    : isRelegation && !compact
+                    ? "bg-red-950/15 hover:bg-red-950/25"
                     : isUcl && !compact
                     ? "hover:bg-sky-950/20"
                     : "hover:bg-slate-800/60"
@@ -260,7 +265,11 @@ export default function StandingsTable({
                     ) : isRelegation ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
                         <ArrowDown className="h-3 w-3" />
-                        Relegated
+                        {divisionName === "Division 1"
+                          ? "Relegation (Div 2)"
+                          : divisionName === "Division 2"
+                          ? "Relegation (Div 3)"
+                          : "Relegated"}
                       </span>
                     ) : (
                       <span className="text-[11px] text-slate-500">Mid-Table</span>

@@ -180,14 +180,14 @@ export default async function StandingsPage({
         <div className="rounded-xl border border-red-500/30 bg-slate-900/40 p-5 space-y-2">
           <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
             <ArrowDown className="h-4 w-4" />
-            <span>Relegation (Last 3)</span>
+            <span>Relegation (Bottom 3)</span>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
             {currentDivision === "Division 1"
-              ? "All last 3 players (18th, 19th, 20th) are relegated to 2nd Division at end of season."
+              ? "The bottom 3 players in Division 1 are officially relegated to Division 2 upon season finalization."
               : currentDivision === "Division 2"
-              ? "All last 3 players (18th, 19th, 20th) are relegated to 3rd Division. (Top 3 promoted to Div 1)."
-              : "All last 3 players (18th, 19th, 20th) are relegated to Open District Qualifiers. (Top 3 promoted to Div 2)."}
+              ? "The bottom 3 players in Division 2 are officially relegated to Division 3. (Top 3 are promoted to Division 1)."
+              : "Division 3 is the foundational Academy tier with no lower drop. (Top 3 are promoted to Division 2)."}
           </p>
         </div>
 

@@ -9,35 +9,37 @@ interface HomeDivisionsTabsProps {
   div1Standings: any[];
   div2Standings: any[];
   div3Standings: any[];
+  defaultDivision?: "Division 1" | "Division 2" | "Division 3";
 }
 
 export default function HomeDivisionsTabs({
   div1Standings,
   div2Standings,
   div3Standings,
+  defaultDivision = "Division 1",
 }: HomeDivisionsTabsProps) {
-  const [activeDivision, setActiveDivision] = useState<"Division 1" | "Division 2" | "Division 3">("Division 1");
+  const [activeDivision, setActiveDivision] = useState<"Division 1" | "Division 2" | "Division 3">(defaultDivision);
 
   const divisionData = {
     "Division 1": {
       name: "Division 1 (Premiership)",
       badge: "TIER 1 PREMIERSHIP",
       color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
-      description: "Elite 20 Mobile Athletes. Top 8 advance to eFootball UCL, 9th-12th to Europa Cup. Bottom 3 relegated.",
+      description: "Elite Mobile Athletes. Top 8 advance to eFootball UCL, 9th-12th to Europa Cup. Bottom 3 relegated to Division 2.",
       standings: div1Standings,
     },
     "Division 2": {
       name: "Division 2 (Championship)",
       badge: "TIER 2 CHAMPIONSHIP",
       color: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-      description: "Championship 20 Mobile Athletes. Top 3 PROMOTED to Division 1 at end of season. Top 4 qualify for UCL.",
+      description: "Championship Mobile Athletes. Top 3 PROMOTED to Division 1. Bottom 3 relegated to Division 3. Top 4 qualify for UCL.",
       standings: div2Standings,
     },
     "Division 3": {
       name: "Division 3 (Academy)",
       badge: "TIER 3 ACADEMY",
       color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
-      description: "National Academy 20 Athletes. Top 3 PROMOTED to Division 2 at end of season. Top 4 qualify for UCL.",
+      description: "National Academy Mobile Athletes. Top 3 PROMOTED to Division 2 at end of season. Top 4 qualify for UCL.",
       standings: div3Standings,
     },
   };
