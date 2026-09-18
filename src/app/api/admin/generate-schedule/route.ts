@@ -31,12 +31,13 @@ function generateRoundRobin(players: { id: string; gamerTag: string }[], isSingl
   const roundsCount = numPlayers - 1;
   const matchesPerRound = numPlayers / 2;
 
-  const firstLegRounds: { roundNumber: number; pairings: [string, string][] }[] = [];
+  const firstLegRounds: { roundNumber: number; pairings: [string, string][]; byePlayerId?: string }[] = [];
 
   const teamIndices = playerList.map((_, i) => i);
 
   for (let round = 0; round < roundsCount; round++) {
     const pairings: [string, string][] = [];
+    let byePlayerId: string | undefined;
 
     for (let match = 0; match < matchesPerRound; match++) {
       const homeIdx = teamIndices[match];
@@ -45,8 +46,12 @@ function generateRoundRobin(players: { id: string; gamerTag: string }[], isSingl
       const homePlayer = playerList[homeIdx];
       const awayPlayer = playerList[awayIdx];
 
-      // Exclude BYE matches
-      if (homePlayer.id !== "BYE" && awayPlayer.id !== "BYE") {
+      // Exclude BYE matches and identify the remaining player on rest day
+      if (homePlayer.id === "BYE") {
+        byePlayerId = awayPlayer.id;
+      } else if (awayPlayer.id === "BYE") {
+        byePlayerId = homePlayer.id;
+      } else {
         // Alternate home/away based on round to balance home advantage
         if (round % 2 === 1 && match === 0) {
           pairings.push([awayPlayer.id, homePlayer.id]);
@@ -56,7 +61,7 @@ function generateRoundRobin(players: { id: string; gamerTag: string }[], isSingl
       }
     }
 
-    firstLegRounds.push({ roundNumber: round + 1, pairings });
+    firstLegRounds.push({ roundNumber: round + 1, pairings, byePlayerId });
 
     // Rotate indices clockwise keeping index 0 fixed
     const last = teamIndices.pop()!;
@@ -72,6 +77,7 @@ function generateRoundRobin(players: { id: string; gamerTag: string }[], isSingl
   const secondLegRounds = firstLegRounds.map((r) => ({
     roundNumber: r.roundNumber + roundsCount,
     pairings: r.pairings.map(([home, away]) => [away, home] as [string, string]),
+    byePlayerId: r.byePlayerId,
   }));
 
   return [...firstLegRounds, ...secondLegRounds];
@@ -134,16 +140,6 @@ export async function POST(req: Request) {
 
       if (players.length < 2) {
         const msg = `Need at least 2 players to generate round-robin schedule (currently ${players.length}).`;
-        if (division !== "ALL") {
-          return NextResponse.json({ error: msg }, { status: 400 });
-        }
-        summary[divName] = msg;
-        continue;
-      }
-
-      // Every round all players must play with no intervals/byes -> Requires an even number of players (e.g. 20)
-      if (players.length % 2 !== 0) {
-        const msg = `Cannot generate schedule for ${divName}: has an odd number of players (${players.length}). To ensure all players play every round with no intervals or byes, the division must have an even number of players (e.g. 20 players).`;
         if (division !== "ALL") {
           return NextResponse.json({ error: msg }, { status: 400 });
         }
@@ -218,6 +214,22 @@ export async function POST(req: Request) {
             },
           });
           divMatchesCount++;
+        }
+
+        // If division has an odd number of players, the remaining one gets a message telling him that the current day has no match to play
+        if (roundData.byePlayerId) {
+          const byePlayer = players.find((p) => p.id === roundData.byePlayerId);
+          if (byePlayer) {
+            await prisma.announcement.create({
+              data: {
+                title: `🗓️ ${roundName}: No Match Scheduled (Official Rest Day)`,
+                content: `Hello ${byePlayer.gamerTag}! You do not have a match to play for ${roundName}. Because ${divName} has an odd number of active players (${players.length} competitors), this round is your scheduled bye/rest day while other fixtures are played. Enjoy your rest day!`,
+                type: "INDIVIDUAL",
+                targetPlayerId: byePlayer.id,
+                isPinned: isMatchday1,
+              },
+            });
+          }
         }
       }
 

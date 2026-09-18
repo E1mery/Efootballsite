@@ -72,6 +72,39 @@ export default async function DashboardPage() {
 
   let activeMatch = null;
   let allPlayerMatches: any[] = [];
+  let isRestDayToday = false;
+
+  // Fetch announcements for this player early so rest day checks can access and update them
+  let announcements = await prisma.announcement.findMany({
+    where: {
+      OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
+    },
+    orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+    take: 30,
+  });
+
+  // Remove announcements that were marked as read > 24 hours ago to create space
+  const expiredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const expiredReads = await prisma.announcementRead.findMany({
+    where: {
+      playerId: player.id,
+      readAt: { lt: expiredCutoff },
+    },
+    select: { announcementId: true },
+  });
+  const expiredReadIds = new Set(expiredReads.map((r) => r.announcementId));
+  announcements = announcements.filter((ann) => !expiredReadIds.has(ann.id));
+
+  // If player is in the reserve pool, filter out match fixture broadcasts
+  if (isReserved) {
+    announcements = announcements.filter(
+      (ann) =>
+        !ann.title.includes("Matchday") &&
+        !ann.title.includes("Fixtures") &&
+        !ann.title.includes("Deadline") &&
+        !ann.title.includes("Countdown")
+    );
+  }
 
   // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool
   if (isParticipating) {
@@ -141,38 +174,43 @@ export default async function DashboardPage() {
       if (numA !== numB) return numA - numB;
       return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
     });
-  }
 
-  // Fetch announcements for this player
-  let announcements = await prisma.announcement.findMany({
-    where: {
-      OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
-    },
-    orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-    take: 30,
-  });
+    // Check if the current round in player's division has matches, but this player is the remaining one (odd division rest day)
+    const divisionMatchesThisRound = await prisma.match.count({
+      where: {
+        division: player.division,
+        round: currentRoundName,
+      },
+    });
 
-  // Remove announcements that were marked as read > 24 hours ago to create space
-  const expiredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const expiredReads = await prisma.announcementRead.findMany({
-    where: {
-      playerId: player.id,
-      readAt: { lt: expiredCutoff },
-    },
-    select: { announcementId: true },
-  });
-  const expiredReadIds = new Set(expiredReads.map((r) => r.announcementId));
-  announcements = announcements.filter((ann) => !expiredReadIds.has(ann.id));
+    const playerMatchThisRound = await prisma.match.findFirst({
+      where: {
+        division: player.division,
+        round: currentRoundName,
+        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+      },
+    });
 
-  // If player is in the reserve pool, filter out match fixture broadcasts
-  if (isReserved) {
-    announcements = announcements.filter(
-      (ann) =>
-        !ann.title.includes("Matchday") &&
-        !ann.title.includes("Fixtures") &&
-        !ann.title.includes("Deadline") &&
-        !ann.title.includes("Countdown")
-    );
+    if (divisionMatchesThisRound > 0 && !playerMatchThisRound) {
+      isRestDayToday = true;
+
+      // Ensure notification exists in announcements
+      const alreadyNotified = announcements.some(
+        (a) => a.title.includes(currentRoundName) && (a.title.includes("No Match") || a.title.includes("Rest Day"))
+      );
+      if (!alreadyNotified) {
+        const restAnn = await prisma.announcement.create({
+          data: {
+            title: `🗓️ ${currentRoundName}: No Match Scheduled (Rest Day)`,
+            content: `Hello ${player.gamerTag}! You do not have a match to play for today's ${currentRoundName}. Because ${player.division} has an odd number of active players, this round is your scheduled rest day while other division fixtures take place. Your next match will unlock on the following matchday.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: player.id,
+            isPinned: true,
+          },
+        });
+        announcements = [restAnn, ...announcements];
+      }
+    }
   }
 
   // Fetch player's existing feedback review if any
@@ -289,6 +327,8 @@ export default async function DashboardPage() {
         uclSlots={uclSlots}
         europaSlots={europaSlots}
         initialReview={myReview}
+        isRestDayToday={isRestDayToday}
+        currentRoundName={currentRoundName}
       />
     </div>
   );

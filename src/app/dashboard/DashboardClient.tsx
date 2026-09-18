@@ -317,6 +317,8 @@ export default function DashboardClient({
   uclSlots = [],
   europaSlots = [],
   initialReview = null,
+  isRestDayToday = false,
+  currentRoundName,
 }: {
   player: any;
   user: any;
@@ -335,6 +337,8 @@ export default function DashboardClient({
   uclSlots?: any[];
   europaSlots?: any[];
   initialReview?: any;
+  isRestDayToday?: boolean;
+  currentRoundName?: string;
 }) {
   const router = useRouter();
 
@@ -344,15 +348,15 @@ export default function DashboardClient({
   // Check if player is on standby in reserve pool
   const isReserved = player.status === "RESERVED" || player?.status === "RESERVED";
 
-  // Compute robust active match (strictly for participating players, NEVER for reserve pool players):
-  // 1. If reserved, activeMatch is strictly null
+  // Compute robust active match (strictly for participating players, NEVER for reserve pool or rest day players):
+  // 1. If reserved or on rest day today, activeMatch is strictly null
   // 2. Initial server-provided active match
   // 3. Current matchday scheduled or live match from allPlayerMatches
   // 4. Earliest unplayed scheduled or live match
   // 5. Any match from current matchday (even if pending/finished so user sees score & proof)
   // 6. Most recent fixture
   const activeMatch = useMemo(() => {
-    if (isReserved) return null;
+    if (isReserved || isRestDayToday) return null;
     if (initialActiveMatch) return initialActiveMatch;
     if (!allPlayerMatches || allPlayerMatches.length === 0) return null;
 
@@ -1022,9 +1026,13 @@ export default function DashboardClient({
             >
               <Smartphone className="h-4 w-4" />
               <span>Today's 24-Hr Match</span>
-              {activeMatch && (
+              {isRestDayToday ? (
+                <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-[10px] font-bold text-cyan-300 border border-cyan-500/40">
+                  Rest Day
+                </span>
+              ) : activeMatch ? (
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              )}
+              ) : null}
             </button>
 
             <button
@@ -1579,6 +1587,58 @@ export default function DashboardClient({
                 )}
               </div>
             </div>
+          ) : isRestDayToday ? (
+            <div className="rounded-3xl border-2 border-cyan-500/50 bg-gradient-to-b from-cyan-950/40 via-slate-950 to-slate-900 p-8 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="inline-flex p-4 rounded-3xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <Badge variant="yellow" className="text-xs font-mono font-bold uppercase tracking-wider px-3 py-1">
+                  {currentRoundName || `Matchday ${leagueConfig?.currentMatchday || 1}`} • OFFICIAL REST DAY
+                </Badge>
+                <h3 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight">
+                  You Have No Match To Play Today
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                Because your division (<span className="text-cyan-400 font-bold">{currentPlayer.division}</span>) has an odd number of competitors, each matchday one athlete has an official scheduled bye/rest day while other fixtures are played. Today is your scheduled rest day!
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto text-left pt-2">
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="text-xs text-slate-300 font-medium">
+                    No forfeit penalty: Your table position, rank, and points are completely safe.
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-start gap-2.5">
+                  <Clock className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span className="text-xs text-slate-300 font-medium">
+                    Your next league fixture will unlock automatically on the next matchday.
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setActiveTab("CALENDAR")}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs gap-2 min-h-[44px]"
+                >
+                  <Calendar className="h-4 w-4" />
+                  View Season Calendar ({allPlayerMatches.length} Matches)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab("STANDINGS")}
+                  className="text-xs font-bold min-h-[44px]"
+                >
+                  <Trophy className="h-4 w-4 mr-1.5" />
+                  View Division Tables
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-12 text-center space-y-4">
               <Smartphone className="h-12 w-12 text-slate-600 mx-auto" />
@@ -2068,6 +2128,20 @@ export default function DashboardClient({
               </p>
             </div>
           </div>
+
+          {isRestDayToday && (
+            <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4 flex items-center gap-3 shadow-lg">
+              <Sparkles className="h-5 w-5 text-cyan-400 shrink-0" />
+              <div className="text-xs">
+                <span className="font-bold text-cyan-300 uppercase mr-1.5">
+                  {currentRoundName || "Current Matchday"} Notice:
+                </span>
+                <span className="text-slate-300">
+                  Today is your official scheduled rest day in {currentPlayer.division} (odd number of competitors). You have no match to play today, and your next fixture will unlock on the following matchday.
+                </span>
+              </div>
+            </div>
+          )}
 
           {allPlayerMatches.length === 0 ? (
             <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-3">

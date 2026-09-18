@@ -99,8 +99,40 @@ export async function POST(req: Request) {
       await promoteTopPlayersAtSeasonEnd();
     }
 
-    // 5. Create Announcement ONLY if new round fixtures were actually activated
+    // 5. Check divisions with odd numbers and notify the remaining athlete who has no match today
     if (updatedMatches.count > 0) {
+      const divisions = ["Division 1", "Division 2", "Division 3"];
+      for (const div of divisions) {
+        const divMatches = await prisma.match.findMany({
+          where: { division: div, round: nextRoundName },
+          select: { homePlayerId: true, awayPlayerId: true },
+        });
+        if (divMatches.length > 0) {
+          const playingIds = new Set<string>();
+          for (const m of divMatches) {
+            playingIds.add(m.homePlayerId);
+            playingIds.add(m.awayPlayerId);
+          }
+          const activePlayers = await prisma.player.findMany({
+            where: { division: div, status: "ACTIVE", isDisqualified: false },
+            select: { id: true, gamerTag: true },
+          });
+          for (const p of activePlayers) {
+            if (!playingIds.has(p.id)) {
+              await prisma.announcement.create({
+                data: {
+                  title: `🗓️ ${nextRoundName}: No Match Scheduled (Official Rest Day)`,
+                  content: `Hello ${p.gamerTag}! You do not have a match to play for today's ${nextRoundName}. Because ${div} has an odd number of competitors, you have a scheduled rest day while the other division fixtures take place. Your next match will take place on the following matchday.`,
+                  type: "INDIVIDUAL",
+                  targetPlayerId: p.id,
+                  isPinned: true,
+                },
+              });
+            }
+          }
+        }
+      }
+
       await prisma.announcement.create({
         data: {
           title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Midnight Window)`,
