@@ -2,16 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
+import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
 export async function GET(req: Request) {
   try {
     // Check and trigger any pending 1-hour automated reminders
     await checkAndSendOneHourMatchReminders();
 
+    // Automatically purge announcements older than 24 hours
+    await cleanupExpiredAnnouncements();
+    const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get("playerId");
 
     const whereClause: any = {
+      createdAt: { gte: cutoff24h },
       OR: [{ type: "BROADCAST" }],
     };
 
@@ -19,11 +25,10 @@ export async function GET(req: Request) {
       whereClause.OR.push({ targetPlayerId: playerId });
 
       // Exclude announcements marked as read > 24 hours ago
-      const expiredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const expiredReads = await prisma.announcementRead.findMany({
         where: {
           playerId,
-          readAt: { lt: expiredCutoff },
+          readAt: { lt: cutoff24h },
         },
         select: { announcementId: true },
       });

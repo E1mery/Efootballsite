@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 
 export async function GET(req: Request) {
   try {
+    // Automatically purge replied messages older than 24 hours
+    await cleanupExpiredRepliedMessages();
+
     const cookieStore = await cookies();
     const sessionUserId = cookieStore.get("efrl_session")?.value;
     if (!sessionUserId) {

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AdminClient from "./AdminClient";
 import { ensurePasswordResetTable } from "@/lib/passwordReset";
+import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
+import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,10 @@ export default async function AdminPage() {
   if (!user || user.role !== "ADMIN") {
     redirect("/admin/login?error=admin_required");
   }
+
+  // Automatically purge replied player messages and announcements older than 24 hours
+  await cleanupExpiredRepliedMessages();
+  await cleanupExpiredAnnouncements();
 
   const [
     matches,

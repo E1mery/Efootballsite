@@ -386,6 +386,19 @@ export default function DashboardClient({
     player.division || "Division 1"
   );
 
+  // Dynamic current time ticker to ensure 24h auto-deletion updates live on page
+  const [announcementNow, setAnnouncementNow] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setAnnouncementNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Announcements strictly within 24 hours of publication
+  const activeAnnouncements = useMemo(() => {
+    const cutoff24h = announcementNow - 24 * 60 * 60 * 1000;
+    return announcements.filter((a) => new Date(a.createdAt).getTime() > cutoff24h);
+  }, [announcements, announcementNow]);
+
   // Announcement read tracking (interactive from localStorage)
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
 
@@ -423,12 +436,12 @@ export default function DashboardClient({
     try {
       const storageKey = `efrl_read_ann_${player.id}`;
       const updated = new Set(readAnnouncements);
-      announcements.forEach((ann) => updated.add(ann.id));
+      activeAnnouncements.forEach((ann) => updated.add(ann.id));
       setReadAnnouncements(updated);
       localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
 
       await Promise.all(
-        announcements.map((ann) =>
+        activeAnnouncements.map((ann) =>
           fetch("/api/announcements/read", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -655,8 +668,8 @@ export default function DashboardClient({
     }
   };
 
-  // Unread announcements count
-  const unreadAnnouncementsCount = announcements.filter((a) => !readAnnouncements.has(a.id)).length;
+  // Unread announcements count (based on active 24h announcements)
+  const unreadAnnouncementsCount = activeAnnouncements.filter((a) => !readAnnouncements.has(a.id)).length;
 
   // Determine opponent
   const isHomePlayer = activeMatch?.homePlayerId === player.id;
@@ -1852,7 +1865,8 @@ export default function DashboardClient({
                   <p className="text-xs text-slate-400 mt-0.5">
                     {unreadAnnouncementsCount > 0
                       ? `${unreadAnnouncementsCount} unread announcement${unreadAnnouncementsCount === 1 ? "" : "s"}`
-                      : "All caught up! No unread announcements"}
+                      : "All caught up! No unread announcements"}{" "}
+                    • <span className="text-slate-500">Auto-deleted after 24h</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -1867,15 +1881,15 @@ export default function DashboardClient({
                       Mark All as Read
                     </Button>
                   )}
-                  <span className="text-xs font-mono text-slate-500">{announcements.length} Total</span>
+                  <span className="text-xs font-mono text-slate-500">{activeAnnouncements.length} Total</span>
                 </div>
               </div>
 
-              {announcements.length === 0 ? (
-                <p className="text-xs text-slate-500 italic py-8 text-center">No announcements yet.</p>
+              {activeAnnouncements.length === 0 ? (
+                <p className="text-xs text-slate-500 italic py-8 text-center">No active announcements within the last 24 hours.</p>
               ) : (
                 <div className="space-y-4">
-                  {announcements.map((ann) => {
+                  {activeAnnouncements.map((ann) => {
                     const isRead = readAnnouncements.has(ann.id);
                     return (
                       <div

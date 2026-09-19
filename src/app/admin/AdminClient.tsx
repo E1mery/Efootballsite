@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -172,6 +172,37 @@ export default function AdminClient({
   const [replyingMessageId, setReplyingMessageId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
+  const [inquiriesSubTab, setInquiriesSubTab] = useState<"PENDING" | "HISTORY" | "ALL">("PENDING");
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+
+  // Dynamic current time ticker to ensure 24h message history auto-deletion updates live
+  const [messagesNow, setMessagesNow] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setMessagesNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Filter out any replied messages whose 24-hour retention window has expired
+  const activePlayerMessages = useMemo(() => {
+    const cutoff24h = messagesNow - 24 * 60 * 60 * 1000;
+    return playerMessages.filter((m) => {
+      if (m.status === "REPLIED" || m.adminReply) {
+        const timeRef = m.repliedAt || m.updatedAt;
+        if (timeRef && new Date(timeRef).getTime() <= cutoff24h) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [playerMessages, messagesNow]);
+
+  const pendingMessages = useMemo(() => {
+    return activePlayerMessages.filter((m) => m.status === "PENDING" && !m.adminReply);
+  }, [activePlayerMessages]);
+
+  const historyMessages = useMemo(() => {
+    return activePlayerMessages.filter((m) => m.status === "REPLIED" || !!m.adminReply);
+  }, [activePlayerMessages]);
 
   // Division Participant Capacity State (Default: 20 per division)
   const [div1Max, setDiv1Max] = useState<number>(leagueConfig?.div1MaxPlayers ?? 20);
@@ -1124,7 +1155,7 @@ export default function AdminClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send reply");
-      alert(data.message || "Reply sent successfully!");
+      alert(data.message || "Reply sent successfully! Stored in Message History (auto-deletes in 24 hours).");
       if (data.data) {
         setPlayerMessages((prev) =>
           prev.map((m) => (m.id === messageId ? data.data : m))
@@ -1132,11 +1163,31 @@ export default function AdminClient({
       }
       setReplyingMessageId(null);
       setReplyText("");
+      setInquiriesSubTab("HISTORY");
       router.refresh();
     } catch (err: any) {
       alert(err.message);
     } finally {
       setSubmittingReply(false);
+    }
+  };
+
+  // Delete message from Message History
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Are you sure you want to delete this conversation from Message History?")) return;
+    setDeletingMessageId(messageId);
+    try {
+      const res = await fetch(`/api/admin/messages/reply?id=${encodeURIComponent(messageId)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete message");
+      setPlayerMessages((prev) => prev.filter((m) => m.id !== messageId));
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete message");
+    } finally {
+      setDeletingMessageId(null);
     }
   };
 
@@ -1556,10 +1607,10 @@ export default function AdminClient({
           }`}
         >
           <MessageSquare className="h-4 w-4 text-indigo-400" />
-          <span>Player Inquiries ({playerMessages.length})</span>
-          {playerMessages.filter((m) => m.status === "PENDING").length > 0 && (
+          <span>Player Inquiries ({activePlayerMessages.length})</span>
+          {pendingMessages.length > 0 && (
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black animate-pulse">
-              {playerMessages.filter((m) => m.status === "PENDING").length}
+              {pendingMessages.length}
             </Badge>
           )}
         </button>
@@ -4775,6 +4826,7 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "MESSAGES" && (
         <div className="space-y-6">
+          {/* Header Banner */}
           <div className="rounded-3xl border border-indigo-500/30 bg-indigo-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-indigo-400">
@@ -4782,179 +4834,312 @@ export default function AdminClient({
                 <h3 className="text-lg font-black uppercase text-white">Player Support & Direct Inquiries Desk</h3>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                Direct inquiries submitted by athletes from their dashboard. Write official commissioner responses which appear immediately in the athlete&apos;s conversation thread and trigger a direct announcement to their portal.
+                Direct inquiries submitted by athletes from their dashboard. Write official commissioner responses which appear immediately in the athlete&apos;s conversation thread. Replied messages are stored in Message History and automatically delete after 24 hours.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="secondary" className="text-xs px-3 py-1 font-mono">
-                {playerMessages.length} Total Messages
+                {activePlayerMessages.length} Total Messages
               </Badge>
-              {playerMessages.filter((m) => m.status === "PENDING").length > 0 && (
+              {pendingMessages.length > 0 && (
                 <Badge variant="destructive" className="text-xs px-3 py-1 font-mono animate-pulse">
-                  {playerMessages.filter((m) => m.status === "PENDING").length} Pending Reply
+                  {pendingMessages.length} Pending Reply
+                </Badge>
+              )}
+              {historyMessages.length > 0 && (
+                <Badge variant="outline" className="text-xs px-3 py-1 font-mono border-emerald-500/40 text-emerald-300 bg-emerald-950/20">
+                  {historyMessages.length} in History
                 </Badge>
               )}
             </div>
           </div>
 
-          {playerMessages.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-2">
-              <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-2" />
-              <h4 className="text-base font-bold text-white uppercase">No Player Inquiries Yet</h4>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                When athletes write direct messages to the league administrators from their personal dashboards, they will appear here for you to interact and reply.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {playerMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`rounded-3xl border p-6 space-y-4 backdrop-blur-xl transition-all shadow-xl ${
-                    msg.status === "PENDING"
-                      ? "border-amber-500/50 bg-gradient-to-r from-amber-950/20 via-slate-900/90 to-slate-950/90 ring-1 ring-amber-500/20"
-                      : "border-slate-800 bg-slate-950/80"
-                  }`}
-                >
-                  {/* Athlete & Message Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-600 text-white font-black text-sm flex items-center justify-center shrink-0">
-                        {msg.player?.gamerTag?.slice(0, 2).toUpperCase() || "PL"}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-base font-black text-white">{msg.player?.gamerTag}</h4>
-                          <Badge variant="secondary" className="text-[10px]">
-                            {msg.player?.division}
-                          </Badge>
-                          <Badge
-                            variant={msg.status === "REPLIED" ? "green" : "yellow"}
-                            className="text-[10px] font-bold"
-                          >
-                            {msg.status === "REPLIED" ? "REPLIED" : "PENDING REPLY"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
-                          <span>{msg.player?.fullName}</span>
-                          {msg.player?.whatsapp && (
-                            <a
-                              href={`https://wa.me/${msg.player.whatsapp.replace(/[^0-9]/g, "")}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-emerald-400 hover:underline flex items-center gap-1 font-mono"
-                            >
-                              <MessageSquare className="h-3 w-3" />
-                              <span>{msg.player.whatsapp}</span>
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+          {/* Sub-Navigation between Pending Inquiries, Message History, and All */}
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
+            <button
+              onClick={() => setInquiriesSubTab("PENDING")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+                inquiriesSubTab === "PENDING"
+                  ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span>Active Inquiries</span>
+              {pendingMessages.length > 0 && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black">
+                  {pendingMessages.length}
+                </Badge>
+              )}
+            </button>
 
-                    <span className="text-[11px] font-mono text-slate-500 self-start sm:self-auto">
-                      Received: {new Date(msg.createdAt).toLocaleString()}
-                    </span>
-                  </div>
+            <button
+              onClick={() => setInquiriesSubTab("HISTORY")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+                inquiriesSubTab === "HISTORY"
+                  ? "bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>Message History</span>
+              {historyMessages.length > 0 && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono text-slate-900 border-slate-950/40 bg-white/20">
+                  {historyMessages.length}
+                </Badge>
+              )}
+            </button>
 
-                  {/* Subject and Content */}
-                  <div className="space-y-2 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
-                    <span className="text-[10px] font-bold uppercase text-sky-400 tracking-wider block">
-                      Topic / Subject:
-                    </span>
-                    <h5 className="text-sm font-bold text-white">{msg.subject}</h5>
-                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-800/50">
-                      {msg.content}
-                    </p>
-                  </div>
+            <button
+              onClick={() => setInquiriesSubTab("ALL")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+                inquiriesSubTab === "ALL"
+                  ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>All Inquiries</span>
+              <span className="text-xs font-mono opacity-80">({activePlayerMessages.length})</span>
+            </button>
+          </div>
 
-                  {/* Existing Admin Reply */}
-                  {msg.adminReply && replyingMessageId !== msg.id && (
-                    <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="green" className="text-[9px] font-black uppercase">
-                            YOUR OFFICIAL REPLY SENT
-                          </Badge>
-                          {msg.repliedAt && (
-                            <span className="text-[10px] font-mono text-emerald-400/70">
-                              {new Date(msg.repliedAt).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setReplyingMessageId(msg.id);
-                            setReplyText(msg.adminReply || "");
-                          }}
-                          className="h-6 text-[11px] text-emerald-400 hover:text-white"
-                        >
-                          Edit Reply
-                        </Button>
-                      </div>
-                      <p className="text-xs text-emerald-200 leading-relaxed whitespace-pre-wrap">
-                        {msg.adminReply}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Reply Input Form */}
-                  {replyingMessageId === msg.id ? (
-                    <div className="rounded-2xl border border-indigo-500/40 bg-slate-900 p-4 space-y-3">
-                      <label className="text-xs font-bold uppercase text-indigo-400 block">
-                        Write Official Reply to {msg.player?.gamerTag}:
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Type official response from the League Commissioner..."
-                        className="w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
-                        required
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setReplyingMessageId(null);
-                            setReplyText("");
-                          }}
-                          className="text-xs"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          disabled={submittingReply || !replyText.trim()}
-                          onClick={() => handleReplyToMessage(msg.id)}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                        >
-                          {submittingReply ? "Sending..." : "Submit Reply to Athlete"}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : !msg.adminReply ? (
-                    <div className="flex justify-end">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setReplyingMessageId(msg.id);
-                          setReplyText("");
-                        }}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
-                      >
-                        <Send className="h-3.5 w-3.5 mr-1.5" />
-                        <span>Reply to Athlete</span>
-                      </Button>
-                    </div>
-                  ) : null}
+          {/* Message History Information Banner */}
+          {inquiriesSubTab === "HISTORY" && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                  <RotateCcw className="h-5 w-5" />
                 </div>
-              ))}
+                <div>
+                  <h4 className="text-xs font-black uppercase text-emerald-300 tracking-wide">
+                    Replied Inquiries Archive (24-Hour Auto-Deletion)
+                  </h4>
+                  <p className="text-[11px] text-emerald-200/80 mt-0.5">
+                    Messages you have replied to are stored here in Message History. Each conversation history automatically deletes 24 hours after reply.
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/40 text-emerald-300 bg-emerald-950/40 shrink-0">
+                Auto-purged after 24h
+              </Badge>
             </div>
           )}
+
+          {/* Messages List or Empty State */}
+          {(() => {
+            const displayMessages =
+              inquiriesSubTab === "PENDING"
+                ? pendingMessages
+                : inquiriesSubTab === "HISTORY"
+                ? historyMessages
+                : activePlayerMessages;
+
+            if (displayMessages.length === 0) {
+              return (
+                <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-2">
+                  <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-2" />
+                  <h4 className="text-base font-bold text-white uppercase">
+                    {inquiriesSubTab === "PENDING"
+                      ? "No Pending Inquiries"
+                      : inquiriesSubTab === "HISTORY"
+                      ? "No Message History"
+                      : "No Player Inquiries Yet"}
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    {inquiriesSubTab === "PENDING"
+                      ? "All athlete inquiries have been replied to! Check the Message History tab to view previously answered conversations."
+                      : inquiriesSubTab === "HISTORY"
+                      ? "When you reply to athlete messages, they are stored here in Message History and automatically deleted after 24 hours."
+                      : "When athletes write direct messages to the league administrators from their personal dashboards, they will appear here for you to interact and reply."}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {displayMessages.map((msg) => {
+                  const isReplied = msg.status === "REPLIED" || !!msg.adminReply;
+                  const repliedTimestamp = msg.repliedAt
+                    ? new Date(msg.repliedAt).getTime()
+                    : new Date(msg.updatedAt).getTime();
+                  const msRemaining = Math.max(0, repliedTimestamp + 24 * 60 * 60 * 1000 - messagesNow);
+                  const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+                  const minsRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`rounded-3xl border p-6 space-y-4 backdrop-blur-xl transition-all shadow-xl ${
+                        !isReplied
+                          ? "border-amber-500/50 bg-gradient-to-r from-amber-950/20 via-slate-900/90 to-slate-950/90 ring-1 ring-amber-500/20"
+                          : "border-slate-800 bg-slate-950/80 hover:border-slate-700"
+                      }`}
+                    >
+                      {/* Athlete & Message Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-600 text-white font-black text-sm flex items-center justify-center shrink-0">
+                            {msg.player?.gamerTag?.slice(0, 2).toUpperCase() || "PL"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-base font-black text-white">{msg.player?.gamerTag}</h4>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {msg.player?.division}
+                              </Badge>
+                              <Badge
+                                variant={isReplied ? "green" : "yellow"}
+                                className="text-[10px] font-bold"
+                              >
+                                {isReplied ? "STORED IN HISTORY" : "PENDING REPLY"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                              <span>{msg.player?.fullName}</span>
+                              {msg.player?.whatsapp && (
+                                <a
+                                  href={`https://wa.me/${msg.player.whatsapp.replace(/[^0-9]/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-400 hover:underline flex items-center gap-1 font-mono"
+                                >
+                                  <MessageSquare className="h-3 w-3" />
+                                  <span>{msg.player.whatsapp}</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+                          <span className="text-[11px] font-mono text-slate-500">
+                            Received: {new Date(msg.createdAt).toLocaleString()}
+                          </span>
+
+                          {isReplied && (
+                            <div className="flex items-center gap-2">
+                              <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 text-emerald-300">
+                                <Clock className="h-3 w-3 text-emerald-400" />
+                                Auto-deletes in {hoursRemaining}h {minsRemaining}m
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={deletingMessageId === msg.id}
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="h-7 px-2.5 text-[10px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                                title="Delete from Message History now"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                {deletingMessageId === msg.id ? "..." : "Delete"}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Subject and Content */}
+                      <div className="space-y-2 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+                        <span className="text-[10px] font-bold uppercase text-sky-400 tracking-wider block">
+                          Topic / Subject:
+                        </span>
+                        <h5 className="text-sm font-bold text-white">{msg.subject}</h5>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-800/50">
+                          {msg.content}
+                        </p>
+                      </div>
+
+                      {/* Existing Admin Reply (Stored in History) */}
+                      {msg.adminReply && replyingMessageId !== msg.id && (
+                        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="green" className="text-[9px] font-black uppercase">
+                                YOUR OFFICIAL REPLY (STORED IN HISTORY)
+                              </Badge>
+                              {msg.repliedAt && (
+                                <span className="text-[10px] font-mono text-emerald-400/70">
+                                  {new Date(msg.repliedAt).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setReplyingMessageId(msg.id);
+                                setReplyText(msg.adminReply || "");
+                              }}
+                              className="h-6 text-[11px] text-emerald-400 hover:text-white"
+                            >
+                              Edit Reply
+                            </Button>
+                          </div>
+                          <p className="text-xs text-emerald-200 leading-relaxed whitespace-pre-wrap">
+                            {msg.adminReply}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Reply Input Form */}
+                      {replyingMessageId === msg.id ? (
+                        <div className="rounded-2xl border border-indigo-500/40 bg-slate-900 p-4 space-y-3">
+                          <label className="text-xs font-bold uppercase text-indigo-400 block">
+                            Write Official Reply to {msg.player?.gamerTag}:
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder="Type official response from the League Commissioner..."
+                            className="w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                            required
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setReplyingMessageId(null);
+                                setReplyText("");
+                              }}
+                              className="text-xs"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={submittingReply || !replyText.trim()}
+                              onClick={() => handleReplyToMessage(msg.id)}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                            >
+                              {submittingReply ? "Sending..." : "Submit Reply & Store in History"}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : !msg.adminReply ? (
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setReplyingMessageId(msg.id);
+                              setReplyText("");
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                          >
+                            <Send className="h-3.5 w-3.5 mr-1.5" />
+                            <span>Reply to Athlete</span>
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 

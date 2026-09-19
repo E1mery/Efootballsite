@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -21,6 +22,9 @@ export async function POST(req: Request) {
     if (!admin) {
       return NextResponse.json({ error: "Unauthorized: Admin access required." }, { status: 403 });
     }
+
+    // Automatically purge expired replied messages (>24h)
+    await cleanupExpiredRepliedMessages();
 
     const body = await req.json();
     const { messageId, replyContent, status } = body;
@@ -75,11 +79,41 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Reply sent successfully to the athlete.",
+      message: "Reply sent successfully! Conversation stored in Chats History (will auto-delete in 24 hours).",
       data: updated,
     });
   } catch (err: any) {
     console.error("Admin message reply error:", err);
     return NextResponse.json({ error: err.message || "Failed to submit reply." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const admin = await verifyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized: Admin access required." }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const messageId = searchParams.get("id");
+
+    if (!messageId) {
+      return NextResponse.json({ error: "Message ID is required." }, { status: 400 });
+    }
+
+    await (prisma as any).playerMessage.delete({
+      where: { id: messageId },
+    });
+
+    await cleanupExpiredRepliedMessages();
+
+    return NextResponse.json({
+      success: true,
+      message: "Conversation deleted from history successfully.",
+    });
+  } catch (err: any) {
+    console.error("Delete message error:", err);
+    return NextResponse.json({ error: err.message || "Failed to delete message." }, { status: 500 });
   }
 }

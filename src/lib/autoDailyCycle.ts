@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { syncMatchOfTheDay } from "@/lib/matchOfTheDay";
 import { promoteTopPlayersAtSeasonEnd } from "@/lib/seasonPromotion";
 import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
+import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
+import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
 /**
  * Checks if the current matchday deadline has expired (12:00 AM midnight passed)
@@ -23,6 +25,10 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
 
     // Always run automated 1-hour match reminders check for any expiring unsubmitted matches
     await checkAndSendOneHourMatchReminders();
+
+    // Automatically purge replied player messages and announcements older than 24 hours
+    await cleanupExpiredRepliedMessages();
+    await cleanupExpiredAnnouncements();
 
     // Look for any match in the current matchday to check the deadline
     const sampleMatch = await prisma.match.findFirst({

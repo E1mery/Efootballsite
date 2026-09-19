@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import DashboardClient from "./DashboardClient";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import { evaluateAllDivisionsMatchOfTheDay } from "@/lib/matchOfTheDay";
+import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -74,21 +75,25 @@ export default async function DashboardPage() {
   let allPlayerMatches: any[] = [];
   let isRestDayToday = false;
 
-  // Fetch announcements for this player early so rest day checks can access and update them
+  // Automatic deletion of announcements older than 24 hours
+  await cleanupExpiredAnnouncements();
+  const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // Fetch announcements for this player created within the last 24 hours
   let announcements = await prisma.announcement.findMany({
     where: {
       OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
+      createdAt: { gte: cutoff24h },
     },
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
     take: 30,
   });
 
-  // Remove announcements that were marked as read > 24 hours ago to create space
-  const expiredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  // Remove announcements that were marked as read > 24 hours ago
   const expiredReads = await prisma.announcementRead.findMany({
     where: {
       playerId: player.id,
-      readAt: { lt: expiredCutoff },
+      readAt: { lt: cutoff24h },
     },
     select: { announcementId: true },
   });
