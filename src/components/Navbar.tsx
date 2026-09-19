@@ -12,7 +12,22 @@ export default function Navbar() {
   const pathname = usePathname();
   const isAdminPortal = pathname?.startsWith("/admin");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(null);
+  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("efrl_user");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          return {
+            authenticated: true,
+            user: parsed,
+            player: parsed.player,
+          };
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
 
   useEffect(() => {
     // 1. Immediately hydrate from localStorage to prevent flash of "Log In" on refresh
@@ -61,8 +76,9 @@ export default function Navbar() {
   }, [session, pathname]);
 
   const isUserPortal = pathname?.startsWith("/dashboard");
+  const isInsidePortal = Boolean(isUserPortal || isAdminPortal);
   const isUserOrAdminLoggedIn = Boolean(
-    session?.authenticated || isUserPortal || isAdminPortal
+    session?.authenticated || isInsidePortal
   );
 
   const navLinks = isUserOrAdminLoggedIn
@@ -93,8 +109,8 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Desktop Navigation Links (HIDDEN in Admin Portal) */}
-        {!isAdminPortal && (
+        {/* Desktop Navigation Links (HIDDEN in Admin and User Portals) */}
+        {!isInsidePortal && (
           <nav className="hidden lg:flex items-center space-x-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -159,8 +175,8 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile menu toggle & quick action */}
-        {!isAdminPortal && (
+        {/* Mobile menu toggle & quick action (HIDDEN in Admin and User Portals) */}
+        {!isInsidePortal && (
           <div className="flex items-center gap-2 lg:hidden">
             {session?.authenticated ? (
               <Link href={session.user?.role === "ADMIN" ? "/admin" : "/dashboard"}>
@@ -199,7 +215,7 @@ export default function Navbar() {
       </div>
 
       {/* Mobile menu dropdown */}
-      {mobileMenuOpen && !isAdminPortal && (
+      {mobileMenuOpen && !isInsidePortal && (
         <div className="lg:hidden border-b border-slate-800 bg-[#060913]/98 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2">
             <>
               {navLinks.map((link) => {

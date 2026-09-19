@@ -3291,19 +3291,19 @@ export default function DashboardClient({
       })()}
 
       {/* ========================================================================= */}
-      {/* FLOATING QUICK ACTIONS BUTTON (Circle Shape) */}
+      {/* FLOATING QUICK ACTIONS BUTTON (Compact Circle Shape) */}
       {/* ========================================================================= */}
       <div className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
         <button
           onClick={() => setShowActionHub(true)}
-          className="relative flex items-center justify-center w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-xl shadow-amber-500/30 hover:scale-110 active:scale-95 transition-all group ring-2 ring-amber-400/70 focus:outline-none"
+          className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/30 hover:scale-110 active:scale-95 transition-all group ring-2 ring-amber-400/80 focus:outline-none"
           title="Quick Actions & Help"
           aria-label="Quick Actions & Help"
         >
-          <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-slate-950 fill-current group-hover:scale-110 transition-transform duration-150" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+          <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-slate-950 fill-current group-hover:scale-110 transition-transform duration-150" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-slate-950"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 border border-slate-950"></span>
           </span>
         </button>
       </div>
