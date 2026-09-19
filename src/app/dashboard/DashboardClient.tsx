@@ -32,6 +32,7 @@ import {
   Unlock,
   RotateCcw,
   Flame,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,8 @@ import { Badge } from "@/components/ui/badge";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
 import EfootballLoader from "@/components/EfootballLoader";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
+import QuickGuideModal from "@/components/QuickGuideModal";
+import QuickActionHubModal from "@/components/QuickActionHubModal";
 
 interface ContinentalGroupStandingsViewProps {
   competition: "UCL" | "EUROPA";
@@ -542,6 +545,25 @@ export default function DashboardClient({
   // Modals state
   const [showResultModal, setShowResultModal] = useState(false);
   const [showForfeitModal, setShowForfeitModal] = useState(false);
+  const [showQuickGuide, setShowQuickGuide] = useState(false);
+  const [showActionHub, setShowActionHub] = useState(false);
+
+  // Auto-launch Quick Guide Tutorial on registration or first visit
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isWelcome = urlParams.get("welcome") === "true";
+      const pendingTutorial = localStorage.getItem("efrl_show_tutorial") === "true";
+      const completedTutorial = localStorage.getItem("efrl_tutorial_completed") === "true";
+
+      if (isWelcome || pendingTutorial || !completedTutorial) {
+        setShowQuickGuide(true);
+        if (pendingTutorial) {
+          localStorage.removeItem("efrl_show_tutorial");
+        }
+      }
+    }
+  }, []);
 
   // Result form state
   const [homeScore, setHomeScore] = useState<number | string>(0);
@@ -1011,6 +1033,15 @@ export default function DashboardClient({
               {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowActionHub(true)}
+            className="gap-1.5 text-xs font-bold border-amber-500/40 text-amber-300 hover:bg-amber-950/40 hover:text-white shadow-sm"
+          >
+            <Zap className="h-3.5 w-3.5 text-amber-400 fill-current" />
+            <span>Quick Actions &amp; Guide</span>
+          </Button>
           <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-xs">
             <LogOut className="h-4 w-4 text-slate-400" />
             Sign Out
@@ -3266,6 +3297,64 @@ export default function DashboardClient({
           </div>
         );
       })()}
+
+      {/* ========================================================================= */}
+      {/* FLOATING QUICK ACTIONS BUTTON */}
+      {/* ========================================================================= */}
+      <div className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
+        <button
+          onClick={() => setShowActionHub(true)}
+          className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black text-xs sm:text-sm shadow-2xl shadow-amber-500/40 hover:scale-105 active:scale-95 transition-all group ring-2 ring-amber-400/50"
+          title="Need help? Click for Quick Actions & Portal Guide"
+        >
+          <div className="p-1 rounded-lg bg-slate-950/20">
+            <Zap className="h-4 w-4 text-slate-950 fill-current animate-bounce" />
+          </div>
+          <span className="tracking-wide uppercase">Quick Actions &amp; Help</span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* QUICK GUIDE TUTORIAL MODAL */}
+      {/* ========================================================================= */}
+      <QuickGuideModal
+        isOpen={showQuickGuide}
+        onClose={() => setShowQuickGuide(false)}
+        onOpenActionHub={() => {
+          setShowQuickGuide(false);
+          setShowActionHub(true);
+        }}
+        player={currentPlayer}
+        isReserved={isReserved}
+      />
+
+      {/* ========================================================================= */}
+      {/* QUICK ACTIONS & HELP HUB MODAL */}
+      {/* ========================================================================= */}
+      <QuickActionHubModal
+        isOpen={showActionHub}
+        onClose={() => setShowActionHub(false)}
+        onNavigateTab={(tab, subTab) => {
+          setActiveTab(tab);
+          if (subTab) {
+            setInboxSubTab(subTab as any);
+          }
+        }}
+        onOpenSubmitResult={() => {
+          setActionMatch(activeMatch);
+          setShowResultModal(true);
+        }}
+        onOpenForfeitClaim={() => {
+          setActionMatch(activeMatch);
+          setShowForfeitModal(true);
+        }}
+        onStartTutorial={() => {
+          setShowQuickGuide(true);
+        }}
+        hasActiveMatch={Boolean(activeMatch)}
+        opponent={opponent}
+        isReserved={isReserved}
+      />
     </div>
   );
 }

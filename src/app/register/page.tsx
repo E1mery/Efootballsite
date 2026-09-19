@@ -69,10 +69,11 @@ export default function RegisterPage() {
       // Save user session in localStorage for immediate navbar persistence
       if (typeof window !== "undefined" && data.user) {
         localStorage.setItem("efrl_user", JSON.stringify(data.user));
+        localStorage.setItem("efrl_show_tutorial", "true");
       }
 
-      // Successfully registered and session created! Redirect to dashboard
-      router.push("/dashboard");
+      // Successfully registered and session created! Redirect to dashboard with welcome flag
+      router.push("/dashboard?welcome=true");
       router.refresh();
     } catch (err: any) {
       setError(err.message || "An error occurred");
