@@ -550,18 +550,19 @@ export default function DashboardClient({
 
   // Auto-launch Quick Guide Tutorial on registration or first visit
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isWelcome = urlParams.get("welcome") === "true";
-      const pendingTutorial = localStorage.getItem("efrl_show_tutorial") === "true";
-      const completedTutorial = localStorage.getItem("efrl_tutorial_completed") === "true";
+    try {
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isWelcome = urlParams.get("welcome") === "true";
+        const pendingTutorial = localStorage.getItem("efrl_show_tutorial") === "true";
 
-      if (isWelcome || pendingTutorial || !completedTutorial) {
-        setShowQuickGuide(true);
-        if (pendingTutorial) {
+        if (isWelcome || pendingTutorial) {
+          setShowQuickGuide(true);
           localStorage.removeItem("efrl_show_tutorial");
         }
       }
+    } catch (e) {
+      console.warn("Could not check tutorial status:", e);
     }
   }, []);
 
@@ -3317,44 +3318,48 @@ export default function DashboardClient({
       {/* ========================================================================= */}
       {/* QUICK GUIDE TUTORIAL MODAL */}
       {/* ========================================================================= */}
-      <QuickGuideModal
-        isOpen={showQuickGuide}
-        onClose={() => setShowQuickGuide(false)}
-        onOpenActionHub={() => {
-          setShowQuickGuide(false);
-          setShowActionHub(true);
-        }}
-        player={currentPlayer}
-        isReserved={isReserved}
-      />
+      {showQuickGuide && (
+        <QuickGuideModal
+          isOpen={showQuickGuide}
+          onClose={() => setShowQuickGuide(false)}
+          onOpenActionHub={() => {
+            setShowQuickGuide(false);
+            setShowActionHub(true);
+          }}
+          player={currentPlayer}
+          isReserved={isReserved}
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* QUICK ACTIONS & HELP HUB MODAL */}
       {/* ========================================================================= */}
-      <QuickActionHubModal
-        isOpen={showActionHub}
-        onClose={() => setShowActionHub(false)}
-        onNavigateTab={(tab, subTab) => {
-          setActiveTab(tab);
-          if (subTab) {
-            setInboxSubTab(subTab as any);
-          }
-        }}
-        onOpenSubmitResult={() => {
-          setActionMatch(activeMatch);
-          setShowResultModal(true);
-        }}
-        onOpenForfeitClaim={() => {
-          setActionMatch(activeMatch);
-          setShowForfeitModal(true);
-        }}
-        onStartTutorial={() => {
-          setShowQuickGuide(true);
-        }}
-        hasActiveMatch={Boolean(activeMatch)}
-        opponent={opponent}
-        isReserved={isReserved}
-      />
+      {showActionHub && (
+        <QuickActionHubModal
+          isOpen={showActionHub}
+          onClose={() => setShowActionHub(false)}
+          onNavigateTab={(tab, subTab) => {
+            setActiveTab(tab);
+            if (subTab) {
+              setInboxSubTab(subTab as any);
+            }
+          }}
+          onOpenSubmitResult={() => {
+            setActionMatch(activeMatch);
+            setShowResultModal(true);
+          }}
+          onOpenForfeitClaim={() => {
+            setActionMatch(activeMatch);
+            setShowForfeitModal(true);
+          }}
+          onStartTutorial={() => {
+            setShowQuickGuide(true);
+          }}
+          hasActiveMatch={Boolean(activeMatch)}
+          opponent={opponent}
+          isReserved={isReserved}
+        />
+      )}
     </div>
   );
 }

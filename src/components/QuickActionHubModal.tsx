@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Zap,
   Search,
@@ -50,7 +50,12 @@ export default function QuickActionHubModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<"ALL" | "MATCH" | "TABLES" | "SUPPORT">("ALL");
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
+
+  const oppGamerTag = opponent?.gamerTag || "Opponent";
+  const oppWhatsApp = typeof opponent?.whatsapp === "string" ? opponent.whatsapp : "";
 
   const quickActions = [
     {
@@ -97,18 +102,18 @@ export default function QuickActionHubModal({
       id: "whatsapp-opponent",
       category: "MATCH",
       title: "Contact Opponent on WhatsApp",
-      description: opponent?.gamerTag
-        ? `Open direct WhatsApp chat with ${opponent.gamerTag} to arrange your Room Match.`
+      description: oppWhatsApp
+        ? `Open direct WhatsApp chat with ${oppGamerTag} to arrange your Room Match.`
         : "Directly open your match opponent's WhatsApp to share room codes.",
       icon: MessageSquare,
       iconColor: "text-emerald-400",
       iconBg: "bg-emerald-500/20 border-emerald-500/30",
-      badge: opponent?.whatsapp ? "READY TO CHAT" : "MATCH",
-      disabled: !opponent?.whatsapp || isReserved,
-      actionText: opponent?.whatsapp ? `Chat with ${opponent.gamerTag}` : "No Active Opponent",
+      badge: oppWhatsApp ? "READY TO CHAT" : "MATCH",
+      disabled: !oppWhatsApp || isReserved,
+      actionText: oppWhatsApp ? `Chat with ${oppGamerTag}` : "No Active Opponent",
       action: () => {
-        if (opponent?.whatsapp) {
-          const cleanPhone = opponent.whatsapp.replace(/[^0-9]/g, "");
+        if (oppWhatsApp) {
+          const cleanPhone = oppWhatsApp.replace(/[^0-9]/g, "");
           window.open(`https://wa.me/${cleanPhone}`, "_blank");
           onClose();
         }
@@ -123,6 +128,7 @@ export default function QuickActionHubModal({
       iconColor: "text-yellow-400",
       iconBg: "bg-yellow-500/20 border-yellow-500/30",
       badge: "TABLES",
+      disabled: false,
       actionText: "View Division Tables",
       action: () => {
         onClose();
@@ -138,6 +144,7 @@ export default function QuickActionHubModal({
       iconColor: "text-indigo-400",
       iconBg: "bg-indigo-500/20 border-indigo-500/30",
       badge: "CALENDAR",
+      disabled: false,
       actionText: "Open Calendar",
       action: () => {
         onClose();
@@ -153,6 +160,7 @@ export default function QuickActionHubModal({
       iconColor: "text-purple-400",
       iconBg: "bg-purple-500/20 border-purple-500/30",
       badge: "SUPPORT DESK",
+      disabled: false,
       actionText: "Write Message to Admin",
       action: () => {
         onClose();
@@ -168,6 +176,7 @@ export default function QuickActionHubModal({
       iconColor: "text-amber-400",
       iconBg: "bg-amber-500/20 border-amber-500/30",
       badge: "24H NOTICES",
+      disabled: false,
       actionText: "Open Announcements",
       action: () => {
         onClose();
@@ -183,6 +192,7 @@ export default function QuickActionHubModal({
       iconColor: "text-teal-400",
       iconBg: "bg-teal-500/20 border-teal-500/30",
       badge: "PROFILE",
+      disabled: false,
       actionText: "Edit Profile Settings",
       action: () => {
         onClose();
@@ -198,6 +208,7 @@ export default function QuickActionHubModal({
       iconColor: "text-yellow-400",
       iconBg: "bg-yellow-500/20 border-yellow-500/30",
       badge: "TUTORIAL",
+      disabled: false,
       actionText: "Launch Quick Guide",
       action: () => {
         onClose();
@@ -206,17 +217,16 @@ export default function QuickActionHubModal({
     },
   ];
 
-  const filteredActions = useMemo(() => {
-    return quickActions.filter((item) => {
-      const matchesCategory =
-        activeCategory === "ALL" || item.category === activeCategory;
-      const matchesQuery =
-        !searchQuery.trim() ||
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesQuery;
-    });
-  }, [quickActions, activeCategory, searchQuery]);
+  const q = searchQuery.toLowerCase().trim();
+  const filteredActions = quickActions.filter((item) => {
+    const matchesCategory =
+      activeCategory === "ALL" || item.category === activeCategory;
+    const matchesQuery =
+      !q ||
+      item.title.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q);
+    return matchesCategory && matchesQuery;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -228,7 +238,7 @@ export default function QuickActionHubModal({
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <Zap className="h-5 w-5" />
+              <Zap className="h-5 w-5 fill-current" />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
