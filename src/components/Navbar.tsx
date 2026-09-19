@@ -60,13 +60,20 @@ export default function Navbar() {
     }
   }, [session, pathname]);
 
-  const navLinks = [
-    { name: "Home", href: "/", icon: Shield },
-    { name: "Fixtures", href: "/fixtures", icon: Calendar },
-    { name: "3 Divisions", href: "/standings", icon: Trophy },
-    { name: "UCL & Europa", href: "/continental", icon: Globe },
-    { name: "Admin Office", href: "/admin", icon: ShieldAlert },
-  ];
+  const isUserPortal = pathname?.startsWith("/dashboard");
+  const isUserOrAdminLoggedIn = Boolean(
+    session?.authenticated || isUserPortal || isAdminPortal
+  );
+
+  const navLinks = isUserOrAdminLoggedIn
+    ? [{ name: "Home", href: "/", icon: Shield }]
+    : [
+        { name: "Home", href: "/", icon: Shield },
+        { name: "Fixtures", href: "/fixtures", icon: Calendar },
+        { name: "3 Divisions", href: "/standings", icon: Trophy },
+        { name: "UCL & Europa", href: "/continental", icon: Globe },
+        { name: "Admin Office", href: "/admin", icon: ShieldAlert },
+      ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#060913]/95 backdrop-blur-xl transition-all">
@@ -76,7 +83,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         {/* Gaming Brand Logo & Admin Badge */}
         <div className="flex items-center gap-3">
-          <Link href={isAdminPortal ? "/admin" : "/"} className="flex items-center gap-3 group">
+          <Link href={isAdminPortal ? "/admin" : (session?.authenticated ? "/dashboard" : "/")} className="flex items-center gap-3 group">
             <EfootballGamingLogo size="md" showText={true} />
           </Link>
           {isAdminPortal && (

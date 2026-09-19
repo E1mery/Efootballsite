@@ -1034,15 +1034,6 @@ export default function DashboardClient({
               {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowActionHub(true)}
-            className="gap-1.5 text-xs font-bold border-amber-500/40 text-amber-300 hover:bg-amber-950/40 hover:text-white shadow-sm"
-          >
-            <Zap className="h-3.5 w-3.5 text-amber-400 fill-current" />
-            <span>Quick Actions &amp; Guide</span>
-          </Button>
           <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-xs">
             <LogOut className="h-4 w-4 text-slate-400" />
             Sign Out
@@ -3300,18 +3291,20 @@ export default function DashboardClient({
       })()}
 
       {/* ========================================================================= */}
-      {/* FLOATING QUICK ACTIONS BUTTON */}
+      {/* FLOATING QUICK ACTIONS BUTTON (Circle Shape) */}
       {/* ========================================================================= */}
       <div className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
         <button
           onClick={() => setShowActionHub(true)}
-          className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black text-xs sm:text-sm shadow-2xl shadow-amber-500/40 hover:scale-105 active:scale-95 transition-all group ring-2 ring-amber-400/50"
-          title="Need help? Click for Quick Actions & Portal Guide"
+          className="relative flex items-center justify-center w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-xl shadow-amber-500/30 hover:scale-110 active:scale-95 transition-all group ring-2 ring-amber-400/70 focus:outline-none"
+          title="Quick Actions & Help"
+          aria-label="Quick Actions & Help"
         >
-          <div className="p-1 rounded-lg bg-slate-950/20">
-            <Zap className="h-4 w-4 text-slate-950 fill-current animate-bounce" />
-          </div>
-          <span className="tracking-wide uppercase">Quick Actions &amp; Help</span>
+          <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-slate-950 fill-current group-hover:scale-110 transition-transform duration-150" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-slate-950"></span>
+          </span>
         </button>
       </div>
 
