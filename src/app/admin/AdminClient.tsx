@@ -51,6 +51,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 export default function AdminClient({
   matches,
@@ -128,6 +129,17 @@ export default function AdminClient({
   const [resettingTournament, setResettingTournament] = useState(false);
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
   const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
+  const [uclDrawInput, setUclDrawInput] = useState<string>(
+    leagueConfig?.uclDrawTime ? new Date(leagueConfig.uclDrawTime).toISOString().slice(0, 16) : ""
+  );
+  const [europaDrawInput, setEuropaDrawInput] = useState<string>(
+    leagueConfig?.europaDrawTime ? new Date(leagueConfig.europaDrawTime).toISOString().slice(0, 16) : ""
+  );
+
+  // Club Assignment / Edit State
+  const [editingClubPlayer, setEditingClubPlayer] = useState<any | null>(null);
+  const [selectedClubName, setSelectedClubName] = useState<string>("");
+  const [updatingClub, setUpdatingClub] = useState(false);
 
   // All Matches filter state
   const [allMatchesFilterRound, setAllMatchesFilterRound] = useState<string>("ALL");
@@ -852,6 +864,84 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Schedule Continental Draw Event
+  const handleScheduleDraw = async (competition: "UCL" | "EUROPA", drawTime: string) => {
+    if (!drawTime) {
+      alert("Please choose a valid date and time for the draw event.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/continental/schedule-draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "SCHEDULE_DRAW",
+          competition,
+          drawTime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to schedule draw");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Reset Continental Draw
+  const handleResetDraw = async (competition: "UCL" | "EUROPA") => {
+    if (!confirm(`Reset the official draw for ${competition}? Existing group allocations will be cleared.`)) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/continental/schedule-draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "RESET_DRAW",
+          competition,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset draw");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Update Player Club Assignment
+  const handleUpdatePlayerClub = async (playerId: string, realTeam: string) => {
+    setUpdatingClub(true);
+    try {
+      const res = await fetch("/api/admin/update-player", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          realTeam,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update player club");
+      alert(data.message || "Player club updated successfully!");
+      setEditingClubPlayer(null);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUpdatingClub(false);
     }
   };
 
@@ -3614,6 +3704,54 @@ export default function AdminClient({
                   16 Total Players: <strong>Top 8 from Division 1</strong>, <strong>Top 4 from Division 2</strong>, <strong>Top 4 from Division 3</strong>.
                 </p>
 
+                {/* Schedule Draw Event Controls */}
+                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                      UCL Draw Date & Time
+                    </span>
+                    {leagueConfig.uclDrawTime && (
+                      <Badge variant="secondary" className="text-[9px] font-mono">
+                        {new Date(leagueConfig.uclDrawTime).toLocaleDateString()} {new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="datetime-local"
+                      value={uclDrawInput}
+                      onChange={(e) => setUclDrawInput(e.target.value)}
+                      className="bg-slate-900 border-slate-700 text-xs text-white"
+                    />
+                    <Button
+                      onClick={() => handleScheduleDraw("UCL", uclDrawInput)}
+                      disabled={actionLoading}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs shrink-0 font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                    >
+                      Schedule Event
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <Link
+                      href="/continental"
+                      target="_blank"
+                      className="text-[11px] font-bold text-sky-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Launch Animated Draw Screen</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <button
+                      onClick={() => handleResetDraw("UCL")}
+                      className="text-[10px] text-rose-400 hover:underline"
+                    >
+                      Reset Draw Slots
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
                   {leagueConfig.uclStarted ? (
                     <Button
@@ -3633,7 +3771,7 @@ export default function AdminClient({
                       size="sm"
                       className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
                     >
-                      Unlock & Launch UCL Draws
+                      Unlock UCL
                     </Button>
                   )}
 
@@ -3644,7 +3782,7 @@ export default function AdminClient({
                     size="sm"
                     className="text-xs font-bold gap-1"
                   >
-                    <Shuffle className="h-3 w-3" /> Auto Seeded Draw
+                    <Shuffle className="h-3 w-3" /> Quick Seeded Draw
                   </Button>
                 </div>
 
@@ -3708,6 +3846,54 @@ export default function AdminClient({
                 <p className="text-xs text-slate-300">
                   16 Total Players: <strong>Div 1 (ranks 9-12)</strong>, <strong>Div 2 (ranks 5-10)</strong>, <strong>Div 3 (ranks 5-10)</strong>.
                 </p>
+
+                {/* Schedule Draw Event Controls */}
+                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-amber-400" />
+                      Europa Draw Date & Time
+                    </span>
+                    {leagueConfig.europaDrawTime && (
+                      <Badge variant="secondary" className="text-[9px] font-mono">
+                        {new Date(leagueConfig.europaDrawTime).toLocaleDateString()} {new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="datetime-local"
+                      value={europaDrawInput}
+                      onChange={(e) => setEuropaDrawInput(e.target.value)}
+                      className="bg-slate-900 border-slate-700 text-xs text-white"
+                    />
+                    <Button
+                      onClick={() => handleScheduleDraw("EUROPA", europaDrawInput)}
+                      disabled={actionLoading}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs shrink-0 font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                    >
+                      Schedule Event
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <Link
+                      href="/continental"
+                      target="_blank"
+                      className="text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Launch Animated Draw Screen</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <button
+                      onClick={() => handleResetDraw("EUROPA")}
+                      className="text-[10px] text-rose-400 hover:underline"
+                    >
+                      Reset Draw Slots
+                    </button>
+                  </div>
+                </div>
 
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
                   {leagueConfig.europaStarted ? (
@@ -4561,10 +4747,11 @@ export default function AdminClient({
             </div>
 
             <div className="overflow-x-auto no-scrollbar scroll-smooth">
-              <table className="w-full text-left text-xs min-w-[800px]">
+              <table className="w-full text-left text-xs min-w-[900px]">
                 <thead className="bg-slate-900/80 text-[11px] font-black uppercase text-slate-400 border-b border-slate-800">
                   <tr>
-                    <th className="px-4 py-3">Gamer Tag</th>
+                    <th className="px-4 py-3">Athlete</th>
+                    <th className="px-4 py-3">Official Club</th>
                     <th className="px-4 py-3">Full Name</th>
                     <th className="px-4 py-3">eFootball ID</th>
                     <th className="px-4 py-3">WhatsApp Number</th>
@@ -4575,71 +4762,118 @@ export default function AdminClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {playersList.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-900/40">
-                      <td className="px-4 py-3 font-bold text-white">{p.gamerTag}</td>
-                      <td className="px-4 py-3 text-slate-300">{p.fullName}</td>
-                      <td className="px-4 py-3 font-mono text-slate-400">{p.efootballId}</td>
-                      <td className="px-4 py-3 font-mono text-emerald-400">{p.whatsapp}</td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant={
-                            p.division === "Division 1"
-                              ? "secondary"
-                              : p.division === "Division 2"
-                              ? "yellow"
-                              : "live"
-                          }
-                          className="text-[10px]"
-                        >
-                          {p.division}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center font-mono font-bold">
-                        <span className={p.consecutiveMissed >= 2 ? "text-rose-400" : "text-slate-400"}>
-                          {p.consecutiveMissed}/3
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge
-                          variant={p.isDisqualified ? "destructive" : "secondary"}
-                          className="text-[10px]"
-                        >
-                          {p.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setReplaceTargetPlayer(p);
-                              setRepGamerTag("");
-                              setRepFullName("");
-                              setRepWhatsapp(p.whatsapp || "");
-                              setRepEmail("");
-                              setRepPassword("");
-                              setSelectedReserveId(reservePlayers[0]?.id || "");
-                            }}
-                            className="h-7 px-2 text-[11px] font-bold border-indigo-500/40 text-indigo-400 hover:bg-indigo-950/50 hover:text-indigo-300"
+                  {playersList.map((p) => {
+                    const avatarUrl = p.avatar || resolvePlayerAvatar(p);
+                    const teamObj = p.realTeam ? findTeam(p.realTeam) : null;
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-900/40">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow">
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={p.realTeam || p.gamerTag}
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <span className="font-black text-xs text-sky-400">
+                                  {p.gamerTag.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <span className="font-bold text-white">{p.gamerTag}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.realTeam ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-white">{p.realTeam}</span>
+                              {teamObj && (
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                                  {teamObj.shortName}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 italic">No Club Assigned</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-300">{p.fullName}</td>
+                        <td className="px-4 py-3 font-mono text-slate-400">{p.efootballId}</td>
+                        <td className="px-4 py-3 font-mono text-emerald-400">{p.whatsapp}</td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={
+                              p.division === "Division 1"
+                                ? "secondary"
+                                : p.division === "Division 2"
+                                ? "yellow"
+                                : "live"
+                            }
+                            className="text-[10px]"
                           >
-                            <Shuffle className="h-3 w-3 mr-1" />
-                            Replace
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
-                            className="h-7 px-2 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600 text-white"
+                            {p.division}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono font-bold">
+                          <span className={p.consecutiveMissed >= 2 ? "text-rose-400" : "text-slate-400"}>
+                            {p.consecutiveMissed}/3
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge
+                            variant={p.isDisqualified ? "destructive" : "secondary"}
+                            className="text-[10px]"
                           >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Remove
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {p.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingClubPlayer(p);
+                                setSelectedClubName(p.realTeam || "");
+                              }}
+                              className="h-7 px-2 text-[11px] font-bold border-sky-500/40 text-sky-400 hover:bg-sky-950/50 hover:text-sky-300"
+                              title="Assign Real Football Club"
+                            >
+                              Club
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setReplaceTargetPlayer(p);
+                                setRepGamerTag("");
+                                setRepFullName("");
+                                setRepWhatsapp(p.whatsapp || "");
+                                setRepEmail("");
+                                setRepPassword("");
+                                setSelectedReserveId(reservePlayers[0]?.id || "");
+                              }}
+                              className="h-7 px-2 text-[11px] font-bold border-indigo-500/40 text-indigo-400 hover:bg-indigo-950/50 hover:text-indigo-300"
+                            >
+                              <Shuffle className="h-3 w-3 mr-1" />
+                              Replace
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
+                              className="h-7 px-2 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600 text-white"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -6042,6 +6276,111 @@ export default function AdminClient({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ASSIGN / EDIT REAL CLUB MODAL */}
+      {editingClubPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-slate-700 bg-slate-950 p-6 space-y-5 shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                  Assign Official Football Club
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Assigning club representation for <strong className="text-white">{editingClubPlayer.gamerTag}</strong> ({editingClubPlayer.division}).
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingClubPlayer(null)}
+                className="text-slate-400 hover:text-white text-sm p-1.5 rounded-lg hover:bg-slate-900"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+              <span>
+                Eligible League:{" "}
+                <strong className="text-sky-400 uppercase">
+                  {editingClubPlayer.division === "Division 1"
+                    ? "Premier League (England)"
+                    : editingClubPlayer.division === "Division 2"
+                    ? "La Liga (Spain)"
+                    : "Ligue 1 (France)"}
+                </strong>
+              </span>
+              <Badge variant="secondary" className="text-[10px]">
+                {getTeamsForDivision(editingClubPlayer.division).length} Clubs Available
+              </Badge>
+            </div>
+
+            {/* Grid of clubs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 overflow-y-auto p-1 max-h-[360px]">
+              {getTeamsForDivision(editingClubPlayer.division).map((team) => {
+                const isSelected = selectedClubName === team.name;
+                return (
+                  <button
+                    key={team.name}
+                    type="button"
+                    onClick={() => setSelectedClubName(team.name)}
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 ${
+                      isSelected
+                        ? "border-sky-400 bg-sky-500/20 shadow-lg shadow-sky-500/20 ring-2 ring-sky-400/50"
+                        : "border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="h-12 w-12 rounded-xl bg-slate-950/60 p-1.5 flex items-center justify-center border border-slate-800">
+                      <img
+                        src={team.logo}
+                        alt={team.name}
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <div className="text-[11px] font-bold text-white truncate" title={team.name}>
+                        {team.name}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400">
+                        {team.shortName}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedClubName("")}
+                className="text-xs text-rose-400 border-rose-500/30 hover:bg-rose-950/30"
+              >
+                Clear Club
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingClubPlayer(null)}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleUpdatePlayerClub(editingClubPlayer.id, selectedClubName)}
+                  disabled={updatingClub}
+                  className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs"
+                >
+                  {updatingClub ? "Saving..." : "Save Club Assignment"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

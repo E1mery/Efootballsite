@@ -7,6 +7,7 @@ import { Smartphone, Lock, User, CheckCircle, ShieldAlert, Trophy, Phone, Messag
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { getTeamsForDivision, findTeam } from "@/lib/teams";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     preferredDivision: "Division 1",
+    realTeam: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -236,14 +238,75 @@ export default function RegisterPage() {
               <select
                 className="flex h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 value={formData.preferredDivision}
-                onChange={(e) => setFormData({ ...formData, preferredDivision: e.target.value })}
+                onChange={(e) => {
+                  const newDiv = e.target.value;
+                  setFormData({ ...formData, preferredDivision: newDiv, realTeam: "" });
+                }}
               >
-                <option value="Division 1">Division 1 (Premiership - Elite)</option>
-                <option value="Division 2">Division 2 (Championship - Semi-Pro)</option>
-                <option value="Division 3">Division 3 (National Academy - Grassroots)</option>
+                <option value="Division 1">Division 1 (Premiership - Premier League Teams)</option>
+                <option value="Division 2">Division 2 (Championship - La Liga Teams)</option>
+                <option value="Division 3">Division 3 (National Academy - Ligue 1 Teams)</option>
               </select>
               <span className="text-[11px] text-slate-400 mt-1 block">
                 The League Administrator will review your account to either approve your division placement or place you in the official Standby Reserve Pool.
+              </span>
+            </div>
+
+            {/* Official Real Football Club Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-300 uppercase">
+                  Official Club Representation (Avatar Logo)
+                </label>
+                <Badge variant="secondary" className="text-[10px] uppercase font-mono">
+                  {formData.preferredDivision === "Division 1"
+                    ? "Premier League"
+                    : formData.preferredDivision === "Division 2"
+                    ? "La Liga"
+                    : "Ligue 1"}
+                </Badge>
+              </div>
+
+              {formData.realTeam ? (
+                <div className="p-3 rounded-2xl bg-sky-950/30 border border-sky-500/40 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center border border-slate-700 shrink-0">
+                      {(() => {
+                        const t = findTeam(formData.realTeam);
+                        return t ? <img src={t.logo} alt={t.name} className="h-full w-full object-contain" /> : null;
+                      })()}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-sky-400 block">Selected Football Club</span>
+                      <span className="text-sm font-bold text-white">{formData.realTeam}</span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, realTeam: "" })}
+                    className="text-xs text-rose-400 border-rose-500/30 h-7"
+                  >
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <select
+                  className="flex h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  value={formData.realTeam}
+                  onChange={(e) => setFormData({ ...formData, realTeam: e.target.value })}
+                >
+                  <option value="">Select your real football club (optional)</option>
+                  {getTeamsForDivision(formData.preferredDivision).map((t) => (
+                    <option key={t.name} value={t.name}>
+                      {t.name} ({t.shortName})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <span className="text-[10px] text-slate-500 block">
+                Your selected club&apos;s official logo will act as your athlete avatar across rankings, fixtures, and UCL / Europa draws.
               </span>
             </div>
 

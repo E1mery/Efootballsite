@@ -26,6 +26,7 @@ export default async function ContinentalCupsPage() {
   let uclGroupStandings: any[] = [];
   let europaGroupStandings: any[] = [];
   let ongoingDivisionMatches: number = 0;
+  let isAdmin: boolean = false;
 
   try {
     if (sessionUserId) {
@@ -33,8 +34,13 @@ export default async function ContinentalCupsPage() {
         where: { id: sessionUserId },
         include: { player: true },
       });
-      if (user?.player) {
-        currentPlayer = user.player;
+      if (user) {
+        isAdmin = user.role === "ADMIN";
+        if (user.player) {
+          currentPlayer = { ...user.player, role: user.role };
+        } else if (isAdmin) {
+          currentPlayer = { id: user.id, role: "ADMIN", gamerTag: "League Admin", fullName: "Administrator", division: "ADMIN" };
+        }
       }
     }
 
@@ -209,6 +215,7 @@ export default async function ContinentalCupsPage() {
         europaGroupStandings={europaGroupStandings}
         isDivisionSeasonFinished={isDivisionSeasonFinished}
         currentPlayer={currentPlayer}
+        isAdmin={isAdmin}
       />
     </div>
   );

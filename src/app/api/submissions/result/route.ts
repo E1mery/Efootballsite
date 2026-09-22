@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { uploadBase64ToR2 } from "@/lib/r2";
 
 export async function POST(req: Request) {
   try {
@@ -149,6 +150,17 @@ export async function POST(req: Request) {
       });
     }
 
+    // Ensure screenshots are stored in Cloudflare R2
+    let finalScreenshotUrl = screenshotUrl;
+    if (screenshotUrl && screenshotUrl.startsWith("data:")) {
+      finalScreenshotUrl = await uploadBase64ToR2(screenshotUrl, "results");
+    }
+
+    let finalLeg2ScreenshotUrl = leg2ScreenshotUrl || null;
+    if (leg2ScreenshotUrl && leg2ScreenshotUrl.startsWith("data:")) {
+      finalLeg2ScreenshotUrl = await uploadBase64ToR2(leg2ScreenshotUrl, "results");
+    }
+
     // Create submission for admin review with status PENDING
     const submission = await prisma.matchSubmission.create({
       data: {
@@ -160,8 +172,8 @@ export async function POST(req: Request) {
         leg2AwayScore: leg2AwayScore !== undefined ? Number(leg2AwayScore) : null,
         aggregateHomeScore: isTwoLegged ? calculatedAggHome : null,
         aggregateAwayScore: isTwoLegged ? calculatedAggAway : null,
-        screenshotUrl,
-        leg2ScreenshotUrl: leg2ScreenshotUrl || null,
+        screenshotUrl: finalScreenshotUrl,
+        leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
         notes: notes || null,
         status: "PENDING",
       },

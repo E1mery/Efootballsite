@@ -42,6 +42,7 @@ import EfootballLoader from "@/components/EfootballLoader";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import QuickGuideModal from "@/components/QuickGuideModal";
 import QuickActionHubModal from "@/components/QuickActionHubModal";
+import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface ContinentalGroupStandingsViewProps {
   competition: "UCL" | "EUROPA";
@@ -461,6 +462,7 @@ export default function DashboardClient({
   const [profileGamerTag, setProfileGamerTag] = useState(player.gamerTag || "");
   const [profileFullName, setProfileFullName] = useState(player.fullName || "");
   const [profileWhatsapp, setProfileWhatsapp] = useState(player.whatsapp || "");
+  const [profileRealTeam, setProfileRealTeam] = useState(player.realTeam || "");
   const [profileEmail, setProfileEmail] = useState(user?.email || "");
   const [profilePassword, setProfilePassword] = useState("");
   const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
@@ -496,6 +498,7 @@ export default function DashboardClient({
           gamerTag: profileGamerTag,
           fullName: profileFullName,
           whatsapp: profileWhatsapp,
+          realTeam: profileRealTeam,
           password: profilePassword || undefined,
         }),
       });
@@ -574,12 +577,15 @@ export default function DashboardClient({
   const [resultScreenshot, setResultScreenshot] = useState("");
   const [leg2ResultScreenshot, setLeg2ResultScreenshot] = useState("");
   const [resultNotes, setResultNotes] = useState("");
+  const [uploadingLeg1, setUploadingLeg1] = useState(false);
+  const [uploadingLeg2, setUploadingLeg2] = useState(false);
   const [submittingResult, setSubmittingResult] = useState(false);
   const [resultSuccessMsg, setResultSuccessMsg] = useState("");
 
   // Forfeit form state
   const [forfeitScreenshot, setForfeitScreenshot] = useState("");
   const [forfeitReason, setForfeitReason] = useState("");
+  const [uploadingForfeit, setUploadingForfeit] = useState(false);
   const [submittingForfeit, setSubmittingForfeit] = useState(false);
   const [forfeitSuccessMsg, setForfeitSuccessMsg] = useState("");
 
@@ -805,7 +811,51 @@ export default function DashboardClient({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Convert File to Base64 Image
+  // Upload Screenshot directly to Cloudflare R2
+  const handleR2ScreenshotUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (s: string) => void,
+    setLoading?: (b: boolean) => void,
+    folder: string = "results"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setter(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    if (setLoading) setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", folder);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload file to Cloudflare R2 storage");
+      }
+
+      if (data.url) {
+        setter(data.url);
+      }
+    } catch (err: any) {
+      console.warn("R2 upload fallback notice:", err);
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  };
+
+  // Convert File to Base64 Image (Fallback)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (s: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -820,6 +870,11 @@ export default function DashboardClient({
   // Handle Result Submission
   const handleSubmitResult = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadingLeg1 || uploadingLeg2) {
+      alert("Screenshot is currently uploading to Cloudflare R2 storage. Please wait a few seconds.");
+      return;
+    }
+
     setSubmittingResult(true);
     setResultSuccessMsg("");
 
@@ -877,6 +932,11 @@ export default function DashboardClient({
   // Handle Forfeit Submission
   const handleSubmitForfeit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadingForfeit) {
+      alert("Proof screenshot is currently uploading to Cloudflare R2 storage. Please wait a few seconds.");
+      return;
+    }
+
     setSubmittingForfeit(true);
     setForfeitSuccessMsg("");
 
@@ -1001,14 +1061,29 @@ export default function DashboardClient({
       {/* Top Welcome Bar */}
       <div className="rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="flex h-13 w-13 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 text-slate-950 font-black text-xl sm:text-2xl shadow-xl shadow-yellow-500/20">
-            {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
+          <div className="flex h-13 w-13 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-1.5 shadow-xl overflow-hidden">
+            {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
+              <img
+                src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
+                alt={currentPlayer.realTeam || currentPlayer.gamerTag}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <span className="font-black text-xl sm:text-2xl text-yellow-400">
+                {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight truncate max-w-full">
                 {currentPlayer.gamerTag}
               </h1>
+              {currentPlayer.realTeam && (
+                <Badge variant="outline" className="text-[10px] sm:text-xs border-sky-500/40 text-sky-400 bg-sky-950/20">
+                  {currentPlayer.realTeam}
+                </Badge>
+              )}
               <Badge variant={isReserved ? "outline" : "yellow"} className="text-[10px] sm:text-xs">
                 {isReserved ? "RESERVE POOL" : currentPlayer.division}
               </Badge>
@@ -2474,12 +2549,35 @@ export default function DashboardClient({
             {/* Athlete Profile Summary Card */}
             <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 h-fit backdrop-blur-xl">
               <div className="text-center space-y-3 pb-4 border-b border-slate-800">
-                <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-600 text-white font-black text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/20">
-                  {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
+                <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-2 text-white font-black text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/10 overflow-hidden">
+                  {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
+                    <img
+                      src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
+                      alt={currentPlayer.realTeam || currentPlayer.gamerTag}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <div className="h-full w-full rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center font-black text-2xl text-white">
+                      {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h4 className="text-xl font-black text-white">{currentPlayer.gamerTag}</h4>
                   <p className="text-xs text-slate-400">{currentPlayer.fullName}</p>
+                  {currentPlayer.realTeam && (
+                    <div className="mt-1 flex items-center justify-center gap-1.5">
+                      <span className="text-xs font-bold text-sky-400">{currentPlayer.realTeam}</span>
+                      {(() => {
+                        const t = findTeam(currentPlayer.realTeam);
+                        return t ? (
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                            {t.shortName}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
                   <Badge variant="yellow" className="text-[10px]">
@@ -2580,6 +2678,110 @@ export default function DashboardClient({
                     <span className="text-[10px] text-slate-500 block">
                       Used to log into your player account portal.
                     </span>
+                  </div>
+                </div>
+
+                {/* Real Football Club Representation & Crest Selection */}
+                <div className="pt-4 border-t border-slate-800/80 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h5 className="text-xs font-black uppercase text-sky-400 tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Official Football Club Representation & Avatar
+                      </h5>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Choose the official club that represents you. Its crest becomes your official athlete avatar across all tables, fixtures, and draws.
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] uppercase font-mono self-start sm:self-auto">
+                      {currentPlayer.division === "Division 1"
+                        ? "Premier League"
+                        : currentPlayer.division === "Division 2"
+                        ? "La Liga"
+                        : "Ligue 1"}
+                    </Badge>
+                  </div>
+
+                  {/* Selected Club Preview */}
+                  {profileRealTeam ? (
+                    <div className="p-3.5 rounded-2xl bg-sky-950/30 border border-sky-500/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0">
+                          {(() => {
+                            const t = findTeam(profileRealTeam);
+                            return t ? (
+                              <img src={t.logo} alt={t.name} className="h-full w-full object-contain" />
+                            ) : null;
+                          })()}
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block">
+                            Selected Club
+                          </span>
+                          <span className="text-sm font-bold text-white">{profileRealTeam}</span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProfileRealTeam("")}
+                        className="text-[11px] h-7 text-rose-400 border-rose-500/30 hover:bg-rose-950/40"
+                      >
+                        Change / Clear
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-dashed border-slate-700 text-xs text-slate-400 text-center">
+                      No club selected yet. Select a club below to represent you in the tournament.
+                    </div>
+                  )}
+
+                  {/* Club Selection Grid */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-300 block">
+                      Select your club from {currentPlayer.division} (
+                      {currentPlayer.division === "Division 1"
+                        ? "Premier League"
+                        : currentPlayer.division === "Division 2"
+                        ? "La Liga"
+                        : "Ligue 1"}
+                      ):
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[260px] overflow-y-auto p-1 border border-slate-800 rounded-2xl bg-slate-900/30">
+                      {getTeamsForDivision(currentPlayer.division).map((team) => {
+                        const isSelected = profileRealTeam === team.name;
+                        return (
+                          <button
+                            key={team.name}
+                            type="button"
+                            onClick={() => setProfileRealTeam(team.name)}
+                            className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                              isSelected
+                                ? "border-sky-400 bg-sky-500/20 shadow-md shadow-sky-500/20 ring-2 ring-sky-400/50"
+                                : "border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700"
+                            }`}
+                          >
+                            <div className="h-10 w-10 rounded-lg bg-slate-950/60 p-1 flex items-center justify-center border border-slate-800">
+                              <img
+                                src={team.logo}
+                                alt={team.name}
+                                className="h-full w-full object-contain"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div className="w-full">
+                              <div className="text-[11px] font-bold text-white truncate" title={team.name}>
+                                {team.name}
+                              </div>
+                              <div className="text-[9px] font-mono text-slate-400">
+                                {team.shortName}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -2959,14 +3161,26 @@ export default function DashboardClient({
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
-                            Leg 1 Result Screenshot *
-                          </label>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                              Leg 1 Result Screenshot *
+                            </label>
+                            {uploadingLeg1 && (
+                              <span className="text-[10px] text-amber-400 animate-pulse font-medium">
+                                Uploading to R2...
+                              </span>
+                            )}
+                            {!uploadingLeg1 && resultScreenshot && !resultScreenshot.startsWith("data:") && (
+                              <span className="text-[10px] text-emerald-400 font-bold">
+                                Stored in R2 ✓
+                              </span>
+                            )}
+                          </div>
                           <input
                             type="file"
                             accept="image/*"
                             required={!resultScreenshot}
-                            onChange={(e) => handleFileChange(e, setResultScreenshot)}
+                            onChange={(e) => handleR2ScreenshotUpload(e, setResultScreenshot, setUploadingLeg1, "results")}
                             className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
                           />
                         </div>
@@ -3008,14 +3222,26 @@ export default function DashboardClient({
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
-                            Leg 2 Result Screenshot *
-                          </label>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                              Leg 2 Result Screenshot *
+                            </label>
+                            {uploadingLeg2 && (
+                              <span className="text-[10px] text-amber-400 animate-pulse font-medium">
+                                Uploading to R2...
+                              </span>
+                            )}
+                            {!uploadingLeg2 && leg2ResultScreenshot && !leg2ResultScreenshot.startsWith("data:") && (
+                              <span className="text-[10px] text-emerald-400 font-bold">
+                                Stored in R2 ✓
+                              </span>
+                            )}
+                          </div>
                           <input
                             type="file"
                             accept="image/*"
                             required={!leg2ResultScreenshot}
-                            onChange={(e) => handleFileChange(e, setLeg2ResultScreenshot)}
+                            onChange={(e) => handleR2ScreenshotUpload(e, setLeg2ResultScreenshot, setUploadingLeg2, "results")}
                             className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
                           />
                         </div>
@@ -3065,14 +3291,26 @@ export default function DashboardClient({
 
                       {/* Upload Screenshot File */}
                       <div>
-                        <label className="block text-xs font-bold text-yellow-400 uppercase mb-1">
-                          Upload eFootball Mobile Result Screenshot *
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-yellow-400 uppercase">
+                            Upload eFootball Mobile Result Screenshot *
+                          </label>
+                          {uploadingLeg1 && (
+                            <span className="text-[10px] text-amber-400 animate-pulse font-medium">
+                              Uploading to Cloudflare R2...
+                            </span>
+                          )}
+                          {!uploadingLeg1 && resultScreenshot && !resultScreenshot.startsWith("data:") && (
+                            <span className="text-[10px] text-emerald-400 font-bold">
+                              Stored in Cloudflare R2 ✓
+                            </span>
+                          )}
+                        </div>
                         <input
                           type="file"
                           accept="image/*"
                           required={!resultScreenshot}
-                          onChange={(e) => handleFileChange(e, setResultScreenshot)}
+                          onChange={(e) => handleR2ScreenshotUpload(e, setResultScreenshot, setUploadingLeg1, "results")}
                           className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-yellow-500 file:text-slate-950 hover:file:bg-yellow-400 cursor-pointer"
                         />
                         <span className="text-[10px] text-slate-500 mt-1 block">
@@ -3226,14 +3464,26 @@ export default function DashboardClient({
               ) : (
                 <form onSubmit={handleSubmitForfeit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                      Upload Proof Screenshot *
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-300 uppercase">
+                        Upload Proof Screenshot *
+                      </label>
+                      {uploadingForfeit && (
+                        <span className="text-[10px] text-red-400 animate-pulse font-medium">
+                          Uploading to Cloudflare R2...
+                        </span>
+                      )}
+                      {!uploadingForfeit && forfeitScreenshot && !forfeitScreenshot.startsWith("data:") && (
+                        <span className="text-[10px] text-emerald-400 font-bold">
+                          Stored in Cloudflare R2 ✓
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="file"
                       accept="image/*"
                       required={!forfeitScreenshot}
-                      onChange={(e) => handleFileChange(e, setForfeitScreenshot)}
+                      onChange={(e) => handleR2ScreenshotUpload(e, setForfeitScreenshot, setUploadingForfeit, "forfeits")}
                       className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-500 file:text-white hover:file:bg-red-400 cursor-pointer"
                     />
                     <span className="text-[10px] text-slate-500 mt-1 block">

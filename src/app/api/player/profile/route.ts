@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { findTeam } from "@/lib/teams";
 
 export async function PUT(req: Request) {
   try {
@@ -22,7 +23,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { email, gamerTag, fullName, whatsapp, password } = body;
+    const { email, gamerTag, fullName, whatsapp, password, realTeam } = body;
 
     if (!gamerTag || !gamerTag.trim()) {
       return NextResponse.json({ error: "Gamer Tag cannot be empty." }, { status: 400 });
@@ -95,14 +96,27 @@ export async function PUT(req: Request) {
       data: userUpdateData,
     });
 
+    // Prepare player update data
+    const playerUpdateData: any = {
+      gamerTag: cleanGamerTag,
+      fullName: cleanFullName,
+      whatsapp: cleanWhatsapp,
+    };
+
+    if (realTeam !== undefined) {
+      const team = findTeam(realTeam);
+      if (team) {
+        playerUpdateData.realTeam = team.name;
+        playerUpdateData.avatar = team.logo;
+      } else if (realTeam === "" || realTeam === null) {
+        playerUpdateData.realTeam = null;
+      }
+    }
+
     // Update player record
     const updatedPlayer = await prisma.player.update({
       where: { id: user.player.id },
-      data: {
-        gamerTag: cleanGamerTag,
-        fullName: cleanFullName,
-        whatsapp: cleanWhatsapp,
-      },
+      data: playerUpdateData,
     });
 
     return NextResponse.json({

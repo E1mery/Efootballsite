@@ -19,9 +19,13 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
+  Clock,
+  Play,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
+import { resolvePlayerAvatar } from "@/lib/teams";
 
 export default function ContinentalClient({
   leagueConfig,
@@ -35,6 +39,7 @@ export default function ContinentalClient({
   europaGroupStandings = [],
   isDivisionSeasonFinished = false,
   currentPlayer,
+  isAdmin = false,
 }: {
   leagueConfig: any;
   uclQualified: any[];
@@ -47,6 +52,7 @@ export default function ContinentalClient({
   europaGroupStandings?: any[];
   isDivisionSeasonFinished?: boolean;
   currentPlayer?: any;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">("UCL");
@@ -132,38 +138,61 @@ export default function ContinentalClient({
     }
   };
 
-  const handleVoteGroup = async (competition: "UCL" | "EUROPA", groupName: string) => {
-    if (!currentPlayer) {
-      alert("Please log in to your player account to cast your group vote.");
-      router.push("/login");
-      return;
-    }
+  // Scheduled Draw Date & Time
+  const scheduledDrawTime =
+    selectedCompetition === "UCL" ? leagueConfig.uclDrawTime : leagueConfig.europaDrawTime;
 
-    setVotingLoading(groupName);
-    setVoteError(null);
-    setVoteSuccess(null);
+  const isDrawCompleted =
+    selectedCompetition === "UCL" ? leagueConfig.uclDrawCompleted : leagueConfig.europaDrawCompleted;
 
-    try {
-      const res = await fetch("/api/continental/vote-group", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ competition, groupName }),
-      });
+  const [drawCountdown, setDrawCountdown] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    isDue: boolean;
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: false });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to vote for group");
+  useEffect(() => {
+    if (!scheduledDrawTime) return;
+
+    const calcCountdown = () => {
+      const target = new Date(scheduledDrawTime).getTime();
+      const now = Date.now();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        setDrawCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
+      } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setDrawCountdown({ days, hours, minutes, seconds, isDue: false });
       }
+    };
 
-      setVoteSuccess(data.message);
-      setTimeout(() => {
-        router.refresh();
-      }, 1000);
-    } catch (err: any) {
-      setVoteError(err.message);
-    } finally {
-      setVotingLoading(null);
-    }
+    calcCountdown();
+    const interval = setInterval(calcCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [scheduledDrawTime]);
+
+  const handleCommitOfficialDraw = async (slots: any[]) => {
+    const res = await fetch("/api/admin/continental/schedule-draw", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "COMMIT_DRAW",
+        competition: selectedCompetition,
+        slots,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to commit official draw");
+    setVoteSuccess(`Official ${selectedCompetition} Draw locked & saved!`);
+    setTimeout(() => {
+      router.refresh();
+    }, 1200);
   };
 
   const groups = ["Group A", "Group B", "Group C", "Group D"];
@@ -323,194 +352,170 @@ export default function ContinentalClient({
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 1: INTERACTIVE PLAYER GROUP DRAWS */}
+      {/* TAB 1: OFFICIAL LIVE ANIMATED DRAWS EVENT */}
       {/* ===================================================================== */}
       {activeTab === "DRAWS" && (
         <div className="space-y-8">
-          {!isStarted ? (
+          {/* Scheduled Future Draw Countdown (if not yet due and not unlocked and not admin) */}
+          {scheduledDrawTime && !drawCountdown.isDue && !isStarted && !isAdmin ? (
+            <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950/60 via-slate-950 to-slate-950 p-8 sm:p-12 text-center space-y-6 shadow-2xl backdrop-blur-xl">
+              <div className="inline-flex p-4 rounded-2xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-400">
+                <Clock className="h-10 w-10 animate-pulse" />
+              </div>
+
+              <div className="space-y-2">
+                <Badge variant="yellow" className="text-xs font-black tracking-widest uppercase">
+                  Official Draws Event Countdown
+                </Badge>
+                <h2 className="text-3xl sm:text-4xl font-black uppercase text-white tracking-tight">
+                  eFootball {selectedCompetition} Group Draws Broadcast
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
+                  Scheduled by League Commissioner for{" "}
+                  <strong className="text-white">
+                    {new Date(scheduledDrawTime).toLocaleDateString()} at{" "}
+                    {new Date(scheduledDrawTime).toLocaleTimeString()}
+                  </strong>
+                  . The live animated spin draw will unlock when this timer reaches 00:00:00.
+                </p>
+              </div>
+
+              {/* Countdown Digits */}
+              <div className="grid grid-cols-4 gap-3 max-w-md mx-auto pt-2">
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-2xl sm:text-3xl font-black text-white font-mono block">
+                    {String(drawCountdown.days).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Days</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-2xl sm:text-3xl font-black text-white font-mono block">
+                    {String(drawCountdown.hours).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Hours</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-2xl sm:text-3xl font-black text-white font-mono block">
+                    {String(drawCountdown.minutes).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Minutes</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-2xl sm:text-3xl font-black text-indigo-400 font-mono block animate-pulse">
+                    {String(drawCountdown.seconds).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Seconds</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 max-w-lg mx-auto text-xs text-slate-400">
+                ⚡ <strong>UEFA-style Division Protection:</strong> The animated draw system will automatically ensure no group has more than 2 athletes from the same league!
+              </div>
+            </div>
+          ) : !isStarted && !isAdmin && !scheduledDrawTime ? (
             <div className="rounded-3xl border border-indigo-500/20 bg-slate-950/90 p-10 text-center space-y-4 shadow-2xl">
               <div className="inline-flex p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
                 <Lock className="h-10 w-10" />
               </div>
               <Badge variant="destructive" className="font-mono text-xs">
-                TOURNAMENT LOCKED PENDING COMMISSIONER ACTIVATION
+                TOURNAMENT LOCKED PENDING COMMISSIONER SCHEDULING
               </Badge>
               <h2 className="text-2xl sm:text-3xl font-black uppercase text-white">
                 eFootball {selectedCompetition} Group Draws
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-                Group draws will be triggered by the League Administrator once division matches conclude. Qualified athletes will choose their groups through this portal.
+                Official group draws will be unlocked and scheduled by the League Administrator after regular season division fixtures conclude.
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Group Voting Banner & Division Rules */}
-              <div
-                className={`rounded-3xl border p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-4 ${
-                  selectedCompetition === "UCL"
-                    ? "border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-slate-950 to-slate-950"
-                    : "border-amber-500/30 bg-gradient-to-r from-amber-950/40 via-slate-950 to-slate-950"
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Vote className="h-5 w-5 text-indigo-400" />
-                      <span className="text-xs font-black uppercase tracking-widest text-indigo-400">
-                        Live Player Group Draw Phase
-                      </span>
-                    </div>
-                    <h3 className="text-2xl font-black uppercase text-white">
-                      {selectedCompetition} Interactive Group Selection
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                      <strong>Division Separation Rule:</strong> No 3 players from the same division can vote for or participate in the same group (maximum 2 players per division per group). All draws are transparent and visible to all athletes.
-                    </p>
-                  </div>
-
-                  {playerCurrentSlot && (
-                    <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-right">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Your Current Slot</span>
-                      <span className="text-base font-black text-indigo-300">{playerCurrentSlot.groupName}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 4 Interactive Groups Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-                  {groups.map((groupName) => {
-                    const groupMembers = currentSlots.filter((s) => s.groupName === groupName);
-                    const isFull = groupMembers.length >= 4;
-
-                    // Enforce rule: No 3 players from same division
-                    let isDivisionBlocked = false;
-                    if (currentPlayer) {
-                      const sameDivCount = groupMembers.filter(
-                        (s) => s.playerDivision === currentPlayer.division && s.playerId !== currentPlayer.id
-                      ).length;
-                      if (sameDivCount >= 2) isDivisionBlocked = true;
-                    }
-
-                    const isCurrentInThisGroup = playerCurrentSlot?.groupName === groupName;
-
-                    return (
-                      <div
-                        key={groupName}
-                        className={`rounded-2xl border p-5 space-y-4 transition-all ${
-                          isCurrentInThisGroup
-                            ? "border-indigo-400 bg-indigo-950/30 shadow-lg shadow-indigo-500/20"
-                            : isDivisionBlocked
-                            ? "border-slate-800 bg-slate-950/40 opacity-70"
-                            : "border-slate-800 bg-slate-900/60 hover:border-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                          <span className="text-sm font-black uppercase text-indigo-300">{groupName}</span>
-                          <span className="text-xs font-mono text-slate-400 font-bold">{groupMembers.length}/4 Slots</span>
-                        </div>
-
-                        {/* Roster in this Group */}
-                        <div className="space-y-2 min-h-[140px]">
-                          {groupMembers.length === 0 ? (
-                            <p className="text-xs text-slate-500 py-6 text-center">Open group slots available</p>
-                          ) : (
-                            groupMembers.map((slot, idx) => (
-                              <div
-                                key={slot.id}
-                                className="flex items-center justify-between rounded-xl bg-slate-950/80 p-2 text-xs border border-slate-800"
-                              >
-                                <span className="font-bold text-white truncate max-w-[100px]">
-                                  {idx + 1}. {slot.player.gamerTag}
-                                </span>
-                                <Badge
-                                  variant={
-                                    slot.playerDivision === "Division 1"
-                                      ? "secondary"
-                                      : slot.playerDivision === "Division 2"
-                                      ? "yellow"
-                                      : "live"
-                                  }
-                                  className="text-[9px] px-1.5 py-0"
-                                >
-                                  {slot.playerDivision}
-                                </Badge>
-                              </div>
-                            ))
-                          )}
-                        </div>
-
-                        {/* Action Button */}
-                        <div>
-                          {isCurrentInThisGroup ? (
-                            <Button size="sm" disabled className="w-full text-xs font-bold bg-indigo-600 text-white">
-                              ✓ Your Selected Group
-                            </Button>
-                          ) : isDivisionBlocked ? (
-                            <div className="text-center py-1.5 px-2 rounded-xl bg-rose-950/30 border border-rose-500/20 text-[10px] text-rose-300 font-bold">
-                              Division Cap (Max 2 from {currentPlayer?.division})
-                            </div>
-                          ) : isFull ? (
-                            <div className="text-center py-1.5 px-2 rounded-xl bg-slate-900 text-[10px] text-slate-500 font-bold">
-                              Group Full (4/4)
-                            </div>
-                          ) : isCurrentQualified ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={votingLoading === groupName}
-                              onClick={() => handleVoteGroup(selectedCompetition, groupName)}
-                              className="w-full text-xs font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
-                            >
-                              {votingLoading === groupName ? "Joining..." : `Vote / Join ${groupName}`}
-                            </Button>
-                          ) : (
-                            <div className="text-center py-1.5 px-2 rounded-xl bg-slate-900 text-[10px] text-slate-500">
-                              {selectedCompetition} Qualifiers Only
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            /* Broadcast-Grade Animated Draw Experience */
+            <ContinentalDrawExperience
+              competition={selectedCompetition}
+              qualifiedAthletes={currentQualified.map((q) => ({
+                id: q.player.id,
+                gamerTag: q.player.gamerTag,
+                fullName: q.player.fullName,
+                division: q.player.division,
+                realTeam: q.player.realTeam,
+                avatar: q.player.avatar,
+                overallRating: q.player.overallRating || 85,
+              }))}
+              existingSlots={currentSlots}
+              isAdmin={isAdmin}
+              onCommitDraw={isAdmin ? handleCommitOfficialDraw : undefined}
+            />
           )}
 
-          {/* Qualified Roster List */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Qualified Roster List (Grouped by Pots with Club Crests) */}
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-emerald-400" />
                 <span>16 Officially Qualified {selectedCompetition} Athletes</span>
               </h3>
               <span className="text-xs text-slate-400 font-mono">
                 {selectedCompetition === "UCL"
-                  ? "8 from Div 1 • 4 from Div 2 • 4 from Div 3"
-                  : "4 from Div 1 • 6 from Div 2 • 6 from Div 3"}
+                  ? "8 from Div 1 (Premier League) • 4 from Div 2 (La Liga) • 4 from Div 3 (Ligue 1)"
+                  : "4 from Div 1 (Premier League) • 6 from Div 2 (La Liga) • 6 from Div 3 (Ligue 1)"}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {currentQualified.map((s, idx) => (
-                <div
-                  key={s.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-1.5 transition-all hover:border-indigo-500/40"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-black text-indigo-400">#{idx + 1}</span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {s.seedLabel}
-                    </Badge>
+              {currentQualified.map((s, idx) => {
+                const avatarUrl = resolvePlayerAvatar(s.player);
+                return (
+                  <div
+                    key={s.id}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-2 transition-all hover:border-indigo-500/40"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-black text-indigo-400">#{idx + 1}</span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {s.seedLabel}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={avatarUrl}
+                        alt={s.player.gamerTag}
+                        className="h-10 w-10 rounded-xl object-contain bg-slate-900 p-1 border border-slate-800 shrink-0 shadow-md"
+                        onError={(e: any) => {
+                          e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${s.player.gamerTag}`;
+                        }}
+                      />
+                      <div className="truncate">
+                        <h4 className="font-extrabold text-white text-sm truncate">
+                          {s.player.gamerTag}
+                        </h4>
+                        {s.player.realTeam ? (
+                          <span className="text-xs font-bold text-amber-400 truncate block">
+                            {s.player.realTeam}
+                          </span>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 truncate">{s.player.fullName}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-500">
+                      <Badge
+                        variant={
+                          s.player.division === "Division 1"
+                            ? "secondary"
+                            : s.player.division === "Division 2"
+                            ? "yellow"
+                            : "live"
+                        }
+                        className="text-[9px] px-1 py-0"
+                      >
+                        {s.player.division}
+                      </Badge>
+                      <span className="font-bold text-yellow-400">{s.points} Pts</span>
+                    </div>
                   </div>
-                  <h4 className="font-extrabold text-white text-sm">{s.player.gamerTag}</h4>
-                  <p className="text-xs text-slate-400">{s.player.fullName}</p>
-                  <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="font-mono text-emerald-400">{s.player.whatsapp}</span>
-                    <span className="font-bold text-yellow-400">{s.points} Pts</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

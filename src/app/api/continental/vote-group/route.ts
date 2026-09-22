@@ -224,9 +224,19 @@ export async function POST(req: Request) {
     }
 
     // --- PLAYER GROUP VOTE / SLOT SELECTION ---
-    const votingPlayerId = user.role === "ADMIN" && targetPlayerId ? targetPlayerId : user.player?.id;
+    if (user.role !== "ADMIN") {
+      return NextResponse.json(
+        {
+          error:
+            "Manual group voting has been discontinued. Groups are now officially assigned via the scheduled Live Animated Draws Event!",
+        },
+        { status: 403 }
+      );
+    }
+
+    const votingPlayerId = targetPlayerId;
     if (!votingPlayerId) {
-      return NextResponse.json({ error: "No player profile associated with this account." }, { status: 400 });
+      return NextResponse.json({ error: "Target player ID required for admin slotting." }, { status: 400 });
     }
 
     const votingPlayer = await prisma.player.findUnique({

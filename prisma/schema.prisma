@@ -13,6 +13,10 @@ model LeagueConfig {
   currentMatchday  Int      @default(1)
   uclStarted       Boolean  @default(false)
   europaStarted    Boolean  @default(false)
+  uclDrawTime      DateTime?
+  europaDrawTime   DateTime?
+  uclDrawCompleted Boolean  @default(false)
+  europaDrawCompleted Boolean @default(false)
   div1MaxPlayers   Int      @default(20)
   div2MaxPlayers   Int      @default(20)
   div3MaxPlayers   Int      @default(20)
@@ -39,8 +43,9 @@ model Player {
   efootballId            String       @unique
   whatsapp               String       // Mandatory for match scheduling via WhatsApp
   division               String       @default("Division 1") // Division 1, Division 2, Division 3
+  realTeam               String?      // Real club assigned (Premier League, La Liga, Ligue 1)
   platform               String       @default("eFootball Mobile") // Mobile Gaming Only
-  avatar                 String?
+  avatar                 String?      // Real club logo or custom avatar
   overallRating          Int          @default(85)
   
   matchesPlayed          Int          @default(0)

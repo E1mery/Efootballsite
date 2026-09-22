@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { findTeam } from "@/lib/teams";
 
 export async function POST(req: Request) {
   try {
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
       password,
       whatsapp,
       preferredDivision = "Division 1",
+      realTeam,
     } = body;
 
     if (!fullName || !gamerTag || !email || !password || !whatsapp) {
@@ -73,6 +75,8 @@ export async function POST(req: Request) {
       },
     });
 
+    const selectedClub = realTeam ? findTeam(realTeam) : undefined;
+
     const player = await prisma.player.create({
       data: {
         userId: user.id,
@@ -81,6 +85,8 @@ export async function POST(req: Request) {
         efootballId: sanitizedKonami,
         whatsapp: whatsapp.trim(),
         division: assignedDivision,
+        realTeam: selectedClub ? selectedClub.name : (realTeam || null),
+        avatar: selectedClub ? selectedClub.logo : null,
         status: isDivisionEntryClosed ? "RESERVED" : "PENDING_APPROVAL",
         platform: "eFootball Mobile",
         overallRating: 85,
