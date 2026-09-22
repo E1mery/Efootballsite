@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Globe, ArrowUp, ArrowDown, AlertTriangle, ShieldAlert, Smartphone, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface StandingRow {
   id: string;
@@ -26,6 +27,8 @@ interface StandingRow {
     whatsapp: string;
     platform: string;
     overallRating: number;
+    avatar?: string | null;
+    realTeam?: string | null;
   };
 }
 
@@ -136,38 +139,64 @@ export default function StandingsTable({
 
                 {/* Mobile Athlete Identity */}
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs font-black shadow-sm">
-                      <Smartphone className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm tracking-wide group-hover:text-sky-400 transition-colors">
-                          {row.player.gamerTag}
-                        </span>
+                  {(() => {
+                    const avatarUrl = resolvePlayerAvatar(row.player);
+                    const teamObj = row.player.realTeam ? findTeam(row.player.realTeam) : null;
+                    return (
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 p-1 shadow-sm overflow-hidden">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={row.player.realTeam || row.player.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <span className="font-black text-xs text-sky-400">
+                              {row.player.gamerTag.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="font-bold text-white text-sm tracking-wide group-hover:text-sky-400 transition-colors">
+                              {row.player.gamerTag}
+                            </span>
 
-                        {missed >= 3 ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse">
-                            <ShieldAlert className="h-3 w-3" />
-                            3/3 Missed (Disqualified)
-                          </span>
-                        ) : missed === 2 ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                            <AlertTriangle className="h-3 w-3" />
-                            2/3 Missed Warning
-                          </span>
-                        ) : null}
-                      </div>
+                            {row.player.realTeam && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] py-0 px-1.5 font-bold border-sky-500/40 text-sky-400 bg-sky-950/20"
+                                title={`Official Representation: ${row.player.realTeam}`}
+                              >
+                                {teamObj?.shortName || row.player.realTeam}
+                              </Badge>
+                            )}
 
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                        <span>{row.player.fullName}</span>
-                        <span>•</span>
-                        <span className="font-mono text-slate-500 text-[10px]">
-                          {row.player.efootballId}
-                        </span>
+                            {missed >= 3 ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse">
+                                <ShieldAlert className="h-3 w-3" />
+                                3/3 Missed (Disqualified)
+                              </span>
+                            ) : missed === 2 ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                                <AlertTriangle className="h-3 w-3" />
+                                2/3 Missed Warning
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                            <span>{row.player.fullName}</span>
+                            <span>•</span>
+                            <span className="font-mono text-slate-500 text-[10px]">
+                              {row.player.efootballId}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </TableCell>
 
                 {/* WhatsApp Direct Link */}

@@ -3,6 +3,7 @@ import { Trophy, Flame, Phone, Calendar, Clock, Sparkles, MessageCircle } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MotdPredictionPoll from "@/components/MotdPredictionPoll";
+import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface MotdProps {
   match: {
@@ -98,13 +99,28 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-sky-500/20 border-2 border-sky-400 text-sky-400 font-black text-xl shadow-lg shadow-sky-500/20">
-              {match.homePlayer?.gamerTag?.slice(0, 2).toUpperCase()}
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 border-2 border-sky-400 p-1.5 shadow-lg shadow-sky-500/20 overflow-hidden">
+              {match.homePlayer ? (
+                <img
+                  src={resolvePlayerAvatar(match.homePlayer)}
+                  alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-sky-400 font-black text-xl">HM</span>
+              )}
             </div>
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {match.homePlayer?.gamerTag}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {match.homePlayer?.gamerTag}
+                </h3>
+                {match.homePlayer?.realTeam && (
+                  <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold border-sky-500/40 text-sky-400 bg-sky-950/30">
+                    {match.homePlayer.realTeam}
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-slate-300">{match.homePlayer?.fullName}</p>
               <p className="text-[11px] text-slate-500 font-mono mt-0.5">
                 Konami ID: {match.homePlayer?.efootballId}
@@ -150,13 +166,28 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 font-black text-xl shadow-lg shadow-emerald-500/20">
-              {match.awayPlayer?.gamerTag?.slice(0, 2).toUpperCase()}
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 border-2 border-emerald-400 p-1.5 shadow-lg shadow-emerald-500/20 overflow-hidden">
+              {match.awayPlayer ? (
+                <img
+                  src={resolvePlayerAvatar(match.awayPlayer)}
+                  alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-emerald-400 font-black text-xl">AW</span>
+              )}
             </div>
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {match.awayPlayer?.gamerTag}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {match.awayPlayer?.gamerTag}
+                </h3>
+                {match.awayPlayer?.realTeam && (
+                  <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold border-emerald-500/40 text-emerald-400 bg-emerald-950/30">
+                    {match.awayPlayer.realTeam}
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-slate-300">{match.awayPlayer?.fullName}</p>
               <p className="text-[11px] text-slate-500 font-mono mt-0.5">
                 Konami ID: {match.awayPlayer?.efootballId}

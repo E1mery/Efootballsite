@@ -226,18 +226,32 @@ function ContinentalGroupStandingsView({
                             </td>
                             <td className="py-2.5 px-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-                                  {s.player?.gamerTag?.charAt(0)?.toUpperCase() || "P"}
+                                <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                  <img
+                                    src={resolvePlayerAvatar(s.player)}
+                                    alt={s.player?.realTeam || s.player?.gamerTag || "Team Crest"}
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
+                                    }}
+                                  />
                                 </div>
                                 <div className="truncate max-w-[130px] sm:max-w-[160px]">
-                                  <span className="font-bold text-white truncate block">
+                                  <span className="font-bold text-white truncate block text-xs">
                                     {s.player?.gamerTag || "Unknown Player"}
                                   </span>
-                                  {s.player?.division && (
-                                    <span className="text-[9px] text-slate-400 font-mono block">
-                                      {s.player.division}
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    {s.player?.realTeam && (
+                                      <span className="text-[9px] text-amber-400 font-bold truncate block">
+                                        {findTeam(s.player.realTeam)?.shortName || s.player.realTeam}
+                                      </span>
+                                    )}
+                                    {s.player?.division && (
+                                      <span className="text-[9px] text-slate-400 font-mono block">
+                                        • {s.player.division}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 {isMe && (
                                   <Badge variant="yellow" className="text-[8px] px-1 py-0 font-black shrink-0">
@@ -1401,8 +1415,27 @@ export default function DashboardClient({
                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-400 block mb-2">
                     {isHomePlayer ? "HOME ATHLETE (YOU)" : "AWAY ATHLETE (YOU)"}
                   </span>
-                  <h3 className="text-xl font-black text-white">{player.gamerTag}</h3>
-                  <p className="text-xs text-slate-400">{player.fullName}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                      <img
+                        src={resolvePlayerAvatar(player)}
+                        alt={player.realTeam || player.gamerTag || "Team Crest"}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">{player.gamerTag}</h3>
+                      {player.realTeam && (
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                          <span>{findTeam(player.realTeam)?.name || player.realTeam}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">{player.fullName}</p>
                   <span className="font-mono text-xs text-slate-500 block mt-1">
                     Konami ID: {player.efootballId}
                   </span>
@@ -1429,13 +1462,30 @@ export default function DashboardClient({
                     </Badge>
                   </div>
 
-                  <div>
-                    <h3 className="text-xl font-black text-white">{opponent?.gamerTag}</h3>
-                    <p className="text-xs text-slate-400">{opponent?.fullName}</p>
-                    <span className="font-mono text-xs text-slate-500 block mt-0.5">
-                      Konami ID: {opponent?.efootballId}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                      <img
+                        src={resolvePlayerAvatar(opponent)}
+                        alt={opponent?.realTeam || opponent?.gamerTag || "Opponent Crest"}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(opponent?.gamerTag || "opponent")}`;
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-white">{opponent?.gamerTag || "Unknown Opponent"}</h3>
+                      {opponent?.realTeam && (
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                          <span>{findTeam(opponent.realTeam)?.name || opponent.realTeam}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  <p className="text-xs text-slate-400 mt-2">{opponent?.fullName}</p>
+                  <span className="font-mono text-xs text-slate-500 block mt-0.5">
+                    Konami ID: {opponent?.efootballId}
+                  </span>
 
                   {/* Opponent WhatsApp Direct Chat */}
                   <div className="pt-2 border-t border-slate-900 space-y-2">
@@ -2248,9 +2298,45 @@ export default function DashboardClient({
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">
                       {m.round} • {m.division}
                     </span>
-                    <h4 className="text-sm font-extrabold text-white mt-0.5">
-                      {m.homePlayer.gamerTag} vs {m.awayPlayer.gamerTag}
-                    </h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <img
+                            src={resolvePlayerAvatar(m.homePlayer)}
+                            alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-extrabold text-white">{m.homePlayer.gamerTag}</span>
+                        {m.homePlayer.realTeam && (
+                          <span className="text-[10px] text-amber-400 font-bold">
+                            ({findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam})
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-500 font-bold">vs</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <img
+                            src={resolvePlayerAvatar(m.awayPlayer)}
+                            alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-extrabold text-white">{m.awayPlayer.gamerTag}</span>
+                        {m.awayPlayer.realTeam && (
+                          <span className="text-[10px] text-amber-400 font-bold">
+                            ({findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam})
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     {m.notes && <p className="text-xs text-slate-400 italic mt-1">"{m.notes}"</p>}
                   </div>
 
@@ -2390,12 +2476,28 @@ export default function DashboardClient({
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                       <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-4">
                         {/* You */}
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[140px]">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block">
-                            {isHome ? "HOME (YOU)" : "AWAY (YOU)"}
-                          </span>
-                          <span className="font-bold text-sm text-white block">{player.gamerTag}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{player.efootballId}</span>
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[150px] flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                            <img
+                              src={resolvePlayerAvatar(player)}
+                              alt={player.realTeam || player.gamerTag || "Team"}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block">
+                              {isHome ? "HOME (YOU)" : "AWAY (YOU)"}
+                            </span>
+                            <span className="font-bold text-sm text-white block">{player.gamerTag}</span>
+                            {player.realTeam && (
+                              <span className="text-[9px] text-amber-400 font-bold block">
+                                {findTeam(player.realTeam)?.shortName || player.realTeam}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* VS Score Box */}
@@ -2417,12 +2519,28 @@ export default function DashboardClient({
                         </div>
 
                         {/* Opponent */}
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[140px]">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
-                            {isHome ? "AWAY OPPONENT" : "HOME OPPONENT"}
-                          </span>
-                          <span className="font-bold text-sm text-white block">{matchOpponent?.gamerTag || "TBD"}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{matchOpponent?.efootballId || ""}</span>
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[150px] flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                            <img
+                              src={resolvePlayerAvatar(matchOpponent)}
+                              alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(matchOpponent?.gamerTag || "opponent")}`;
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                              {isHome ? "AWAY OPPONENT" : "HOME OPPONENT"}
+                            </span>
+                            <span className="font-bold text-sm text-white block">{matchOpponent?.gamerTag || "TBD"}</span>
+                            {matchOpponent?.realTeam && (
+                              <span className="text-[9px] text-amber-400 font-bold block">
+                                {findTeam(matchOpponent.realTeam)?.shortName || matchOpponent.realTeam}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

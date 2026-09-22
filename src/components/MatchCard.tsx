@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Tv, Smartphone, Calendar, ShieldAlert, Eye, MessageSquare } from "lucide-react";
+import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface PlayerInfo {
   id: string;
@@ -9,6 +10,8 @@ interface PlayerInfo {
   whatsapp?: string | null;
   platform?: string;
   division?: string;
+  avatar?: string | null;
+  realTeam?: string | null;
 }
 
 interface MatchProps {
@@ -126,18 +129,35 @@ export default function MatchCard({ match }: MatchProps) {
         {/* Home Player */}
         <div className="flex-1 min-w-0 flex items-center justify-end gap-2 sm:gap-3 text-right">
           <div className="min-w-0 flex-1">
-            <h4 className="text-xs sm:text-base font-extrabold text-white tracking-tight truncate">
-              {match.homePlayer?.gamerTag}
-            </h4>
+            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+              {match.homePlayer?.realTeam && (
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-bold border border-sky-500/20">
+                  {findTeam(match.homePlayer.realTeam)?.shortName || match.homePlayer.realTeam}
+                </span>
+              )}
+              <h4 className="text-xs sm:text-base font-extrabold text-white tracking-tight truncate">
+                {match.homePlayer?.gamerTag}
+              </h4>
+            </div>
             <span className="text-[10px] sm:text-[11px] text-slate-400 block truncate">
               {match.homePlayer?.fullName}
             </span>
-            <span className="text-[9px] sm:text-[10px] text-slate-500 font-mono hidden sm:block truncate">
-              ID: {match.homePlayer?.efootballId}
-            </span>
+            {match.homePlayer?.realTeam && (
+              <span className="text-[9px] text-slate-500 block truncate font-medium">
+                {match.homePlayer.realTeam}
+              </span>
+            )}
           </div>
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-sky-600 border border-sky-400/30 font-black text-xs sm:text-sm text-white shadow-md">
-            {match.homePlayer?.gamerTag ? match.homePlayer.gamerTag.slice(0, 2).toUpperCase() : "HM"}
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
+            {match.homePlayer ? (
+              <img
+                src={resolvePlayerAvatar(match.homePlayer)}
+                alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              "HM"
+            )}
           </div>
         </div>
 
@@ -162,19 +182,36 @@ export default function MatchCard({ match }: MatchProps) {
 
         {/* Away Player */}
         <div className="flex-1 min-w-0 flex items-center justify-start gap-2 sm:gap-3 text-left">
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 border border-emerald-400/30 font-black text-xs sm:text-sm text-white shadow-md">
-            {match.awayPlayer?.gamerTag ? match.awayPlayer.gamerTag.slice(0, 2).toUpperCase() : "AW"}
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
+            {match.awayPlayer ? (
+              <img
+                src={resolvePlayerAvatar(match.awayPlayer)}
+                alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              "AW"
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="text-xs sm:text-base font-extrabold text-white tracking-tight truncate">
-              {match.awayPlayer?.gamerTag}
-            </h4>
+            <div className="flex items-center justify-start gap-1.5 flex-wrap">
+              <h4 className="text-xs sm:text-base font-extrabold text-white tracking-tight truncate">
+                {match.awayPlayer?.gamerTag}
+              </h4>
+              {match.awayPlayer?.realTeam && (
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-bold border border-emerald-500/20">
+                  {findTeam(match.awayPlayer.realTeam)?.shortName || match.awayPlayer.realTeam}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] sm:text-[11px] text-slate-400 block truncate">
               {match.awayPlayer?.fullName}
             </span>
-            <span className="text-[9px] sm:text-[10px] text-slate-500 font-mono hidden sm:block truncate">
-              ID: {match.awayPlayer?.efootballId}
-            </span>
+            {match.awayPlayer?.realTeam && (
+              <span className="text-[9px] text-slate-500 block truncate font-medium">
+                {match.awayPlayer.realTeam}
+              </span>
+            )}
           </div>
         </div>
       </div>

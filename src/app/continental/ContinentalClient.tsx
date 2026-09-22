@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
-import { resolvePlayerAvatar } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 export default function ContinentalClient({
   leagueConfig,
@@ -585,7 +585,27 @@ export default function ContinentalClient({
                                   {idx + 1}
                                 </span>
                               </td>
-                              <td className="py-2 text-white truncate max-w-[120px]">{s.player.gamerTag}</td>
+                              <td className="py-2.5 text-white">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="h-6 w-6 rounded-md bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                                    <img
+                                      src={resolvePlayerAvatar(s.player)}
+                                      alt={s.player.realTeam || s.player.gamerTag}
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </div>
+                                  <div className="truncate">
+                                    <div className="flex items-center gap-1.5 truncate">
+                                      <span className="font-bold truncate text-xs">{s.player.gamerTag}</span>
+                                      {s.player.realTeam && (
+                                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-sky-400 font-bold border border-sky-500/20 hidden sm:inline-block">
+                                          {findTeam(s.player.realTeam)?.shortName || s.player.realTeam}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
                               <td className="py-2 text-center font-mono text-slate-300">{s.played}</td>
                               <td className="py-2 text-center font-mono text-slate-300">{s.won}</td>
                               <td className="py-2 text-center font-mono text-slate-300">{s.drawn}</td>
@@ -642,9 +662,25 @@ export default function ContinentalClient({
                       </div>
 
                       <div className="grid grid-cols-3 items-center text-center">
-                        <div className="text-left">
-                          <span className="font-bold text-white block text-sm">{m.homePlayer.gamerTag}</span>
-                          <span className="text-[10px] text-slate-500">{m.homePlayer.division}</span>
+                        <div className="flex items-center gap-2.5 text-left">
+                          <div className="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={resolvePlayerAvatar(m.homePlayer)}
+                              alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="font-bold text-white block text-xs sm:text-sm truncate">{m.homePlayer.gamerTag}</span>
+                              {m.homePlayer.realTeam && (
+                                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-sky-400 font-bold">
+                                  {findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 block truncate">{m.homePlayer.division}</span>
+                          </div>
                         </div>
 
                         <div className="space-y-1">
@@ -669,9 +705,25 @@ export default function ContinentalClient({
                           )}
                         </div>
 
-                        <div className="text-right">
-                          <span className="font-bold text-white block text-sm">{m.awayPlayer.gamerTag}</span>
-                          <span className="text-[10px] text-slate-500">{m.awayPlayer.division}</span>
+                        <div className="flex items-center justify-end gap-2.5 text-right">
+                          <div className="min-w-0">
+                            <div className="flex items-center justify-end gap-1 flex-wrap">
+                              <span className="font-bold text-white block text-xs sm:text-sm truncate">{m.awayPlayer.gamerTag}</span>
+                              {m.awayPlayer.realTeam && (
+                                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-emerald-400 font-bold">
+                                  {findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 block truncate">{m.awayPlayer.division}</span>
+                          </div>
+                          <div className="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={resolvePlayerAvatar(m.awayPlayer)}
+                              alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -751,16 +803,34 @@ export default function ContinentalClient({
                         <span className="font-bold text-indigo-300">{m.round}</span>
                         <span>{isFinished ? "FINISHED" : "SCHEDULED"}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm font-bold text-white">
-                        <span>{m.homePlayer.gamerTag}</span>
+                      <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-6 w-6 rounded-md bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={resolvePlayerAvatar(m.homePlayer)}
+                              alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <span className="truncate">{m.homePlayer.gamerTag}</span>
+                        </div>
                         {isFinished ? (
-                          <span className="font-mono text-yellow-400">
+                          <span className="font-mono text-yellow-400 shrink-0">
                             Agg: {aggHome} - {aggAway}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-500">vs</span>
+                          <span className="text-xs text-slate-500 shrink-0">vs</span>
                         )}
-                        <span>{m.awayPlayer.gamerTag}</span>
+                        <div className="flex items-center gap-2 min-w-0 justify-end">
+                          <span className="truncate">{m.awayPlayer.gamerTag}</span>
+                          <div className="h-6 w-6 rounded-md bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={resolvePlayerAvatar(m.awayPlayer)}
+                              alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -796,16 +866,34 @@ export default function ContinentalClient({
                         <span className="font-bold text-amber-300">{m.round}</span>
                         <span>{isFinished ? "FINISHED" : "SCHEDULED"}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm font-bold text-white">
-                        <span>{m.homePlayer.gamerTag}</span>
+                      <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-6 w-6 rounded-md bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={resolvePlayerAvatar(m.homePlayer)}
+                              alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <span className="truncate">{m.homePlayer.gamerTag}</span>
+                        </div>
                         {isFinished ? (
-                          <span className="font-mono text-yellow-400">
+                          <span className="font-mono text-yellow-400 shrink-0">
                             Agg: {aggHome} - {aggAway}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-500">vs</span>
+                          <span className="text-xs text-slate-500 shrink-0">vs</span>
                         )}
-                        <span>{m.awayPlayer.gamerTag}</span>
+                        <div className="flex items-center gap-2 min-w-0 justify-end">
+                          <span className="truncate">{m.awayPlayer.gamerTag}</span>
+                          <div className="h-6 w-6 rounded-md bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img
+                              src={resolvePlayerAvatar(m.awayPlayer)}
+                              alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -835,9 +923,19 @@ export default function ContinentalClient({
                 </Badge>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-6">
-                  <div className="space-y-1 text-center sm:text-right">
+                  <div className="space-y-2 text-center sm:text-right">
+                    <div className="h-16 w-16 rounded-2xl bg-slate-900 border border-slate-700 p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center overflow-hidden shadow-lg">
+                      <img
+                        src={resolvePlayerAvatar(finalMatch.homePlayer)}
+                        alt={finalMatch.homePlayer.realTeam || finalMatch.homePlayer.gamerTag}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
                     <h4 className="text-xl font-black text-white">{finalMatch.homePlayer.gamerTag}</h4>
                     <p className="text-xs text-slate-400">{finalMatch.homePlayer.fullName}</p>
+                    {finalMatch.homePlayer.realTeam && (
+                      <span className="text-xs font-bold text-sky-400 block">{finalMatch.homePlayer.realTeam}</span>
+                    )}
                     <Badge variant="secondary" className="text-[10px]">
                       {finalMatch.homePlayer.division}
                     </Badge>
@@ -856,9 +954,19 @@ export default function ContinentalClient({
                     )}
                   </div>
 
-                  <div className="space-y-1 text-center sm:text-left">
+                  <div className="space-y-2 text-center sm:text-left">
+                    <div className="h-16 w-16 rounded-2xl bg-slate-900 border border-slate-700 p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center overflow-hidden shadow-lg">
+                      <img
+                        src={resolvePlayerAvatar(finalMatch.awayPlayer)}
+                        alt={finalMatch.awayPlayer.realTeam || finalMatch.awayPlayer.gamerTag}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
                     <h4 className="text-xl font-black text-white">{finalMatch.awayPlayer.gamerTag}</h4>
                     <p className="text-xs text-slate-400">{finalMatch.awayPlayer.fullName}</p>
+                    {finalMatch.awayPlayer.realTeam && (
+                      <span className="text-xs font-bold text-amber-400 block">{finalMatch.awayPlayer.realTeam}</span>
+                    )}
                     <Badge variant="secondary" className="text-[10px]">
                       {finalMatch.awayPlayer.division}
                     </Badge>
