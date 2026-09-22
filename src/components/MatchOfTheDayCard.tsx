@@ -98,31 +98,35 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
             <span className="text-[11px] font-mono text-slate-500">HOME</span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 border-2 border-sky-400 p-1.5 shadow-lg shadow-sky-500/20 overflow-hidden">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 shrink-0 aspect-square items-center justify-center rounded-2xl bg-slate-950 border-2 border-sky-400 p-1.5 shadow-lg shadow-sky-500/20 overflow-hidden">
               {match.homePlayer ? (
                 <img
                   src={resolvePlayerAvatar(match.homePlayer)}
                   alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
                   className="h-full w-full object-contain"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
+                  }}
                 />
               ) : (
                 <span className="text-sky-400 font-black text-xl">HM</span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight truncate">
                   {match.homePlayer?.gamerTag}
                 </h3>
                 {match.homePlayer?.realTeam && (
-                  <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold border-sky-500/40 text-sky-400 bg-sky-950/30">
+                  <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold border-sky-500/40 text-sky-400 bg-sky-950/30 truncate">
                     {match.homePlayer.realTeam}
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-slate-300">{match.homePlayer?.fullName}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+              <p className="text-xs text-slate-300 truncate mt-0.5">{match.homePlayer?.fullName}</p>
+              <p className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
                 Konami ID: {match.homePlayer?.efootballId}
               </p>
             </div>
@@ -146,18 +150,18 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
         {/* VS / Score Divider */}
         <div className="lg:col-span-1 text-center flex flex-col items-center justify-center">
           {isLive || isFinished || isForfeit ? (
-            <div className="rounded-2xl bg-slate-950 border border-yellow-500/40 p-3 font-mono text-2xl font-black text-yellow-400 shadow-xl">
+            <div className="rounded-2xl bg-slate-950 border border-yellow-500/40 p-3 font-mono text-xl sm:text-2xl font-black text-yellow-400 shadow-xl">
               {match.homeScore ?? 0} : {match.awayScore ?? 0}
             </div>
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/20 border-2 border-yellow-400 text-yellow-400 font-black text-sm shadow-xl shadow-yellow-500/20 animate-bounce">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-yellow-500/20 border-2 border-yellow-400 text-yellow-400 font-black text-xs sm:text-sm shadow-xl shadow-yellow-500/20 animate-bounce">
               VS
             </div>
           )}
         </div>
 
         {/* Away Contender */}
-        <div className="lg:col-span-5 rounded-2xl border border-emerald-500/30 bg-slate-950/70 p-5 space-y-3 relative">
+        <div className="lg:col-span-5 rounded-2xl border border-emerald-500/30 bg-slate-950/70 p-4 sm:p-5 space-y-3 relative">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-slate-500">AWAY</span>
             <Badge variant="green" className="text-xs font-mono font-bold">
@@ -165,21 +169,25 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
             </Badge>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 border-2 border-emerald-400 p-1.5 shadow-lg shadow-emerald-500/20 overflow-hidden">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 shrink-0 aspect-square items-center justify-center rounded-2xl bg-slate-950 border-2 border-emerald-400 p-1.5 shadow-lg shadow-emerald-500/20 overflow-hidden">
               {match.awayPlayer ? (
                 <img
                   src={resolvePlayerAvatar(match.awayPlayer)}
                   alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
                   className="h-full w-full object-contain"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
+                  }}
                 />
               ) : (
                 <span className="text-emerald-400 font-black text-xl">AW</span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight truncate">
                   {match.awayPlayer?.gamerTag}
                 </h3>
                 {match.awayPlayer?.realTeam && (

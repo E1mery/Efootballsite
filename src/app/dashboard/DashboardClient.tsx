@@ -300,11 +300,12 @@ function ContinentalGroupStandingsView({
                             </td>
                             <td className="py-2.5 px-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                                   <img
                                     src={resolvePlayerAvatar(s.player)}
                                     alt={s.player?.realTeam || s.player?.gamerTag || "Team Crest"}
                                     className="w-full h-full object-contain"
+                                    loading="lazy"
                                     onError={(e) => {
                                       (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
                                     }}
@@ -1274,16 +1275,20 @@ export default function DashboardClient({
     <div className="space-y-8">
       {/* Top Welcome Bar */}
       <div className="rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="flex h-13 w-13 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-1.5 shadow-xl overflow-hidden">
+        <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+          <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-slate-700/80 p-1.5 sm:p-2 shadow-2xl overflow-hidden">
             {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
               <img
                 src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
                 alt={currentPlayer.realTeam || currentPlayer.gamerTag}
                 className="h-full w-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
+                }}
               />
             ) : (
-              <span className="font-black text-xl sm:text-2xl text-yellow-400">
+              <span className="font-black text-xl sm:text-2xl md:text-3xl text-yellow-400">
                 {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
               </span>
             )}
@@ -1800,32 +1805,33 @@ export default function DashboardClient({
               {/* Opponent & Match Coordination Card */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4">
                 {/* Your Profile */}
-                <div className="lg:col-span-4 rounded-2xl bg-slate-950/70 border border-slate-800 p-5 text-center sm:text-left">
+                <div className="lg:col-span-4 rounded-2xl bg-slate-950/70 border border-slate-800 p-4 sm:p-5 text-center sm:text-left">
                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-400 block mb-2">
                     {isHomePlayer ? "HOME ATHLETE (YOU)" : "AWAY ATHLETE (YOU)"}
                   </span>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                       <img
                         src={resolvePlayerAvatar(player)}
                         alt={player.realTeam || player.gamerTag || "Team Crest"}
                         className="w-full h-full object-contain"
+                        loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
                         }}
                       />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-white">{player.gamerTag}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg sm:text-xl font-black text-white truncate">{player.gamerTag}</h3>
                       {player.realTeam && (
-                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold">
-                          <span>{findTeam(player.realTeam)?.name || player.realTeam}</span>
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold truncate max-w-full">
+                          <span className="truncate">{findTeam(player.realTeam)?.name || player.realTeam}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">{player.fullName}</p>
-                  <span className="font-mono text-xs text-slate-500 block mt-1">
+                  <p className="text-xs text-slate-400 mt-2 truncate">{player.fullName}</p>
+                  <span className="font-mono text-xs text-slate-500 block mt-1 truncate">
                     Konami ID: {player.efootballId}
                   </span>
                 </div>
@@ -1841,7 +1847,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* Opponent Card with WhatsApp Connect */}
-                <div className="lg:col-span-4 rounded-2xl bg-slate-950/90 border-2 border-emerald-500/40 p-5 space-y-3">
+                <div className="lg:col-span-4 rounded-2xl bg-slate-950/90 border-2 border-emerald-500/40 p-4 sm:p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
                       YOUR OPPONENT
@@ -1851,28 +1857,29 @@ export default function DashboardClient({
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                       <img
                         src={resolvePlayerAvatar(opponent)}
                         alt={opponent?.realTeam || opponent?.gamerTag || "Opponent Crest"}
                         className="w-full h-full object-contain"
+                        loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(opponent?.gamerTag || "opponent")}`;
                         }}
                       />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-white">{opponent?.gamerTag || "Unknown Opponent"}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg sm:text-xl font-black text-white truncate">{opponent?.gamerTag || "Unknown Opponent"}</h3>
                       {opponent?.realTeam && (
-                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold">
-                          <span>{findTeam(opponent.realTeam)?.name || opponent.realTeam}</span>
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold truncate max-w-full">
+                          <span className="truncate">{findTeam(opponent.realTeam)?.name || opponent.realTeam}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">{opponent?.fullName}</p>
-                  <span className="font-mono text-xs text-slate-500 block mt-0.5">
+                  <p className="text-xs text-slate-400 mt-2 truncate">{opponent?.fullName}</p>
+                  <span className="font-mono text-xs text-slate-500 block mt-0.5 truncate">
                     Konami ID: {opponent?.efootballId}
                   </span>
 
@@ -2687,40 +2694,42 @@ export default function DashboardClient({
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">
                       {m.round} • {m.division}
                     </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                           <img
                             src={resolvePlayerAvatar(m.homePlayer)}
                             alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
                             className="w-full h-full object-contain"
+                            loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
                             }}
                           />
                         </div>
-                        <span className="text-sm font-extrabold text-white">{m.homePlayer.gamerTag}</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-white truncate">{m.homePlayer.gamerTag}</span>
                         {m.homePlayer.realTeam && (
-                          <span className="text-[10px] text-amber-400 font-bold">
+                          <span className="text-[10px] text-amber-400 font-bold truncate">
                             ({findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam})
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-slate-500 font-bold">vs</span>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                      <span className="text-xs text-slate-500 font-bold shrink-0">vs</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                           <img
                             src={resolvePlayerAvatar(m.awayPlayer)}
                             alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
                             className="w-full h-full object-contain"
+                            loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
                             }}
                           />
                         </div>
-                        <span className="text-sm font-extrabold text-white">{m.awayPlayer.gamerTag}</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-white truncate">{m.awayPlayer.gamerTag}</span>
                         {m.awayPlayer.realTeam && (
-                          <span className="text-[10px] text-amber-400 font-bold">
+                          <span className="text-[10px] text-amber-400 font-bold truncate">
                             ({findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam})
                           </span>
                         )}
@@ -2863,26 +2872,27 @@ export default function DashboardClient({
 
                     {/* Match Pairing Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                         {/* You */}
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[150px] flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 w-full sm:w-auto sm:min-w-[160px] flex items-center gap-3">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(player)}
                               alt={player.realTeam || player.gamerTag || "Team"}
                               className="w-full h-full object-contain"
+                              loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
                               }}
                             />
                           </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block truncate">
                               {isHome ? "HOME (YOU)" : "AWAY (YOU)"}
                             </span>
-                            <span className="font-bold text-sm text-white block">{player.gamerTag}</span>
+                            <span className="font-bold text-sm text-white block truncate">{player.gamerTag}</span>
                             {player.realTeam && (
-                              <span className="text-[9px] text-amber-400 font-bold block">
+                              <span className="text-[9px] text-amber-400 font-bold block truncate">
                                 {findTeam(player.realTeam)?.shortName || player.realTeam}
                               </span>
                             )}
@@ -2890,7 +2900,7 @@ export default function DashboardClient({
                         </div>
 
                         {/* VS Score Box */}
-                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-center min-w-[90px]">
+                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-center min-w-[90px] shrink-0 self-center">
                           {isFinished || isForfeit ? (
                             <span className="text-xl font-black font-mono text-cyan-400">
                               {m.homeScore} : {m.awayScore}
@@ -2908,24 +2918,25 @@ export default function DashboardClient({
                         </div>
 
                         {/* Opponent */}
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 min-w-[150px] flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 w-full sm:w-auto sm:min-w-[160px] flex items-center gap-3">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(matchOpponent)}
                               alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
                               className="w-full h-full object-contain"
+                              loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(matchOpponent?.gamerTag || "opponent")}`;
                               }}
                             />
                           </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block truncate">
                               {isHome ? "AWAY OPPONENT" : "HOME OPPONENT"}
                             </span>
-                            <span className="font-bold text-sm text-white block">{matchOpponent?.gamerTag || "TBD"}</span>
+                            <span className="font-bold text-sm text-white block truncate">{matchOpponent?.gamerTag || "TBD"}</span>
                             {matchOpponent?.realTeam && (
-                              <span className="text-[9px] text-amber-400 font-bold block">
+                              <span className="text-[9px] text-amber-400 font-bold block truncate">
                                 {findTeam(matchOpponent.realTeam)?.shortName || matchOpponent.realTeam}
                               </span>
                             )}
@@ -3056,15 +3067,19 @@ export default function DashboardClient({
             {/* Athlete Profile Summary Card */}
             <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 h-fit backdrop-blur-xl">
               <div className="text-center space-y-3 pb-4 border-b border-slate-800">
-                <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-2 text-white font-black text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/10 overflow-hidden">
+                <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 p-2 text-white font-black text-2xl sm:text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/10 overflow-hidden">
                   {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
                     <img
                       src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
                       alt={currentPlayer.realTeam || currentPlayer.gamerTag}
                       className="h-full w-full object-contain"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
+                      }}
                     />
                   ) : (
-                    <div className="h-full w-full rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center font-black text-2xl text-white">
+                    <div className="h-full w-full rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center font-black text-xl sm:text-2xl text-white">
                       {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
                     </div>
                   )}

@@ -148,12 +148,16 @@ export default function MatchCard({ match }: MatchProps) {
               </span>
             )}
           </div>
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
             {match.homePlayer ? (
               <img
                 src={resolvePlayerAvatar(match.homePlayer)}
                 alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
                 className="h-full w-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
+                }}
               />
             ) : (
               "HM"
@@ -164,7 +168,7 @@ export default function MatchCard({ match }: MatchProps) {
         {/* Center Score / VS Box */}
         <div className="shrink-0 flex flex-col items-center justify-center px-1">
           {isLive || isFinished || isForfeit ? (
-            <div className="flex items-center gap-1 rounded-xl bg-slate-950 border border-slate-800 px-2.5 sm:px-3.5 py-1 font-mono text-sm sm:text-lg font-black text-white shadow-inner">
+            <div className="flex items-center gap-1 rounded-xl bg-slate-950 border border-slate-800 px-2 sm:px-3 py-1 font-mono text-xs sm:text-base md:text-lg font-black text-white shadow-inner">
               <span className={match.homeScore! > match.awayScore! ? "text-yellow-400" : "text-white"}>
                 {match.homeScore ?? 0}
               </span>
@@ -182,12 +186,16 @@ export default function MatchCard({ match }: MatchProps) {
 
         {/* Away Player */}
         <div className="flex-1 min-w-0 flex items-center justify-start gap-2 sm:gap-3 text-left">
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
             {match.awayPlayer ? (
               <img
                 src={resolvePlayerAvatar(match.awayPlayer)}
                 alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
                 className="h-full w-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
+                }}
               />
             ) : (
               "AW"

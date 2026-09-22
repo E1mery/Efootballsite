@@ -3,6 +3,7 @@ import PlayerCard from "@/components/PlayerCard";
 import { Award, Zap, Smartphone, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
+import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 export const dynamic = "force-dynamic";
 
@@ -90,14 +91,26 @@ export default async function PlayersPage() {
           {topAssists.map((player, idx) => (
             <div
               key={player.id}
-              className="esports-card rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+              className="esports-card rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-sky-400">#{idx + 1} Playmaker</span>
-                <span className="text-sm font-black text-white">{player.assists} Ast</span>
+                <span className="text-sm font-black text-white px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-500/30">{player.assists} Ast</span>
               </div>
-              <h4 className="text-sm font-extrabold text-white">{player.gamerTag}</h4>
-              <p className="text-xs text-slate-400">{player.division}</p>
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 shrink-0 aspect-square rounded-xl bg-slate-950 border border-slate-700/80 p-1 overflow-hidden flex items-center justify-center shadow-md">
+                  <img
+                    src={resolvePlayerAvatar(player)}
+                    alt={player.gamerTag}
+                    className="h-full w-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-extrabold text-white truncate">{player.gamerTag}</h4>
+                  <p className="text-xs text-slate-400 truncate">{player.division}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -113,7 +126,7 @@ export default async function PlayersPage() {
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 uppercase font-bold text-[11px] text-slate-400 border-b border-slate-800">
               <tr className="whitespace-nowrap">
-                <th className="p-3.5">Gamer Tag</th>
+                <th className="p-3.5">Athlete</th>
                 <th className="p-3.5">Full Name</th>
                 <th className="p-3.5">Konami Mobile ID</th>
                 <th className="p-3.5">Division</th>
@@ -127,7 +140,26 @@ export default async function PlayersPage() {
             <tbody className="divide-y divide-slate-800/60">
               {allPlayers.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-800/40 transition-colors whitespace-nowrap">
-                  <td className="p-3.5 font-bold text-white">{p.gamerTag}</td>
+                  <td className="p-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 aspect-square rounded-lg bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden shadow-inner">
+                        <img
+                          src={resolvePlayerAvatar(p)}
+                          alt={p.realTeam || p.gamerTag}
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div>
+                        <span className="font-bold text-white block">{p.gamerTag}</span>
+                        {p.realTeam && (
+                          <span className="text-[10px] text-amber-400 font-medium block">
+                            {findTeam(p.realTeam)?.shortName || p.realTeam}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
                   <td className="p-3.5 text-slate-400">{p.fullName}</td>
                   <td className="p-3.5 font-mono text-slate-500">{p.efootballId}</td>
                   <td className="p-3.5 font-semibold text-yellow-400">{p.division}</td>
