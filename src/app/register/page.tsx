@@ -40,9 +40,12 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
+  const [takenTeams, setTakenTeams] = useState<
+    Record<string, { gamerTag: string; division: string }>
+  >({});
 
-  // Check if registration is open
-  useState(() => {
+  // Check if registration is open and fetch already claimed teams
+  useEffect(() => {
     fetch("/api/admin/config")
       .then((res) => res.json())
       .then((data) => {
@@ -51,7 +54,16 @@ export default function RegisterPage() {
         }
       })
       .catch(() => setRegistrationOpen(true));
-  });
+
+    fetch("/api/teams/taken")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.takenTeams) {
+          setTakenTeams(data.takenTeams);
+        }
+      })
+      .catch((err) => console.error("Failed to load taken teams", err));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,21 +304,72 @@ export default function RegisterPage() {
                   </Button>
                 </div>
               ) : (
-                <select
-                  className="flex h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  value={formData.realTeam}
-                  onChange={(e) => setFormData({ ...formData, realTeam: e.target.value })}
-                >
-                  <option value="">Select your real football club (optional)</option>
-                  {getTeamsForDivision(formData.preferredDivision).map((t) => (
-                    <option key={t.name} value={t.name}>
-                      {t.name} ({t.shortName})
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <select
+                    className="flex h-11 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    value={formData.realTeam}
+                    onChange={(e) => setFormData({ ...formData, realTeam: e.target.value })}
+                  >
+                    <option value="">Select your real football club (optional)</option>
+                    {getTeamsForDivision(formData.preferredDivision).map((t) => {
+                      const taken = takenTeams[t.name.trim().toLowerCase()];
+                      return (
+                        <option
+                          key={t.name}
+                          value={t.name}
+                          disabled={Boolean(taken)}
+                          className={taken ? "text-slate-500 bg-slate-950 font-normal" : "text-white font-medium"}
+                        >
+                          {t.name} ({t.shortName}) {taken ? `[TAKEN by @${taken.gamerTag}]` : "— AVAILABLE"}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  {/* Visual Grid Picker with Live Availability */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto p-1.5 border border-slate-800 rounded-xl bg-slate-950/60">
+                    {getTeamsForDivision(formData.preferredDivision).map((t) => {
+                      const taken = takenTeams[t.name.trim().toLowerCase()];
+                      const isSelected = formData.realTeam === t.name;
+                      return (
+                        <button
+                          key={t.name}
+                          type="button"
+                          disabled={Boolean(taken)}
+                          onClick={() => setFormData({ ...formData, realTeam: t.name })}
+                          className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 relative ${
+                            isSelected
+                              ? "border-sky-400 bg-sky-500/20 ring-2 ring-sky-400/50"
+                              : taken
+                              ? "border-slate-800/60 bg-slate-950/90 opacity-40 cursor-not-allowed"
+                              : "border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="h-8 w-8 rounded-lg bg-slate-900 p-1 flex items-center justify-center border border-slate-800 shrink-0">
+                            <img src={t.logo} alt={t.name} className="h-full w-full object-contain" />
+                          </div>
+                          <div className="w-full text-center">
+                            <div className="text-[10px] font-bold text-white truncate" title={t.name}>
+                              {t.name}
+                            </div>
+                            {taken ? (
+                              <span className="text-[8px] font-mono text-rose-400 font-bold block truncate">
+                                TAKEN (@{taken.gamerTag})
+                              </span>
+                            ) : (
+                              <span className="text-[8px] font-mono text-emerald-400 font-semibold block">
+                                Available
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
               <span className="text-[10px] text-slate-500 block">
-                Your selected club&apos;s official logo will act as your athlete avatar across rankings, fixtures, and UCL / Europa draws.
+                Each real football club can only be represented by one athlete in the league. Taken clubs cannot be chosen.
               </span>
             </div>
 

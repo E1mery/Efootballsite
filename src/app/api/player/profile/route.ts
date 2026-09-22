@@ -106,6 +106,24 @@ export async function PUT(req: Request) {
     if (realTeam !== undefined) {
       const team = findTeam(realTeam);
       if (team) {
+        // Validate that no other athlete has claimed this club
+        const existingClaim = await prisma.player.findFirst({
+          where: {
+            id: { not: user.player.id },
+            realTeam: team.name,
+            status: { not: "REJECTED" },
+          },
+          select: { gamerTag: true },
+        });
+        if (existingClaim) {
+          return NextResponse.json(
+            {
+              error: `The football club "${team.name}" is already chosen by another athlete (@${existingClaim.gamerTag}). Please choose an available club.`,
+            },
+            { status: 400 }
+          );
+        }
+
         playerUpdateData.realTeam = team.name;
         playerUpdateData.avatar = team.logo;
       } else if (realTeam === "" || realTeam === null) {

@@ -58,6 +58,26 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check real football team uniqueness
+    const selectedClub = realTeam ? findTeam(realTeam) : undefined;
+    if (selectedClub) {
+      const existingTeamClaim = await prisma.player.findFirst({
+        where: {
+          realTeam: selectedClub.name,
+          status: { not: "REJECTED" },
+        },
+        select: { gamerTag: true },
+      });
+      if (existingTeamClaim) {
+        return NextResponse.json(
+          {
+            error: `The football club "${selectedClub.name}" has already been chosen by another athlete (@${existingTeamClaim.gamerTag}). Please choose another club.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check League Configuration (is division entry closed?)
     const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
     const isDivisionEntryClosed = config ? !config.registrationOpen : false;
@@ -74,8 +94,6 @@ export async function POST(req: Request) {
         role: "PLAYER",
       },
     });
-
-    const selectedClub = realTeam ? findTeam(realTeam) : undefined;
 
     const player = await prisma.player.create({
       data: {

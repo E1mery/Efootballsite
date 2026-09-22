@@ -523,6 +523,45 @@ export default function DashboardClient({
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
   const [profileErrorMsg, setProfileErrorMsg] = useState("");
 
+  // Claimed real teams tracking
+  const [takenTeamsMap, setTakenTeamsMap] = useState<
+    Record<string, { gamerTag: string; division: string; playerId: string }>
+  >({});
+
+  useEffect(() => {
+    fetch("/api/teams/taken")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.takenTeams) {
+          setTakenTeamsMap(data.takenTeams);
+        }
+      })
+      .catch((e) => console.error("Failed to load taken teams", e));
+  }, []);
+
+  const isTeamClaimedByOther = (teamName: string) => {
+    const norm = teamName.trim().toLowerCase();
+    const fromApi = takenTeamsMap[norm];
+    if (fromApi && fromApi.playerId !== currentPlayer.id) {
+      return fromApi.gamerTag;
+    }
+    const allStandings = [
+      ...(div1Standings || []),
+      ...(div2Standings || []),
+      ...(div3Standings || []),
+    ];
+    const match = allStandings.find(
+      (s: any) =>
+        s.player?.id !== currentPlayer.id &&
+        s.player?.realTeam &&
+        s.player.realTeam.trim().toLowerCase() === norm
+    );
+    if (match) {
+      return match.player.gamerTag;
+    }
+    return null;
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileUpdating(true);
@@ -3166,14 +3205,19 @@ export default function DashboardClient({
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[260px] overflow-y-auto p-1 border border-slate-800 rounded-2xl bg-slate-900/30">
                       {getTeamsForDivision(currentPlayer.division).map((team) => {
                         const isSelected = profileRealTeam === team.name;
+                        const claimedBy = isTeamClaimedByOther(team.name);
+                        const isTaken = Boolean(claimedBy);
                         return (
                           <button
                             key={team.name}
                             type="button"
+                            disabled={isTaken}
                             onClick={() => setProfileRealTeam(team.name)}
-                            className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                            className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 relative ${
                               isSelected
                                 ? "border-sky-400 bg-sky-500/20 shadow-md shadow-sky-500/20 ring-2 ring-sky-400/50"
+                                : isTaken
+                                ? "border-slate-800/60 bg-slate-950/80 opacity-40 cursor-not-allowed"
                                 : "border-slate-800 bg-slate-900/60 hover:bg-slate-850 hover:border-slate-700"
                             }`}
                           >
@@ -3192,6 +3236,19 @@ export default function DashboardClient({
                               <div className="text-[9px] font-mono text-slate-400">
                                 {team.shortName}
                               </div>
+                              {isTaken ? (
+                                <span className="text-[8px] font-mono text-rose-400 font-bold block truncate mt-0.5">
+                                  TAKEN (@{claimedBy})
+                                </span>
+                              ) : isSelected ? (
+                                <span className="text-[8px] font-mono text-sky-400 font-bold block mt-0.5">
+                                  SELECTED
+                                </span>
+                              ) : (
+                                <span className="text-[8px] font-mono text-emerald-400 font-semibold block mt-0.5">
+                                  Available
+                                </span>
+                              )}
                             </div>
                           </button>
                         );

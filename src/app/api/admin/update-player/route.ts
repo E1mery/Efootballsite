@@ -63,6 +63,21 @@ export async function POST(req: Request) {
     if (realTeam !== undefined) {
       const team = findTeam(realTeam);
       if (team) {
+        const existingClaim = await prisma.player.findFirst({
+          where: {
+            id: { not: playerId },
+            realTeam: team.name,
+            status: { not: "REJECTED" },
+          },
+          select: { gamerTag: true },
+        });
+        if (existingClaim) {
+          return NextResponse.json(
+            { error: `The football club "${team.name}" is already assigned to @${existingClaim.gamerTag}.` },
+            { status: 400 }
+          );
+        }
+
         updateData.realTeam = team.name;
         updateData.avatar = team.logo;
       } else if (realTeam === "" || realTeam === null) {

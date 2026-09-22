@@ -6604,14 +6604,25 @@ export default function AdminClient({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 overflow-y-auto p-1 max-h-[360px]">
               {getTeamsForDivision(editingClubPlayer.division).map((team) => {
                 const isSelected = selectedClubName === team.name;
+                const otherPlayer = (playersList || []).find(
+                  (p) =>
+                    p.id !== editingClubPlayer.id &&
+                    p.status !== "REJECTED" &&
+                    p.realTeam &&
+                    p.realTeam.trim().toLowerCase() === team.name.trim().toLowerCase()
+                );
+                const isTaken = Boolean(otherPlayer);
                 return (
                   <button
                     key={team.name}
                     type="button"
+                    disabled={isTaken}
                     onClick={() => setSelectedClubName(team.name)}
-                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 ${
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 relative ${
                       isSelected
                         ? "border-sky-400 bg-sky-500/20 shadow-lg shadow-sky-500/20 ring-2 ring-sky-400/50"
+                        : isTaken
+                        ? "border-slate-800/60 bg-slate-950/80 opacity-40 cursor-not-allowed"
                         : "border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-slate-700"
                     }`}
                   >
@@ -6630,6 +6641,19 @@ export default function AdminClient({
                       <div className="text-[10px] font-mono text-slate-400">
                         {team.shortName}
                       </div>
+                      {isTaken ? (
+                        <span className="text-[8px] font-mono text-rose-400 font-bold block truncate mt-0.5">
+                          TAKEN (@{otherPlayer?.gamerTag})
+                        </span>
+                      ) : isSelected ? (
+                        <span className="text-[8px] font-mono text-sky-400 font-bold block mt-0.5">
+                          SELECTED
+                        </span>
+                      ) : (
+                        <span className="text-[8px] font-mono text-emerald-400 font-semibold block mt-0.5">
+                          Available
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
