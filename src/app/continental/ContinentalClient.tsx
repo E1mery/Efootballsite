@@ -412,19 +412,19 @@ export default function ContinentalClient({
                 ⚡ <strong>UEFA-style Division Protection:</strong> The animated draw system will automatically ensure no group has more than 2 athletes from the same league!
               </div>
             </div>
-          ) : !isStarted && !isAdmin && !scheduledDrawTime ? (
+          ) : !isStarted && !isAdmin ? (
             <div className="rounded-3xl border border-indigo-500/20 bg-slate-950/90 p-10 text-center space-y-4 shadow-2xl">
               <div className="inline-flex p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
                 <Lock className="h-10 w-10" />
               </div>
-              <Badge variant="destructive" className="font-mono text-xs">
-                TOURNAMENT LOCKED PENDING COMMISSIONER SCHEDULING
+              <Badge variant="destructive" className="font-mono text-xs uppercase">
+                TOURNAMENT LOCKED PENDING COMMISSIONER LAUNCH
               </Badge>
               <h2 className="text-2xl sm:text-3xl font-black uppercase text-white">
                 eFootball {selectedCompetition} Group Draws
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-                Official group draws will be unlocked and scheduled by the League Administrator after regular season division fixtures conclude.
+                Official group draws will be unlocked and launched by the League Administrator after regular season division fixtures conclude.
               </p>
             </div>
           ) : (

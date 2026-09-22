@@ -53,6 +53,7 @@ interface ContinentalGroupStandingsViewProps {
   standings: any[];
   slots: any[];
   currentPlayerId: string;
+  isStarted?: boolean;
   onWatchDraw?: () => void;
 }
 
@@ -61,6 +62,7 @@ function ContinentalGroupStandingsView({
   standings,
   slots,
   currentPlayerId,
+  isStarted = false,
   onWatchDraw,
 }: ContinentalGroupStandingsViewProps) {
   const isUcl = competition === "UCL";
@@ -70,6 +72,44 @@ function ContinentalGroupStandingsView({
 
   const groups = ["Group A", "Group B", "Group C", "Group D"];
   const hasAnyData = standings.length > 0 || slots.length > 0;
+
+  if (!isStarted) {
+    return (
+      <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-10 text-center space-y-4">
+        <div className={`inline-flex p-4 rounded-2xl ${isUcl ? "bg-indigo-500/10 text-indigo-400" : "bg-amber-500/10 text-amber-400"}`}>
+          <Lock className="h-8 w-8" />
+        </div>
+        <div className="space-y-1">
+          <Badge variant="destructive" className="font-mono text-xs uppercase">
+            COMPETITION LOCKED PENDING COMMISSIONER LAUNCH
+          </Badge>
+          <h4 className="text-lg font-black uppercase text-white">
+            {compTitle} Draws & Standings Locked
+          </h4>
+        </div>
+        <p className="text-xs text-slate-400 max-w-md mx-auto">
+          The official {compTitle} draws and group stages will be unlocked by the League Commissioner after the domestic division regular season fixtures conclude.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <Button
+            type="button"
+            disabled
+            className="font-black text-xs gap-2 py-2 px-4 rounded-xl opacity-50 cursor-not-allowed bg-slate-900 border border-slate-800 text-slate-400"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            <span>Draw Locked (Awaiting Launch)</span>
+          </Button>
+          <Link
+            href="/continental"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-sky-400 hover:text-white bg-slate-900 border border-slate-800 transition-all"
+          >
+            <span>View Continental Qualification Slots</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasAnyData) {
     return (
@@ -84,7 +124,7 @@ function ContinentalGroupStandingsView({
           Group draws have not been finalized yet. Once qualified athletes are drawn into Groups A, B, C, and D, the live standings and qualification ladders will update automatically here.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          {onWatchDraw && (
+          {onWatchDraw && isStarted && (
             <Button
               type="button"
               onClick={onWatchDraw}
@@ -139,7 +179,7 @@ function ContinentalGroupStandingsView({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {onWatchDraw && (
+          {onWatchDraw && isStarted && (
             <Button
               type="button"
               onClick={onWatchDraw}
@@ -1514,6 +1554,11 @@ export default function DashboardClient({
               standings={standingsCategory === "UCL" ? uclGroupStandings : europaGroupStandings}
               slots={standingsCategory === "UCL" ? uclSlots : europaSlots}
               currentPlayerId={currentPlayer.id}
+              isStarted={
+                standingsCategory === "UCL"
+                  ? Boolean(leagueConfig?.uclStarted)
+                  : Boolean(leagueConfig?.europaStarted)
+              }
               onWatchDraw={() => setViewDrawModal(standingsCategory)}
             />
           )}
@@ -1524,179 +1569,187 @@ export default function DashboardClient({
       {!isReserved && activeTab === "OVERVIEW" && (
         <div className="space-y-8">
           {/* CONTINENTAL DRAWS BROADCAST & SCHEDULE BANNER */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* UCL DRAW BANNER */}
-            <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-slate-950 to-slate-900 p-5 relative overflow-hidden shadow-xl">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                    <Star className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-300">
-                      Tier 1 Continental
-                    </span>
-                    <h3 className="text-sm font-black text-white uppercase">
-                      UCL Group Stage Draw
-                    </h3>
-                  </div>
-                </div>
-                {leagueConfig?.uclDrawCompleted ? (
-                  <Badge variant="green" className="text-[9px] font-black uppercase">
-                    DRAW COMPLETED
-                  </Badge>
-                ) : leagueConfig?.uclDrawTime ? (
-                  uclDrawCountdown.isDue ? (
-                    <Badge variant="live" className="text-[9px] font-black uppercase">
-                      🔴 LIVE DRAW IN PROGRESS
-                    </Badge>
-                  ) : (
-                    <Badge variant="yellow" className="text-[9px] font-black uppercase">
-                      🗓️ SCHEDULED
-                    </Badge>
-                  )
-                ) : (
-                  <Badge variant="default" className="text-[9px] font-black uppercase">
-                    UPCOMING
-                  </Badge>
-                )}
-              </div>
-
-              {/* Schedule time & countdown */}
-              <div className="rounded-2xl bg-slate-950/70 border border-indigo-500/20 p-3 mb-4 space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-indigo-400" />
-                    <span>Scheduled Time:</span>
-                  </span>
-                  <span className="font-bold text-white font-mono text-[11px]">
-                    {leagueConfig?.uclDrawTime
-                      ? `${new Date(leagueConfig.uclDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                      : "Post-Division Conclusion"}
-                  </span>
-                </div>
-
-                {leagueConfig?.uclDrawTime && !leagueConfig?.uclDrawCompleted && (
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-                    <span className="text-slate-400 font-medium">Draw Countdown:</span>
-                    {uclDrawCountdown.isDue ? (
-                      <span className="text-xs font-black text-emerald-400 animate-pulse">
-                        Event Time Arrived!
-                      </span>
+          {(leagueConfig?.uclStarted || leagueConfig?.europaStarted) && (
+            <div className={`grid grid-cols-1 ${leagueConfig?.uclStarted && leagueConfig?.europaStarted ? "md:grid-cols-2" : ""} gap-4`}>
+              {/* UCL DRAW BANNER */}
+              {leagueConfig?.uclStarted && (
+                <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-slate-950 to-slate-900 p-5 relative overflow-hidden shadow-xl">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                        <Star className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-300">
+                          Tier 1 Continental
+                        </span>
+                        <h3 className="text-sm font-black text-white uppercase">
+                          UCL Group Stage Draw
+                        </h3>
+                      </div>
+                    </div>
+                    {leagueConfig?.uclDrawCompleted ? (
+                      <Badge variant="green" className="text-[9px] font-black uppercase">
+                        DRAW COMPLETED
+                      </Badge>
+                    ) : leagueConfig?.uclDrawTime ? (
+                      uclDrawCountdown.isDue ? (
+                        <Badge variant="live" className="text-[9px] font-black uppercase">
+                          🔴 LIVE DRAW IN PROGRESS
+                        </Badge>
+                      ) : (
+                        <Badge variant="yellow" className="text-[9px] font-black uppercase">
+                          🗓️ SCHEDULED
+                        </Badge>
+                      )
                     ) : (
-                      <span className="font-mono font-black text-indigo-400 text-xs">
-                        {uclDrawCountdown.days > 0 && `${uclDrawCountdown.days}d `}
-                        {String(uclDrawCountdown.hours).padStart(2, "0")}h : {String(uclDrawCountdown.minutes).padStart(2, "0")}m : {String(uclDrawCountdown.seconds).padStart(2, "0")}s
-                      </span>
+                      <Badge variant="default" className="text-[9px] font-black uppercase">
+                        UPCOMING
+                      </Badge>
                     )}
                   </div>
-                )}
-              </div>
 
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] text-slate-400">
-                  16 Qualified Athletes • Groups A-D
-                </span>
-                <Button
-                  type="button"
-                  onClick={() => setViewDrawModal("UCL")}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs gap-1.5 py-2 px-3 rounded-xl shadow-lg shadow-indigo-600/30"
-                >
-                  <Play className="h-3.5 w-3.5" />
-                  <span>
-                    {leagueConfig?.uclDrawCompleted ? "Watch Draw Event" : "Watch Draw / Preview"}
-                  </span>
-                </Button>
-              </div>
-            </div>
-
-            {/* EUROPA DRAW BANNER */}
-            <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-900 p-5 relative overflow-hidden shadow-xl">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    <Flame className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
-                      Tier 2 Continental
-                    </span>
-                    <h3 className="text-sm font-black text-white uppercase">
-                      Europa League Draw
-                    </h3>
-                  </div>
-                </div>
-                {leagueConfig?.europaDrawCompleted ? (
-                  <Badge variant="green" className="text-[9px] font-black uppercase">
-                    DRAW COMPLETED
-                  </Badge>
-                ) : leagueConfig?.europaDrawTime ? (
-                  europaDrawCountdown.isDue ? (
-                    <Badge variant="live" className="text-[9px] font-black uppercase">
-                      🔴 LIVE DRAW IN PROGRESS
-                    </Badge>
-                  ) : (
-                    <Badge variant="yellow" className="text-[9px] font-black uppercase">
-                      🗓️ SCHEDULED
-                    </Badge>
-                  )
-                ) : (
-                  <Badge variant="default" className="text-[9px] font-black uppercase">
-                    UPCOMING
-                  </Badge>
-                )}
-              </div>
-
-              {/* Schedule time & countdown */}
-              <div className="rounded-2xl bg-slate-950/70 border border-amber-500/20 p-3 mb-4 space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-amber-400" />
-                    <span>Scheduled Time:</span>
-                  </span>
-                  <span className="font-bold text-white font-mono text-[11px]">
-                    {leagueConfig?.europaDrawTime
-                      ? `${new Date(leagueConfig.europaDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                      : "Post-Division Conclusion"}
-                  </span>
-                </div>
-
-                {leagueConfig?.europaDrawTime && !leagueConfig?.europaDrawCompleted && (
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-                    <span className="text-slate-400 font-medium">Draw Countdown:</span>
-                    {europaDrawCountdown.isDue ? (
-                      <span className="text-xs font-black text-emerald-400 animate-pulse">
-                        Event Time Arrived!
+                  {/* Schedule time & countdown */}
+                  <div className="rounded-2xl bg-slate-950/70 border border-indigo-500/20 p-3 mb-4 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                        <span>Scheduled Time:</span>
                       </span>
-                    ) : (
-                      <span className="font-mono font-black text-amber-400 text-xs">
-                        {europaDrawCountdown.days > 0 && `${europaDrawCountdown.days}d `}
-                        {String(europaDrawCountdown.hours).padStart(2, "0")}h : {String(europaDrawCountdown.minutes).padStart(2, "0")}m : {String(europaDrawCountdown.seconds).padStart(2, "0")}s
+                      <span className="font-bold text-white font-mono text-[11px]">
+                        {leagueConfig?.uclDrawTime
+                          ? `${new Date(leagueConfig.uclDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                          : "Post-Division Conclusion"}
                       </span>
+                    </div>
+
+                    {leagueConfig?.uclDrawTime && !leagueConfig?.uclDrawCompleted && (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
+                        <span className="text-slate-400 font-medium">Draw Countdown:</span>
+                        {uclDrawCountdown.isDue ? (
+                          <span className="text-xs font-black text-emerald-400 animate-pulse">
+                            Event Time Arrived!
+                          </span>
+                        ) : (
+                          <span className="font-mono font-black text-indigo-400 text-xs">
+                            {uclDrawCountdown.days > 0 && `${uclDrawCountdown.days}d `}
+                            {String(uclDrawCountdown.hours).padStart(2, "0")}h : {String(uclDrawCountdown.minutes).padStart(2, "0")}m : {String(uclDrawCountdown.seconds).padStart(2, "0")}s
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] text-slate-400">
-                  16 Qualified Athletes • Groups A-D
-                </span>
-                <Button
-                  type="button"
-                  onClick={() => setViewDrawModal("EUROPA")}
-                  className="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs gap-1.5 py-2 px-3 rounded-xl shadow-lg shadow-amber-600/30"
-                >
-                  <Play className="h-3.5 w-3.5" />
-                  <span>
-                    {leagueConfig?.europaDrawCompleted ? "Watch Draw Event" : "Watch Draw / Preview"}
-                  </span>
-                </Button>
-              </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-slate-400">
+                      16 Qualified Athletes • Groups A-D
+                    </span>
+                    <Button
+                      type="button"
+                      onClick={() => leagueConfig?.uclStarted && setViewDrawModal("UCL")}
+                      disabled={!leagueConfig?.uclStarted}
+                      className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs gap-1.5 py-2 px-3 rounded-xl shadow-lg shadow-indigo-600/30"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      <span>
+                        {leagueConfig?.uclDrawCompleted ? "Watch Draw Event" : "Watch Draw / Preview"}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* EUROPA DRAW BANNER */}
+              {leagueConfig?.europaStarted && (
+                <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-900 p-5 relative overflow-hidden shadow-xl">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        <Flame className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
+                          Tier 2 Continental
+                        </span>
+                        <h3 className="text-sm font-black text-white uppercase">
+                          Europa League Draw
+                        </h3>
+                      </div>
+                    </div>
+                    {leagueConfig?.europaDrawCompleted ? (
+                      <Badge variant="green" className="text-[9px] font-black uppercase">
+                        DRAW COMPLETED
+                      </Badge>
+                    ) : leagueConfig?.europaDrawTime ? (
+                      europaDrawCountdown.isDue ? (
+                        <Badge variant="live" className="text-[9px] font-black uppercase">
+                          🔴 LIVE DRAW IN PROGRESS
+                        </Badge>
+                      ) : (
+                        <Badge variant="yellow" className="text-[9px] font-black uppercase">
+                          🗓️ SCHEDULED
+                        </Badge>
+                      )
+                    ) : (
+                      <Badge variant="default" className="text-[9px] font-black uppercase">
+                        UPCOMING
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Schedule time & countdown */}
+                  <div className="rounded-2xl bg-slate-950/70 border border-amber-500/20 p-3 mb-4 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-amber-400" />
+                        <span>Scheduled Time:</span>
+                      </span>
+                      <span className="font-bold text-white font-mono text-[11px]">
+                        {leagueConfig?.europaDrawTime
+                          ? `${new Date(leagueConfig.europaDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                          : "Post-Division Conclusion"}
+                      </span>
+                    </div>
+
+                    {leagueConfig?.europaDrawTime && !leagueConfig?.europaDrawCompleted && (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
+                        <span className="text-slate-400 font-medium">Draw Countdown:</span>
+                        {europaDrawCountdown.isDue ? (
+                          <span className="text-xs font-black text-emerald-400 animate-pulse">
+                            Event Time Arrived!
+                          </span>
+                        ) : (
+                          <span className="font-mono font-black text-amber-400 text-xs">
+                            {europaDrawCountdown.days > 0 && `${europaDrawCountdown.days}d `}
+                            {String(europaDrawCountdown.hours).padStart(2, "0")}h : {String(europaDrawCountdown.minutes).padStart(2, "0")}m : {String(europaDrawCountdown.seconds).padStart(2, "0")}s
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-slate-400">
+                      16 Qualified Athletes • Groups A-D
+                    </span>
+                    <Button
+                      type="button"
+                      onClick={() => leagueConfig?.europaStarted && setViewDrawModal("EUROPA")}
+                      disabled={!leagueConfig?.europaStarted}
+                      className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs gap-1.5 py-2 px-3 rounded-xl shadow-lg shadow-amber-600/30"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      <span>
+                        {leagueConfig?.europaDrawCompleted ? "Watch Draw Event" : "Watch Draw / Preview"}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {activeMatch ? (
             <div className="rounded-3xl border-2 border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
@@ -4078,7 +4131,7 @@ export default function DashboardClient({
       {/* ========================================================================= */}
       {/* CONTINENTAL ANIMATED DRAWS VIEWER MODAL (PLAYER BROADCAST) */}
       {/* ========================================================================= */}
-      {viewDrawModal && (
+      {viewDrawModal && (viewDrawModal === "UCL" ? leagueConfig?.uclStarted : leagueConfig?.europaStarted) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/90 backdrop-blur-xl overflow-y-auto">
           <div className="relative w-full max-w-5xl my-auto">
             <button
