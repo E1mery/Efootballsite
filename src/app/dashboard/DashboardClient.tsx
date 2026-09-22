@@ -3113,7 +3113,7 @@ export default function DashboardClient({
                         ? "Premier League"
                         : currentPlayer.division === "Division 2"
                         ? "La Liga"
-                        : "Ligue 1"}
+                        : "Serie A"}
                     </Badge>
                   </div>
 
@@ -3160,7 +3160,7 @@ export default function DashboardClient({
                         ? "Premier League"
                         : currentPlayer.division === "Division 2"
                         ? "La Liga"
-                        : "Ligue 1"}
+                        : "Serie A"}
                       ):
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[260px] overflow-y-auto p-1 border border-slate-800 rounded-2xl bg-slate-900/30">

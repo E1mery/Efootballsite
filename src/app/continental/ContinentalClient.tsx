@@ -455,8 +455,8 @@ export default function ContinentalClient({
               </h3>
               <span className="text-xs text-slate-400 font-mono">
                 {selectedCompetition === "UCL"
-                  ? "8 from Div 1 (Premier League) • 4 from Div 2 (La Liga) • 4 from Div 3 (Ligue 1)"
-                  : "4 from Div 1 (Premier League) • 6 from Div 2 (La Liga) • 6 from Div 3 (Ligue 1)"}
+                  ? "8 from Div 1 (Premier League) • 4 from Div 2 (La Liga) • 4 from Div 3 (Serie A)"
+                  : "4 from Div 1 (Premier League) • 6 from Div 2 (La Liga) • 6 from Div 3 (Serie A)"}
               </span>
             </div>
 

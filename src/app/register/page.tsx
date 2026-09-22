@@ -245,7 +245,7 @@ export default function RegisterPage() {
               >
                 <option value="Division 1">Division 1 (Premiership - Premier League Teams)</option>
                 <option value="Division 2">Division 2 (Championship - La Liga Teams)</option>
-                <option value="Division 3">Division 3 (National Academy - Ligue 1 Teams)</option>
+                <option value="Division 3">Division 3 (National Academy - Serie A Teams)</option>
               </select>
               <span className="text-[11px] text-slate-400 mt-1 block">
                 The League Administrator will review your account to either approve your division placement or place you in the official Standby Reserve Pool.
@@ -263,7 +263,7 @@ export default function RegisterPage() {
                     ? "Premier League"
                     : formData.preferredDivision === "Division 2"
                     ? "La Liga"
-                    : "Ligue 1"}
+                    : "Serie A"}
                 </Badge>
               </div>
 

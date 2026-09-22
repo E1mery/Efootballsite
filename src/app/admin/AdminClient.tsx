@@ -6592,7 +6592,7 @@ export default function AdminClient({
                     ? "Premier League (England)"
                     : editingClubPlayer.division === "Division 2"
                     ? "La Liga (Spain)"
-                    : "Ligue 1 (France)"}
+                    : "Serie A (Italy)"}
                 </strong>
               </span>
               <Badge variant="secondary" className="text-[10px]">

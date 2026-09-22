@@ -67,7 +67,7 @@ export default function QuickGuideModal({
                 <strong className="text-white">Division 2:</strong> Represented by official <span className="text-amber-300 font-semibold">La Liga</span> teams &amp; badges.
               </li>
               <li>
-                <strong className="text-white">Division 3:</strong> Represented by official <span className="text-emerald-300 font-semibold">Ligue 1</span> teams &amp; badges.
+                <strong className="text-white">Division 3:</strong> Represented by official <span className="text-emerald-300 font-semibold">Serie A</span> teams &amp; badges.
               </li>
               <li className="text-[11px] text-slate-400">
                 Your selected club&apos;s crest acts as your official avatar everywhere: league tables, fixtures, match cards, and continental draws!
