@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import {
@@ -57,17 +57,20 @@ export default function QuickGuideModal({
           <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3.5 space-y-2">
             <h5 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5 text-yellow-400">
               <Trophy className="h-4 w-4" />
-              <span>League Division System:</span>
+              <span>Real Football Team Representation:</span>
             </h5>
             <ul className="space-y-1.5 text-xs text-slate-300">
               <li>
-                <strong className="text-white">Division 1 (Premiership):</strong> The elite tier competing for the national championship and UCL slots.
+                <strong className="text-white">Division 1:</strong> Represented by official <span className="text-sky-300 font-semibold">Premier League</span> teams &amp; badges.
               </li>
               <li>
-                <strong className="text-white">Division 2 & Division 3:</strong> Competitive ladders where top finishers earn official end-of-season promotion.
+                <strong className="text-white">Division 2:</strong> Represented by official <span className="text-amber-300 font-semibold">La Liga</span> teams &amp; badges.
               </li>
               <li>
-                <strong className="text-white">League Reserve Pool:</strong> Standby athletes called up immediately when active division spots open.
+                <strong className="text-white">Division 3:</strong> Represented by official <span className="text-emerald-300 font-semibold">Ligue 1</span> teams &amp; badges.
+              </li>
+              <li className="text-[11px] text-slate-400">
+                Your selected club&apos;s crest acts as your official avatar everywhere: league tables, fixtures, match cards, and continental draws!
               </li>
             </ul>
           </div>
@@ -218,30 +221,41 @@ export default function QuickGuideModal({
     },
     {
       id: "standings",
-      badge: "STEP 6: STANDINGS & CONTINENTAL CUPS",
+      badge: "STEP 6: CONTINENTAL CUPS & LIVE DRAWS",
       badgeVariant: "yellow" as const,
       icon: Trophy,
       iconColor: "text-yellow-400",
       iconBg: "bg-yellow-500/20 border-yellow-500/30",
-      title: "Standings, Promotion & UCL Qualification",
-      subtitle: "Track live tables, goal difference & continental cups",
+      title: "UCL, Europa League & Commissioner Live Draws",
+      subtitle: "Official animated draws with spinning roulette & sound",
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
           <p>
-            Every point counts in the league! Explore the <strong className="text-white">&quot;All Division Tables&quot;</strong> tab in your portal:
+            Once domestic division fixtures conclude, top performers qualify for the continental stage: <strong className="text-indigo-400">eFootball Champions League (UCL)</strong> and <strong className="text-amber-400">Europa League</strong>.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-yellow-400 block">🏆 Points & Tie-breakers:</span>
+          <div className="space-y-2.5">
+            <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase text-indigo-400 block flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Automated Commissioner Draws (No Manual Group Voting):</span>
+              </span>
               <p className="text-xs text-slate-300">
-                Win = 3 pts, Draw = 1 pt, Loss = 0 pts. Ranked by Points → Goal Difference → Goals Scored.
+                Players no longer vote or select groups manually. The League Commissioner unlocks the continental tournaments, schedules the official draw date/time, and executes the animated draw directly from the Admin Portal.
               </p>
             </div>
-            <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-indigo-400 block">⭐ Continental Cups:</span>
-              <p className="text-xs text-slate-300">
-                Top finishers in Division 1 qualify for the eFootball Champions League (UCL) & Europa League tournaments!
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="rounded-xl bg-slate-900 border border-slate-800 p-2.5 space-y-1">
+                <span className="text-[10px] font-bold uppercase text-yellow-400 block">🎰 Animated Roulette &amp; Audio:</span>
+                <p className="text-[11px] text-slate-300">
+                  Enjoy immersive ball spinning sounds, player reveal chimes, group lock sounds, and victory fanfare.
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-900 border border-slate-800 p-2.5 space-y-1">
+                <span className="text-[10px] font-bold uppercase text-emerald-400 block">📺 Watch in Player Portal:</span>
+                <p className="text-[11px] text-slate-300">
+                  Track the scheduled draw countdown in your dashboard and watch the official draw event live!
+                </p>
+              </div>
             </div>
           </div>
         </div>

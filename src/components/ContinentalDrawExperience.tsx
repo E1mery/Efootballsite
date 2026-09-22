@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { drawAudio } from "@/lib/drawAudio";
 
 export interface DrawAthlete {
   id: string;
@@ -103,6 +104,7 @@ export default function ContinentalDrawExperience({
   const [committing, setCommitting] = useState(false);
   const [commitSuccess, setCommitSuccess] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(drawAudio.isMuted());
 
   // Initialize pool
   useEffect(() => {
@@ -206,9 +208,10 @@ export default function ContinentalDrawExperience({
     const interval = setInterval(() => {
       const randomIdx = Math.floor(Math.random() * allAthletesPool.length);
       setSpinName(allAthletesPool[randomIdx].gamerTag);
+      drawAudio.playSpinTick(0.9 + (cycleCount / 22) * 0.4);
       cycleCount++;
 
-      if (cycleCount > 18) {
+      if (cycleCount > 22) {
         clearInterval(interval);
         finalizePick(nextAthlete);
       }
@@ -216,6 +219,7 @@ export default function ContinentalDrawExperience({
   };
 
   const finalizePick = (athlete: DrawAthlete) => {
+    drawAudio.playAthleteReveal();
     setCurrentDrawnAthlete(athlete);
     setSpinName(athlete.gamerTag);
 
@@ -234,12 +238,14 @@ export default function ContinentalDrawExperience({
           updated[validGroup] = [...updated[validGroup], athlete];
           return updated;
         });
+        drawAudio.playGroupLock();
 
         setRemainingPool((prev) => {
           const next = prev.slice(1);
           if (next.length === 0) {
             setIsCompleted(true);
             setIsAutoPlaying(false);
+            drawAudio.playFanfare();
           }
           return next;
         });
@@ -279,36 +285,7 @@ export default function ContinentalDrawExperience({
     setTargetGroup(null);
     setBlockedGroups([]);
     setIsCompleted(true);
-  };
-
-  // Reset & Replay
-  const handleReset = () => {
-    setIsAutoPlaying(false);
-    setIsSpinning(false);
-    setCurrentDrawnAthlete(null);
-    setTargetGroup(null);
-    setBlockedGroups([]);
-    setCommitSuccess(false);
-
-    const shuffledD1 = [...div1Players].sort(() => Math.random() - 0.5);
-    const shuffledD2 = [...div2Players].sort(() => Math.random() - 0.5);
-    const shuffledD3 = [...div3Players].sort(() => Math.random() - 0.5);
-
-    let sequence: DrawAthlete[] = [];
-    if (isUcl) {
-      sequence = [...shuffledD2, ...shuffledD3, ...shuffledD1];
-    } else {
-      sequence = [...shuffledD1, ...shuffledD2, ...shuffledD3];
-    }
-
-    setRemainingPool(sequence);
-    setCurrentGroupAllocations({
-      "Group A": [],
-      "Group B": [],
-      "Group C": [],
-      "Group D": [],
-    });
-    setIsCompleted(false);
+    drawAudio.playFanfare();
   };
 
   // Commit official draw to database (Admin only)
@@ -379,53 +356,77 @@ export default function ContinentalDrawExperience({
 
         {/* Action Controls Bar */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Audio Mute/Unmute Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextMuted = drawAudio.toggleMute();
+              setIsMuted(nextMuted);
+            }}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5 text-xs font-mono shadow-inner"
+            title={isMuted ? "Unmute Sound Effects" : "Mute Sound Effects"}
+          >
+            {isMuted ? (
+              <>
+                <VolumeX className="h-4 w-4 text-rose-400" />
+                <span className="text-[10px] text-rose-300 font-bold">Sound Muted</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="h-4 w-4 text-emerald-400 animate-pulse" />
+                <span className="text-[10px] text-emerald-300 font-bold">Sound ON</span>
+              </>
+            )}
+          </button>
+
           {!isCompleted ? (
-            <>
-              <Button
-                onClick={performDrawStep}
-                disabled={isSpinning || remainingPool.length === 0}
-                variant="default"
-                size="sm"
-                className={`font-black text-xs shadow-lg ${
-                  isUcl
-                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30"
-                    : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30"
-                }`}
-              >
-                <Play className="h-3.5 w-3.5 mr-1" />
-                {isSpinning ? "Drawing Capsule..." : "Spin & Draw Next"}
-              </Button>
+            isAdmin ? (
+              <>
+                <Button
+                  onClick={performDrawStep}
+                  disabled={isSpinning || remainingPool.length === 0}
+                  variant="default"
+                  size="sm"
+                  className={`font-black text-xs shadow-lg ${
+                    isUcl
+                      ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30"
+                      : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30"
+                  }`}
+                >
+                  <Play className="h-3.5 w-3.5 mr-1" />
+                  {isSpinning ? "Drawing Capsule..." : "Spin & Draw Next"}
+                </Button>
 
-              <Button
-                onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-                disabled={remainingPool.length === 0}
-                variant="outline"
-                size="sm"
-                className="text-xs font-bold border-slate-700 bg-slate-900/80 hover:bg-slate-800"
-              >
-                {isAutoPlaying ? "Pause Broadcast" : "Auto Broadcast"}
-              </Button>
+                <Button
+                  onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+                  disabled={remainingPool.length === 0}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-bold border-slate-700 bg-slate-900/80 hover:bg-slate-800"
+                >
+                  {isAutoPlaying ? "Pause Broadcast" : "Auto Broadcast"}
+                </Button>
 
-              <Button
-                onClick={handleInstantComplete}
-                variant="ghost"
-                size="sm"
-                className="text-xs text-slate-400 hover:text-white"
-                title="Fast forward all remaining picks"
-              >
-                <FastForward className="h-3.5 w-3.5 mr-1" /> Skip to End
-              </Button>
-            </>
+                <Button
+                  onClick={handleInstantComplete}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-slate-400 hover:text-white"
+                  title="Fast forward all remaining picks"
+                >
+                  <FastForward className="h-3.5 w-3.5 mr-1" /> Skip to End
+                </Button>
+              </>
+            ) : (
+              <Badge variant="secondary" className="text-xs font-mono py-1 px-3 border border-slate-700">
+                Official Draw Controlled by Commissioner
+              </Badge>
+            )
           ) : (
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                size="sm"
-                className="text-xs font-bold border-slate-700 bg-slate-900/80 hover:bg-slate-800"
-              >
-                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Replay Draw
-              </Button>
+              <Badge variant="live" className="text-xs font-bold py-1 px-3">
+                Official Draw Completed
+              </Badge>
 
               {isAdmin && onCommitDraw && (
                 <Button

@@ -312,6 +312,19 @@ export default async function DashboardPage() {
     divisionalMotd = evaluateAllDivisionsMatchOfTheDay(roundMatches, allStandings, leagueConfig.currentMatchday);
   }
 
+  // Compute qualified athletes for continental competitions
+  const uclQualified = [
+    ...div1Standings.slice(0, 8),
+    ...div2Standings.slice(0, 4),
+    ...div3Standings.slice(0, 4),
+  ];
+
+  const europaQualified = [
+    ...div1Standings.slice(8, 12),
+    ...div2Standings.slice(4, 10),
+    ...div3Standings.slice(4, 10),
+  ];
+
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <DashboardClient
@@ -331,6 +344,8 @@ export default async function DashboardPage() {
         europaGroupStandings={europaGroupStandings}
         uclSlots={uclSlots}
         europaSlots={europaSlots}
+        uclQualified={uclQualified}
+        europaQualified={europaQualified}
         initialReview={myReview}
         isRestDayToday={isRestDayToday}
         currentRoundName={currentRoundName}

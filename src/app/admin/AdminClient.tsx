@@ -52,6 +52,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 
 export default function AdminClient({
   matches,
@@ -916,6 +917,95 @@ export default function AdminClient({
       router.refresh();
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Continental Animated Draws Modal State (Admin Exclusive)
+  const [activeDrawModal, setActiveDrawModal] = useState<"UCL" | "EUROPA" | null>(null);
+
+  const uclQualifiedAthletes = useMemo(() => {
+    const d1Top8 = (div1Standings || []).slice(0, 8).map((s: any) => ({
+      id: s.player.id,
+      gamerTag: s.player.gamerTag,
+      fullName: s.player.fullName,
+      division: "Division 1",
+      realTeam: s.player.realTeam,
+      avatar: s.player.avatar,
+      overallRating: s.player.overallRating || 88,
+    }));
+    const d2Top4 = (div2Standings || []).slice(0, 4).map((s: any) => ({
+      id: s.player.id,
+      gamerTag: s.player.gamerTag,
+      fullName: s.player.fullName,
+      division: "Division 2",
+      realTeam: s.player.realTeam,
+      avatar: s.player.avatar,
+      overallRating: s.player.overallRating || 85,
+    }));
+    const d3Top4 = (div3Standings || []).slice(0, 4).map((s: any) => ({
+      id: s.player.id,
+      gamerTag: s.player.gamerTag,
+      fullName: s.player.fullName,
+      division: "Division 3",
+      realTeam: s.player.realTeam,
+      avatar: s.player.avatar,
+      overallRating: s.player.overallRating || 82,
+    }));
+    return [...d1Top8, ...d2Top4, ...d3Top4];
+  }, [div1Standings, div2Standings, div3Standings]);
+
+  const europaQualifiedAthletes = useMemo(() => {
+    const d1Next4 = (div1Standings || []).slice(8, 12).map((s: any) => ({
+      id: s.player.id,
+      gamerTag: s.player.gamerTag,
+      fullName: s.player.fullName,
+      division: "Division 1",
+      realTeam: s.player.realTeam,
+      avatar: s.player.avatar,
+      overallRating: s.player.overallRating || 86,
+    }));
+    const d2Next6 = (div2Standings || []).slice(4, 10).map((s: any) => ({
+      id: s.player.id,
+      gamerTag: s.player.gamerTag,
+      fullName: s.player.fullName,
+      division: "Division 2",
+      realTeam: s.player.realTeam,
+      avatar: s.player.avatar,
+      overallRating: s.player.overallRating || 83,
+    }));
+    const d3Next6 = (div3Standings || []).slice(4, 10).map((s: any) => ({
+      id: s.player.id,
+      gamerTag: s.player.gamerTag,
+      fullName: s.player.fullName,
+      division: "Division 3",
+      realTeam: s.player.realTeam,
+      avatar: s.player.avatar,
+      overallRating: s.player.overallRating || 80,
+    }));
+    return [...d1Next4, ...d2Next6, ...d3Next6];
+  }, [div1Standings, div2Standings, div3Standings]);
+
+  const handleCommitDrawFromModal = async (competition: "UCL" | "EUROPA", slots: any[]) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/continental/schedule-draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "COMMIT_DRAW",
+          competition,
+          slots,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to commit official draw");
+      alert(`Official ${competition} Draw locked & saved successfully!`);
+      setActiveDrawModal(null);
+      router.refresh();
+    } catch (err: any) {
+      alert(`Error committing draw: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -3817,21 +3907,25 @@ export default function AdminClient({
                       Schedule Event
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <Link
-                      href="/continental"
-                      target="_blank"
-                      className="text-[11px] font-bold text-sky-400 hover:underline flex items-center gap-1"
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Button
+                      type="button"
+                      onClick={() => setActiveDrawModal("UCL")}
+                      disabled={!leagueConfig.uclStarted}
+                      className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30"
                     >
-                      <span>Launch Animated Draw Screen</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                    <button
-                      onClick={() => handleResetDraw("UCL")}
-                      className="text-[10px] text-rose-400 hover:underline"
-                    >
-                      Reset Draw Slots
-                    </button>
+                      <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+                      <span>Launch Official UCL Animated Draws System</span>
+                    </Button>
+                    <div className="flex items-center justify-between text-[11px] px-1">
+                      <span className="text-slate-500 font-mono">Commissioners Only</span>
+                      <button
+                        onClick={() => handleResetDraw("UCL")}
+                        className="text-[10px] text-rose-400 hover:underline"
+                      >
+                        Reset Draw Slots
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -3960,21 +4054,25 @@ export default function AdminClient({
                       Schedule Event
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <Link
-                      href="/continental"
-                      target="_blank"
-                      className="text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1"
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Button
+                      type="button"
+                      onClick={() => setActiveDrawModal("EUROPA")}
+                      disabled={!leagueConfig.europaStarted}
+                      className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-amber-600/30"
                     >
-                      <span>Launch Animated Draw Screen</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                    <button
-                      onClick={() => handleResetDraw("EUROPA")}
-                      className="text-[10px] text-rose-400 hover:underline"
-                    >
-                      Reset Draw Slots
-                    </button>
+                      <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+                      <span>Launch Official Europa Animated Draws System</span>
+                    </Button>
+                    <div className="flex items-center justify-between text-[11px] px-1">
+                      <span className="text-slate-500 font-mono">Commissioners Only</span>
+                      <button
+                        onClick={() => handleResetDraw("EUROPA")}
+                        className="text-[10px] text-rose-400 hover:underline"
+                      >
+                        Reset Draw Slots
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -6587,6 +6685,31 @@ export default function AdminClient({
               src={inspectImage}
               alt="Screenshot Evidence Inspection"
               className="w-full h-auto max-h-[85vh] object-contain mx-auto"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* CONTINENTAL ANIMATED DRAWS MODAL (ADMIN COMMISSIONER ONLY) */}
+      {activeDrawModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/90 backdrop-blur-xl overflow-y-auto">
+          <div className="relative w-full max-w-5xl my-auto">
+            <button
+              onClick={() => setActiveDrawModal(null)}
+              className="absolute -top-3 -right-3 z-50 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-white shadow-xl border border-slate-600"
+              title="Close Draw Screen"
+            >
+              <XCircle className="h-6 w-6 text-slate-300" />
+            </button>
+            <ContinentalDrawExperience
+              competition={activeDrawModal}
+              qualifiedAthletes={activeDrawModal === "UCL" ? uclQualifiedAthletes : europaQualifiedAthletes}
+              existingSlots={activeDrawModal === "UCL" ? uclSlots : europaSlots}
+              isAdmin={true}
+              onCommitDraw={async (slots) => {
+                await handleCommitDrawFromModal(activeDrawModal, slots);
+              }}
+              onClose={() => setActiveDrawModal(null)}
             />
           </div>
         </div>
