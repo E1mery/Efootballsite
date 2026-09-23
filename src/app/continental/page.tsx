@@ -190,10 +190,6 @@ export default async function ContinentalCupsPage() {
       {/* Header */}
       <div className="border-b border-border pb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Badge variant="yellow">POST-SEASON ESPORTS TOURNAMENTS</Badge>
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">
-            Continental Video Game Cups
-          </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black uppercase text-white tracking-tight">
           eFootball UCL & Europa Leagues

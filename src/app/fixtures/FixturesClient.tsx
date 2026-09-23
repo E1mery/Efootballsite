@@ -186,11 +186,8 @@ export default function FixturesClient({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge variant="yellow" className="font-mono text-xs font-black">
+              <Badge className="font-mono text-xs font-black">
                 EFRL 2026 FIXTURES
-              </Badge>
-              <Badge variant="outline" className="text-xs text-primary border-primary/30">
-                Official Season Match Calendar
               </Badge>
               <button
                 type="button"

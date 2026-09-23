@@ -99,24 +99,9 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Back to Home Button */}
-      <div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-white transition-colors bg-card/80 hover:bg-muted border border-border rounded-xl px-3.5 py-2 group shadow-sm"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-secondary" />
-          <span>Back to Home</span>
-        </Link>
-      </div>
 
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 mb-3">
-          <Badge variant="yellow">EFOOTBALL MOBILE GAMING</Badge>
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">
-            Open Athlete Registration
-          </span>
-        </div>
         <h1 className="text-3xl sm:text-5xl font-black uppercase text-white tracking-tight">
           Player Registration
         </h1>
@@ -130,7 +115,7 @@ export default function RegisterPage() {
         <div className="lg:col-span-7 rounded-3xl border border-border bg-background/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
           <h3 className="text-lg font-black uppercase text-white border-b border-border pb-3 mb-4 flex items-center gap-2">
             <Smartphone className="h-5 w-5 text-primary" />
-            <span>Mobile Athlete Profile</span>
+            <span>eFootball Mobile Player Profile</span>
           </h3>
 
           {registrationOpen === false && (

@@ -6,8 +6,6 @@ import Link from "next/link";
 import {
   Trophy,
   Globe,
-  Award,
-  Gamepad2,
   Shield,
   Flame,
   CheckCircle,
@@ -22,10 +20,10 @@ import {
   Clock,
   Play,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { Badge } from "@/components/ui/badge";
 
 export default function ContinentalClient({
   leagueConfig,
@@ -238,18 +236,6 @@ export default function ContinentalClient({
         </div>
 
         {/* Qualification Status for Current Player */}
-        {currentPlayer && (
-          <div className="text-xs">
-            <span className="text-muted-foreground">Your Status: </span>
-            {isPlayerUclQualified ? (
-              <Badge variant="live">UCL Qualified ({currentPlayer.division})</Badge>
-            ) : isPlayerEuropaQualified ? (
-              <Badge variant="yellow">Europa Qualified ({currentPlayer.division})</Badge>
-            ) : (
-              <Badge variant="secondary">Division Standby</Badge>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Division Regular Season Status Notice */}
@@ -417,9 +403,6 @@ export default function ContinentalClient({
               <div className="inline-flex p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary">
                 <Lock className="h-10 w-10" />
               </div>
-              <Badge variant="destructive" className="font-mono text-xs uppercase">
-                TOURNAMENT LOCKED PENDING COMMISSIONER LAUNCH
-              </Badge>
               <h2 className="text-2xl sm:text-3xl font-black uppercase text-white">
                 eFootball {selectedCompetition} Group Draws
               </h2>

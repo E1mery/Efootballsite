@@ -42,17 +42,9 @@ export default async function StandingsPage({
       <div className="border-b border-border pb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="yellow">SEASON 2026</Badge>
-              <Badge variant="default">ESPORTS VIDEO GAME CHAMPIONSHIP</Badge>
-              <Badge variant="secondary">MAX 20 PLAYERS / DIVISION</Badge>
-            </div>
             <h1 className="text-3xl sm:text-4xl font-black uppercase text-white tracking-tight flex items-center gap-3">
-              <span>eFootball Rwanda 3 Divisions</span>
+              <span>eFootball Rwanda  LIVE Standings</span>
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Live competitive rankings for eFootball esports athletes across Rwanda.
-            </p>
           </div>
 
           {/* Quick Metrics */}

@@ -32,13 +32,6 @@ export default function Footer() {
           {/* Brand Info - Clean Gaming Logo (no picture box) */}
           <div className="space-y-4 sm:col-span-2 lg:col-span-1">
             <EfootballGamingLogo size="sm" showText={true} />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              The official competitive digital football championship in Rwanda. Empowering athletes across 3 divisions with daily 24-hour matchday cycles.
-            </p>
-            <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-              <Gamepad2 className="h-4 w-4" />
-              <span>eFootball Mobile Competitive Series</span>
-            </div>
           </div>
 
           {/* Quick Links */}

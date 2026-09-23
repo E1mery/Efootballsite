@@ -207,16 +207,6 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="relative w-full max-w-md">
-        {/* Back to Home Button */}
-        <div className="mb-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-white transition-colors bg-card/80 hover:bg-muted border border-border rounded-xl px-3.5 py-2 group shadow-sm"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-secondary" />
-            <span>Back to Home</span>
-          </Link>
-        </div>
 
         {/* Ambient glow */}
         <div className="absolute -top-16 -left-16 w-60 h-60 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
@@ -225,15 +215,7 @@ function LoginForm() {
         <div className="relative rounded-3xl border border-border bg-background/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary p-0.5 shadow-lg mb-3">
-              <div className="flex h-full w-full items-center justify-center rounded-xl bg-background">
-                <Smartphone className="h-6 w-6 text-secondary" />
-              </div>
-            </div>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Badge variant="yellow" className="text-xs font-mono uppercase tracking-wider">
-                eFootball Mobile Arena
-              </Badge>
               {isAdminRequired && (
                 <Badge variant="destructive" className="text-xs uppercase font-mono">
                   Admin Portal
@@ -556,7 +538,7 @@ function LoginForm() {
         </div>
 
         {/* External Resources & Community Links */}
-        <div className="rounded-2xl border border-border bg-background/80 p-4 space-y-3">
+        <div className="rounded-2xl mt-5 border border-border bg-background/80 p-4 space-y-3">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block text-center">
             External Community & League Tables (Open Access)
           </span>
