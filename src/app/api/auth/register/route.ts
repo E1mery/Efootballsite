@@ -60,10 +60,19 @@ export async function POST(req: Request) {
 
     // Check real football team uniqueness
     const selectedClub = realTeam ? findTeam(realTeam) : undefined;
-    if (selectedClub) {
+    if (selectedClub || realTeam) {
+      const teamNameToMatch = selectedClub ? selectedClub.name : realTeam.trim();
       const existingTeamClaim = await prisma.player.findFirst({
         where: {
-          realTeam: selectedClub.name,
+          OR: [
+            { realTeam: { equals: teamNameToMatch, mode: "insensitive" as const } },
+            ...(selectedClub
+              ? [
+                  { realTeam: { equals: selectedClub.shortName, mode: "insensitive" as const } },
+                  { realTeam: { equals: selectedClub.id, mode: "insensitive" as const } },
+                ]
+              : []),
+          ],
           status: { not: "REJECTED" },
         },
         select: { gamerTag: true },
@@ -71,7 +80,7 @@ export async function POST(req: Request) {
       if (existingTeamClaim) {
         return NextResponse.json(
           {
-            error: `The football club "${selectedClub.name}" has already been chosen by another athlete (@${existingTeamClaim.gamerTag}). Please choose another club.`,
+            error: `The football club "${teamNameToMatch}" has already been chosen by another athlete (@${existingTeamClaim.gamerTag}). Please choose another club.`,
           },
           { status: 400 }
         );

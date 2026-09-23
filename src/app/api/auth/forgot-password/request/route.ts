@@ -71,16 +71,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // Notify League Administrators
-    await prisma.announcement.create({
-      data: {
-        title: `🔑 Password Reset Requested: ${user.player?.gamerTag || cleanEmail}`,
-        content: `Athlete ${user.player?.gamerTag || "User"} (${user.player?.fullName || cleanEmail}) forgot their password and requested permission to reset it. Review and grant permission in the Admin Control Room under Password Resets.`,
-        type: "BROADCAST",
-        isPinned: false,
-      },
-    });
-
     return NextResponse.json({
       success: true,
       status: "PENDING",

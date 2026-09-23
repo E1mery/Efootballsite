@@ -69,6 +69,9 @@ export default function QuickGuideModal({
               <li>
                 <strong className="text-white">Division 3:</strong> Represented by official <span className="text-emerald-300 font-semibold">Serie A</span> teams &amp; badges.
               </li>
+              <li className="text-[11px] text-amber-300 font-semibold">
+                🔒 <strong>Strict Club Uniqueness Protocol:</strong> Each football team can only be selected by one athlete. Once a club is claimed, no other player can choose it!
+              </li>
               <li className="text-[11px] text-slate-400">
                 Your selected club&apos;s crest acts as your official avatar everywhere: league tables, fixtures, match cards, and continental draws!
               </li>
@@ -237,23 +240,23 @@ export default function QuickGuideModal({
             <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 space-y-1.5">
               <span className="text-[10px] font-bold uppercase text-indigo-400 block flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5" />
-                <span>Automated Commissioner Draws (No Manual Group Voting):</span>
+                <span>Simultaneous Live Broadcasts (Automatic Draw Start):</span>
               </span>
               <p className="text-xs text-slate-300">
-                Players no longer vote or select groups manually. The League Commissioner unlocks the continental tournaments, schedules the official draw date/time, and executes the animated draw directly from the Admin Portal.
+                You can track the scheduled draw date, time, and live countdown directly in your portal. When the timer reaches 00:00:00 or when the Commissioner starts the broadcast from the Admin Office, the live animated draws launch on all players&apos; portals simultaneously!
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="rounded-xl bg-slate-900 border border-slate-800 p-2.5 space-y-1">
                 <span className="text-[10px] font-bold uppercase text-yellow-400 block">🎰 Animated Roulette &amp; Audio:</span>
                 <p className="text-[11px] text-slate-300">
-                  Enjoy immersive ball spinning sounds, player reveal chimes, group lock sounds, and victory fanfare.
+                  Enjoy immersive ball spinning roulette sounds, athlete reveal chimes, group lock sounds, and victory fanfare.
                 </p>
               </div>
               <div className="rounded-xl bg-slate-900 border border-slate-800 p-2.5 space-y-1">
-                <span className="text-[10px] font-bold uppercase text-emerald-400 block">📺 Watch in Player Portal:</span>
+                <span className="text-[10px] font-bold uppercase text-emerald-400 block">🛡️ UEFA Division Protection:</span>
                 <p className="text-[11px] text-slate-300">
-                  Track the scheduled draw countdown in your dashboard and watch the official draw event live!
+                  The automated system guarantees no more than 2 athletes from the same league end up in the same group!
                 </p>
               </div>
             </div>

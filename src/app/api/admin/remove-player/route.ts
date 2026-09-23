@@ -93,16 +93,6 @@ export async function DELETE(req: Request) {
           data: { rank: i + 1 },
         });
       }
-
-      // 8. Log league announcement of player removal
-      await prisma.announcement.create({
-        data: {
-          title: `⚠️ ROSTER UPDATE: ${gamerTag} Removed from League`,
-          content: `Athlete ${gamerTag} has been officially removed from ${division} by the League Commissioner. Standings and unplayed fixtures have been adjusted accordingly.`,
-          type: "BROADCAST",
-          isPinned: false,
-        },
-      });
     }
 
     return NextResponse.json({

@@ -66,7 +66,11 @@ export async function POST(req: Request) {
         const existingClaim = await prisma.player.findFirst({
           where: {
             id: { not: playerId },
-            realTeam: team.name,
+            OR: [
+              { realTeam: { equals: team.name, mode: "insensitive" as const } },
+              { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
+              { realTeam: { equals: team.id, mode: "insensitive" as const } },
+            ],
             status: { not: "REJECTED" },
           },
           select: { gamerTag: true },

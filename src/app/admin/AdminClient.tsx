@@ -54,6 +54,14 @@ import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 
+function toLocalDatetimeInput(dateInput: Date | string | null | undefined): string {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function AdminClient({
   matches,
   pendingSubmissions,
@@ -128,13 +136,14 @@ export default function AdminClient({
   // New admin operations state
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
   const [resettingTournament, setResettingTournament] = useState(false);
+  const [resettingTeams, setResettingTeams] = useState(false);
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
   const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
   const [uclDrawInput, setUclDrawInput] = useState<string>(
-    leagueConfig?.uclDrawTime ? new Date(leagueConfig.uclDrawTime).toISOString().slice(0, 16) : ""
+    toLocalDatetimeInput(leagueConfig?.uclDrawTime)
   );
   const [europaDrawInput, setEuropaDrawInput] = useState<string>(
-    leagueConfig?.europaDrawTime ? new Date(leagueConfig.europaDrawTime).toISOString().slice(0, 16) : ""
+    toLocalDatetimeInput(leagueConfig?.europaDrawTime)
   );
 
   // Club Assignment / Edit State
@@ -687,6 +696,36 @@ export default function AdminClient({
     }
   };
 
+  // Reset Real Teams & Avatars for Players
+  const handleResetRealTeams = async (division: string = "ALL") => {
+    if (
+      !confirm(
+        `Are you sure you want to reset real football team choices and avatars for ${
+          division === "ALL" ? "ALL registered players across the entire league" : division
+        }? All affected players will have their chosen club cleared and will start selecting fresh.`
+      )
+    ) {
+      return;
+    }
+
+    setResettingTeams(true);
+    try {
+      const res = await fetch("/api/admin/teams/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ division }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset real football teams");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setResettingTeams(false);
+    }
+  };
+
   // Recalculate Standings Table (Batch One-Click Update)
   const handleRecalculateStandings = async (division: string = "ALL") => {
     if (
@@ -868,7 +907,7 @@ export default function AdminClient({
     }
   };
 
-  // Schedule Continental Draw Event
+  // Schedule Continental Draw Event (Preserving exact local time)
   const handleScheduleDraw = async (competition: "UCL" | "EUROPA", drawTime: string) => {
     if (!drawTime) {
       alert("Please choose a valid date and time for the draw event.");
@@ -876,18 +915,53 @@ export default function AdminClient({
     }
     setActionLoading(true);
     try {
+      const isoDrawTime = new Date(drawTime).toISOString();
       const res = await fetch("/api/admin/continental/schedule-draw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "SCHEDULE_DRAW",
           competition,
-          drawTime,
+          drawTime: isoDrawTime,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to schedule draw");
       alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Launch Official Live Animated Draws System (Broadcasts simultaneously to all player portals)
+  const handleLaunchLiveDraw = async (competition: "UCL" | "EUROPA") => {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/continental/schedule-draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "LAUNCH_LIVE_DRAW",
+          competition,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to launch live draw");
+
+      if (leagueConfig) {
+        if (competition === "UCL") {
+          leagueConfig.uclStarted = true;
+          leagueConfig.uclDrawCompleted = false;
+        } else {
+          leagueConfig.europaStarted = true;
+          leagueConfig.europaDrawCompleted = false;
+        }
+      }
+
+      setActiveDrawModal(competition);
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -2142,6 +2216,17 @@ export default function AdminClient({
                 >
                   <RotateCcw className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`} />
                   {resettingTournament ? "Resetting..." : "Reset All Matches & Standings"}
+                </Button>
+
+                <Button
+                  onClick={() => handleResetRealTeams("ALL")}
+                  disabled={resettingTeams}
+                  variant="outline"
+                  className="font-bold text-xs uppercase tracking-wider gap-1.5 border-rose-500/50 text-rose-300 hover:bg-rose-950/40"
+                  title="Clear all players real team assignments and avatars so they can select fresh"
+                >
+                  <RotateCcw className={`h-3.5 w-3.5 ${resettingTeams ? "animate-spin" : ""}`} />
+                  {resettingTeams ? "Resetting Clubs..." : "Reset All Real Team Choices"}
                 </Button>
               </div>
             </div>
@@ -3910,8 +3995,8 @@ export default function AdminClient({
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
                       type="button"
-                      onClick={() => setActiveDrawModal("UCL")}
-                      disabled={!leagueConfig.uclStarted}
+                      onClick={() => handleLaunchLiveDraw("UCL")}
+                      disabled={actionLoading}
                       className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30"
                     >
                       <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
@@ -4057,8 +4142,8 @@ export default function AdminClient({
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
                       type="button"
-                      onClick={() => setActiveDrawModal("EUROPA")}
-                      disabled={!leagueConfig.europaStarted}
+                      onClick={() => handleLaunchLiveDraw("EUROPA")}
+                      disabled={actionLoading}
                       className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-amber-600/30"
                     >
                       <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />

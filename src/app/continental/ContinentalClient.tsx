@@ -28,7 +28,7 @@ import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 export default function ContinentalClient({
-  leagueConfig,
+  leagueConfig: initialLeagueConfig,
   uclQualified,
   europaQualified,
   uclSlots,
@@ -55,6 +55,33 @@ export default function ContinentalClient({
   isAdmin?: boolean;
 }) {
   const router = useRouter();
+  const [leagueConfig, setLeagueConfig] = useState(initialLeagueConfig);
+
+  useEffect(() => {
+    if (initialLeagueConfig) {
+      setLeagueConfig(initialLeagueConfig);
+    }
+  }, [initialLeagueConfig]);
+
+  // Live polling for draw updates and leagueConfig changes
+  useEffect(() => {
+    let isMounted = true;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/league/config", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.config && isMounted) {
+          setLeagueConfig((prev: any) => ({ ...prev, ...data.config }));
+        }
+      } catch (e) {}
+    };
+    const interval = setInterval(poll, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
   const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">("UCL");
   const [activeTab, setActiveTab] = useState<"DRAWS" | "GROUPS" | "KNOCKOUT" | "TROPHY_POLL">("DRAWS");
 
@@ -412,7 +439,7 @@ export default function ContinentalClient({
                 ⚡ <strong>UEFA-style Division Protection:</strong> The animated draw system will automatically ensure no group has more than 2 athletes from the same league!
               </div>
             </div>
-          ) : !isStarted && !isAdmin ? (
+          ) : !isStarted && !drawCountdown.isDue && !isAdmin ? (
             <div className="rounded-3xl border border-indigo-500/20 bg-slate-950/90 p-10 text-center space-y-4 shadow-2xl">
               <div className="inline-flex p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
                 <Lock className="h-10 w-10" />

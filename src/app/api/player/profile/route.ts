@@ -110,7 +110,11 @@ export async function PUT(req: Request) {
         const existingClaim = await prisma.player.findFirst({
           where: {
             id: { not: user.player.id },
-            realTeam: team.name,
+            OR: [
+              { realTeam: { equals: team.name, mode: "insensitive" as const } },
+              { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
+              { realTeam: { equals: team.id, mode: "insensitive" as const } },
+            ],
             status: { not: "REJECTED" },
           },
           select: { gamerTag: true },

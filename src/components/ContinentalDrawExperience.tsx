@@ -157,8 +157,11 @@ export default function ContinentalDrawExperience({
         "Group D": [],
       });
       setIsCompleted(false);
+      if (!isAdmin) {
+        setIsAutoPlaying(true);
+      }
     }
-  }, [qualifiedAthletes, existingSlots, isUcl]);
+  }, [qualifiedAthletes, existingSlots, isUcl, isAdmin]);
 
   // Find eligible group for an athlete with division protection:
   // "no more than 2 players from the same division in the same group"

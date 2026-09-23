@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { findTeam } from "@/lib/teams";
 
 export const dynamic = "force-dynamic";
 
@@ -18,19 +19,32 @@ export async function GET(req: Request) {
       },
     });
 
-    // Map of normalized realTeam name -> details
+    // Map of normalized realTeam name / shortName / id -> details
     const takenTeams: Record<
       string,
-      { gamerTag: string; division: string; playerId: string }
+      { gamerTag: string; division: string; playerId: string; teamName: string }
     > = {};
 
     players.forEach((p) => {
       if (p.realTeam && p.realTeam.trim()) {
-        takenTeams[p.realTeam.trim().toLowerCase()] = {
+        const canonical = findTeam(p.realTeam);
+        const resolvedName = canonical ? canonical.name : p.realTeam.trim();
+        const payload = {
           gamerTag: p.gamerTag,
           division: p.division,
           playerId: p.id,
+          teamName: resolvedName,
         };
+
+        // Index raw name
+        takenTeams[p.realTeam.trim().toLowerCase()] = payload;
+
+        // If matched to a known real team, also index full name, shortName, and id
+        if (canonical) {
+          takenTeams[canonical.name.toLowerCase()] = payload;
+          takenTeams[canonical.shortName.toLowerCase()] = payload;
+          takenTeams[canonical.id.toLowerCase()] = payload;
+        }
       }
     });
 
