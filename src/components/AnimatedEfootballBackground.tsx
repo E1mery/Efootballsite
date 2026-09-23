@@ -32,7 +32,7 @@ export default function AnimatedEfootballBackground() {
       vy: (Math.random() - 0.5) * 0.4 - 0.2,
       radius: Math.random() * 2 + 1,
       alpha: Math.random() * 0.5 + 0.2,
-      color: Math.random() > 0.4 ? "#00B2FF" : "#FBBF24",
+      color: Math.random() > 0.4 ? "hsl(var(--primary))" : "hsl(var(--secondary))",
     }));
 
     let pulseTime = 0;
@@ -145,7 +145,7 @@ export default function AnimatedEfootballBackground() {
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
       {/* Carbon fiber grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
+      <div className="absolute inset-0 bg-carbon-grid opacity-40" />
     </div>
   );
 }

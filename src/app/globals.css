@@ -128,3 +128,46 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Standardised entry animations (theme-agnostic, no color tokens) */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-zoom-in {
+  animation: zoom-in 0.25s ease-out;
+}
+
+/* Token-based decorative surfaces (replace arbitrary-value backgrounds) */
+.bg-ambient-success {
+  background-image: radial-gradient(ellipse 60% 60% at 80% 80%, rgba(16, 185, 129, 0.08), transparent);
+}
+
+.bg-carbon-grid {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-logo-grid {
+  background-image: linear-gradient(45deg, hsl(var(--primary)) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* Token-based SVG gradient stops (currentColor cannot vary per stop) */
+.stop-primary {
+  stop-color: hsl(var(--primary));
+}
+
+.stop-secondary {
+  stop-color: hsl(var(--secondary));
+}

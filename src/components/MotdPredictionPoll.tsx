@@ -117,19 +117,19 @@ export default function MotdPredictionPoll({
   };
 
   return (
-    <div className="mt-6 rounded-2xl border border-yellow-500/30 bg-slate-950/80 p-5 space-y-4 shadow-xl backdrop-blur-md">
+    <div className="mt-6 rounded-2xl border border-secondary/30 bg-background/80 p-5 space-y-4 shadow-xl backdrop-blur-md">
       {/* Poll Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-yellow-500/20 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-secondary/20 pb-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary/20 text-secondary border border-secondary/30">
             <BarChart2 className="h-4 w-4" />
           </div>
           <div>
             <h4 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5">
               <span>MOTD Match Prediction Poll</span>
-              <span className="text-[10px] text-yellow-400 font-mono">⚡ LIVE</span>
+              <span className="text-xs text-secondary font-mono">⚡ LIVE</span>
             </h4>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Predict who will win this Marquee Match of the Day showdown.
             </p>
           </div>
@@ -137,19 +137,19 @@ export default function MotdPredictionPoll({
 
         <div className="flex items-center gap-2">
           {isFinished ? (
-            <Badge variant="secondary" className="text-[10px] font-mono flex items-center gap-1">
+            <Badge variant="secondary" className="text-xs font-mono flex items-center gap-1">
               <Lock className="h-3 w-3" /> POLL CLOSED
             </Badge>
           ) : userPrediction ? (
-            <Badge variant="yellow" className="text-[10px] font-mono flex items-center gap-1">
+            <Badge variant="yellow" className="text-xs font-mono flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> PREDICTION CAST
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-[10px] border-yellow-500/30 text-yellow-300 font-mono">
+            <Badge variant="outline" className="text-xs border-secondary/30 text-secondary font-mono">
               VOTE TO PREDICT
             </Badge>
           )}
-          <span className="text-[11px] font-mono text-slate-400">
+          <span className="text-xs font-mono text-muted-foreground">
             {totalVotes} {totalVotes === 1 ? "prediction" : "predictions"}
           </span>
         </div>
@@ -164,19 +164,20 @@ export default function MotdPredictionPoll({
           onClick={() => handleVote("HOME")}
           className={`relative overflow-hidden rounded-xl border p-3.5 text-left transition-all group ${
             userPrediction === "HOME"
-              ? "border-sky-400 bg-sky-950/40 ring-1 ring-sky-400/50 shadow-lg shadow-sky-500/10"
-              : "border-slate-800 bg-slate-900/60 hover:border-sky-500/40 hover:bg-slate-900"
-          } ${isFinished ? "cursor-default" : "cursor-pointer active:scale-[0.98]"}`}
+              ? "border-primary bg-primary/40 ring-1 ring-primary/50 shadow-lg"
+              : "border-border bg-card/60 hover:border-primary/40 hover:bg-card"
+          } ${isFinished ? "cursor-default" : "cursor-pointer active:scale-95"}`}
         >
           {/* Progress Bar background fill */}
           <div
-            className="absolute inset-y-0 left-0 bg-sky-500/15 transition-all duration-500"
+            className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
+            // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
             style={{ width: `${homePercent}%` }}
           />
 
           <div className="relative z-10 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase text-sky-400 font-bold">
+              <span className="text-xs font-mono uppercase text-primary font-bold">
                 HOME WIN
               </span>
               <span className="text-xs font-black font-mono text-white">
@@ -184,16 +185,16 @@ export default function MotdPredictionPoll({
               </span>
             </div>
 
-            <div className="text-sm font-black text-white truncate group-hover:text-sky-300 transition-colors">
+            <div className="text-sm font-black text-white truncate group-hover:text-primary transition-colors">
               {homeGamerTag}
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] font-mono text-slate-500">
+              <span className="text-xs font-mono text-muted-foreground">
                 {homeVotes} {homeVotes === 1 ? "vote" : "votes"}
               </span>
               {userPrediction === "HOME" && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-400">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-primary">
                   <CheckCircle2 className="h-3 w-3" /> Your Pick
                 </span>
               )}
@@ -208,19 +209,20 @@ export default function MotdPredictionPoll({
           onClick={() => handleVote("DRAW")}
           className={`relative overflow-hidden rounded-xl border p-3.5 text-left transition-all group ${
             userPrediction === "DRAW"
-              ? "border-amber-400 bg-amber-950/40 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10"
-              : "border-slate-800 bg-slate-900/60 hover:border-amber-500/40 hover:bg-slate-900"
-          } ${isFinished ? "cursor-default" : "cursor-pointer active:scale-[0.98]"}`}
+              ? "border-secondary bg-secondary/40 ring-1 ring-secondary/50 shadow-lg"
+              : "border-border bg-card/60 hover:border-secondary/40 hover:bg-card"
+          } ${isFinished ? "cursor-default" : "cursor-pointer active:scale-95"}`}
         >
           {/* Progress Bar background fill */}
           <div
-            className="absolute inset-y-0 left-0 bg-amber-500/15 transition-all duration-500"
+            className="absolute inset-y-0 left-0 bg-secondary/15 transition-all duration-500"
+            // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
             style={{ width: `${drawPercent}%` }}
           />
 
           <div className="relative z-10 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase text-amber-400 font-bold">
+              <span className="text-xs font-mono uppercase text-secondary font-bold">
                 DRAW
               </span>
               <span className="text-xs font-black font-mono text-white">
@@ -228,16 +230,16 @@ export default function MotdPredictionPoll({
               </span>
             </div>
 
-            <div className="text-sm font-black text-white truncate group-hover:text-amber-300 transition-colors">
+            <div className="text-sm font-black text-white truncate group-hover:text-secondary transition-colors">
               Draw / Stalemate
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] font-mono text-slate-500">
+              <span className="text-xs font-mono text-muted-foreground">
                 {drawVotes} {drawVotes === 1 ? "vote" : "votes"}
               </span>
               {userPrediction === "DRAW" && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-secondary">
                   <CheckCircle2 className="h-3 w-3" /> Your Pick
                 </span>
               )}
@@ -252,19 +254,20 @@ export default function MotdPredictionPoll({
           onClick={() => handleVote("AWAY")}
           className={`relative overflow-hidden rounded-xl border p-3.5 text-left transition-all group ${
             userPrediction === "AWAY"
-              ? "border-emerald-400 bg-emerald-950/40 ring-1 ring-emerald-400/50 shadow-lg shadow-emerald-500/10"
-              : "border-slate-800 bg-slate-900/60 hover:border-emerald-500/40 hover:bg-slate-900"
-          } ${isFinished ? "cursor-default" : "cursor-pointer active:scale-[0.98]"}`}
+              ? "border-primary bg-primary/40 ring-1 ring-primary/50 shadow-lg"
+              : "border-border bg-card/60 hover:border-primary/40 hover:bg-card"
+          } ${isFinished ? "cursor-default" : "cursor-pointer active:scale-95"}`}
         >
           {/* Progress Bar background fill */}
           <div
-            className="absolute inset-y-0 left-0 bg-emerald-500/15 transition-all duration-500"
+            className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
+            // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
             style={{ width: `${awayPercent}%` }}
           />
 
           <div className="relative z-10 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">
+              <span className="text-xs font-mono uppercase text-primary font-bold">
                 AWAY WIN
               </span>
               <span className="text-xs font-black font-mono text-white">
@@ -272,16 +275,16 @@ export default function MotdPredictionPoll({
               </span>
             </div>
 
-            <div className="text-sm font-black text-white truncate group-hover:text-emerald-300 transition-colors">
+            <div className="text-sm font-black text-white truncate group-hover:text-primary transition-colors">
               {awayGamerTag}
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] font-mono text-slate-500">
+              <span className="text-xs font-mono text-muted-foreground">
                 {awayVotes} {awayVotes === 1 ? "vote" : "votes"}
               </span>
               {userPrediction === "AWAY" && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-primary">
                   <CheckCircle2 className="h-3 w-3" /> Your Pick
                 </span>
               )}

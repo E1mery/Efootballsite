@@ -1444,20 +1444,20 @@ export default function AdminClient({
   // Helper for standings table rendering
   const renderStandingsTable = (title: string, standings: any[], badgeColor: string, maxLimit: number = 20) => {
     return (
-      <div className="rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
-        <div className="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40">
+      <div className="rounded-3xl border border-border bg-background/90 overflow-hidden shadow-xl">
+        <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/40">
           <div className="flex items-center gap-2.5">
             <span className={`h-3 w-3 rounded-full ${badgeColor}`} />
             <h3 className="text-lg font-black uppercase text-white tracking-wide">{title}</h3>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-muted-foreground">
             {standings.length} Registered Competitors (Max {maxLimit})
           </span>
         </div>
 
         <div className="overflow-x-auto no-scrollbar scroll-smooth">
-          <table className="w-full text-left text-xs min-w-[840px]">
-            <thead className="bg-slate-900/80 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-card/80 text-xs font-black uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-center">Pos</th>
                 <th className="px-4 py-3">Player / GamerTag</th>
@@ -1469,16 +1469,16 @@ export default function AdminClient({
                 <th className="px-3 py-3 text-center">GF</th>
                 <th className="px-3 py-3 text-center">GA</th>
                 <th className="px-3 py-3 text-center">GD</th>
-                <th className="px-4 py-3 text-center font-black text-yellow-400">PTS</th>
+                <th className="px-4 py-3 text-center font-black text-secondary">PTS</th>
                 <th className="px-3 py-3 text-center">Form</th>
                 <th className="px-4 py-3 text-center">Missed</th>
                 <th className="px-4 py-3 text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-border/60">
               {standings.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="py-8 text-center text-slate-500 font-mono">
+                  <td colSpan={14} className="py-8 text-center text-muted-foreground font-mono">
                     No players registered in this division yet.
                   </td>
                 </tr>
@@ -1495,18 +1495,18 @@ export default function AdminClient({
                   return (
                     <tr
                       key={s.id}
-                      className={`hover:bg-slate-900/50 transition-colors ${
-                        s.isDisqualified ? "bg-red-950/20 opacity-60" : ""
+                      className={`hover:bg-card/50 transition-colors ${
+                        s.isDisqualified ? "bg-destructive/20 opacity-60" : ""
                       }`}
                     >
                       <td className="px-4 py-3.5 text-center font-bold font-mono">
                         <span
                           className={`inline-flex items-center justify-center h-6 w-6 rounded-md text-xs font-black ${
                             isTop8Ucl || isTop4Ucl
-                              ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                              ? "bg-primary/20 text-primary border border-primary/30"
                               : isRelegation
-                              ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                              : "text-slate-400"
+                              ? "bg-destructive/20 text-destructive border border-destructive/30"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {rank}
@@ -1514,7 +1514,7 @@ export default function AdminClient({
                       </td>
                       <td className="px-4 py-3.5 font-bold text-white">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(s.player)}
                               alt={s.player.realTeam || s.player.gamerTag || "Team Crest"}
@@ -1526,50 +1526,50 @@ export default function AdminClient({
                           </div>
                           <span>{s.player.gamerTag}</span>
                           {s.player.realTeam && (
-                            <span className="text-[10px] text-amber-400 font-bold bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded">
+                            <span className="text-xs text-secondary font-bold bg-secondary/10 border border-secondary/20 px-1.5 py-0.5 rounded">
                               {findTeam(s.player.realTeam)?.shortName || s.player.realTeam}
                             </span>
                           )}
                           {s.isDisqualified && (
-                            <Badge variant="destructive" className="text-[9px] px-1 py-0">
+                            <Badge variant="destructive" className="text-xs px-1 py-0">
                               DQ
                             </Badge>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-400 block font-normal ml-8">
+                        <span className="text-xs text-muted-foreground block font-normal ml-8">
                           {s.player.fullName} ({s.player.efootballId})
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 font-mono text-emerald-400">
+                      <td className="px-4 py-3.5 font-mono text-primary">
                         {s.player.whatsapp}
                       </td>
-                      <td className="px-3 py-3.5 text-center font-mono text-slate-300">{s.played}</td>
-                      <td className="px-3 py-3.5 text-center font-mono text-emerald-400">{s.won}</td>
-                      <td className="px-3 py-3.5 text-center font-mono text-slate-400">{s.drawn}</td>
-                      <td className="px-3 py-3.5 text-center font-mono text-rose-400">{s.lost}</td>
-                      <td className="px-3 py-3.5 text-center font-mono text-slate-400">{s.goalsFor}</td>
-                      <td className="px-3 py-3.5 text-center font-mono text-slate-400">{s.goalsAgainst}</td>
+                      <td className="px-3 py-3.5 text-center font-mono text-foreground">{s.played}</td>
+                      <td className="px-3 py-3.5 text-center font-mono text-primary">{s.won}</td>
+                      <td className="px-3 py-3.5 text-center font-mono text-muted-foreground">{s.drawn}</td>
+                      <td className="px-3 py-3.5 text-center font-mono text-destructive">{s.lost}</td>
+                      <td className="px-3 py-3.5 text-center font-mono text-muted-foreground">{s.goalsFor}</td>
+                      <td className="px-3 py-3.5 text-center font-mono text-muted-foreground">{s.goalsAgainst}</td>
                       <td
                         className={`px-3 py-3.5 text-center font-mono font-bold ${
                           s.goalDifference > 0
-                            ? "text-emerald-400"
+                            ? "text-primary"
                             : s.goalDifference < 0
-                            ? "text-rose-400"
-                            : "text-slate-400"
+                            ? "text-destructive"
+                            : "text-muted-foreground"
                         }`}
                       >
                         {s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
                       </td>
-                      <td className="px-4 py-3.5 text-center font-mono font-black text-yellow-400 text-sm">
+                      <td className="px-4 py-3.5 text-center font-mono font-black text-secondary text-sm">
                         {s.points}
                       </td>
-                      <td className="px-3 py-3.5 text-center font-mono text-[10px] text-slate-400">
+                      <td className="px-3 py-3.5 text-center font-mono text-xs text-muted-foreground">
                         {s.form}
                       </td>
                       <td className="px-4 py-3.5 text-center font-mono">
                         <span
                           className={`font-bold ${
-                            s.consecutiveMissed >= 2 ? "text-red-400" : "text-slate-400"
+                            s.consecutiveMissed >= 2 ? "text-destructive" : "text-muted-foreground"
                           }`}
                         >
                           {s.consecutiveMissed}/3
@@ -1577,19 +1577,19 @@ export default function AdminClient({
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         {s.isDisqualified ? (
-                          <Badge variant="destructive" className="text-[10px]">
+                          <Badge variant="destructive" className="text-xs">
                             Disqualified
                           </Badge>
                         ) : isRelegation ? (
-                          <Badge variant="destructive" className="text-[9px] bg-red-500/20 text-red-400 border-red-500/40">
+                          <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border-destructive/40">
                             Relegation ({s.division === "Division 1" ? "Div 2" : "Div 3"})
                           </Badge>
                         ) : s.consecutiveMissed >= 2 ? (
-                          <Badge variant="yellow" className="text-[10px]">
+                          <Badge variant="yellow" className="text-xs">
                             Warning
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-xs">
                             Active
                           </Badge>
                         )}
@@ -1608,18 +1608,18 @@ export default function AdminClient({
   return (
     <div className="space-y-8">
       {/* Top Commissioner Bar */}
-      <div className="rounded-3xl border border-red-500/30 bg-gradient-to-r from-red-950/40 via-slate-950 to-slate-950 p-6 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-3xl border border-destructive/30 bg-gradient-to-r from-destructive/40 via-background to-background p-6 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="font-mono text-[10px] px-2 py-0.5 tracking-wider">
+            <Badge variant="destructive" className="font-mono text-xs px-2 py-0.5 tracking-wider">
               ADMIN OFFICE COMMISSIONER
             </Badge>
-            <span className="text-xs font-mono text-slate-400">Logged in as: {adminEmail || "admin@efootball.rw"}</span>
+            <span className="text-xs font-mono text-muted-foreground">Logged in as: {adminEmail || "admin@efootball.rw"}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight flex items-center gap-2">
             <span>eFootball Rwanda Admin Office</span>
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Full commissioner control over league registration, one-way round robin schedules, score screenshot verification, automated promotions, and continental cups.
           </p>
         </div>
@@ -1629,7 +1629,7 @@ export default function AdminClient({
             onClick={handleLogout}
             variant="destructive"
             size="sm"
-            className="font-black uppercase tracking-wider text-xs gap-1.5 shadow-lg shadow-red-600/20"
+            className="font-black uppercase tracking-wider text-xs gap-1.5 shadow-lg"
           >
             <LogOut className="h-4 w-4" />
             <span>Log Out</span>
@@ -1638,13 +1638,13 @@ export default function AdminClient({
       </div>
 
       {/* Primary Navigation Tabs - Mobile & Tablet Horizontally Scrollable */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab("DASHBOARD")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "DASHBOARD"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <Sliders className="h-4 w-4" />
@@ -1653,21 +1653,21 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("PENDING_REGISTRATIONS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "PENDING_REGISTRATIONS"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-secondary text-secondary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <UserCheck className={`h-4 w-4 ${activeTab === "PENDING_REGISTRATIONS" ? "text-slate-950" : "text-amber-400"}`} />
+          <UserCheck className={`h-4 w-4 ${activeTab === "PENDING_REGISTRATIONS" ? "text-secondary-foreground" : "text-secondary"}`} />
           <span>Pending Approvals</span>
           {pendingPlayers.length > 0 && (
             <Badge
               variant="yellow"
-              className={`text-[10px] px-1.5 py-0 font-black ${
+              className={`text-xs px-1.5 py-0 font-black ${
                 activeTab === "PENDING_REGISTRATIONS"
-                  ? "bg-slate-950 text-amber-400"
-                  : "bg-amber-400 text-slate-950"
+                  ? "bg-background text-secondary"
+                  : "bg-secondary text-secondary-foreground"
               }`}
             >
               {pendingPlayers.length}
@@ -1677,22 +1677,22 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("RESERVE_POOL")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "RESERVE_POOL"
-              ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-secondary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <Sparkles className="h-4 w-4 text-cyan-400" />
+          <Sparkles className="h-4 w-4 text-primary" />
           <span>Reserve Pool ({reservePlayers.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("TABLES")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "TABLES"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <Trophy className="h-4 w-4" />
@@ -1701,22 +1701,22 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("ALL_MATCHES")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "ALL_MATCHES"
-              ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-secondary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <Calendar className="h-4 w-4 text-cyan-400" />
+          <Calendar className="h-4 w-4 text-primary" />
           <span>All Generated Matches ({matches.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("CONTINENTAL")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "CONTINENTAL"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <Globe className="h-4 w-4" />
@@ -1725,16 +1725,16 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("RESULTS_QUEUE")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "RESULTS_QUEUE"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <Upload className="h-4 w-4" />
           <span>Score Verification</span>
           {pendingSubmissions.length > 0 && (
-            <Badge variant="live" className="text-[10px] px-1.5 py-0">
+            <Badge variant="live" className="text-xs px-1.5 py-0">
               {pendingSubmissions.length}
             </Badge>
           )}
@@ -1742,16 +1742,16 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("FORFEITS_QUEUE")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "FORFEITS_QUEUE"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <ShieldAlert className="h-4 w-4" />
           <span>Forfeit Claims</span>
           {pendingForfeits.length > 0 && (
-            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+            <Badge variant="destructive" className="text-xs px-1.5 py-0">
               {pendingForfeits.length}
             </Badge>
           )}
@@ -1759,10 +1759,10 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("ANNOUNCEMENTS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "ANNOUNCEMENTS"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <Bell className="h-4 w-4" />
@@ -1771,10 +1771,10 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("PLAYERS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "PLAYERS"
-              ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
           <Users className="h-4 w-4" />
@@ -1783,28 +1783,28 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("HALL_OF_FAME")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "HALL_OF_FAME"
-              ? "bg-yellow-500 text-slate-950 font-black shadow-lg shadow-yellow-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-secondary text-secondary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <Crown className="h-4 w-4 text-yellow-400" />
+          <Crown className="h-4 w-4 text-secondary" />
           <span>Hall of Fame ({hallOfFame.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("MESSAGES")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "MESSAGES"
-              ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-primary text-white font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <MessageSquare className="h-4 w-4 text-indigo-400" />
+          <MessageSquare className="h-4 w-4 text-primary" />
           <span>Player Inquiries ({activePlayerMessages.length})</span>
           {pendingMessages.length > 0 && (
-            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black animate-pulse">
+            <Badge variant="destructive" className="text-xs px-1.5 py-0 font-black animate-pulse">
               {pendingMessages.length}
             </Badge>
           )}
@@ -1812,28 +1812,28 @@ export default function AdminClient({
 
         <button
           onClick={() => setActiveTab("REVIEWS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "REVIEWS"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-secondary text-secondary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <Star className={`h-4 w-4 ${activeTab === "REVIEWS" ? "text-slate-950" : "text-amber-400"}`} />
+          <Star className={`h-4 w-4 ${activeTab === "REVIEWS" ? "text-secondary-foreground" : "text-secondary"}`} />
           <span>Ratings & Reviews ({reviewsList.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("PASSWORD_RESETS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[42px] ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "PASSWORD_RESETS"
-              ? "bg-rose-500 text-white font-black shadow-lg shadow-rose-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-destructive text-white font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
-          <KeyRound className={`h-4 w-4 ${activeTab === "PASSWORD_RESETS" ? "text-white" : "text-rose-400"}`} />
+          <KeyRound className={`h-4 w-4 ${activeTab === "PASSWORD_RESETS" ? "text-white" : "text-destructive"}`} />
           <span>Password Resets ({passwordResets.length})</span>
           {passwordResets.filter((r) => r.status === "PENDING").length > 0 && (
-            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black animate-pulse">
+            <Badge variant="destructive" className="text-xs px-1.5 py-0 font-black animate-pulse">
               {passwordResets.filter((r) => r.status === "PENDING").length}
             </Badge>
           )}
@@ -1847,9 +1847,9 @@ export default function AdminClient({
         <div className="space-y-8">
           {/* Action Required Alert: Pending Registrations */}
           {pendingPlayers.length > 0 && (
-            <div className="rounded-3xl border border-amber-500/50 bg-gradient-to-r from-amber-950/40 via-slate-950 to-slate-950 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="rounded-3xl border border-secondary/50 bg-gradient-to-r from-secondary/40 via-background to-background p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/20 border border-secondary/40 text-secondary shrink-0">
                   <UserCheck className="h-6 w-6" />
                 </div>
                 <div>
@@ -1859,14 +1859,14 @@ export default function AdminClient({
                       {pendingPlayers.length} Waiting
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-300 mt-0.5">
+                  <p className="text-xs text-foreground mt-0.5">
                     {pendingPlayers.length} new athlete{pendingPlayers.length > 1 ? "s have" : " has"} registered and {pendingPlayers.length > 1 ? "are" : "is"} awaiting commissioner review. Admit them to active divisions or place them in reserve.
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => setActiveTab("PENDING_REGISTRATIONS")}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg shadow-amber-500/20"
+                className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg"
               >
                 <span>Review Approvals</span>
                 <ArrowRight className="h-4 w-4" />
@@ -1876,9 +1876,9 @@ export default function AdminClient({
 
           {/* Action Required Alert: Password Reset Requests */}
           {passwordResets.filter((r) => r.status === "PENDING").length > 0 && (
-            <div className="rounded-3xl border border-rose-500/50 bg-gradient-to-r from-rose-950/40 via-slate-950 to-slate-950 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="rounded-3xl border border-destructive/50 bg-gradient-to-r from-destructive/40 via-background to-background p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/20 border border-destructive/40 text-destructive shrink-0">
                   <KeyRound className="h-6 w-6" />
                 </div>
                 <div>
@@ -1888,14 +1888,14 @@ export default function AdminClient({
                       {passwordResets.filter((r) => r.status === "PENDING").length} Waiting
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-300 mt-0.5">
+                  <p className="text-xs text-foreground mt-0.5">
                     {passwordResets.filter((r) => r.status === "PENDING").length} athlete(s) forgot their password and requested permission to reset it.
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => setActiveTab("PASSWORD_RESETS")}
-                className="bg-rose-500 hover:bg-rose-400 text-white font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg shadow-rose-500/20"
+                className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg"
               >
                 <span>Review Reset Requests</span>
                 <ArrowRight className="h-4 w-4" />
@@ -1905,12 +1905,12 @@ export default function AdminClient({
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-slate-400">Registration Status</span>
+            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
+              <span className="text-xs font-bold uppercase text-muted-foreground">Registration Status</span>
               <div className="flex items-center justify-between pt-1">
                 <span
                   className={`text-xl font-black uppercase ${
-                    leagueConfig.registrationOpen ? "text-emerald-400" : "text-amber-400"
+                    leagueConfig.registrationOpen ? "text-primary" : "text-secondary"
                   }`}
                 >
                   {leagueConfig.registrationOpen ? "Open" : "Closed"}
@@ -1921,60 +1921,60 @@ export default function AdminClient({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-slate-400">Current Matchday</span>
+            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
+              <span className="text-xs font-bold uppercase text-muted-foreground">Current Matchday</span>
               <div className="flex items-center justify-between pt-1">
-                <span className="text-2xl font-black text-sky-400">Matchday {leagueConfig.currentMatchday}</span>
-                <Clock className="h-5 w-5 text-sky-400" />
+                <span className="text-2xl font-black text-primary">Matchday {leagueConfig.currentMatchday}</span>
+                <Clock className="h-5 w-5 text-primary" />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-slate-400">UCL Status</span>
+            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
+              <span className="text-xs font-bold uppercase text-muted-foreground">UCL Status</span>
               <div className="flex items-center justify-between pt-1">
                 <span
                   className={`text-lg font-black uppercase ${
-                    leagueConfig.uclStarted ? "text-yellow-400" : "text-slate-500"
+                    leagueConfig.uclStarted ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
                   {leagueConfig.uclStarted ? "In Progress" : "Locked"}
                 </span>
                 {leagueConfig.uclStarted ? (
-                  <Unlock className="h-5 w-5 text-yellow-400" />
+                  <Unlock className="h-5 w-5 text-secondary" />
                 ) : (
-                  <Lock className="h-5 w-5 text-slate-500" />
+                  <Lock className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-slate-400">Europa Status</span>
+            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
+              <span className="text-xs font-bold uppercase text-muted-foreground">Europa Status</span>
               <div className="flex items-center justify-between pt-1">
                 <span
                   className={`text-lg font-black uppercase ${
-                    leagueConfig.europaStarted ? "text-amber-400" : "text-slate-500"
+                    leagueConfig.europaStarted ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
                   {leagueConfig.europaStarted ? "In Progress" : "Locked"}
                 </span>
                 {leagueConfig.europaStarted ? (
-                  <Unlock className="h-5 w-5 text-amber-400" />
+                  <Unlock className="h-5 w-5 text-secondary" />
                 ) : (
-                  <Lock className="h-5 w-5 text-slate-500" />
+                  <Lock className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
             </div>
           </div>
 
           {/* Operation 1: Registration Controls */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                  <Sliders className="h-5 w-5 text-sky-400" />
+                  <Sliders className="h-5 w-5 text-primary" />
                   <span>League Registration Lifecycle Controller</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Start or end player registration. When ended, you can generate scheduled round-robin division fixtures.
                 </p>
               </div>
@@ -1994,7 +1994,7 @@ export default function AdminClient({
                     onClick={() => handleToggleRegistration(true)}
                     disabled={actionLoading}
                     variant="default"
-                    className="bg-emerald-600 hover:bg-emerald-500 font-bold text-xs uppercase tracking-wider"
+                    className="bg-primary hover:bg-primary font-bold text-xs uppercase tracking-wider"
                   >
                     Re-open League Registration
                   </Button>
@@ -2003,39 +2003,39 @@ export default function AdminClient({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xs font-bold text-sky-400 block">Division 1 Registered</span>
+              <div className="p-4 rounded-2xl bg-card/60 border border-border">
+                <span className="text-xs font-bold text-primary block">Division 1 Registered</span>
                 <span className="text-2xl font-black text-white">{div1Standings.length} / {div1Max}</span>
-                <span className="text-[11px] text-slate-500 block mt-1">Premiership Division</span>
+                <span className="text-xs text-muted-foreground block mt-1">Premiership Division</span>
               </div>
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xs font-bold text-yellow-400 block">Division 2 Registered</span>
+              <div className="p-4 rounded-2xl bg-card/60 border border-border">
+                <span className="text-xs font-bold text-secondary block">Division 2 Registered</span>
                 <span className="text-2xl font-black text-white">{div2Standings.length} / {div2Max}</span>
-                <span className="text-[11px] text-slate-500 block mt-1">Championship Division</span>
+                <span className="text-xs text-muted-foreground block mt-1">Championship Division</span>
               </div>
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xs font-bold text-emerald-400 block">Division 3 Registered</span>
+              <div className="p-4 rounded-2xl bg-card/60 border border-border">
+                <span className="text-xs font-bold text-primary block">Division 3 Registered</span>
                 <span className="text-2xl font-black text-white">{div3Standings.length} / {div3Max}</span>
-                <span className="text-[11px] text-slate-500 block mt-1">National Academy</span>
+                <span className="text-xs text-muted-foreground block mt-1">National Academy</span>
               </div>
             </div>
           </div>
 
           {/* Operation 1B: Division Participant Capacity Controller */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                  <Users className="h-5 w-5 text-indigo-400" />
+                  <Users className="h-5 w-5 text-primary" />
                   <span>Division Participant Capacity Settings</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Admins can extend the maximum participant capacity per division (default: 20 athletes). Continental UCL and Europa League remain fixed at 16 qualification slots.
                 </p>
               </div>
 
               {capacitySuccessMsg && (
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 px-3 py-1.5 rounded-xl">
+                <div className="flex items-center gap-2 text-xs font-bold text-primary bg-primary/40 border border-primary/40 px-3 py-1.5 rounded-xl">
                   <CheckCircle2 className="h-4 w-4" />
                   <span>{capacitySuccessMsg}</span>
                 </div>
@@ -2044,66 +2044,66 @@ export default function AdminClient({
 
             <form onSubmit={handleSaveCapacity} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
-                  <label className="text-xs font-bold uppercase text-sky-400 block">
+                <div className="p-4 rounded-2xl bg-card/70 border border-border space-y-2">
+                  <label className="text-xs font-bold uppercase text-primary block">
                     Division 1 Capacity
                   </label>
-                  <p className="text-[11px] text-slate-400">Premiership maximum participants.</p>
+                  <p className="text-xs text-muted-foreground">Premiership maximum participants.</p>
                   <Input
                     type="number"
                     min="1"
                     max="100"
                     value={div1Max}
                     onChange={(e) => setDiv1Max(Number(e.target.value))}
-                    className="bg-slate-950 border-slate-700 text-sm font-bold font-mono text-white"
+                    className="bg-background border-border text-sm font-bold font-mono text-white"
                     required
                   />
-                  <span className="text-[10px] text-slate-500 block">Current active: {div1Standings.length} athletes</span>
+                  <span className="text-xs text-muted-foreground block">Current active: {div1Standings.length} athletes</span>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
-                  <label className="text-xs font-bold uppercase text-yellow-400 block">
+                <div className="p-4 rounded-2xl bg-card/70 border border-border space-y-2">
+                  <label className="text-xs font-bold uppercase text-secondary block">
                     Division 2 Capacity
                   </label>
-                  <p className="text-[11px] text-slate-400">Championship maximum participants.</p>
+                  <p className="text-xs text-muted-foreground">Championship maximum participants.</p>
                   <Input
                     type="number"
                     min="1"
                     max="100"
                     value={div2Max}
                     onChange={(e) => setDiv2Max(Number(e.target.value))}
-                    className="bg-slate-950 border-slate-700 text-sm font-bold font-mono text-white"
+                    className="bg-background border-border text-sm font-bold font-mono text-white"
                     required
                   />
-                  <span className="text-[10px] text-slate-500 block">Current active: {div2Standings.length} athletes</span>
+                  <span className="text-xs text-muted-foreground block">Current active: {div2Standings.length} athletes</span>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
-                  <label className="text-xs font-bold uppercase text-emerald-400 block">
+                <div className="p-4 rounded-2xl bg-card/70 border border-border space-y-2">
+                  <label className="text-xs font-bold uppercase text-primary block">
                     Division 3 Capacity
                   </label>
-                  <p className="text-[11px] text-slate-400">National Academy maximum participants.</p>
+                  <p className="text-xs text-muted-foreground">National Academy maximum participants.</p>
                   <Input
                     type="number"
                     min="1"
                     max="100"
                     value={div3Max}
                     onChange={(e) => setDiv3Max(Number(e.target.value))}
-                    className="bg-slate-950 border-slate-700 text-sm font-bold font-mono text-white"
+                    className="bg-background border-border text-sm font-bold font-mono text-white"
                     required
                   />
-                  <span className="text-[10px] text-slate-500 block">Current active: {div3Standings.length} athletes</span>
+                  <span className="text-xs text-muted-foreground block">Current active: {div3Standings.length} athletes</span>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                <span className="text-[11px] text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   UCL & Europa League: <strong>16 Fixed Slots</strong> (Top 8 Div 1 + Top 4 Div 2 + Top 4 Div 3 - Unchanged).
                 </span>
                 <Button
                   type="submit"
                   disabled={savingCapacity}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30"
+                  className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider shadow-lg"
                 >
                   {savingCapacity ? "Saving..." : "Save Division Capacity Limits"}
                 </Button>
@@ -2112,14 +2112,14 @@ export default function AdminClient({
           </div>
 
           {/* Operation 2: Round Robin Schedule Generator */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-yellow-400" />
+                  <Calendar className="h-5 w-5 text-secondary" />
                   <span>Division Round-Robin Schedule Generator (One-Way 1 Match per Pairing)</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Generates paired single round-robin matches (one-way 1 match only per pairing, home only) for registered players once registration has closed.
                 </p>
               </div>
@@ -2129,7 +2129,7 @@ export default function AdminClient({
                   onClick={() => handleGenerateSchedule("ALL")}
                   disabled={actionLoading || leagueConfig.registrationOpen}
                   variant="yellow"
-                  className="font-bold text-xs uppercase tracking-wider text-slate-950"
+                  className="font-bold text-xs uppercase tracking-wider text-secondary-foreground"
                 >
                   Generate All Divisions Schedule
                 </Button>
@@ -2138,7 +2138,7 @@ export default function AdminClient({
                   onClick={() => handleResetTournament("ALL")}
                   disabled={resettingTournament}
                   variant="destructive"
-                  className="font-bold text-xs uppercase tracking-wider gap-1.5 shadow-lg shadow-rose-600/20"
+                  className="font-bold text-xs uppercase tracking-wider gap-1.5 shadow-lg"
                 >
                   <RotateCcw className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`} />
                   {resettingTournament ? "Resetting..." : "Reset All Matches & Standings"}
@@ -2147,8 +2147,8 @@ export default function AdminClient({
             </div>
 
             {leagueConfig.registrationOpen && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-950/30 p-3 text-xs text-amber-300 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+              <div className="rounded-xl border border-secondary/30 bg-secondary/30 p-3 text-xs text-secondary flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-secondary" />
                 <span>
                   Please click <strong>&quot;End / Close Registration&quot;</strong> above first before generating the official tournament schedule.
                 </span>
@@ -2156,14 +2156,14 @@ export default function AdminClient({
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+              <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-400 block">Division 1 Schedule</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                  <span className="text-xs font-bold text-primary block">Division 1 Schedule</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}`}>
                     {div1Standings.length} Players {div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? `(${div1Standings.length - 1} rounds)` : "(Odd: needs even)"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   {div1Standings.length % 2 === 0 && div1Standings.length >= 2
                     ? `1 leg only: 10 matches/day, each player plays ${div1Standings.length - 1} matches with 0 intervals.`
                     : `Needs an even number of players (e.g. 20) so all players play every round with no intervals.`}
@@ -2183,21 +2183,21 @@ export default function AdminClient({
                     variant="ghost"
                     onClick={() => handleResetTournament("Division 1")}
                     disabled={resettingTournament}
-                    className="w-full text-xs font-bold text-rose-400 hover:bg-rose-950/30"
+                    className="w-full text-xs font-bold text-destructive hover:bg-destructive/30"
                   >
                     Reset
                   </Button>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+              <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-yellow-400 block">Division 2 Schedule</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                  <span className="text-xs font-bold text-secondary block">Division 2 Schedule</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}`}>
                     {div2Standings.length} Players {div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? `(${div2Standings.length - 1} rounds)` : "(Odd: needs even)"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   {div2Standings.length % 2 === 0 && div2Standings.length >= 2
                     ? `1 leg only: all players play every round, each plays ${div2Standings.length - 1} matches.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
@@ -2217,21 +2217,21 @@ export default function AdminClient({
                     variant="ghost"
                     onClick={() => handleResetTournament("Division 2")}
                     disabled={resettingTournament}
-                    className="w-full text-xs font-bold text-rose-400 hover:bg-rose-950/30"
+                    className="w-full text-xs font-bold text-destructive hover:bg-destructive/30"
                   >
                     Reset
                   </Button>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+              <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400 block">Division 3 Schedule</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
+                  <span className="text-xs font-bold text-primary block">Division 3 Schedule</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}`}>
                     {div3Standings.length} Players {div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? `(${div3Standings.length - 1} rounds)` : "(Odd: needs even)"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   {div3Standings.length % 2 === 0 && div3Standings.length >= 2
                     ? `1 leg only: all players play every round, each plays ${div3Standings.length - 1} matches.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
@@ -2251,7 +2251,7 @@ export default function AdminClient({
                     variant="ghost"
                     onClick={() => handleResetTournament("Division 3")}
                     disabled={resettingTournament}
-                    className="w-full text-xs font-bold text-rose-400 hover:bg-rose-950/30"
+                    className="w-full text-xs font-bold text-destructive hover:bg-destructive/30"
                   >
                     Reset
                   </Button>
@@ -2261,21 +2261,21 @@ export default function AdminClient({
           </div>
 
           {/* Operation 3: 12:00 AM Automated Daily Cycle Trigger */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-emerald-400" />
+                  <Clock className="h-5 w-5 text-primary" />
                   <span>12:00 AM Midnight Matchday Fixture Advance Cycle</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   At 12:00 AM midnight, the system automatically drops next fixtures and marks expired unplayed matches (enforcing 3 missed matches disqualifications). You can also manually advance the cycle here.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/20 text-primary text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <span>Automated 1-Hr System Reminders Active</span>
                 </div>
 
@@ -2283,9 +2283,9 @@ export default function AdminClient({
                   onClick={handleTriggerReminders}
                   disabled={actionLoading}
                   variant="outline"
-                  className="border-amber-500/50 text-amber-300 hover:bg-amber-950/30 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+                  className="border-secondary/50 text-secondary hover:bg-secondary/30 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
                 >
-                  <Bell className="h-3.5 w-3.5 text-amber-400" />
+                  <Bell className="h-3.5 w-3.5 text-secondary" />
                   <span>Manual Check Reminders</span>
                 </Button>
 
@@ -2293,7 +2293,7 @@ export default function AdminClient({
                   onClick={handleTriggerDailyCycle}
                   disabled={actionLoading}
                   variant="default"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+                  className="bg-primary hover:bg-primary text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>Advance to Matchday {leagueConfig.currentMatchday + 1}</span>
@@ -2301,7 +2301,7 @@ export default function AdminClient({
               </div>
             </div>
 
-            <div className="text-xs text-slate-400 space-y-1">
+            <div className="text-xs text-muted-foreground space-y-1">
               <p>• Current active round: <strong>Matchday {leagueConfig.currentMatchday}</strong></p>
               <p>• Next scheduled round: <strong>Matchday {leagueConfig.currentMatchday + 1}</strong></p>
               <p>• Players have strictly 24 hours to coordinate on WhatsApp and upload proof before midnight expiration.</p>
@@ -2309,22 +2309,22 @@ export default function AdminClient({
           </div>
 
           {/* Operation 4: Table-Based Match of the Day Controller */}
-          <div className="rounded-3xl border border-yellow-500/30 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="rounded-3xl border border-secondary/30 bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="yellow" className="text-[10px] font-mono">
+                  <Badge variant="yellow" className="text-xs font-mono">
                     AUTOMATIC SELECTION ENGINE
                   </Badge>
-                  <span className="text-xs font-bold text-yellow-400 uppercase tracking-widest">
+                  <span className="text-xs font-bold text-secondary uppercase tracking-widest">
                     Rule: Except on Round 1
                   </span>
                 </div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-400" />
+                  <Trophy className="h-5 w-5 text-secondary" />
                   <span>Match of the Day (MOTD) System</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   The system analyzes current league table standings (points, rank sums, proximity of top 4 contenders) to select the daily marquee clash. Round 1 is excluded as standings are not yet established.
                 </p>
               </div>
@@ -2346,7 +2346,7 @@ export default function AdminClient({
                 }}
                 disabled={actionLoading || leagueConfig.currentMatchday <= 1}
                 variant="yellow"
-                className="font-bold text-xs uppercase tracking-wider text-slate-950"
+                className="font-bold text-xs uppercase tracking-wider text-secondary-foreground"
               >
                 Re-evaluate MOTD from Table
               </Button>
@@ -2354,8 +2354,8 @@ export default function AdminClient({
 
             <div className="pt-1">
               {leagueConfig.currentMatchday <= 1 ? (
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0" />
+                <div className="p-4 rounded-2xl bg-card/60 border border-border text-xs text-muted-foreground flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-secondary shrink-0" />
                   <div>
                     <span className="font-bold text-white block">Round 1 Rule Enforced</span>
                     <span>
@@ -2364,8 +2364,8 @@ export default function AdminClient({
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-yellow-500/20 text-xs text-slate-300">
-                  <span className="font-bold text-yellow-400 block mb-1">Active MOTD Status</span>
+                <div className="p-4 rounded-2xl bg-card/60 border border-secondary/20 text-xs text-foreground">
+                  <span className="font-bold text-secondary block mb-1">Active MOTD Status</span>
                   <p>
                     The system evaluates active fixtures for Matchday {leagueConfig.currentMatchday} and highlights the clash with the highest stakes, points, and top-table ranking.
                   </p>
@@ -2375,16 +2375,16 @@ export default function AdminClient({
           </div>
 
           {/* Operation 5: End Season Finale: Promotions & Relegations */}
-          <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="rounded-3xl border border-secondary/30 bg-gradient-to-b from-background via-card to-background p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-amber-400" />
+                  <Trophy className="h-5 w-5 text-secondary" />
                   <h3 className="text-lg font-black uppercase text-white">
                     Season Finale: Promotions & Relegations
                   </h3>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   At season end, the bottom 3 from Division 1 relegate to Division 2, the bottom 3 from Division 2 relegate to Division 3, while the top 3 from Division 2 promote to Division 1 and top 3 from Division 3 promote to Division 2.
                 </p>
               </div>
@@ -2393,7 +2393,7 @@ export default function AdminClient({
                 <Button
                   onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
                   disabled={actionLoading}
-                  className="bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/20"
+                  className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider shadow-lg"
                 >
                   <ArrowDown className="h-3.5 w-3.5 mr-1" />
                   Relegate Bottom 3
@@ -2401,7 +2401,7 @@ export default function AdminClient({
                 <Button
                   onClick={() => handleExecuteSeasonTransition("ALL")}
                   disabled={actionLoading}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20"
+                  className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-lg"
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
                   Execute Full Transition
@@ -2411,95 +2411,95 @@ export default function AdminClient({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Div 1 Bottom 3 Preview (Relegation to Div 2) */}
-              <div className="p-4 rounded-2xl bg-[#070b16] border border-red-500/30 space-y-2">
+              <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge variant="destructive" className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/40">
+                  <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border border-destructive/40">
                     RELEGATING TO DIV 2
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">Div 1 (Bottom 3)</span>
+                  <span className="text-xs text-muted-foreground font-mono">Div 1 (Bottom 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
                   {div1Standings.length >= 4 ? (
                     div1Standings.slice(-3).map((s, idx) => (
-                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
-                        <span className="font-bold text-white truncate max-w-[130px]">
+                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
+                        <span className="font-bold text-white truncate w-32">
                           #{div1Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
                         </span>
-                        <span className="font-mono text-red-400 font-black">{s.points} Pts</span>
+                        <span className="font-mono text-destructive font-black">{s.points} Pts</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-500 italic">Need at least 4 Division 1 players.</p>
+                    <p className="text-xs text-muted-foreground italic">Need at least 4 Division 1 players.</p>
                   )}
                 </div>
               </div>
 
               {/* Div 2 Bottom 3 Preview (Relegation to Div 3) */}
-              <div className="p-4 rounded-2xl bg-[#070b16] border border-red-500/30 space-y-2">
+              <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge variant="destructive" className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/40">
+                  <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border border-destructive/40">
                     RELEGATING TO DIV 3
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">Div 2 (Bottom 3)</span>
+                  <span className="text-xs text-muted-foreground font-mono">Div 2 (Bottom 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
                   {div2Standings.length >= 4 ? (
                     div2Standings.slice(-3).map((s, idx) => (
-                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
-                        <span className="font-bold text-white truncate max-w-[130px]">
+                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
+                        <span className="font-bold text-white truncate w-32">
                           #{div2Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
                         </span>
-                        <span className="font-mono text-red-400 font-black">{s.points} Pts</span>
+                        <span className="font-mono text-destructive font-black">{s.points} Pts</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-500 italic">Need at least 4 Division 2 players.</p>
+                    <p className="text-xs text-muted-foreground italic">Need at least 4 Division 2 players.</p>
                   )}
                 </div>
               </div>
 
               {/* Div 2 Top 3 Preview (Promoting to Div 1) */}
-              <div className="p-4 rounded-2xl bg-[#070b16] border border-amber-500/30 space-y-2">
+              <div className="p-4 rounded-2xl bg-background border border-secondary/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge variant="yellow" className="text-[10px]">
+                  <Badge variant="yellow" className="text-xs">
                     PROMOTING TO DIV 1
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">Div 2 (Top 3)</span>
+                  <span className="text-xs text-muted-foreground font-mono">Div 2 (Top 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
                   {div2Standings.slice(0, 3).map((s, idx) => (
-                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
-                      <span className="font-bold text-white truncate max-w-[130px]">
+                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
+                      <span className="font-bold text-white truncate w-32">
                         #{idx + 1} {s.player?.gamerTag || "Unknown"}
                       </span>
-                      <span className="font-mono text-amber-400 font-black">{s.points} Pts</span>
+                      <span className="font-mono text-secondary font-black">{s.points} Pts</span>
                     </div>
                   ))}
                   {div2Standings.length === 0 && (
-                    <p className="text-xs text-slate-500 italic">No Division 2 standings registered.</p>
+                    <p className="text-xs text-muted-foreground italic">No Division 2 standings registered.</p>
                   )}
                 </div>
               </div>
 
               {/* Div 3 Top 3 Preview (Promoting to Div 2) */}
-              <div className="p-4 rounded-2xl bg-[#070b16] border border-emerald-500/30 space-y-2">
+              <div className="p-4 rounded-2xl bg-background border border-primary/30 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-400">
+                  <Badge variant="outline" className="text-xs border-primary/40 text-primary">
                     PROMOTING TO DIV 2
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">Div 3 (Top 3)</span>
+                  <span className="text-xs text-muted-foreground font-mono">Div 3 (Top 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
                   {div3Standings.slice(0, 3).map((s, idx) => (
-                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800/60">
-                      <span className="font-bold text-white truncate max-w-[130px]">
+                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
+                      <span className="font-bold text-white truncate w-32">
                         #{idx + 1} {s.player?.gamerTag || "Unknown"}
                       </span>
-                      <span className="font-mono text-emerald-400 font-black">{s.points} Pts</span>
+                      <span className="font-mono text-primary font-black">{s.points} Pts</span>
                     </div>
                   ))}
                   {div3Standings.length === 0 && (
-                    <p className="text-xs text-slate-500 italic">No Division 3 standings registered.</p>
+                    <p className="text-xs text-muted-foreground italic">No Division 3 standings registered.</p>
                   )}
                 </div>
               </div>
@@ -2514,13 +2514,13 @@ export default function AdminClient({
       {activeTab === "PENDING_REGISTRATIONS" && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-950/30 via-slate-950 to-slate-950 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+          <div className="rounded-3xl border border-secondary/30 bg-gradient-to-r from-secondary/30 via-background to-background p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
             <div>
-              <div className="flex items-center gap-2 text-amber-400">
+              <div className="flex items-center gap-2 text-secondary">
                 <UserCheck className="h-6 w-6" />
                 <h3 className="text-xl font-black uppercase text-white tracking-tight">Pending Athlete Approval Queue</h3>
               </div>
-              <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+              <p className="text-xs text-foreground mt-1 max-w-2xl">
                 Review and approve newly registered athletes. Verify their Konami eFootball Mobile ID, contact them directly on WhatsApp, assign them to their preferred division, or hold them in the official Reserve Pool.
               </p>
             </div>
@@ -2530,9 +2530,9 @@ export default function AdminClient({
                 variant="outline"
                 onClick={handleRefreshPending}
                 disabled={refreshingPending}
-                className="border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-bold gap-1.5"
+                className="border-border bg-card/80 hover:bg-muted text-foreground text-xs font-bold gap-1.5"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshingPending ? "animate-spin text-amber-400" : ""}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshingPending ? "animate-spin text-secondary" : ""}`} />
                 <span>{refreshingPending ? "Refreshing..." : "Refresh Queue"}</span>
               </Button>
               <Badge variant="yellow" className="text-xs px-3 py-1 font-mono font-black">
@@ -2543,67 +2543,70 @@ export default function AdminClient({
 
           {/* Division Roster Live Capacity Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="rounded-2xl border border-sky-500/30 bg-slate-950/80 p-4 space-y-2">
+            <div className="rounded-2xl border border-primary/30 bg-background/80 p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">Division 1 (Premiership)</span>
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Division 1 (Premiership)</span>
                 <Badge
                   variant={activeDiv1Count >= div1Max ? "destructive" : activeDiv1Count >= div1Max * 0.8 ? "yellow" : "secondary"}
-                  className="text-[10px] font-mono"
+                  className="text-xs font-mono"
                 >
                   {activeDiv1Count >= div1Max ? "FULL" : `${div1Max - activeDiv1Count} Open Slots`}
                 </Badge>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-black text-white">{activeDiv1Count} <span className="text-xs font-normal text-slate-400">/ {div1Max} players</span></span>
-                <span className="text-xs font-mono text-slate-400">{Math.round((activeDiv1Count / Math.max(1, div1Max)) * 100)}%</span>
+                <span className="text-2xl font-black text-white">{activeDiv1Count} <span className="text-xs font-normal text-muted-foreground">/ {div1Max} players</span></span>
+                <span className="text-xs font-mono text-muted-foreground">{Math.round((activeDiv1Count / Math.max(1, div1Max)) * 100)}%</span>
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${activeDiv1Count >= div1Max ? "bg-rose-500" : activeDiv1Count >= div1Max * 0.8 ? "bg-amber-400" : "bg-sky-400"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${activeDiv1Count >= div1Max ? "bg-destructive" : activeDiv1Count >= div1Max * 0.8 ? "bg-secondary" : "bg-primary"}`}
+                  // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
                   style={{ width: `${Math.min(100, Math.round((activeDiv1Count / Math.max(1, div1Max)) * 100))}%` }}
                 />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-yellow-500/30 bg-slate-950/80 p-4 space-y-2">
+            <div className="rounded-2xl border border-secondary/30 bg-background/80 p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">Division 2 (Championship)</span>
+                <span className="text-xs font-bold text-secondary uppercase tracking-wider">Division 2 (Championship)</span>
                 <Badge
                   variant={activeDiv2Count >= div2Max ? "destructive" : activeDiv2Count >= div2Max * 0.8 ? "yellow" : "secondary"}
-                  className="text-[10px] font-mono"
+                  className="text-xs font-mono"
                 >
                   {activeDiv2Count >= div2Max ? "FULL" : `${div2Max - activeDiv2Count} Open Slots`}
                 </Badge>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-black text-white">{activeDiv2Count} <span className="text-xs font-normal text-slate-400">/ {div2Max} players</span></span>
-                <span className="text-xs font-mono text-slate-400">{Math.round((activeDiv2Count / Math.max(1, div2Max)) * 100)}%</span>
+                <span className="text-2xl font-black text-white">{activeDiv2Count} <span className="text-xs font-normal text-muted-foreground">/ {div2Max} players</span></span>
+                <span className="text-xs font-mono text-muted-foreground">{Math.round((activeDiv2Count / Math.max(1, div2Max)) * 100)}%</span>
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${activeDiv2Count >= div2Max ? "bg-rose-500" : activeDiv2Count >= div2Max * 0.8 ? "bg-amber-400" : "bg-yellow-400"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${activeDiv2Count >= div2Max ? "bg-destructive" : activeDiv2Count >= div2Max * 0.8 ? "bg-secondary" : "bg-secondary"}`}
+                  // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
                   style={{ width: `${Math.min(100, Math.round((activeDiv2Count / Math.max(1, div2Max)) * 100))}%` }}
                 />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-emerald-500/30 bg-slate-950/80 p-4 space-y-2">
+            <div className="rounded-2xl border border-primary/30 bg-background/80 p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Division 3 (Conference)</span>
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Division 3 (Conference)</span>
                 <Badge
                   variant={activeDiv3Count >= div3Max ? "destructive" : activeDiv3Count >= div3Max * 0.8 ? "yellow" : "secondary"}
-                  className="text-[10px] font-mono"
+                  className="text-xs font-mono"
                 >
                   {activeDiv3Count >= div3Max ? "FULL" : `${div3Max - activeDiv3Count} Open Slots`}
                 </Badge>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-black text-white">{activeDiv3Count} <span className="text-xs font-normal text-slate-400">/ {div3Max} players</span></span>
-                <span className="text-xs font-mono text-slate-400">{Math.round((activeDiv3Count / Math.max(1, div3Max)) * 100)}%</span>
+                <span className="text-2xl font-black text-white">{activeDiv3Count} <span className="text-xs font-normal text-muted-foreground">/ {div3Max} players</span></span>
+                <span className="text-xs font-mono text-muted-foreground">{Math.round((activeDiv3Count / Math.max(1, div3Max)) * 100)}%</span>
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${activeDiv3Count >= div3Max ? "bg-rose-500" : activeDiv3Count >= div3Max * 0.8 ? "bg-amber-400" : "bg-emerald-400"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${activeDiv3Count >= div3Max ? "bg-destructive" : activeDiv3Count >= div3Max * 0.8 ? "bg-secondary" : "bg-primary"}`}
+                  // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
                   style={{ width: `${Math.min(100, Math.round((activeDiv3Count / Math.max(1, div3Max)) * 100))}%` }}
                 />
               </div>
@@ -2611,7 +2614,7 @@ export default function AdminClient({
           </div>
 
           {/* Filtering, Search & Batch Control Toolbar */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="rounded-2xl border border-border bg-background/70 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Division Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
               {(["ALL", "Division 1", "Division 2", "Division 3"] as const).map((div) => {
@@ -2626,14 +2629,14 @@ export default function AdminClient({
                     onClick={() => setPendingDivisionFilter(div)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                       isSelected
-                        ? "bg-sky-500 text-white shadow-md shadow-sky-500/20"
-                        : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
+                        ? "bg-primary text-white shadow-md"
+                        : "bg-card text-muted-foreground hover:text-white hover:bg-muted border border-border"
                     }`}
                   >
                     <span>{div === "ALL" ? "All Requested" : div}</span>
                     <span
-                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                        isSelected ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-400"
+                      className={`text-xs font-mono px-1.5 py-0.2 rounded-full ${
+                        isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {count}
@@ -2645,19 +2648,19 @@ export default function AdminClient({
 
             {/* Search and Batch Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div className="relative min-w-[220px]">
-                <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div className="relative w-56">
+                <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search athlete, WA, ID..."
                   value={pendingSearch}
                   onChange={(e) => setPendingSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-card border border-border text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                 />
                 {pendingSearch && (
                   <button
                     onClick={() => setPendingSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs font-bold"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold"
                   >
                     ×
                   </button>
@@ -2670,7 +2673,7 @@ export default function AdminClient({
                     size="sm"
                     disabled={batchApproving}
                     onClick={() => handleBatchApprovePending("ADMIT")}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold whitespace-nowrap shadow-md shadow-emerald-600/20"
+                    className="bg-primary hover:bg-primary text-white text-xs font-bold whitespace-nowrap shadow-md"
                   >
                     <UserPlus className="h-3.5 w-3.5 mr-1" />
                     {batchApproving ? "Processing..." : `Batch Admit All (${pendingPlayers.length})`}
@@ -2680,7 +2683,7 @@ export default function AdminClient({
                     variant="outline"
                     disabled={batchApproving}
                     onClick={() => handleBatchApprovePending("RESERVE")}
-                    className="border-amber-500/40 text-amber-400 hover:bg-amber-950/40 text-xs font-bold whitespace-nowrap"
+                    className="border-secondary/40 text-secondary hover:bg-secondary/40 text-xs font-bold whitespace-nowrap"
                   >
                     <Layers className="h-3.5 w-3.5 mr-1" />
                     Reserve All
@@ -2692,18 +2695,18 @@ export default function AdminClient({
 
           {/* Athletes List */}
           {pendingPlayers.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center">
-              <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto mb-3 opacity-60" />
+            <div className="rounded-3xl border border-border bg-background/60 p-12 text-center">
+              <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-3 opacity-60" />
               <h4 className="text-base font-bold text-white uppercase">Queue is Clear</h4>
-              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                 There are no pending registrations awaiting review. All registered players have been either assigned to a division or placed into the reserve pool.
               </p>
             </div>
           ) : filteredPendingPlayers.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-10 text-center space-y-2">
-              <Search className="h-10 w-10 text-slate-600 mx-auto mb-2" />
+            <div className="rounded-3xl border border-border bg-background/60 p-10 text-center space-y-2">
+              <Search className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
               <h4 className="text-sm font-bold text-white uppercase">No Athletes Match Filter</h4>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 No pending registrations matched your search &quot;{pendingSearch}&quot; in {pendingDivisionFilter}.
               </p>
               <Button
@@ -2744,43 +2747,43 @@ export default function AdminClient({
                 return (
                   <div
                     key={p.id}
-                    className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 hover:border-slate-700 transition-all shadow-xl flex flex-col justify-between"
+                    className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 hover:border-border transition-all shadow-xl flex flex-col justify-between"
                   >
                     <div className="space-y-3">
                       {/* Top Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm shrink-0">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-black text-sm shrink-0">
                             {p.gamerTag.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <h4 className="text-base font-black text-white leading-tight">{p.gamerTag}</h4>
-                            <p className="text-xs text-slate-400 font-medium">{p.fullName}</p>
+                            <p className="text-xs text-muted-foreground font-medium">{p.fullName}</p>
                           </div>
                         </div>
-                        <Badge variant="yellow" className="text-[10px] shrink-0 font-bold">
+                        <Badge variant="yellow" className="text-xs shrink-0 font-bold">
                           Pending
                         </Badge>
                       </div>
 
                       {/* Information Grid */}
-                      <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800/90 space-y-2 text-xs">
+                      <div className="p-3.5 rounded-xl bg-card/90 border border-border/90 space-y-2 text-xs">
                         {/* Konami eFootball Mobile ID */}
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-400 flex items-center gap-1.5">
+                          <span className="text-muted-foreground flex items-center gap-1.5">
                             <span>eFootball ID:</span>
                           </span>
                           <div className="flex items-center gap-1.5 font-mono text-xs">
-                            <span className="text-sky-300 font-semibold truncate max-w-[140px]" title={p.efootballId}>
+                            <span className="text-primary font-semibold truncate w-36" title={p.efootballId}>
                               {p.efootballId || "N/A"}
                             </span>
                             {p.efootballId && (
                               <button
                                 onClick={() => handleCopyKonamiId(p.id, p.efootballId)}
                                 title="Copy eFootball ID"
-                                className="text-slate-400 hover:text-white transition-colors p-1"
+                                className="text-muted-foreground hover:text-white transition-colors p-1"
                               >
-                                {isCopied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                {isCopied ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
                               </button>
                             )}
                           </div>
@@ -2788,8 +2791,8 @@ export default function AdminClient({
 
                         {/* WhatsApp with click-to-chat */}
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Phone className="h-3 w-3 text-emerald-400" />
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <Phone className="h-3 w-3 text-primary" />
                             <span>WhatsApp:</span>
                           </span>
                           {cleanWa ? (
@@ -2797,38 +2800,38 @@ export default function AdminClient({
                               href={`https://wa.me/${cleanWa}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-emerald-400 font-bold hover:underline flex items-center gap-1"
+                              className="font-mono text-primary font-bold hover:underline flex items-center gap-1"
                               title="Click to open WhatsApp chat"
                             >
                               <span>{p.whatsapp}</span>
                               <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                             </a>
                           ) : (
-                            <span className="font-mono text-slate-400">{p.whatsapp}</span>
+                            <span className="font-mono text-muted-foreground">{p.whatsapp}</span>
                           )}
                         </div>
 
                         {/* Email */}
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Mail className="h-3 w-3 text-sky-400" />
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <Mail className="h-3 w-3 text-primary" />
                             <span>Email:</span>
                           </span>
-                          <span className="font-mono text-slate-300 truncate max-w-[160px]" title={p.user?.email || "N/A"}>
+                          <span className="font-mono text-foreground truncate w-40" title={p.user?.email || "N/A"}>
                             {p.user?.email || "N/A"}
                           </span>
                         </div>
 
                         {/* Requested Division */}
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Requested:</span>
-                          <span className="font-bold text-sky-400 bg-sky-950/60 border border-sky-500/30 px-2 py-0.5 rounded-lg text-[11px]">
+                          <span className="text-muted-foreground">Requested:</span>
+                          <span className="font-bold text-primary bg-primary/60 border border-primary/30 px-2 py-0.5 rounded-lg text-xs">
                             {p.division || "Division 1"}
                           </span>
                         </div>
 
                         {/* Registered On */}
-                        <div className="flex items-center justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-800/80">
+                        <div className="flex items-center justify-between text-muted-foreground text-xs pt-1 border-t border-border/80">
                           <span>Registered:</span>
                           <span>{new Date(p.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                         </div>
@@ -2837,10 +2840,10 @@ export default function AdminClient({
                       {/* Division Selector & Capacity Warning */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold text-slate-300 uppercase">
+                          <label className="text-xs font-bold text-foreground uppercase">
                             Target Placement:
                           </label>
-                          <span className={`text-[10px] font-mono font-bold ${isTargetFull ? "text-rose-400" : "text-emerald-400"}`}>
+                          <span className={`text-xs font-mono font-bold ${isTargetFull ? "text-destructive" : "text-primary"}`}>
                             {targetActiveCount}/{targetMax} {isTargetFull ? "• FULL" : "• Slots Open"}
                           </span>
                         </div>
@@ -2852,8 +2855,8 @@ export default function AdminClient({
                               [p.id]: e.target.value,
                             }))
                           }
-                          className={`w-full bg-slate-900 border rounded-xl px-3 py-2 text-xs text-white font-medium focus:ring-1 focus:ring-sky-500 ${
-                            isTargetFull ? "border-rose-500/50" : "border-slate-700"
+                          className={`w-full bg-card border rounded-xl px-3 py-2 text-xs text-white font-medium focus:ring-1 focus:ring-primary ${
+                            isTargetFull ? "border-destructive/50" : "border-border"
                           }`}
                         >
                           <option value="Division 1">Division 1 (Premiership) [{activeDiv1Count}/{div1Max}]</option>
@@ -2864,15 +2867,15 @@ export default function AdminClient({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="pt-3 border-t border-slate-800 space-y-2">
+                    <div className="pt-3 border-t border-border space-y-2">
                       <Button
                         size="sm"
                         disabled={isLoading || isTargetFull}
                         onClick={() => handleApproveAthlete(p.id, "ADMIT")}
                         className={`w-full font-bold text-xs ${
                           isTargetFull
-                            ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                            : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                            : "bg-primary hover:bg-primary text-white shadow-lg"
                         }`}
                       >
                         <UserCheck className="h-4 w-4 mr-1.5" />
@@ -2889,7 +2892,7 @@ export default function AdminClient({
                           variant="outline"
                           disabled={isLoading}
                           onClick={() => handleApproveAthlete(p.id, "RESERVE")}
-                          className="border-amber-500/40 text-amber-400 hover:bg-amber-950/40 text-[11px] font-bold"
+                          className="border-secondary/40 text-secondary hover:bg-secondary/40 text-xs font-bold"
                         >
                           <Layers className="h-3.5 w-3.5 mr-1" />
                           Reserve Pool
@@ -2899,7 +2902,7 @@ export default function AdminClient({
                           variant="destructive"
                           disabled={isLoading}
                           onClick={() => handleRejectAthlete(p.id, p.gamerTag)}
-                          className="text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                          className="text-xs font-bold bg-destructive/80 hover:bg-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
                           Reject
@@ -2919,13 +2922,13 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "RESERVE_POOL" && (
         <div className="space-y-6">
-          <div className="rounded-3xl border border-sky-500/30 bg-sky-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="rounded-3xl border border-primary/30 bg-primary/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-sky-400">
+              <div className="flex items-center gap-2 text-primary">
                 <Layers className="h-5 w-5" />
                 <h3 className="text-lg font-black uppercase text-white">League Reserve Pool (Standby Roster)</h3>
               </div>
-              <p className="text-xs text-slate-300 mt-1">
+              <p className="text-xs text-foreground mt-1">
                 Reserve athletes have registered and are placed on standby. They have complete access to view all division standings and league news, but are not assigned fixtures until you admit them or use them to replace an inactive player.
               </p>
             </div>
@@ -2935,22 +2938,22 @@ export default function AdminClient({
           </div>
 
           {reservePlayers.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center">
-              <Layers className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+            <div className="rounded-3xl border border-border bg-background/60 p-12 text-center">
+              <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
               <h4 className="text-base font-bold text-white uppercase">Reserve Pool is Empty</h4>
-              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                 No athletes are currently waiting in reserve. When excess athletes register, or when players are replaced and moved to reserve, they will appear here.
               </p>
             </div>
           ) : (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
-              <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div className="rounded-3xl border border-border bg-background/90 overflow-hidden shadow-xl">
+              <div className="p-5 border-b border-border flex items-center justify-between">
                 <h3 className="text-lg font-black uppercase text-white">Standby Athletes</h3>
-                <span className="text-xs font-mono text-slate-400">{reservePlayers.length} Total</span>
+                <span className="text-xs font-mono text-muted-foreground">{reservePlayers.length} Total</span>
               </div>
               <div className="overflow-x-auto no-scrollbar scroll-smooth">
-                <table className="w-full text-left text-xs min-w-[760px]">
-                  <thead className="bg-slate-900/80 text-[11px] font-black uppercase text-slate-400 border-b border-slate-800">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-card/80 text-xs font-black uppercase text-muted-foreground border-b border-border">
                     <tr>
                       <th className="px-4 py-3">Gamer Tag</th>
                       <th className="px-4 py-3">Full Name</th>
@@ -2961,7 +2964,7 @@ export default function AdminClient({
                       <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-border/60">
                     {reservePlayers.map((p) => {
                       const currentSelection = pendingDivSelection[p.id] || p.division || "Division 1";
                       const isLoading = pendingActionLoading === p.id;
@@ -2983,19 +2986,19 @@ export default function AdminClient({
                       const isTargetFull = targetActiveCount >= targetMax;
 
                       return (
-                        <tr key={p.id} className="hover:bg-slate-900/40">
+                        <tr key={p.id} className="hover:bg-card/40">
                           <td className="px-4 py-3 font-bold text-white">{p.gamerTag}</td>
-                          <td className="px-4 py-3 text-slate-300">{p.fullName}</td>
-                          <td className="px-4 py-3 font-mono text-sky-300">
+                          <td className="px-4 py-3 text-foreground">{p.fullName}</td>
+                          <td className="px-4 py-3 font-mono text-primary">
                             <div className="flex items-center gap-1">
                               <span>{p.efootballId || "N/A"}</span>
                               {p.efootballId && (
                                 <button
                                   onClick={() => handleCopyKonamiId(p.id, p.efootballId)}
                                   title="Copy eFootball ID"
-                                  className="text-slate-400 hover:text-white p-0.5"
+                                  className="text-muted-foreground hover:text-white p-0.5"
                                 >
-                                  {isCopied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  {isCopied ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
                                 </button>
                               )}
                             </div>
@@ -3006,16 +3009,16 @@ export default function AdminClient({
                                 href={`https://wa.me/${cleanWa}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-emerald-400 font-semibold hover:underline flex items-center gap-1"
+                                className="text-primary font-semibold hover:underline flex items-center gap-1"
                               >
                                 <span>{p.whatsapp}</span>
                                 <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                               </a>
                             ) : (
-                              <span className="text-slate-400">{p.whatsapp}</span>
+                              <span className="text-muted-foreground">{p.whatsapp}</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 font-mono text-slate-400">{p.user?.email || "N/A"}</td>
+                          <td className="px-4 py-3 font-mono text-muted-foreground">{p.user?.email || "N/A"}</td>
                           <td className="px-4 py-3">
                             <select
                               value={currentSelection}
@@ -3025,7 +3028,7 @@ export default function AdminClient({
                                   [p.id]: e.target.value,
                                 }))
                               }
-                              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
+                              className="bg-card border border-border rounded-lg px-2.5 py-1 text-xs text-white"
                             >
                               <option value="Division 1">Division 1 [{activeDiv1Count}/{div1Max}]</option>
                               <option value="Division 2">Division 2 [{activeDiv2Count}/{div2Max}]</option>
@@ -3038,7 +3041,7 @@ export default function AdminClient({
                                 size="sm"
                                 disabled={isLoading || isTargetFull}
                                 onClick={() => handleApproveAthlete(p.id, "ADMIT")}
-                                className="h-7 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold"
+                                className="h-7 px-3 bg-primary hover:bg-primary text-white text-xs font-bold"
                               >
                                 <UserCheck className="h-3 w-3 mr-1" />
                                 {isTargetFull ? "Full" : `Admit to ${currentSelection}`}
@@ -3048,7 +3051,7 @@ export default function AdminClient({
                                 variant="destructive"
                                 disabled={isLoading}
                                 onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
-                                className="h-7 px-2 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                                className="h-7 px-2 text-xs font-bold bg-destructive/80 hover:bg-destructive"
                               >
                                 <Trash2 className="h-3 w-3 mr-1" />
                                 Remove
@@ -3072,20 +3075,20 @@ export default function AdminClient({
       {activeTab === "TABLES" && (
         <div className="space-y-6">
           {/* Master Standings Update & Recalculate Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-slate-950 to-slate-950 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/40 via-background to-background shadow-xl">
             <div>
               <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-emerald-400" />
+                <Trophy className="h-5 w-5 text-primary" />
                 <span>One-Click Standings Synchronization</span>
               </h3>
-              <p className="text-xs text-slate-300 mt-1">
+              <p className="text-xs text-foreground mt-1">
                 Recalculates points, wins, draws, losses, goals, and rankings across all division tables simultaneously from all approved finished matches.
               </p>
             </div>
             <Button
               onClick={() => handleRecalculateStandings("ALL")}
               disabled={recalculatingStandings}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 shadow-lg shadow-emerald-600/30 shrink-0"
+              className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 shadow-lg shrink-0"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${recalculatingStandings ? "animate-spin" : ""}`} />
               {recalculatingStandings ? "Updating Tables..." : "⚡ Update League Table Standings"}
@@ -3093,19 +3096,19 @@ export default function AdminClient({
           </div>
 
           {/* Relegations & Promotions Commissioner Trigger Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-950/30 via-slate-950 to-amber-950/20 shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-destructive/30 bg-gradient-to-r from-destructive/30 via-background to-secondary/20 shadow-xl">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Badge variant="destructive" className="text-[10px] font-black bg-red-500/20 text-red-400 border-red-500/40">
+                <Badge variant="destructive" className="text-xs font-black bg-destructive/20 text-destructive border-destructive/40">
                   RELEGATION & PROMOTION DISPATCH
                 </Badge>
-                <span className="text-xs font-mono text-slate-400">Commissioner Authority</span>
+                <span className="text-xs font-mono text-muted-foreground">Commissioner Authority</span>
               </div>
               <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
-                <ArrowDown className="h-4 w-4 text-red-400" />
+                <ArrowDown className="h-4 w-4 text-destructive" />
                 <span>Trigger Official Division Relegations & Promotions</span>
               </h3>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-foreground">
                 • <strong>Div 1</strong>: Bottom 3 relegated to Div 2 &bull; <strong>Div 2</strong>: Bottom 3 relegated to Div 3, Top 3 promoted to Div 1 &bull; <strong>Div 3</strong>: Top 3 promoted to Div 2.<br />
                 Relegated players automatically transition their portal and calendar access to their new division.
               </p>
@@ -3115,7 +3118,7 @@ export default function AdminClient({
               <Button
                 onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
                 disabled={actionLoading}
-                className="bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg shadow-red-600/20"
+                className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
                 title="Move bottom 3 players in Division 1 to Division 2, and bottom 3 in Division 2 to Division 3"
               >
                 <ArrowDown className="h-3.5 w-3.5 mr-1" />
@@ -3124,7 +3127,7 @@ export default function AdminClient({
               <Button
                 onClick={() => handleExecuteSeasonTransition("ALL")}
                 disabled={actionLoading}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg shadow-amber-500/20"
+                className="bg-gradient-to-r from-secondary to-secondary hover:from-secondary hover:to-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
                 title="Execute both promotions and relegations in one transaction"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1" />
@@ -3134,13 +3137,13 @@ export default function AdminClient({
           </div>
 
           {/* Table Sub-Navigation */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
             <button
               onClick={() => setTableSubTab("DIV1")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 tableSubTab === "DIV1"
-                  ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               Division 1 (Premiership)
@@ -3150,8 +3153,8 @@ export default function AdminClient({
               onClick={() => setTableSubTab("DIV2")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 tableSubTab === "DIV2"
-                  ? "bg-yellow-500 text-slate-950 shadow-lg shadow-yellow-500/20 font-black"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-secondary text-secondary-foreground shadow-lg font-black"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               Division 2 (Championship)
@@ -3161,8 +3164,8 @@ export default function AdminClient({
               onClick={() => setTableSubTab("DIV3")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 tableSubTab === "DIV3"
-                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               Division 3 (Academy)
@@ -3172,54 +3175,54 @@ export default function AdminClient({
               onClick={() => setTableSubTab("UCL")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 tableSubTab === "UCL"
-                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               <Trophy className="h-3.5 w-3.5" />
               <span>UCL Groups</span>
-              {!leagueConfig.uclStarted && <Lock className="h-3 w-3 text-slate-500" />}
+              {!leagueConfig.uclStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
             </button>
 
             <button
               onClick={() => setTableSubTab("EUROPA")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 tableSubTab === "EUROPA"
-                  ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-secondary text-secondary-foreground font-black shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               <Globe className="h-3.5 w-3.5" />
               <span>Europa Groups</span>
-              {!leagueConfig.europaStarted && <Lock className="h-3 w-3 text-slate-500" />}
+              {!leagueConfig.europaStarted && <Lock className="h-3 w-3 text-muted-foreground" />}
             </button>
           </div>
 
           {/* Division 1 Table */}
-          {tableSubTab === "DIV1" && renderStandingsTable("Division 1 Premiership Standings", div1Standings, "bg-sky-400", div1Max)}
+          {tableSubTab === "DIV1" && renderStandingsTable("Division 1 Premiership Standings", div1Standings, "bg-primary", div1Max)}
 
           {/* Division 2 Table */}
-          {tableSubTab === "DIV2" && renderStandingsTable("Division 2 Championship Standings", div2Standings, "bg-yellow-400", div2Max)}
+          {tableSubTab === "DIV2" && renderStandingsTable("Division 2 Championship Standings", div2Standings, "bg-secondary", div2Max)}
 
           {/* Division 3 Table */}
-          {tableSubTab === "DIV3" && renderStandingsTable("Division 3 Academy Standings", div3Standings, "bg-emerald-400", div3Max)}
+          {tableSubTab === "DIV3" && renderStandingsTable("Division 3 Academy Standings", div3Standings, "bg-primary", div3Max)}
 
           {/* UCL Tables */}
           {tableSubTab === "UCL" && (
             <div className="space-y-6">
               {!leagueConfig.uclStarted ? (
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-8 text-center space-y-4">
-                  <div className="inline-flex p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                <div className="rounded-3xl border border-border bg-background/90 p-8 text-center space-y-4">
+                  <div className="inline-flex p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary">
                     <Lock className="h-8 w-8" />
                   </div>
                   <h3 className="text-xl font-black uppercase text-white">eFootball Champions League is Locked</h3>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
                     UCL is locked by default until the league season ends. As administrator, you can inaugurate the UCL competition below.
                   </p>
                   <Button
                     onClick={() => handleToggleCompetition("UCL", true)}
                     disabled={actionLoading}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase"
+                    className="bg-primary hover:bg-primary text-white font-bold text-xs uppercase"
                   >
                     Unlock & Start UCL Now
                   </Button>
@@ -3229,10 +3232,10 @@ export default function AdminClient({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-black uppercase text-white flex items-center gap-2">
-                        <Trophy className="h-6 w-6 text-yellow-400" />
+                        <Trophy className="h-6 w-6 text-secondary" />
                         <span>eFootball Champions League (UCL) Group Stage</span>
                       </h3>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         16 Qualified Players (Top 8 Div 1, Top 4 Div 2, Top 4 Div 3). Strict division separation enforced.
                       </p>
                     </div>
@@ -3254,25 +3257,25 @@ export default function AdminClient({
                       return (
                         <div
                           key={grpName}
-                          className="rounded-2xl border border-indigo-500/30 bg-slate-950/80 p-5 space-y-3"
+                          className="rounded-2xl border border-primary/30 bg-background/80 p-5 space-y-3"
                         >
-                          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <span className="text-sm font-black uppercase text-indigo-400">{grpName}</span>
-                            <span className="text-xs font-mono text-slate-400">{groupSlots.length}/4 Players</span>
+                          <div className="flex items-center justify-between border-b border-border pb-2">
+                            <span className="text-sm font-black uppercase text-primary">{grpName}</span>
+                            <span className="text-xs font-mono text-muted-foreground">{groupSlots.length}/4 Players</span>
                           </div>
 
                           <div className="space-y-2">
                             {groupSlots.length === 0 ? (
-                              <p className="text-xs text-slate-500 py-3 text-center">Awaiting player votes or seeded draw...</p>
+                              <p className="text-xs text-muted-foreground py-3 text-center">Awaiting player votes or seeded draw...</p>
                             ) : (
                               groupSlots.map((slot, pIdx) => (
                                 <div
                                   key={slot.id}
-                                  className="flex items-center justify-between rounded-xl bg-slate-900/60 p-2.5 text-xs border border-slate-800/80"
+                                  className="flex items-center justify-between rounded-xl bg-card/60 p-2.5 text-xs border border-border/80"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-slate-500 text-[10px]">{pIdx + 1}.</span>
-                                    <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                    <span className="font-mono text-muted-foreground text-xs">{pIdx + 1}.</span>
+                                    <div className="w-5 h-5 rounded-full bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                       <img
                                         src={resolvePlayerAvatar(slot.player)}
                                         alt={slot.player?.realTeam || slot.player?.gamerTag || "Team"}
@@ -3286,12 +3289,12 @@ export default function AdminClient({
                                       <div className="flex items-center gap-1.5">
                                         <span className="font-bold text-white block">{slot.player.gamerTag}</span>
                                         {slot.player.realTeam && (
-                                          <span className="text-[9px] text-amber-400 font-bold">
+                                          <span className="text-xs text-secondary font-bold">
                                             ({findTeam(slot.player.realTeam)?.shortName || slot.player.realTeam})
                                           </span>
                                         )}
                                       </div>
-                                      <span className="text-[10px] text-slate-400">{slot.player.efootballId}</span>
+                                      <span className="text-xs text-muted-foreground">{slot.player.efootballId}</span>
                                     </div>
                                   </div>
                                   <Badge
@@ -3302,7 +3305,7 @@ export default function AdminClient({
                                         ? "yellow"
                                         : "live"
                                     }
-                                    className="text-[10px]"
+                                    className="text-xs"
                                   >
                                     {slot.playerDivision}
                                   </Badge>
@@ -3323,18 +3326,18 @@ export default function AdminClient({
           {tableSubTab === "EUROPA" && (
             <div className="space-y-6">
               {!leagueConfig.europaStarted ? (
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-8 text-center space-y-4">
-                  <div className="inline-flex p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                <div className="rounded-3xl border border-border bg-background/90 p-8 text-center space-y-4">
+                  <div className="inline-flex p-4 rounded-2xl bg-secondary/10 border border-secondary/30 text-secondary">
                     <Lock className="h-8 w-8" />
                   </div>
                   <h3 className="text-xl font-black uppercase text-white">eFootball Europa League is Locked</h3>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
                     Europa League is locked by default until inaugurated by the administrator.
                   </p>
                   <Button
                     onClick={() => handleToggleCompetition("EUROPA", true)}
                     disabled={actionLoading}
-                    className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase"
+                    className="bg-secondary hover:bg-secondary text-white font-bold text-xs uppercase"
                   >
                     Unlock & Start Europa League Now
                   </Button>
@@ -3344,10 +3347,10 @@ export default function AdminClient({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-black uppercase text-white flex items-center gap-2">
-                        <Globe className="h-6 w-6 text-amber-400" />
+                        <Globe className="h-6 w-6 text-secondary" />
                         <span>eFootball Europa League (UEL) Group Stage</span>
                       </h3>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         Qualified: Div 1 ranks 9-12, Div 2 ranks 5-10, Div 3 ranks 5-10. Strict division separation enforced.
                       </p>
                     </div>
@@ -3369,25 +3372,25 @@ export default function AdminClient({
                       return (
                         <div
                           key={grpName}
-                          className="rounded-2xl border border-amber-500/30 bg-slate-950/80 p-5 space-y-3"
+                          className="rounded-2xl border border-secondary/30 bg-background/80 p-5 space-y-3"
                         >
-                          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <span className="text-sm font-black uppercase text-amber-400">{grpName}</span>
-                            <span className="text-xs font-mono text-slate-400">{groupSlots.length}/4 Players</span>
+                          <div className="flex items-center justify-between border-b border-border pb-2">
+                            <span className="text-sm font-black uppercase text-secondary">{grpName}</span>
+                            <span className="text-xs font-mono text-muted-foreground">{groupSlots.length}/4 Players</span>
                           </div>
 
                           <div className="space-y-2">
                             {groupSlots.length === 0 ? (
-                              <p className="text-xs text-slate-500 py-3 text-center">Awaiting player votes or seeded draw...</p>
+                              <p className="text-xs text-muted-foreground py-3 text-center">Awaiting player votes or seeded draw...</p>
                             ) : (
                               groupSlots.map((slot, pIdx) => (
                                 <div
                                   key={slot.id}
-                                  className="flex items-center justify-between rounded-xl bg-slate-900/60 p-2.5 text-xs border border-slate-800/80"
+                                  className="flex items-center justify-between rounded-xl bg-card/60 p-2.5 text-xs border border-border/80"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-slate-500 text-[10px]">{pIdx + 1}.</span>
-                                    <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                    <span className="font-mono text-muted-foreground text-xs">{pIdx + 1}.</span>
+                                    <div className="w-5 h-5 rounded-full bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                       <img
                                         src={resolvePlayerAvatar(slot.player)}
                                         alt={slot.player?.realTeam || slot.player?.gamerTag || "Team"}
@@ -3401,15 +3404,15 @@ export default function AdminClient({
                                       <div className="flex items-center gap-1.5">
                                         <span className="font-bold text-white block">{slot.player.gamerTag}</span>
                                         {slot.player.realTeam && (
-                                          <span className="text-[9px] text-amber-400 font-bold">
+                                          <span className="text-xs text-secondary font-bold">
                                             ({findTeam(slot.player.realTeam)?.shortName || slot.player.realTeam})
                                           </span>
                                         )}
                                       </div>
-                                      <span className="text-[10px] text-slate-400">{slot.player.efootballId}</span>
+                                      <span className="text-xs text-muted-foreground">{slot.player.efootballId}</span>
                                     </div>
                                   </div>
-                                  <Badge variant="yellow" className="text-[10px]">
+                                  <Badge variant="yellow" className="text-xs">
                                     {slot.playerDivision}
                                   </Badge>
                                 </div>
@@ -3433,17 +3436,17 @@ export default function AdminClient({
       {activeTab === "ALL_MATCHES" && (
         <div className="space-y-6">
           {/* Header Card */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl border border-slate-800 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="yellow">SEASON FIXTURES HUB</Badge>
                 <Badge variant="secondary">{matches.length} Total Matches Generated</Badge>
               </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-cyan-400" />
+                <Calendar className="h-6 w-6 text-primary" />
                 <span>All Generated Matches & Schedule Controls</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+              <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
                 Browse every fixture generated for the league. Reset generated matches, extend late submission deadlines, inspect score proofs, and trigger table updates.
               </p>
             </div>
@@ -3454,7 +3457,7 @@ export default function AdminClient({
                 onClick={() => handleResetTournament("ALL")}
                 disabled={resettingTournament}
                 variant="destructive"
-                className="font-black text-xs uppercase tracking-wider gap-2 shadow-lg shadow-rose-600/20"
+                className="font-black text-xs uppercase tracking-wider gap-2 shadow-lg"
               >
                 <RotateCcw className={`h-4 w-4 ${resettingTournament ? "animate-spin" : ""}`} />
                 {resettingTournament ? "Resetting Matches..." : "Reset All Generated Matches"}
@@ -3463,7 +3466,7 @@ export default function AdminClient({
               <Button
                 onClick={() => handleRecalculateStandings("ALL")}
                 disabled={recalculatingStandings}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider gap-2 shadow-lg shadow-emerald-600/30"
+                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider gap-2 shadow-lg"
               >
                 <RefreshCw className={`h-4 w-4 ${recalculatingStandings ? "animate-spin" : ""}`} />
                 {recalculatingStandings ? "Updating..." : "⚡ Update League Table Standings"}
@@ -3473,15 +3476,15 @@ export default function AdminClient({
 
           {/* Quick Division Reset Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl border border-sky-500/30 bg-slate-950/80 space-y-2 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border border-primary/30 bg-background/80 space-y-2 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-sky-400">Division 1 Fixtures</span>
-                  <Badge variant="secondary" className="text-[10px] font-mono">
+                  <span className="text-xs font-black uppercase text-primary">Division 1 Fixtures</span>
+                  <Badge variant="secondary" className="text-xs font-mono">
                     {matches.filter((m: any) => m.division === "Division 1").length} Matches
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">Premiership scheduled fixtures & standings.</p>
+                <p className="text-xs text-muted-foreground mt-1">Premiership scheduled fixtures & standings.</p>
               </div>
               <Button
                 size="sm"
@@ -3495,15 +3498,15 @@ export default function AdminClient({
               </Button>
             </div>
 
-            <div className="p-4 rounded-2xl border border-yellow-500/30 bg-slate-950/80 space-y-2 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border border-secondary/30 bg-background/80 space-y-2 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-yellow-400">Division 2 Fixtures</span>
-                  <Badge variant="secondary" className="text-[10px] font-mono">
+                  <span className="text-xs font-black uppercase text-secondary">Division 2 Fixtures</span>
+                  <Badge variant="secondary" className="text-xs font-mono">
                     {matches.filter((m: any) => m.division === "Division 2").length} Matches
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">Championship scheduled fixtures & standings.</p>
+                <p className="text-xs text-muted-foreground mt-1">Championship scheduled fixtures & standings.</p>
               </div>
               <Button
                 size="sm"
@@ -3517,15 +3520,15 @@ export default function AdminClient({
               </Button>
             </div>
 
-            <div className="p-4 rounded-2xl border border-emerald-500/30 bg-slate-950/80 space-y-2 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border border-primary/30 bg-background/80 space-y-2 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-emerald-400">Division 3 Fixtures</span>
-                  <Badge variant="secondary" className="text-[10px] font-mono">
+                  <span className="text-xs font-black uppercase text-primary">Division 3 Fixtures</span>
+                  <Badge variant="secondary" className="text-xs font-mono">
                     {matches.filter((m: any) => m.division === "Division 3").length} Matches
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">National Academy scheduled fixtures & standings.</p>
+                <p className="text-xs text-muted-foreground mt-1">National Academy scheduled fixtures & standings.</p>
               </div>
               <Button
                 size="sm"
@@ -3541,13 +3544,13 @@ export default function AdminClient({
           </div>
 
           {/* Filtering & Search Toolbar */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/90 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xl">
+          <div className="rounded-2xl border border-border bg-background/90 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xl">
             <div className="flex flex-wrap items-center gap-2">
               {/* Round filter */}
               <select
                 value={allMatchesFilterRound}
                 onChange={(e) => setAllMatchesFilterRound(e.target.value)}
-                className="bg-slate-900 border border-slate-800 text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500"
+                className="bg-card border border-border text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="ALL">All Matchday Rounds</option>
                 {Array.from(new Set(matches.map((m: any) => m.round)))
@@ -3568,7 +3571,7 @@ export default function AdminClient({
               <select
                 value={allMatchesFilterDiv}
                 onChange={(e) => setAllMatchesFilterDiv(e.target.value)}
-                className="bg-slate-900 border border-slate-800 text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500"
+                className="bg-card border border-border text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="ALL">All Divisions</option>
                 <option value="Division 1">Division 1</option>
@@ -3582,7 +3585,7 @@ export default function AdminClient({
               <select
                 value={allMatchesFilterStatus}
                 onChange={(e) => setAllMatchesFilterStatus(e.target.value)}
-                className="bg-slate-900 border border-slate-800 text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500"
+                className="bg-card border border-border text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="SCHEDULED">Scheduled</option>
@@ -3593,19 +3596,19 @@ export default function AdminClient({
             </div>
 
             {/* Search Input */}
-            <div className="relative min-w-[240px]">
-              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-60">
+              <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search athlete, WA, ID..."
                 value={allMatchesSearch}
                 onChange={(e) => setAllMatchesSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-card border border-border text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               />
               {allMatchesSearch && (
                 <button
                   onClick={() => setAllMatchesSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs font-bold"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold"
                 >
                   ×
                 </button>
@@ -3635,10 +3638,10 @@ export default function AdminClient({
 
             if (filtered.length === 0) {
               return (
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center space-y-3">
-                  <Calendar className="h-10 w-10 mx-auto text-slate-600" />
-                  <p className="font-bold text-slate-300">No generated matches found matching your filters.</p>
-                  <p className="text-xs text-slate-500">
+                <div className="rounded-3xl border border-border bg-background/80 p-12 text-center space-y-3">
+                  <Calendar className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <p className="font-bold text-foreground">No generated matches found matching your filters.</p>
+                  <p className="text-xs text-muted-foreground">
                     If no matches have been generated yet, visit the Dashboard tab to run the Division Schedule Generator.
                   </p>
                   <Button
@@ -3660,7 +3663,7 @@ export default function AdminClient({
 
             return (
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
                   <span>Showing <strong>{filtered.length}</strong> of {matches.length} fixtures</span>
                 </div>
 
@@ -3675,10 +3678,10 @@ export default function AdminClient({
                     return (
                       <div
                         key={m.id}
-                        className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl hover:border-slate-700 transition"
+                        className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl hover:border-border transition"
                       >
                         {/* Header */}
-                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                        <div className="flex items-center justify-between border-b border-border/80 pb-3">
                           <div className="flex items-center gap-2">
                             <Badge variant="yellow" className="text-xs font-mono">
                               {m.round}
@@ -3689,7 +3692,7 @@ export default function AdminClient({
                           </div>
                           <div className="flex items-center gap-2">
                             {m.allowLateSubmission && (
-                              <Badge variant="secondary" className="text-[10px] text-emerald-400 bg-emerald-950/30 border-emerald-500/30">
+                              <Badge variant="secondary" className="text-xs text-primary bg-primary/30 border-primary/30">
                                 ⏰ LATE UPLOAD ON
                               </Badge>
                             )}
@@ -3703,7 +3706,7 @@ export default function AdminClient({
                                   ? "yellow"
                                   : "secondary"
                               }
-                              className="text-[10px]"
+                              className="text-xs"
                             >
                               {isFinished
                                 ? "FINISHED"
@@ -3720,9 +3723,9 @@ export default function AdminClient({
                         <div className="grid grid-cols-12 gap-3 items-center text-center">
                           {/* Home Player */}
                           <div className="col-span-5 text-left space-y-0.5">
-                            <span className="text-[10px] font-bold uppercase text-slate-500 block">HOME</span>
+                            <span className="text-xs font-bold uppercase text-muted-foreground block">HOME</span>
                             <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-5 h-5 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                 <img
                                   src={resolvePlayerAvatar(m.homePlayer)}
                                   alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
@@ -3736,47 +3739,47 @@ export default function AdminClient({
                                 {m.homePlayer?.gamerTag}
                               </span>
                               {m.homePlayer?.realTeam && (
-                                <span className="text-[10px] text-amber-400 font-bold shrink-0">
+                                <span className="text-xs text-secondary font-bold shrink-0">
                                   ({findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam})
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-400 block font-mono pl-7">
+                            <span className="text-xs text-muted-foreground block font-mono pl-7">
                               {m.homePlayer?.efootballId || "No ID"}
                             </span>
                           </div>
 
                           {/* Score Box */}
-                          <div className="col-span-2 flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 border border-slate-800">
+                          <div className="col-span-2 flex flex-col items-center justify-center p-2 rounded-xl bg-card border border-border">
                             {isFinished || isForfeit ? (
-                              <span className="text-base font-black font-mono text-cyan-400">
+                              <span className="text-base font-black font-mono text-primary">
                                 {m.homeScore} - {m.awayScore}
                               </span>
                             ) : sub ? (
                               <div>
-                                <span className="text-sm font-black font-mono text-amber-400">
+                                <span className="text-sm font-black font-mono text-secondary">
                                   {sub.homeScore} - {sub.awayScore}
                                 </span>
-                                <span className="text-[8px] text-amber-400 uppercase block font-mono">Pending</span>
+                                <span className="text-xs text-secondary uppercase block font-mono">Pending</span>
                               </div>
                             ) : (
-                              <span className="text-xs font-black text-slate-500 font-mono">VS</span>
+                              <span className="text-xs font-black text-muted-foreground font-mono">VS</span>
                             )}
                           </div>
 
                           {/* Away Player */}
                           <div className="col-span-5 text-right space-y-0.5">
-                            <span className="text-[10px] font-bold uppercase text-slate-500 block">AWAY</span>
+                            <span className="text-xs font-bold uppercase text-muted-foreground block">AWAY</span>
                             <div className="flex items-center justify-end gap-2">
                               {m.awayPlayer?.realTeam && (
-                                <span className="text-[10px] text-amber-400 font-bold shrink-0">
+                                <span className="text-xs text-secondary font-bold shrink-0">
                                   ({findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam})
                                 </span>
                               )}
                               <span className="font-black text-white text-sm block truncate">
                                 {m.awayPlayer?.gamerTag}
                               </span>
-                              <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-5 h-5 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                 <img
                                   src={resolvePlayerAvatar(m.awayPlayer)}
                                   alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
@@ -3787,15 +3790,15 @@ export default function AdminClient({
                                 />
                               </div>
                             </div>
-                            <span className="text-[10px] text-slate-400 block font-mono pr-7">
+                            <span className="text-xs text-muted-foreground block font-mono pr-7">
                               {m.awayPlayer?.efootballId || "No ID"}
                             </span>
                           </div>
                         </div>
 
                         {/* Deadline & Admin Controls */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
-                          <span className="text-[11px] font-mono text-slate-400">
+                        <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
+                          <span className="text-xs font-mono text-muted-foreground">
                             Deadline: {new Date(m.deadlineDate).toLocaleDateString()}
                           </span>
 
@@ -3804,7 +3807,7 @@ export default function AdminClient({
                               <button
                                 type="button"
                                 onClick={() => setInspectImage(screenshotToInspect)}
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-400 hover:text-sky-300 py-1 px-2 rounded-lg bg-slate-900 border border-slate-800"
+                                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary py-1 px-2 rounded-lg bg-card border border-border"
                               >
                                 <Eye className="h-3 w-3" />
                                 Proof
@@ -3816,7 +3819,7 @@ export default function AdminClient({
                               variant="outline"
                               onClick={() => handleExtendDeadline(m.id)}
                               disabled={extendingMatchId === m.id}
-                              className="text-[11px] h-7 px-2.5 font-bold border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/30"
+                              className="text-xs h-7 px-2.5 font-bold border-primary/40 text-primary hover:bg-primary/30"
                             >
                               <Clock className="h-3 w-3 mr-1" />
                               Extend Deadline
@@ -3827,7 +3830,7 @@ export default function AdminClient({
                               variant="outline"
                               onClick={() => handleReopenSubmissions(m.id)}
                               disabled={reopeningMatchId === m.id}
-                              className="text-[11px] h-7 px-2.5 font-bold border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/30"
+                              className="text-xs h-7 px-2.5 font-bold border-primary/40 text-primary hover:bg-primary/30"
                               title="Reopen submission and forfeit buttons for both athletes"
                             >
                               <Unlock className="h-3 w-3 mr-1" />
@@ -3850,42 +3853,42 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "CONTINENTAL" && (
         <div className="space-y-8">
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
             <div>
               <h3 className="text-xl font-black uppercase text-white flex items-center gap-2">
-                <Globe className="h-6 w-6 text-yellow-400" />
+                <Globe className="h-6 w-6 text-secondary" />
                 <span>Continental Cups Administration & Group Voting Constraints</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Official Rule: <em>No players who were in the same division can choose or share the same group</em> in either UCL or Europa League.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* UCL Card */}
-              <div className="rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-6 space-y-4">
+              <div className="rounded-2xl border border-primary/30 bg-card/60 p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-indigo-400" />
+                    <Trophy className="h-5 w-5 text-primary" />
                     <span className="font-black uppercase text-white">eFootball UCL</span>
                   </div>
                   <Badge variant={leagueConfig.uclStarted ? "secondary" : "destructive"}>
                     {leagueConfig.uclStarted ? "UNLOCKED / ACTIVE" : "LOCKED"}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-foreground">
                   16 Total Players: <strong>Top 8 from Division 1</strong>, <strong>Top 4 from Division 2</strong>, <strong>Top 4 from Division 3</strong>.
                 </p>
 
                 {/* Schedule Draw Event Controls */}
-                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-xl bg-background/80 border border-border space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                    <span className="text-xs font-black uppercase tracking-wider text-primary flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-primary" />
                       UCL Draw Date & Time
                     </span>
                     {leagueConfig.uclDrawTime && (
-                      <Badge variant="secondary" className="text-[9px] font-mono">
+                      <Badge variant="secondary" className="text-xs font-mono">
                         {new Date(leagueConfig.uclDrawTime).toLocaleDateString()} {new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Badge>
                     )}
@@ -3895,14 +3898,14 @@ export default function AdminClient({
                       type="datetime-local"
                       value={uclDrawInput}
                       onChange={(e) => setUclDrawInput(e.target.value)}
-                      className="bg-slate-900 border-slate-700 text-xs text-white"
+                      className="bg-card border-border text-xs text-white"
                     />
                     <Button
                       onClick={() => handleScheduleDraw("UCL", uclDrawInput)}
                       disabled={actionLoading}
                       size="sm"
                       variant="outline"
-                      className="text-xs shrink-0 font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                      className="text-xs shrink-0 font-bold border-primary/40 text-primary hover:bg-primary hover:text-white"
                     >
                       Schedule Event
                     </Button>
@@ -3912,16 +3915,16 @@ export default function AdminClient({
                       type="button"
                       onClick={() => setActiveDrawModal("UCL")}
                       disabled={!leagueConfig.uclStarted}
-                      className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30"
+                      className="w-full bg-gradient-to-r from-primary via-primary to-primary hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg"
                     >
-                      <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+                      <Sparkles className="h-4 w-4 text-secondary animate-pulse" />
                       <span>Launch Official UCL Animated Draws System</span>
                     </Button>
-                    <div className="flex items-center justify-between text-[11px] px-1">
-                      <span className="text-slate-500 font-mono">Commissioners Only</span>
+                    <div className="flex items-center justify-between text-xs px-1">
+                      <span className="text-muted-foreground font-mono">Commissioners Only</span>
                       <button
                         onClick={() => handleResetDraw("UCL")}
-                        className="text-[10px] text-rose-400 hover:underline"
+                        className="text-xs text-destructive hover:underline"
                       >
                         Reset Draw Slots
                       </button>
@@ -3929,7 +3932,7 @@ export default function AdminClient({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                   {leagueConfig.uclStarted ? (
                     <Button
                       onClick={() => handleToggleCompetition("UCL", false)}
@@ -3946,7 +3949,7 @@ export default function AdminClient({
                       disabled={actionLoading}
                       variant="default"
                       size="sm"
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
+                      className="bg-primary hover:bg-primary text-white text-xs font-bold"
                     >
                       Unlock UCL
                     </Button>
@@ -3964,8 +3967,8 @@ export default function AdminClient({
                 </div>
 
                 {/* Fixture & Knockout Stage Controllers */}
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                <div className="pt-2 border-t border-border space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
                     Fixture & Knockout Controllers:
                   </span>
                   <div className="grid grid-cols-2 gap-2">
@@ -3974,7 +3977,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.uclStarted}
                       variant="outline"
                       size="sm"
-                      className="text-[11px] font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                      className="text-xs font-bold border-primary/40 text-primary hover:bg-primary hover:text-white"
                     >
                       1. Generate Group Stage (2-Leg)
                     </Button>
@@ -3983,7 +3986,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.uclStarted}
                       variant="outline"
                       size="sm"
-                      className="text-[11px] font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                      className="text-xs font-bold border-primary/40 text-primary hover:bg-primary hover:text-white"
                     >
                       2. Advance to Quarter-Finals
                     </Button>
@@ -3992,7 +3995,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.uclStarted}
                       variant="outline"
                       size="sm"
-                      className="text-[11px] font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                      className="text-xs font-bold border-primary/40 text-primary hover:bg-primary hover:text-white"
                     >
                       3. Advance to Semi-Finals
                     </Button>
@@ -4001,7 +4004,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.uclStarted}
                       variant="default"
                       size="sm"
-                      className="text-[11px] font-bold bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-black"
+                      className="text-xs font-bold bg-secondary text-secondary-foreground hover:bg-secondary font-black"
                     >
                       4. Generate Final & Poll
                     </Button>
@@ -4010,29 +4013,29 @@ export default function AdminClient({
               </div>
 
               {/* Europa Card */}
-              <div className="rounded-2xl border border-amber-500/30 bg-slate-900/60 p-6 space-y-4">
+              <div className="rounded-2xl border border-secondary/30 bg-card/60 p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-amber-400" />
+                    <Globe className="h-5 w-5 text-secondary" />
                     <span className="font-black uppercase text-white">eFootball Europa League</span>
                   </div>
                   <Badge variant={leagueConfig.europaStarted ? "yellow" : "destructive"}>
                     {leagueConfig.europaStarted ? "UNLOCKED / ACTIVE" : "LOCKED"}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-foreground">
                   16 Total Players: <strong>Div 1 (ranks 9-12)</strong>, <strong>Div 2 (ranks 5-10)</strong>, <strong>Div 3 (ranks 5-10)</strong>.
                 </p>
 
                 {/* Schedule Draw Event Controls */}
-                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-xl bg-background/80 border border-border space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-amber-400" />
+                    <span className="text-xs font-black uppercase tracking-wider text-secondary flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-secondary" />
                       Europa Draw Date & Time
                     </span>
                     {leagueConfig.europaDrawTime && (
-                      <Badge variant="secondary" className="text-[9px] font-mono">
+                      <Badge variant="secondary" className="text-xs font-mono">
                         {new Date(leagueConfig.europaDrawTime).toLocaleDateString()} {new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Badge>
                     )}
@@ -4042,14 +4045,14 @@ export default function AdminClient({
                       type="datetime-local"
                       value={europaDrawInput}
                       onChange={(e) => setEuropaDrawInput(e.target.value)}
-                      className="bg-slate-900 border-slate-700 text-xs text-white"
+                      className="bg-card border-border text-xs text-white"
                     />
                     <Button
                       onClick={() => handleScheduleDraw("EUROPA", europaDrawInput)}
                       disabled={actionLoading}
                       size="sm"
                       variant="outline"
-                      className="text-xs shrink-0 font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                      className="text-xs shrink-0 font-bold border-secondary/40 text-secondary hover:bg-secondary hover:text-white"
                     >
                       Schedule Event
                     </Button>
@@ -4059,16 +4062,16 @@ export default function AdminClient({
                       type="button"
                       onClick={() => setActiveDrawModal("EUROPA")}
                       disabled={!leagueConfig.europaStarted}
-                      className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-amber-600/30"
+                      className="w-full bg-gradient-to-r from-secondary via-secondary to-secondary hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg"
                     >
-                      <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+                      <Sparkles className="h-4 w-4 text-secondary animate-pulse" />
                       <span>Launch Official Europa Animated Draws System</span>
                     </Button>
-                    <div className="flex items-center justify-between text-[11px] px-1">
-                      <span className="text-slate-500 font-mono">Commissioners Only</span>
+                    <div className="flex items-center justify-between text-xs px-1">
+                      <span className="text-muted-foreground font-mono">Commissioners Only</span>
                       <button
                         onClick={() => handleResetDraw("EUROPA")}
-                        className="text-[10px] text-rose-400 hover:underline"
+                        className="text-xs text-destructive hover:underline"
                       >
                         Reset Draw Slots
                       </button>
@@ -4076,7 +4079,7 @@ export default function AdminClient({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                   {leagueConfig.europaStarted ? (
                     <Button
                       onClick={() => handleToggleCompetition("EUROPA", false)}
@@ -4093,7 +4096,7 @@ export default function AdminClient({
                       disabled={actionLoading}
                       variant="default"
                       size="sm"
-                      className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold"
+                      className="bg-secondary hover:bg-secondary text-white text-xs font-bold"
                     >
                       Unlock & Launch Europa Draws
                     </Button>
@@ -4111,8 +4114,8 @@ export default function AdminClient({
                 </div>
 
                 {/* Fixture & Knockout Stage Controllers */}
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                <div className="pt-2 border-t border-border space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
                     Fixture & Knockout Controllers:
                   </span>
                   <div className="grid grid-cols-2 gap-2">
@@ -4121,7 +4124,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.europaStarted}
                       variant="outline"
                       size="sm"
-                      className="text-[11px] font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                      className="text-xs font-bold border-secondary/40 text-secondary hover:bg-secondary hover:text-white"
                     >
                       1. Generate Group Stage (2-Leg)
                     </Button>
@@ -4130,7 +4133,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.europaStarted}
                       variant="outline"
                       size="sm"
-                      className="text-[11px] font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                      className="text-xs font-bold border-secondary/40 text-secondary hover:bg-secondary hover:text-white"
                     >
                       2. Advance to Quarter-Finals
                     </Button>
@@ -4139,7 +4142,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.europaStarted}
                       variant="outline"
                       size="sm"
-                      className="text-[11px] font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                      className="text-xs font-bold border-secondary/40 text-secondary hover:bg-secondary hover:text-white"
                     >
                       3. Advance to Semi-Finals
                     </Button>
@@ -4148,7 +4151,7 @@ export default function AdminClient({
                       disabled={actionLoading || !leagueConfig.europaStarted}
                       variant="default"
                       size="sm"
-                      className="text-[11px] font-bold bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-black"
+                      className="text-xs font-bold bg-secondary text-secondary-foreground hover:bg-secondary font-black"
                     >
                       4. Generate Final & Poll
                     </Button>
@@ -4165,12 +4168,12 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "RESULTS_QUEUE" && (
         <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 gap-4">
             <div>
               <h3 className="text-lg font-black uppercase text-white tracking-wide">
                 Match Results & Standings Update Hub
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Insert match goals for all played games simultaneously. The league table recalculates once, and all users automatically receive an official standings update broadcast.
               </p>
             </div>
@@ -4179,29 +4182,29 @@ export default function AdminClient({
               <Button
                 onClick={() => handleRecalculateStandings("ALL")}
                 disabled={recalculatingStandings}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-4 py-2 shadow-lg shadow-emerald-600/30"
+                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-4 py-2 shadow-lg"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${recalculatingStandings ? "animate-spin" : ""}`} />
                 {recalculatingStandings ? "Updating Tables..." : "⚡ Update League Table Standings"}
               </Button>
 
               {/* Sub-tab Switcher */}
-              <div className="flex items-center gap-2 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start md:self-auto">
+              <div className="flex items-center gap-2 bg-card/90 p-1 rounded-xl border border-border self-start md:self-auto">
               <button
                 type="button"
                 onClick={() => setScoreQueueSubTab("SUBMISSIONS")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
                   scoreQueueSubTab === "SUBMISSIONS"
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-primary text-secondary-foreground shadow-md"
+                    : "text-muted-foreground hover:text-white"
                 }`}
               >
                 <span>Proof Screenshots</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                  className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
                     scoreQueueSubTab === "SUBMISSIONS"
-                      ? "bg-slate-950 text-cyan-400"
-                      : "bg-slate-800 text-slate-300"
+                      ? "bg-background text-primary"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   {pendingSubmissions.length}
@@ -4212,12 +4215,12 @@ export default function AdminClient({
                 onClick={() => setScoreQueueSubTab("DIRECT_ENTRY")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
                   scoreQueueSubTab === "DIRECT_ENTRY"
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-primary text-secondary-foreground shadow-md"
+                    : "text-muted-foreground hover:text-white"
                 }`}
               >
                 <span>Direct Matchday Scoring</span>
-                <Badge variant="live" className="text-[9px] px-1 py-0">BATCH</Badge>
+                <Badge variant="live" className="text-xs px-1 py-0">BATCH</Badge>
               </button>
             </div>
           </div>
@@ -4227,27 +4230,27 @@ export default function AdminClient({
           {scoreQueueSubTab === "SUBMISSIONS" && (
             <div className="space-y-6">
               {pendingSubmissions.length > 0 && (
-                <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-950 to-emerald-950/30 p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/40 via-background to-primary/30 p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
                       <span className="text-sm font-black text-white uppercase tracking-wider">
                         Simultaneous Batch Score Insertion ({pendingSubmissions.length} Pending)
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300">
+                    <p className="text-xs text-foreground">
                       Verify goals in the cards below. Clicking this saves all played matches at once, recalculates all league tables in a single atomic update, and notifies all registered players.
                     </p>
                   </div>
                   <Button
                     disabled={batchLoading}
                     onClick={handleBatchApproveSubmissions}
-                    className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg shadow-emerald-500/20 whitespace-nowrap"
+                    className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-secondary-foreground font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg whitespace-nowrap"
                   >
                     {batchLoading ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckCircle2 className="h-4 w-4 text-slate-950" />
+                      <CheckCircle2 className="h-4 w-4 text-secondary-foreground" />
                     )}
                     Insert All {pendingSubmissions.length} Match Goals & Update Tables Once
                   </Button>
@@ -4255,10 +4258,10 @@ export default function AdminClient({
               )}
 
               {pendingSubmissions.length === 0 ? (
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-500 space-y-3">
-                  <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500" />
-                  <p className="font-bold text-slate-300">Queue is clear! No pending match score screenshots to review.</p>
-                  <p className="text-xs text-slate-500">
+                <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
+                  <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
+                  <p className="font-bold text-foreground">Queue is clear! No pending match score screenshots to review.</p>
+                  <p className="text-xs text-muted-foreground">
                     Switch to the "Direct Matchday Scoring" tab to enter goals for any matchday fixtures directly.
                   </p>
                 </div>
@@ -4267,18 +4270,18 @@ export default function AdminClient({
                   {pendingSubmissions.map((sub) => (
                     <div
                       key={sub.id}
-                      className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl relative"
+                      className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl relative"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                        <span className="text-xs font-mono text-sky-400 font-bold">{sub.match.round}</span>
-                        <Badge variant="live" className="text-[10px]">
+                      <div className="flex items-center justify-between border-b border-border/80 pb-3">
+                        <span className="text-xs font-mono text-primary font-bold">{sub.match.round}</span>
+                        <Badge variant="live" className="text-xs">
                           Submitted by: {sub.submittedByPlayer.gamerTag}
                         </Badge>
                       </div>
 
                       <div className="flex items-center justify-between py-2 text-center gap-2">
                         <div className="flex-1 text-left flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(sub.match.homePlayer)}
                               alt={sub.match.homePlayer?.realTeam || sub.match.homePlayer?.gamerTag || "Home"}
@@ -4291,27 +4294,27 @@ export default function AdminClient({
                           <div>
                             <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
                             {sub.match.homePlayer?.realTeam && (
-                              <span className="text-[10px] text-amber-400 font-bold block">
+                              <span className="text-xs text-secondary font-bold block">
                                 {findTeam(sub.match.homePlayer.realTeam)?.shortName || sub.match.homePlayer.realTeam}
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-500 block">{sub.match.homePlayer.whatsapp}</span>
+                            <span className="text-xs text-muted-foreground block">{sub.match.homePlayer.whatsapp}</span>
                           </div>
                         </div>
-                        <div className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-400 shrink-0">
+                        <div className="px-3 py-1 rounded-xl bg-card border border-border font-mono text-xs text-muted-foreground shrink-0">
                           Claimed: {sub.homeScore} - {sub.awayScore}
                         </div>
                         <div className="flex-1 text-right flex items-center justify-end gap-2">
                           <div>
                             <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
                             {sub.match.awayPlayer?.realTeam && (
-                              <span className="text-[10px] text-amber-400 font-bold block">
+                              <span className="text-xs text-secondary font-bold block">
                                 {findTeam(sub.match.awayPlayer.realTeam)?.shortName || sub.match.awayPlayer.realTeam}
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-500 block">{sub.match.awayPlayer.whatsapp}</span>
+                            <span className="text-xs text-muted-foreground block">{sub.match.awayPlayer.whatsapp}</span>
                           </div>
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(sub.match.awayPlayer)}
                               alt={sub.match.awayPlayer?.realTeam || sub.match.awayPlayer?.gamerTag || "Away"}
@@ -4327,27 +4330,27 @@ export default function AdminClient({
                       {sub.leg2ScreenshotUrl ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-yellow-400">2-Legged Match Proofs (Both Legs):</span>
+                            <span className="font-bold text-secondary">2-Legged Match Proofs (Both Legs):</span>
                             {sub.aggregateHomeScore !== null && (
-                              <span className="font-mono font-bold text-emerald-400 text-[11px]">
+                              <span className="font-mono font-bold text-primary text-xs">
                                 Submitted Agg: {sub.aggregateHomeScore} - {sub.aggregateAwayScore}
                               </span>
                             )}
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>Leg 1 Screenshot</span>
                                 <button
                                   type="button"
                                   onClick={() => setInspectImage(sub.screenshotUrl)}
-                                  className="text-sky-400 hover:underline"
+                                  className="text-primary hover:underline"
                                 >
                                   Zoom
                                 </button>
                               </div>
                               <div
-                                className="rounded-xl overflow-hidden border border-slate-800 h-36 cursor-pointer"
+                                className="rounded-xl overflow-hidden border border-border h-36 cursor-pointer"
                                 onClick={() => setInspectImage(sub.screenshotUrl)}
                               >
                                 <img
@@ -4358,18 +4361,18 @@ export default function AdminClient({
                               </div>
                             </div>
                             <div className="space-y-1">
-                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>Leg 2 Screenshot</span>
                                 <button
                                   type="button"
                                   onClick={() => setInspectImage(sub.leg2ScreenshotUrl)}
-                                  className="text-amber-400 hover:underline"
+                                  className="text-secondary hover:underline"
                                 >
                                   Zoom
                                 </button>
                               </div>
                               <div
-                                className="rounded-xl overflow-hidden border border-slate-800 h-36 cursor-pointer"
+                                className="rounded-xl overflow-hidden border border-border h-36 cursor-pointer"
                                 onClick={() => setInspectImage(sub.leg2ScreenshotUrl)}
                               >
                                 <img
@@ -4384,17 +4387,17 @@ export default function AdminClient({
                       ) : sub.screenshotUrl && (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-slate-300">Konami Full-Time Screenshot:</span>
+                            <span className="font-bold text-foreground">Konami Full-Time Screenshot:</span>
                             <button
                               type="button"
                               onClick={() => setInspectImage(sub.screenshotUrl)}
-                              className="text-sky-400 hover:underline flex items-center gap-1 text-[11px]"
+                              className="text-primary hover:underline flex items-center gap-1 text-xs"
                             >
                               <Eye className="h-3 w-3" /> View Fullscreen
                             </button>
                           </div>
                           <div
-                            className="rounded-xl overflow-hidden border border-slate-800 h-44 cursor-pointer"
+                            className="rounded-xl overflow-hidden border border-border h-44 cursor-pointer"
                             onClick={() => setInspectImage(sub.screenshotUrl)}
                           >
                             <img
@@ -4407,13 +4410,13 @@ export default function AdminClient({
                       )}
 
                       {/* Official Score & Goals Verification Inputs */}
-                      <div className="rounded-xl bg-[#080d1e] border border-cyan-500/30 p-3 space-y-2">
-                        <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
+                      <div className="rounded-xl bg-background border border-primary/30 p-3 space-y-2">
+                        <span className="text-xs font-mono font-bold text-primary uppercase tracking-widest block">
                           Verified Match Goals (Insert From Screenshot):
                         </span>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex-1 text-center">
-                            <span className="text-[10px] font-bold text-slate-300 block mb-1">
+                            <span className="text-xs font-bold text-foreground block mb-1">
                               {sub.match.homePlayer.gamerTag} (Home)
                             </span>
                             <Input
@@ -4422,14 +4425,14 @@ export default function AdminClient({
                               max="40"
                               value={submissionScores[sub.id]?.home ?? sub.homeScore}
                               onChange={(e) => handleScoreChange(sub.id, "home", Number(e.target.value))}
-                              className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
+                              className="text-center font-mono text-lg font-black bg-card border-primary/40 text-primary h-9"
                             />
                           </div>
 
-                          <span className="text-xl font-black text-slate-500 mt-4">-</span>
+                          <span className="text-xl font-black text-muted-foreground mt-4">-</span>
 
                           <div className="flex-1 text-center">
-                            <span className="text-[10px] font-bold text-slate-300 block mb-1">
+                            <span className="text-xs font-bold text-foreground block mb-1">
                               {sub.match.awayPlayer.gamerTag} (Away)
                             </span>
                             <Input
@@ -4438,7 +4441,7 @@ export default function AdminClient({
                               max="40"
                               value={submissionScores[sub.id]?.away ?? sub.awayScore}
                               onChange={(e) => handleScoreChange(sub.id, "away", Number(e.target.value))}
-                              className="text-center font-mono text-lg font-black bg-slate-900 border-cyan-500/40 text-cyan-300 h-9"
+                              className="text-center font-mono text-lg font-black bg-card border-primary/40 text-primary h-9"
                             />
                           </div>
                         </div>
@@ -4457,9 +4460,9 @@ export default function AdminClient({
                               submissionScores[sub.id]?.away ?? sub.awayScore
                             )
                           }
-                          className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs gap-1.5 shadow-lg shadow-cyan-500/20"
+                          className="bg-primary hover:bg-primary text-secondary-foreground font-black text-xs gap-1.5 shadow-lg"
                         >
-                          <CheckCircle2 className="h-4 w-4 text-slate-950" />
+                          <CheckCircle2 className="h-4 w-4 text-secondary-foreground" />
                           Approve Individually
                         </Button>
                         <Button
@@ -4477,10 +4480,10 @@ export default function AdminClient({
                           size="sm"
                           disabled={reopeningMatchId === sub.matchId}
                           onClick={() => handleReopenSubmissions(sub.matchId)}
-                          className="font-bold gap-1 text-xs border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/20"
+                          className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
                           title="Reopen submission buttons for this fixture"
                         >
-                          <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                          <Unlock className="h-3.5 w-3.5 text-primary" />
                           Reopen
                         </Button>
                       </div>
@@ -4495,17 +4498,17 @@ export default function AdminClient({
           {scoreQueueSubTab === "DIRECT_ENTRY" && (
             <div className="space-y-6">
               {/* Filter and Master Action Header */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-4 shadow-xl">
+              <div className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex flex-wrap items-center gap-3">
                     <div>
-                      <label className="text-[10px] font-mono font-bold text-slate-400 uppercase block mb-1">
+                      <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
                         Select Matchday Round
                       </label>
                       <select
                         value={selectedMatchdayRound}
                         onChange={(e) => setSelectedMatchdayRound(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-cyan-500"
+                        className="bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
                       >
                         {Array.from(new Set(matches.map((m: any) => m.round)))
                           .filter(Boolean)
@@ -4523,13 +4526,13 @@ export default function AdminClient({
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-mono font-bold text-slate-400 uppercase block mb-1">
+                      <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
                         Filter Division
                       </label>
                       <select
                         value={selectedMatchDivision}
                         onChange={(e) => setSelectedMatchDivision(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-cyan-500"
+                        className="bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
                       >
                         <option value="ALL">All Divisions</option>
                         <option value="Division 1">Division 1</option>
@@ -4545,23 +4548,23 @@ export default function AdminClient({
                     <Button
                       disabled={batchLoading}
                       onClick={handleBatchDirectMatchScores}
-                      className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg shadow-emerald-500/20"
+                      className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-secondary-foreground font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg"
                     >
                       {batchLoading ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Sparkles className="h-4 w-4 text-slate-950" />
+                        <Sparkles className="h-4 w-4 text-secondary-foreground" />
                       )}
                       Save Entered Goals, Update Table Once & Notify Users
                     </Button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/80 pt-3">
                   <span>
                     Type the goals scored by each player for their played match. You can fill multiple or all matches in this matchday and click the button above to apply them simultaneously.
                   </span>
-                  <span className="font-mono text-cyan-400 font-bold shrink-0 ml-4">
+                  <span className="font-mono text-primary font-bold shrink-0 ml-4">
                     {Object.keys(matchScores).filter((id) => matchScores[id]?.touched).length} matches edited
                   </span>
                 </div>
@@ -4577,10 +4580,10 @@ export default function AdminClient({
 
                 if (filteredMatches.length === 0) {
                   return (
-                    <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-500 space-y-3">
-                      <Calendar className="h-10 w-10 mx-auto text-slate-600" />
-                      <p className="font-bold text-slate-300">No matches found for {selectedMatchdayRound} ({selectedMatchDivision}).</p>
-                      <p className="text-xs text-slate-500">Generate fixtures or select another matchday round above.</p>
+                    <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
+                      <Calendar className="h-10 w-10 mx-auto text-muted-foreground" />
+                      <p className="font-bold text-foreground">No matches found for {selectedMatchdayRound} ({selectedMatchDivision}).</p>
+                      <p className="text-xs text-muted-foreground">Generate fixtures or select another matchday round above.</p>
                     </div>
                   );
                 }
@@ -4601,31 +4604,31 @@ export default function AdminClient({
                       return (
                         <div
                           key={match.id}
-                          className={`rounded-2xl border p-4 transition space-y-3 bg-slate-950/90 ${
+                          className={`rounded-2xl border p-4 transition space-y-3 bg-background/90 ${
                             isEdited
-                              ? "border-emerald-500/60 shadow-lg shadow-emerald-500/10"
-                              : "border-slate-800 hover:border-slate-700"
+                              ? "border-primary/60 shadow-lg"
+                              : "border-border hover:border-border"
                           }`}
                         >
-                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center justify-between border-b border-border/80 pb-2">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px] font-mono border-slate-700 text-slate-300">
+                              <Badge variant="outline" className="text-xs font-mono border-border text-foreground">
                                 {match.division}
                               </Badge>
-                              <span className="text-[11px] font-mono text-slate-400">{match.round}</span>
+                              <span className="text-xs font-mono text-muted-foreground">{match.round}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               {match.status === "FINISHED" ? (
-                                <Badge variant="live" className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                <Badge variant="live" className="text-xs bg-primary/20 text-primary border border-primary/30">
                                   FINISHED ({match.homeScore} - {match.awayScore})
                                 </Badge>
                               ) : (
-                                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">
+                                <span className="text-xs font-mono text-secondary font-bold uppercase">
                                   {match.status}
                                 </span>
                               )}
                               {isEdited && (
-                                <span className="text-[10px] text-emerald-400 font-black tracking-wide">
+                                <span className="text-xs text-primary font-black tracking-wide">
                                   ● MODIFIED
                                 </span>
                               )}
@@ -4637,7 +4640,7 @@ export default function AdminClient({
                             {/* Home Side */}
                             <div className="flex-1 text-left space-y-1">
                               <div className="flex items-center gap-1.5">
-                                <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <div className="w-5 h-5 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                   <img
                                     src={resolvePlayerAvatar(match.homePlayer)}
                                     alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag || "Home"}
@@ -4651,12 +4654,12 @@ export default function AdminClient({
                                   {match.homePlayer?.gamerTag || "Home Player"}
                                 </span>
                                 {match.homePlayer?.realTeam && (
-                                  <span className="text-[10px] text-amber-400 font-bold shrink-0">
+                                  <span className="text-xs text-secondary font-bold shrink-0">
                                     ({findTeam(match.homePlayer.realTeam)?.shortName || match.homePlayer.realTeam})
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] text-slate-500 block truncate pl-6">
+                              <span className="text-xs text-muted-foreground block truncate pl-6">
                                 {match.homePlayer?.whatsapp || ""}
                               </span>
                               <Input
@@ -4668,27 +4671,27 @@ export default function AdminClient({
                                 onChange={(e) =>
                                   handleDirectMatchScoreChange(match.id, "home", Number(e.target.value))
                                 }
-                                className="h-9 text-center font-mono text-base font-black bg-slate-900 border-slate-700 text-cyan-300 focus:border-cyan-400"
+                                className="h-9 text-center font-mono text-base font-black bg-card border-border text-primary focus:border-primary"
                               />
                             </div>
 
                             {/* Divider / VS */}
                             <div className="flex flex-col items-center justify-center px-1 shrink-0 pt-4">
-                              <span className="text-xs font-mono font-bold text-slate-500">VS</span>
+                              <span className="text-xs font-mono font-bold text-muted-foreground">VS</span>
                             </div>
 
                             {/* Away Side */}
                             <div className="flex-1 text-right space-y-1">
                               <div className="flex items-center justify-end gap-1.5">
                                 {match.awayPlayer?.realTeam && (
-                                  <span className="text-[10px] text-amber-400 font-bold shrink-0">
+                                  <span className="text-xs text-secondary font-bold shrink-0">
                                     ({findTeam(match.awayPlayer.realTeam)?.shortName || match.awayPlayer.realTeam})
                                   </span>
                                 )}
                                 <span className="text-xs font-black text-white block truncate">
                                   {match.awayPlayer?.gamerTag || "Away Player"}
                                 </span>
-                                <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <div className="w-5 h-5 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                   <img
                                     src={resolvePlayerAvatar(match.awayPlayer)}
                                     alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag || "Away"}
@@ -4699,7 +4702,7 @@ export default function AdminClient({
                                   />
                                 </div>
                               </div>
-                              <span className="text-[10px] text-slate-500 block truncate pr-6">
+                              <span className="text-xs text-muted-foreground block truncate pr-6">
                                 {match.awayPlayer?.whatsapp || ""}
                               </span>
                               <Input
@@ -4711,7 +4714,7 @@ export default function AdminClient({
                                 onChange={(e) =>
                                   handleDirectMatchScoreChange(match.id, "away", Number(e.target.value))
                                 }
-                                className="h-9 text-center font-mono text-base font-black bg-slate-900 border-slate-700 text-cyan-300 focus:border-cyan-400"
+                                className="h-9 text-center font-mono text-base font-black bg-card border-border text-primary focus:border-primary"
                               />
                             </div>
                           </div>
@@ -4731,10 +4734,10 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "FORFEITS_QUEUE" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
               <h3 className="text-lg font-black uppercase text-white">Forfeit Claims Arbitration</h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Inspect proof that an opponent was unavailable or uncommunicative on WhatsApp. Approving awards a 3-0 walkover.
               </p>
             </div>
@@ -4742,8 +4745,8 @@ export default function AdminClient({
           </div>
 
           {pendingForfeits.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-500 space-y-3">
-              <CheckCircle2 className="h-10 w-10 mx-auto text-slate-600" />
+            <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
+              <CheckCircle2 className="h-10 w-10 mx-auto text-muted-foreground" />
               <p className="font-bold">No active forfeit disputes reported.</p>
             </div>
           ) : (
@@ -4751,31 +4754,31 @@ export default function AdminClient({
               {pendingForfeits.map((claim) => (
                 <div
                   key={claim.id}
-                  className="rounded-2xl border border-red-500/30 bg-slate-950/90 p-5 space-y-4 shadow-xl"
+                  className="rounded-2xl border border-destructive/30 bg-background/90 p-5 space-y-4 shadow-xl"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="text-xs font-mono text-red-400 font-bold">{claim.match.round}</span>
-                    <Badge variant="destructive" className="text-[10px]">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <span className="text-xs font-mono text-destructive font-bold">{claim.match.round}</span>
+                    <Badge variant="destructive" className="text-xs">
                       Dispute Claim
                     </Badge>
                   </div>
 
                   <div className="space-y-2 text-xs">
                     <div>
-                      <span className="text-slate-400">Claimant (Reporting Player):</span>
-                      <p className="font-bold text-emerald-400">
+                      <span className="text-muted-foreground">Claimant (Reporting Player):</span>
+                      <p className="font-bold text-primary">
                         {claim.claimantPlayer.gamerTag} ({claim.claimantPlayer.whatsapp})
                       </p>
                     </div>
                     <div>
-                      <span className="text-slate-400">Accused (Non-responsive Opponent):</span>
-                      <p className="font-bold text-rose-400">
+                      <span className="text-muted-foreground">Accused (Non-responsive Opponent):</span>
+                      <p className="font-bold text-destructive">
                         {claim.accusedPlayer.gamerTag} ({claim.accusedPlayer.whatsapp})
                       </p>
                     </div>
                     <div>
-                      <span className="text-slate-400">Claimant Statement:</span>
-                      <p className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200">
+                      <span className="text-muted-foreground">Claimant Statement:</span>
+                      <p className="p-2.5 rounded-xl bg-card border border-border text-foreground">
                         {claim.reason}
                       </p>
                     </div>
@@ -4784,17 +4787,17 @@ export default function AdminClient({
                   {claim.proofScreenshotUrl && (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-300">WhatsApp / Room Proof Screenshot:</span>
+                        <span className="font-bold text-foreground">WhatsApp / Room Proof Screenshot:</span>
                         <button
                           type="button"
                           onClick={() => setInspectImage(claim.proofScreenshotUrl)}
-                          className="text-sky-400 hover:underline flex items-center gap-1 text-[11px]"
+                          className="text-primary hover:underline flex items-center gap-1 text-xs"
                         >
                           <Eye className="h-3 w-3" /> View Fullscreen
                         </button>
                       </div>
                       <div
-                        className="rounded-xl overflow-hidden border border-slate-800 h-44 cursor-pointer"
+                        className="rounded-xl overflow-hidden border border-border h-44 cursor-pointer"
                         onClick={() => setInspectImage(claim.proofScreenshotUrl)}
                       >
                         <img
@@ -4832,10 +4835,10 @@ export default function AdminClient({
                       size="sm"
                       disabled={reopeningMatchId === claim.matchId}
                       onClick={() => handleReopenSubmissions(claim.matchId)}
-                      className="font-bold gap-1 text-xs border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/20"
+                      className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
                       title="Clear forfeit and reopen submission buttons for both athletes"
                     >
-                      <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                      <Unlock className="h-3.5 w-3.5 text-primary" />
                       Reopen Match
                     </Button>
                   </div>
@@ -4851,21 +4854,21 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "ANNOUNCEMENTS" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-6 rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 shadow-xl space-y-4">
-            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-              <Send className="h-5 w-5 text-sky-400" />
+          <div className="lg:col-span-6 rounded-3xl border border-border bg-background/90 p-6 sm:p-8 shadow-xl space-y-4">
+            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2 border-b border-border pb-3">
+              <Send className="h-5 w-5 text-primary" />
               <span>Broadcast or Direct Player Message</span>
             </h3>
 
             {annSuccessMsg && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-primary text-xs">
                 {annSuccessMsg}
               </div>
             )}
 
             <form onSubmit={handlePostAnnouncement} className="space-y-4">
               <div>
-                <label className="text-xs font-bold uppercase text-slate-300 block mb-1">Notice Headline</label>
+                <label className="text-xs font-bold uppercase text-foreground block mb-1">Notice Headline</label>
                 <Input
                   required
                   placeholder="e.g. 24-Hour Cycle Fixture Warning"
@@ -4875,24 +4878,24 @@ export default function AdminClient({
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase text-slate-300 block mb-1">Notice Content</label>
+                <label className="text-xs font-bold uppercase text-foreground block mb-1">Notice Content</label>
                 <textarea
                   required
                   rows={4}
                   placeholder="Type your official administrative communication..."
                   value={annContent}
                   onChange={(e) => setAnnContent(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-xs text-white focus:outline-none focus:border-sky-500"
+                  className="w-full rounded-xl border border-border bg-card/80 p-3 text-xs text-white focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold uppercase text-slate-300 block mb-1">Target Audience</label>
+                  <label className="text-xs font-bold uppercase text-foreground block mb-1">Target Audience</label>
                   <select
                     value={annType}
                     onChange={(e: any) => setAnnType(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2 text-xs text-white"
+                    className="w-full rounded-xl border border-border bg-card p-2 text-xs text-white"
                   >
                     <option value="BROADCAST">Broadcast (All Players)</option>
                     <option value="INDIVIDUAL">Individual Player Notice</option>
@@ -4901,11 +4904,11 @@ export default function AdminClient({
 
                 {annType === "INDIVIDUAL" && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-300 block mb-1">Select Player</label>
+                    <label className="text-xs font-bold uppercase text-foreground block mb-1">Select Player</label>
                     <select
                       value={targetPlayerId}
                       onChange={(e) => setTargetPlayerId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2 text-xs text-white"
+                      className="w-full rounded-xl border border-border bg-card p-2 text-xs text-white"
                     >
                       {playersList.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -4923,9 +4926,9 @@ export default function AdminClient({
                   id="pinNotice"
                   checked={isPinned}
                   onChange={(e) => setIsPinned(e.target.checked)}
-                  className="rounded border-slate-800"
+                  className="rounded border-border"
                 />
-                <label htmlFor="pinNotice" className="text-xs text-slate-300">
+                <label htmlFor="pinNotice" className="text-xs text-foreground">
                   Pin to Top of Player Noticeboard
                 </label>
               </div>
@@ -4936,23 +4939,23 @@ export default function AdminClient({
             </form>
           </div>
 
-          <div className="lg:col-span-6 rounded-3xl border border-slate-800 bg-slate-950/90 p-6 sm:p-8 shadow-xl space-y-4">
-            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-              <Bell className="h-5 w-5 text-yellow-400" />
+          <div className="lg:col-span-6 rounded-3xl border border-border bg-background/90 p-6 sm:p-8 shadow-xl space-y-4">
+            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2 border-b border-border pb-3">
+              <Bell className="h-5 w-5 text-secondary" />
               <span>Recent Announcements Feed</span>
             </h3>
 
-            <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {announcements.map((ann) => (
-                <div key={ann.id} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                <div key={ann.id} className="p-4 rounded-2xl bg-card/60 border border-border space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-white text-xs">{ann.title}</span>
-                    <Badge variant={ann.type === "BROADCAST" ? "secondary" : "yellow"} className="text-[9px]">
+                    <Badge variant={ann.type === "BROADCAST" ? "secondary" : "yellow"} className="text-xs">
                       {ann.type}
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-400">{ann.content}</p>
-                  <span className="text-[10px] text-slate-500 font-mono block">
+                  <p className="text-xs text-muted-foreground">{ann.content}</p>
+                  <span className="text-xs text-muted-foreground font-mono block">
                     {new Date(ann.createdAt).toLocaleString()}
                   </span>
                 </div>
@@ -4968,19 +4971,19 @@ export default function AdminClient({
       {activeTab === "PLAYERS" && (
         <div className="space-y-6">
           {flaggedPlayers.length > 0 && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-950/20 p-5 space-y-3">
-              <div className="flex items-center gap-2 text-red-400">
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/20 p-5 space-y-3">
+              <div className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <h4 className="font-black uppercase text-sm">Disciplinary Alert (2+ Missed Matches)</h4>
               </div>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-foreground">
                 The players below have missed consecutive fixtures without approval. EFRL rule mandates immediate disqualification upon reaching 3 missed matches.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {flaggedPlayers.map((fp) => (
-                  <div key={fp.id} className="p-3 rounded-xl bg-slate-900/80 border border-red-500/20 text-xs">
+                  <div key={fp.id} className="p-3 rounded-xl bg-card/80 border border-destructive/20 text-xs">
                     <span className="font-bold text-white">{fp.gamerTag}</span>
-                    <span className="text-rose-400 block font-mono">
+                    <span className="text-destructive block font-mono">
                       Missed: {fp.consecutiveMissed}/3 {fp.isDisqualified ? "(DISQUALIFIED)" : "(FINAL WARNING)"}
                     </span>
                   </div>
@@ -4989,15 +4992,15 @@ export default function AdminClient({
             </div>
           )}
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden shadow-xl">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div className="rounded-3xl border border-border bg-background/90 overflow-hidden shadow-xl">
+            <div className="p-5 border-b border-border flex items-center justify-between">
               <h3 className="text-lg font-black uppercase text-white">Registered Athletes Directory</h3>
-              <span className="text-xs font-mono text-slate-400">{playersList.length} Total</span>
+              <span className="text-xs font-mono text-muted-foreground">{playersList.length} Total</span>
             </div>
 
             <div className="overflow-x-auto no-scrollbar scroll-smooth">
-              <table className="w-full text-left text-xs min-w-[900px]">
-                <thead className="bg-slate-900/80 text-[11px] font-black uppercase text-slate-400 border-b border-slate-800">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-card/80 text-xs font-black uppercase text-muted-foreground border-b border-border">
                   <tr>
                     <th className="px-4 py-3">Athlete</th>
                     <th className="px-4 py-3">Official Club</th>
@@ -5010,15 +5013,15 @@ export default function AdminClient({
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-border/60">
                   {playersList.map((p) => {
                     const avatarUrl = p.avatar || resolvePlayerAvatar(p);
                     const teamObj = p.realTeam ? findTeam(p.realTeam) : null;
                     return (
-                      <tr key={p.id} className="hover:bg-slate-900/40">
+                      <tr key={p.id} className="hover:bg-card/40">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow">
+                            <div className="h-8 w-8 rounded-lg bg-card border border-border flex items-center justify-center p-1 shrink-0 overflow-hidden shadow">
                               {avatarUrl ? (
                                 <img
                                   src={avatarUrl}
@@ -5026,7 +5029,7 @@ export default function AdminClient({
                                   className="h-full w-full object-contain"
                                 />
                               ) : (
-                                <span className="font-black text-xs text-sky-400">
+                                <span className="font-black text-xs text-primary">
                                   {p.gamerTag.slice(0, 2).toUpperCase()}
                                 </span>
                               )}
@@ -5039,18 +5042,18 @@ export default function AdminClient({
                             <div className="flex items-center gap-1.5">
                               <span className="font-semibold text-white">{p.realTeam}</span>
                               {teamObj && (
-                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                                <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-foreground">
                                   {teamObj.shortName}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-500 italic">No Club Assigned</span>
+                            <span className="text-muted-foreground italic">No Club Assigned</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-300">{p.fullName}</td>
-                        <td className="px-4 py-3 font-mono text-slate-400">{p.efootballId}</td>
-                        <td className="px-4 py-3 font-mono text-emerald-400">{p.whatsapp}</td>
+                        <td className="px-4 py-3 text-foreground">{p.fullName}</td>
+                        <td className="px-4 py-3 font-mono text-muted-foreground">{p.efootballId}</td>
+                        <td className="px-4 py-3 font-mono text-primary">{p.whatsapp}</td>
                         <td className="px-4 py-3">
                           <Badge
                             variant={
@@ -5060,20 +5063,20 @@ export default function AdminClient({
                                 ? "yellow"
                                 : "live"
                             }
-                            className="text-[10px]"
+                            className="text-xs"
                           >
                             {p.division}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-bold">
-                          <span className={p.consecutiveMissed >= 2 ? "text-rose-400" : "text-slate-400"}>
+                          <span className={p.consecutiveMissed >= 2 ? "text-destructive" : "text-muted-foreground"}>
                             {p.consecutiveMissed}/3
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <Badge
                             variant={p.isDisqualified ? "destructive" : "secondary"}
-                            className="text-[10px]"
+                            className="text-xs"
                           >
                             {p.status}
                           </Badge>
@@ -5087,7 +5090,7 @@ export default function AdminClient({
                                 setEditingClubPlayer(p);
                                 setSelectedClubName(p.realTeam || "");
                               }}
-                              className="h-7 px-2 text-[11px] font-bold border-sky-500/40 text-sky-400 hover:bg-sky-950/50 hover:text-sky-300"
+                              className="h-7 px-2 text-xs font-bold border-primary/40 text-primary hover:bg-primary/50 hover:text-primary"
                               title="Assign Real Football Club"
                             >
                               Club
@@ -5104,7 +5107,7 @@ export default function AdminClient({
                                 setRepPassword("");
                                 setSelectedReserveId(reservePlayers[0]?.id || "");
                               }}
-                              className="h-7 px-2 text-[11px] font-bold border-indigo-500/40 text-indigo-400 hover:bg-indigo-950/50 hover:text-indigo-300"
+                              className="h-7 px-2 text-xs font-bold border-primary/40 text-primary hover:bg-primary/50 hover:text-primary"
                             >
                               <Shuffle className="h-3 w-3 mr-1" />
                               Replace
@@ -5113,7 +5116,7 @@ export default function AdminClient({
                               size="sm"
                               variant="destructive"
                               onClick={() => handleRemoveAthlete(p.id, p.gamerTag)}
-                              className="h-7 px-2 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600 text-white"
+                              className="h-7 px-2 text-xs font-bold bg-destructive/80 hover:bg-destructive text-white"
                             >
                               <Trash2 className="h-3 w-3 mr-1" />
                               Remove
@@ -5135,15 +5138,15 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "HALL_OF_FAME" && (
         <div className="space-y-8">
-          <div className="rounded-3xl border border-yellow-500/30 bg-gradient-to-r from-yellow-950/20 to-amber-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="rounded-3xl border border-secondary/30 bg-gradient-to-r from-secondary/20 to-secondary/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-yellow-400">
+              <div className="flex items-center gap-2 text-secondary">
                 <Crown className="h-6 w-6" />
                 <h3 className="text-xl font-black uppercase text-white tracking-wide">
                   EFRL Hall of Fame Commissioner Office
                 </h3>
               </div>
-              <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+              <p className="text-xs text-foreground mt-1 max-w-2xl">
                 Crown champions of Division 1, Division 2, Division 3, UCL, Europa League, and Kigali cups. Immortalized champions are showcased proudly on the League Homepage.
               </p>
             </div>
@@ -5153,8 +5156,8 @@ export default function AdminClient({
           </div>
 
           {/* Add Champion Form */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 space-y-5 shadow-xl">
-            <div className="flex items-center gap-2 text-yellow-400 border-b border-slate-800 pb-3">
+          <div className="rounded-3xl border border-border bg-background/90 p-6 space-y-5 shadow-xl">
+            <div className="flex items-center gap-2 text-secondary border-b border-border pb-3">
               <Sparkles className="h-5 w-5" />
               <h4 className="text-sm font-black uppercase text-white">Crown New Champion</h4>
             </div>
@@ -5162,11 +5165,11 @@ export default function AdminClient({
             <form onSubmit={handleAddHallOfFame} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Tournament Name *</label>
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Tournament Name *</label>
                   <select
                     value={hofTournament}
                     onChange={(e) => setHofTournament(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-yellow-500"
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-secondary"
                     required
                   >
                     <option value="EFRL Division 1 (Premiership)">EFRL Division 1 (Premiership)</option>
@@ -5178,22 +5181,22 @@ export default function AdminClient({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Season / Year *</label>
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Season / Year *</label>
                   <Input
                     placeholder="e.g. Season 2026 or Season 1"
                     value={hofSeason}
                     onChange={(e) => setHofSeason(e.target.value)}
-                    className="bg-slate-900 border-slate-800 text-xs"
+                    className="bg-card border-border text-xs"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Trophy Tier</label>
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Trophy Tier</label>
                   <select
                     value={hofTrophyType}
                     onChange={(e) => setHofTrophyType(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-yellow-500"
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-secondary"
                   >
                     <option value="GOLD">Gold Cup / 1st Place</option>
                     <option value="SILVER">Silver Cup / Runner-up</option>
@@ -5204,23 +5207,23 @@ export default function AdminClient({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-yellow-400">Champion Gamer Tag *</label>
+                  <label className="text-xs font-bold uppercase text-secondary">Champion Gamer Tag *</label>
                   <Input
                     placeholder="e.g. RW_Sniper99"
                     value={hofChampion}
                     onChange={(e) => setHofChampion(e.target.value)}
-                    className="bg-slate-900 border-yellow-500/30 text-xs font-bold text-white"
+                    className="bg-card border-secondary/30 text-xs font-bold text-white"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-400">Champion Real Name</label>
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Champion Real Name</label>
                   <Input
                     placeholder="e.g. Jean-Claude Mugisha"
                     value={hofRealName}
                     onChange={(e) => setHofRealName(e.target.value)}
-                    className="bg-slate-900 border-slate-800 text-xs"
+                    className="bg-card border-border text-xs"
                   />
                 </div>
               </div>
@@ -5229,7 +5232,7 @@ export default function AdminClient({
                 <Button
                   type="submit"
                   disabled={submittingHof || !hofChampion.trim()}
-                  className="bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs px-6 py-2.5 shadow-lg shadow-yellow-500/20"
+                  className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs px-6 py-2.5 shadow-lg"
                 >
                   <Crown className="h-4 w-4 mr-2" />
                   {submittingHof ? "Immortalizing..." : "Crown Champion & Add to Hall of Fame"}
@@ -5241,56 +5244,56 @@ export default function AdminClient({
           {/* List of Hall of Fame Champions */}
           <div className="space-y-4">
             <h4 className="text-base font-black uppercase text-white flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-400" />
+              <Trophy className="h-5 w-5 text-secondary" />
               Immortalized Champions Directory ({hallOfFame.length})
             </h4>
 
             {hallOfFame.length === 0 ? (
-              <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center">
-                <Crown className="h-12 w-12 text-yellow-500/40 mx-auto mb-3" />
+              <div className="rounded-3xl border border-border bg-background/60 p-12 text-center">
+                <Crown className="h-12 w-12 text-secondary/40 mx-auto mb-3" />
                 <h5 className="text-sm font-bold text-white uppercase">No Champions Crowned Yet</h5>
-                <p className="text-xs text-slate-400 mt-1">Use the form above to add your first league title winner!</p>
+                <p className="text-xs text-muted-foreground mt-1">Use the form above to add your first league title winner!</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {hallOfFame.map((entry) => (
                   <div
                     key={entry.id}
-                    className="relative overflow-hidden rounded-2xl border border-yellow-500/20 bg-slate-950/90 p-5 space-y-4 hover:border-yellow-500/40 transition-all shadow-xl flex flex-col justify-between"
+                    className="relative overflow-hidden rounded-2xl border border-secondary/20 bg-background/90 p-5 space-y-4 hover:border-secondary/40 transition-all shadow-xl flex flex-col justify-between"
                   >
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <Badge variant="yellow" className="text-[10px] uppercase tracking-wider mb-1">
+                          <Badge variant="yellow" className="text-xs uppercase tracking-wider mb-1">
                             {entry.season}
                           </Badge>
-                          <h5 className="text-xs font-bold text-slate-300">{entry.tournamentName}</h5>
+                          <h5 className="text-xs font-bold text-foreground">{entry.tournamentName}</h5>
                         </div>
-                        <div className="h-9 w-9 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center shrink-0">
-                          <Crown className="h-5 w-5 text-yellow-400" />
+                        <div className="h-9 w-9 rounded-xl bg-secondary/10 border border-secondary/30 flex items-center justify-center shrink-0">
+                          <Crown className="h-5 w-5 text-secondary" />
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-900/90 border border-yellow-500/10 space-y-1">
-                        <span className="text-[10px] font-mono uppercase text-yellow-400 font-bold block">
+                      <div className="p-3 rounded-xl bg-card/90 border border-secondary/10 space-y-1">
+                        <span className="text-xs font-mono uppercase text-secondary font-bold block">
                           Champion
                         </span>
                         <div className="text-lg font-black text-white">{entry.championName}</div>
                         {entry.championRealName && (
-                          <div className="text-xs text-slate-300 font-medium">{entry.championRealName}</div>
+                          <div className="text-xs text-foreground font-medium">{entry.championRealName}</div>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 font-mono">
+                    <div className="pt-3 border-t border-border/80 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-mono">
                         {new Date(entry.createdAt).toLocaleDateString()}
                       </span>
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => handleDeleteHallOfFame(entry.id, entry.championName)}
-                        className="h-7 px-2.5 text-[11px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                        className="h-7 px-2.5 text-xs font-bold bg-destructive/80 hover:bg-destructive"
                       >
                         <Trash2 className="h-3 w-3 mr-1" />
                         Delete
@@ -5310,13 +5313,13 @@ export default function AdminClient({
       {activeTab === "MESSAGES" && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="rounded-3xl border border-indigo-500/30 bg-indigo-950/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="rounded-3xl border border-primary/30 bg-primary/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-indigo-400">
+              <div className="flex items-center gap-2 text-primary">
                 <MessageSquare className="h-5 w-5" />
                 <h3 className="text-lg font-black uppercase text-white">Player Support & Direct Inquiries Desk</h3>
               </div>
-              <p className="text-xs text-slate-300 mt-1">
+              <p className="text-xs text-foreground mt-1">
                 Direct inquiries submitted by athletes from their dashboard. Write official commissioner responses which appear immediately in the athlete&apos;s conversation thread. Replied messages are stored in Message History and automatically delete after 24 hours.
               </p>
             </div>
@@ -5330,7 +5333,7 @@ export default function AdminClient({
                 </Badge>
               )}
               {historyMessages.length > 0 && (
-                <Badge variant="outline" className="text-xs px-3 py-1 font-mono border-emerald-500/40 text-emerald-300 bg-emerald-950/20">
+                <Badge variant="outline" className="text-xs px-3 py-1 font-mono border-primary/40 text-primary bg-primary/20">
                   {historyMessages.length} in History
                 </Badge>
               )}
@@ -5338,19 +5341,19 @@ export default function AdminClient({
           </div>
 
           {/* Sub-Navigation between Pending Inquiries, Message History, and All */}
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => setInquiriesSubTab("PENDING")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                 inquiriesSubTab === "PENDING"
-                  ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-secondary text-secondary-foreground font-black shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               <Clock className="h-4 w-4" />
               <span>Active Inquiries</span>
               {pendingMessages.length > 0 && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-black">
+                <Badge variant="destructive" className="text-xs px-1.5 py-0 font-black">
                   {pendingMessages.length}
                 </Badge>
               )}
@@ -5358,16 +5361,16 @@ export default function AdminClient({
 
             <button
               onClick={() => setInquiriesSubTab("HISTORY")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                 inquiriesSubTab === "HISTORY"
-                  ? "bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-primary text-secondary-foreground font-black shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               <RotateCcw className="h-4 w-4" />
               <span>Message History</span>
               {historyMessages.length > 0 && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono text-slate-900 border-slate-950/40 bg-white/20">
+                <Badge variant="outline" className="text-xs px-1.5 py-0 font-mono text-muted-foreground border-border/40 bg-white/20">
                   {historyMessages.length}
                 </Badge>
               )}
@@ -5375,10 +5378,10 @@ export default function AdminClient({
 
             <button
               onClick={() => setInquiriesSubTab("ALL")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                 inquiriesSubTab === "ALL"
-                  ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  ? "bg-primary text-white font-black shadow-lg"
+                  : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
               <MessageSquare className="h-4 w-4" />
@@ -5389,21 +5392,21 @@ export default function AdminClient({
 
           {/* Message History Information Banner */}
           {inquiriesSubTab === "HISTORY" && (
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="rounded-2xl border border-primary/30 bg-primary/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                <div className="p-2 rounded-xl bg-primary/20 text-primary shrink-0">
                   <RotateCcw className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black uppercase text-emerald-300 tracking-wide">
+                  <h4 className="text-xs font-black uppercase text-primary tracking-wide">
                     Replied Inquiries Archive (24-Hour Auto-Deletion)
                   </h4>
-                  <p className="text-[11px] text-emerald-200/80 mt-0.5">
+                  <p className="text-xs text-primary/80 mt-0.5">
                     Messages you have replied to are stored here in Message History. Each conversation history automatically deletes 24 hours after reply.
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/40 text-emerald-300 bg-emerald-950/40 shrink-0">
+              <Badge variant="outline" className="text-xs font-mono border-primary/40 text-primary bg-primary/40 shrink-0">
                 Auto-purged after 24h
               </Badge>
             </div>
@@ -5420,8 +5423,8 @@ export default function AdminClient({
 
             if (displayMessages.length === 0) {
               return (
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-2">
-                  <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-2" />
+                <div className="rounded-3xl border border-border bg-background/60 p-12 text-center space-y-2">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                   <h4 className="text-base font-bold text-white uppercase">
                     {inquiriesSubTab === "PENDING"
                       ? "No Pending Inquiries"
@@ -5429,7 +5432,7 @@ export default function AdminClient({
                       ? "No Message History"
                       : "No Player Inquiries Yet"}
                   </h4>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
                     {inquiriesSubTab === "PENDING"
                       ? "All athlete inquiries have been replied to! Check the Message History tab to view previously answered conversations."
                       : inquiriesSubTab === "HISTORY"
@@ -5456,37 +5459,37 @@ export default function AdminClient({
                       key={msg.id}
                       className={`rounded-3xl border p-6 space-y-4 backdrop-blur-xl transition-all shadow-xl ${
                         !isReplied
-                          ? "border-amber-500/50 bg-gradient-to-r from-amber-950/20 via-slate-900/90 to-slate-950/90 ring-1 ring-amber-500/20"
-                          : "border-slate-800 bg-slate-950/80 hover:border-slate-700"
+                          ? "border-secondary/50 bg-gradient-to-r from-secondary/20 via-card/90 to-background/90 ring-1 ring-secondary/20"
+                          : "border-border bg-background/80 hover:border-border"
                       }`}
                     >
                       {/* Athlete & Message Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-600 text-white font-black text-sm flex items-center justify-center shrink-0">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary text-white font-black text-sm flex items-center justify-center shrink-0">
                             {msg.player?.gamerTag?.slice(0, 2).toUpperCase() || "PL"}
                           </div>
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="text-base font-black text-white">{msg.player?.gamerTag}</h4>
-                              <Badge variant="secondary" className="text-[10px]">
+                              <Badge variant="secondary" className="text-xs">
                                 {msg.player?.division}
                               </Badge>
                               <Badge
                                 variant={isReplied ? "green" : "yellow"}
-                                className="text-[10px] font-bold"
+                                className="text-xs font-bold"
                               >
                                 {isReplied ? "STORED IN HISTORY" : "PENDING REPLY"}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                               <span>{msg.player?.fullName}</span>
                               {msg.player?.whatsapp && (
                                 <a
                                   href={`https://wa.me/${msg.player.whatsapp.replace(/[^0-9]/g, "")}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-emerald-400 hover:underline flex items-center gap-1 font-mono"
+                                  className="text-primary hover:underline flex items-center gap-1 font-mono"
                                 >
                                   <MessageSquare className="h-3 w-3" />
                                   <span>{msg.player.whatsapp}</span>
@@ -5497,14 +5500,14 @@ export default function AdminClient({
                         </div>
 
                         <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
-                          <span className="text-[11px] font-mono text-slate-500">
+                          <span className="text-xs font-mono text-muted-foreground">
                             Received: {new Date(msg.createdAt).toLocaleString()}
                           </span>
 
                           {isReplied && (
                             <div className="flex items-center gap-2">
-                              <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 text-emerald-300">
-                                <Clock className="h-3 w-3 text-emerald-400" />
+                              <span className="flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border border-primary/30 bg-primary/40 text-primary">
+                                <Clock className="h-3 w-3 text-primary" />
                                 Auto-deletes in {hoursRemaining}h {minsRemaining}m
                               </span>
                               <Button
@@ -5512,7 +5515,7 @@ export default function AdminClient({
                                 variant="destructive"
                                 disabled={deletingMessageId === msg.id}
                                 onClick={() => handleDeleteMessage(msg.id)}
-                                className="h-7 px-2.5 text-[10px] font-bold bg-rose-600/80 hover:bg-rose-600"
+                                className="h-7 px-2.5 text-xs font-bold bg-destructive/80 hover:bg-destructive"
                                 title="Delete from Message History now"
                               >
                                 <Trash2 className="h-3 w-3 mr-1" />
@@ -5524,26 +5527,26 @@ export default function AdminClient({
                       </div>
 
                       {/* Subject and Content */}
-                      <div className="space-y-2 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
-                        <span className="text-[10px] font-bold uppercase text-sky-400 tracking-wider block">
+                      <div className="space-y-2 bg-card/60 border border-border/80 rounded-2xl p-4">
+                        <span className="text-xs font-bold uppercase text-primary tracking-wider block">
                           Topic / Subject:
                         </span>
                         <h5 className="text-sm font-bold text-white">{msg.subject}</h5>
-                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-800/50">
+                        <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap pt-1 border-t border-border/50">
                           {msg.content}
                         </p>
                       </div>
 
                       {/* Existing Admin Reply (Stored in History) */}
                       {msg.adminReply && replyingMessageId !== msg.id && (
-                        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-2">
+                        <div className="rounded-2xl border border-primary/40 bg-primary/20 p-4 space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Badge variant="green" className="text-[9px] font-black uppercase">
+                              <Badge variant="green" className="text-xs font-black uppercase">
                                 YOUR OFFICIAL REPLY (STORED IN HISTORY)
                               </Badge>
                               {msg.repliedAt && (
-                                <span className="text-[10px] font-mono text-emerald-400/70">
+                                <span className="text-xs font-mono text-primary/70">
                                   {new Date(msg.repliedAt).toLocaleString()}
                                 </span>
                               )}
@@ -5555,12 +5558,12 @@ export default function AdminClient({
                                 setReplyingMessageId(msg.id);
                                 setReplyText(msg.adminReply || "");
                               }}
-                              className="h-6 text-[11px] text-emerald-400 hover:text-white"
+                              className="h-6 text-xs text-primary hover:text-white"
                             >
                               Edit Reply
                             </Button>
                           </div>
-                          <p className="text-xs text-emerald-200 leading-relaxed whitespace-pre-wrap">
+                          <p className="text-xs text-primary leading-relaxed whitespace-pre-wrap">
                             {msg.adminReply}
                           </p>
                         </div>
@@ -5568,8 +5571,8 @@ export default function AdminClient({
 
                       {/* Reply Input Form */}
                       {replyingMessageId === msg.id ? (
-                        <div className="rounded-2xl border border-indigo-500/40 bg-slate-900 p-4 space-y-3">
-                          <label className="text-xs font-bold uppercase text-indigo-400 block">
+                        <div className="rounded-2xl border border-primary/40 bg-card p-4 space-y-3">
+                          <label className="text-xs font-bold uppercase text-primary block">
                             Write Official Reply to {msg.player?.gamerTag}:
                           </label>
                           <textarea
@@ -5577,7 +5580,7 @@ export default function AdminClient({
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder="Type official response from the League Commissioner..."
-                            className="w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                            className="w-full rounded-xl bg-background border border-border p-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                             required
                           />
                           <div className="flex justify-end gap-2">
@@ -5596,7 +5599,7 @@ export default function AdminClient({
                               size="sm"
                               disabled={submittingReply || !replyText.trim()}
                               onClick={() => handleReplyToMessage(msg.id)}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                              className="bg-primary hover:bg-primary text-white font-bold text-xs"
                             >
                               {submittingReply ? "Sending..." : "Submit Reply & Store in History"}
                             </Button>
@@ -5610,7 +5613,7 @@ export default function AdminClient({
                               setReplyingMessageId(msg.id);
                               setReplyText("");
                             }}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                            className="bg-primary hover:bg-primary text-white font-bold text-xs"
                           >
                             <Send className="h-3.5 w-3.5 mr-1.5" />
                             <span>Reply to Athlete</span>
@@ -5631,17 +5634,17 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "ALL_MATCHES" && (
         <div className="space-y-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-3xl border border-slate-800 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="yellow">FULL TOURNAMENT SCHEDULE</Badge>
                 <Badge variant="secondary">{matches.length} Total Matches</Badge>
               </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-cyan-400" />
+                <Calendar className="h-6 w-6 text-primary" />
                 <span>All Generated Tournament Matches</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+              <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
                 Browse, search, and manage all scheduled and finished matches across all matchday rounds and divisions. You can extend deadlines to permit late submissions or directly enter verified scores.
               </p>
             </div>
@@ -5650,7 +5653,7 @@ export default function AdminClient({
               <Button
                 onClick={() => handleRecalculateStandings("ALL")}
                 disabled={recalculatingStandings}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg shadow-emerald-600/30"
+                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${recalculatingStandings ? "animate-spin" : ""}`} />
                 {recalculatingStandings ? "Updating..." : "⚡ Update Standings"}
@@ -5660,7 +5663,7 @@ export default function AdminClient({
                 onClick={() => handleResetTournament("ALL")}
                 disabled={resettingTournament}
                 variant="destructive"
-                className="font-bold text-xs uppercase tracking-wider px-4 py-2.5 gap-1.5 shadow-lg shadow-rose-600/20"
+                className="font-bold text-xs uppercase tracking-wider px-4 py-2.5 gap-1.5 shadow-lg"
               >
                 <RotateCcw className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`} />
                 {resettingTournament ? "Resetting..." : "Reset All Matches"}
@@ -5669,16 +5672,16 @@ export default function AdminClient({
           </div>
 
           {/* Filters Bar */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 shadow-xl">
+          <div className="rounded-2xl border border-border bg-background/80 p-4 shadow-xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search player or Konami ID..."
                   value={allMatchesSearch}
                   onChange={(e) => setAllMatchesSearch(e.target.value)}
-                  className="pl-9 bg-slate-900 border-slate-700 text-xs text-white"
+                  className="pl-9 bg-card border-border text-xs text-white"
                 />
               </div>
 
@@ -5687,7 +5690,7 @@ export default function AdminClient({
                 <select
                   value={allMatchesFilterRound}
                   onChange={(e) => setAllMatchesFilterRound(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-primary"
                 >
                   <option value="ALL">All Matchday Rounds</option>
                   {Array.from(new Set(matches.map((m: any) => m.round)))
@@ -5710,7 +5713,7 @@ export default function AdminClient({
                 <select
                   value={allMatchesFilterDiv}
                   onChange={(e) => setAllMatchesFilterDiv(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-primary"
                 >
                   <option value="ALL">All Divisions</option>
                   <option value="Division 1">Division 1 (Premiership)</option>
@@ -5726,7 +5729,7 @@ export default function AdminClient({
                 <select
                   value={allMatchesFilterStatus}
                   onChange={(e) => setAllMatchesFilterStatus(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-primary"
                 >
                   <option value="ALL">All Match Statuses</option>
                   <option value="SCHEDULED">SCHEDULED (Unplayed)</option>
@@ -5755,10 +5758,10 @@ export default function AdminClient({
 
             if (filtered.length === 0) {
               return (
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-3">
-                  <Calendar className="h-12 w-12 text-slate-600 mx-auto" />
+                <div className="rounded-3xl border border-border bg-background/60 p-12 text-center space-y-3">
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto" />
                   <h4 className="text-base font-bold text-white uppercase">No Matches Found</h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     No tournament fixtures match your current filter criteria.
                   </p>
                 </div>
@@ -5767,7 +5770,7 @@ export default function AdminClient({
 
             return (
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-slate-400 px-2 font-mono">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-2 font-mono">
                   <span>Showing {filtered.length} of {matches.length} matches</span>
                 </div>
 
@@ -5781,31 +5784,31 @@ export default function AdminClient({
                     return (
                       <div
                         key={match.id}
-                        className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 sm:p-5 hover:border-slate-700 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        className="rounded-2xl border border-border bg-background/80 p-4 sm:p-5 hover:border-border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="yellow" className="text-[10px] font-mono">
+                            <Badge variant="yellow" className="text-xs font-mono">
                               {match.round}
                             </Badge>
-                            <Badge variant="secondary" className="text-[10px]">
+                            <Badge variant="secondary" className="text-xs">
                               {match.division}
                             </Badge>
                             {isFinished ? (
-                              <Badge variant="green" className="text-[10px] font-black">
+                              <Badge variant="green" className="text-xs font-black">
                                 COMPLETED
                               </Badge>
                             ) : isForfeit ? (
-                              <Badge variant="destructive" className="text-[10px] font-black">
+                              <Badge variant="destructive" className="text-xs font-black">
                                 FORFEIT
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-[10px] border-sky-500/40 text-sky-400">
+                              <Badge variant="outline" className="text-xs border-primary/40 text-primary">
                                 SCHEDULED
                               </Badge>
                             )}
                             {isLateAllowed && (
-                              <Badge variant="yellow" className="text-[9px] bg-amber-500/20 border-amber-500/40 text-amber-300">
+                              <Badge variant="yellow" className="text-xs bg-secondary/20 border-secondary/40 text-secondary">
                                 ⏰ LATE UPLOAD ALLOWED
                               </Badge>
                             )}
@@ -5817,13 +5820,13 @@ export default function AdminClient({
                               <div>
                                 <span className="font-bold text-sm text-white block">{match.homePlayer?.gamerTag}</span>
                                 {match.homePlayer?.realTeam && (
-                                  <span className="text-[10px] text-amber-400 font-bold block">
+                                  <span className="text-xs text-secondary font-bold block">
                                     {findTeam(match.homePlayer.realTeam)?.shortName || match.homePlayer.realTeam}
                                   </span>
                                 )}
-                                <span className="text-[10px] text-slate-400 block font-mono">{match.homePlayer?.efootballId}</span>
+                                <span className="text-xs text-muted-foreground block font-mono">{match.homePlayer?.efootballId}</span>
                               </div>
-                              <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                 <img
                                   src={resolvePlayerAvatar(match.homePlayer)}
                                   alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag || "Home"}
@@ -5835,18 +5838,18 @@ export default function AdminClient({
                               </div>
                             </div>
 
-                            <div className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-700 text-center min-w-[70px]">
+                            <div className="px-3 py-1 rounded-xl bg-card border border-border text-center w-20">
                               {isFinished || isForfeit ? (
-                                <span className="font-mono text-base font-black text-cyan-400">
+                                <span className="font-mono text-base font-black text-primary">
                                   {match.homeScore ?? 0} - {match.awayScore ?? 0}
                                 </span>
                               ) : (
-                                <span className="text-xs font-black text-slate-500">VS</span>
+                                <span className="text-xs font-black text-muted-foreground">VS</span>
                               )}
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                                 <img
                                   src={resolvePlayerAvatar(match.awayPlayer)}
                                   alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag || "Away"}
@@ -5859,11 +5862,11 @@ export default function AdminClient({
                               <div>
                                 <span className="font-bold text-sm text-white block">{match.awayPlayer?.gamerTag}</span>
                                 {match.awayPlayer?.realTeam && (
-                                  <span className="text-[10px] text-amber-400 font-bold block">
+                                  <span className="text-xs text-secondary font-bold block">
                                     {findTeam(match.awayPlayer.realTeam)?.shortName || match.awayPlayer.realTeam}
                                   </span>
                                 )}
-                                <span className="text-[10px] text-slate-400 block font-mono">{match.awayPlayer?.efootballId}</span>
+                                <span className="text-xs text-muted-foreground block font-mono">{match.awayPlayer?.efootballId}</span>
                               </div>
                             </div>
                           </div>
@@ -5872,8 +5875,8 @@ export default function AdminClient({
                         {/* Match Info & Actions */}
                         <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
                           <div className="text-right mr-2 hidden lg:block">
-                            <span className="text-[10px] text-slate-500 block font-mono">Deadline</span>
-                            <span className="text-xs text-slate-300 font-mono">{cleanDeadline}</span>
+                            <span className="text-xs text-muted-foreground block font-mono">Deadline</span>
+                            <span className="text-xs text-foreground font-mono">{cleanDeadline}</span>
                           </div>
 
                           {match.screenshotUrl && (
@@ -5883,7 +5886,7 @@ export default function AdminClient({
                               onClick={() => setInspectImage(match.screenshotUrl)}
                               className="text-xs gap-1 h-8"
                             >
-                              <Eye className="h-3.5 w-3.5 text-sky-400" />
+                              <Eye className="h-3.5 w-3.5 text-primary" />
                               <span>Screenshot</span>
                             </Button>
                           )}
@@ -5893,10 +5896,10 @@ export default function AdminClient({
                             variant="outline"
                             onClick={() => handleExtendDeadline(match.id, 24)}
                             disabled={extendingMatchId === match.id}
-                            className="text-xs gap-1 h-8 border-amber-500/40 text-amber-300 hover:bg-amber-950/20"
+                            className="text-xs gap-1 h-8 border-secondary/40 text-secondary hover:bg-secondary/20"
                             title="Extend deadline and permit player to upload scores"
                           >
-                            <Clock className="h-3.5 w-3.5 text-amber-400" />
+                            <Clock className="h-3.5 w-3.5 text-secondary" />
                             <span>{extendingMatchId === match.id ? "Extending..." : "Extend Deadline"}</span>
                           </Button>
 
@@ -5905,10 +5908,10 @@ export default function AdminClient({
                             variant="outline"
                             onClick={() => handleReopenSubmissions(match.id, 24)}
                             disabled={reopeningMatchId === match.id}
-                            className="text-xs gap-1 h-8 border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/20"
+                            className="text-xs gap-1 h-8 border-primary/40 text-primary hover:bg-primary/20"
                             title="Reopen submission and forfeit buttons for both players"
                           >
-                            <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                            <Unlock className="h-3.5 w-3.5 text-primary" />
                             <span>{reopeningMatchId === match.id ? "Reopening..." : "Reopen Submissions"}</span>
                           </Button>
                         </div>
@@ -5928,17 +5931,17 @@ export default function AdminClient({
       {activeTab === "REVIEWS" && (
         <div className="space-y-6">
           {/* Header Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-slate-800 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="yellow">COMMUNITY FEEDBACK</Badge>
                 <Badge variant="secondary">{reviewsList.length} Total Reviews</Badge>
               </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
-                <Star className="h-6 w-6 text-amber-400" />
+                <Star className="h-6 w-6 text-secondary" />
                 <span>Player Ratings & Feedback Reviews</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Read direct player feedback, ratings, and league satisfaction reviews submitted from player dashboards.
               </p>
             </div>
@@ -5952,8 +5955,8 @@ export default function AdminClient({
             const stars = [5, 4, 3, 2, 1];
 
             return (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-3xl border border-slate-800 bg-slate-950/80 p-6 shadow-xl">
-                <div className="lg:col-span-4 flex flex-col items-center justify-center text-center p-4 border-b lg:border-b-0 lg:border-r border-slate-800">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-3xl border border-border bg-background/80 p-6 shadow-xl">
+                <div className="lg:col-span-4 flex flex-col items-center justify-center text-center p-4 border-b lg:border-b-0 lg:border-r border-border">
                   <div className="text-5xl font-black text-white">{avg}</div>
                   <div className="flex items-center gap-1 my-2">
                     {[1, 2, 3, 4, 5].map((s) => (
@@ -5961,13 +5964,13 @@ export default function AdminClient({
                         key={s}
                         className={`h-5 w-5 ${
                           s <= Math.round(Number(avg))
-                            ? "text-amber-400 fill-amber-400"
-                            : "text-slate-600"
+                            ? "text-secondary fill-secondary"
+                            : "text-muted-foreground"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-xs text-slate-400 font-mono">Based on {total} athlete ratings</span>
+                  <span className="text-xs text-muted-foreground font-mono">Based on {total} athlete ratings</span>
                 </div>
 
                 <div className="lg:col-span-8 space-y-2 px-2">
@@ -5976,17 +5979,18 @@ export default function AdminClient({
                     const percent = total > 0 ? Math.round((count / total) * 100) : 0;
                     return (
                       <div key={star} className="flex items-center gap-3 text-xs">
-                        <span className="w-12 font-bold text-slate-300 flex items-center gap-1">
+                        <span className="w-12 font-bold text-foreground flex items-center gap-1">
                           <span>{star}</span>
-                          <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                          <Star className="h-3 w-3 text-secondary fill-secondary" />
                         </span>
-                        <div className="flex-1 h-2.5 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                        <div className="flex-1 h-2.5 rounded-full bg-card overflow-hidden border border-border">
                           <div
-                            className="h-full bg-amber-400 rounded-full transition-all"
+                            className="h-full bg-secondary rounded-full transition-all"
+                            // eslint-disable-next-line shadcn/no-inline-styles -- dynamic 0-100% width has no static token equivalent
                             style={{ width: `${percent}%` }}
                           />
                         </div>
-                        <span className="w-12 text-right font-mono text-slate-400">{count}</span>
+                        <span className="w-12 text-right font-mono text-muted-foreground">{count}</span>
                       </div>
                     );
                   })}
@@ -5997,10 +6001,10 @@ export default function AdminClient({
 
           {/* Reviews List */}
           {reviewsList.length === 0 ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-2">
-              <Star className="h-12 w-12 text-slate-600 mx-auto mb-2" />
+            <div className="rounded-3xl border border-border bg-background/60 p-12 text-center space-y-2">
+              <Star className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <h4 className="text-base font-bold text-white uppercase">No Player Reviews Submitted Yet</h4>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 When participating athletes submit ratings and reviews from their dashboard, they will be visible here.
               </p>
             </div>
@@ -6009,21 +6013,21 @@ export default function AdminClient({
               {reviewsList.map((rev: any) => (
                 <div
                   key={rev.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 space-y-3 hover:border-slate-700 transition-all shadow-lg"
+                  className="rounded-2xl border border-border bg-background/80 p-5 space-y-3 hover:border-border transition-all shadow-lg"
                 >
-                  <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                  <div className="flex items-start justify-between gap-2 border-b border-border/80 pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 text-slate-950 font-black text-sm flex items-center justify-center shrink-0">
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-secondary to-secondary text-secondary-foreground font-black text-sm flex items-center justify-center shrink-0">
                         {rev.player?.gamerTag?.slice(0, 2).toUpperCase() || "PL"}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-sm text-white">{rev.player?.gamerTag}</h4>
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-xs">
                             {rev.player?.division}
                           </Badge>
                         </div>
-                        <span className="text-[11px] text-slate-400">{rev.player?.fullName}</span>
+                        <span className="text-xs text-muted-foreground">{rev.player?.fullName}</span>
                       </div>
                     </div>
 
@@ -6033,8 +6037,8 @@ export default function AdminClient({
                           key={s}
                           className={`h-3.5 w-3.5 ${
                             s <= rev.rating
-                              ? "text-amber-400 fill-amber-400"
-                              : "text-slate-700"
+                              ? "text-secondary fill-secondary"
+                              : "text-muted-foreground"
                           }`}
                         />
                       ))}
@@ -6042,16 +6046,16 @@ export default function AdminClient({
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[10px] font-mono font-bold uppercase text-sky-400 tracking-wider">
+                    <span className="text-xs font-mono font-bold uppercase text-primary tracking-wider">
                       Category: {rev.category || "GENERAL"}
                     </span>
-                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
                       &quot;{rev.comment}&quot;
                     </p>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-900 text-right">
-                    <span className="text-[10px] font-mono text-slate-500">
+                  <div className="pt-2 border-t border-border text-right">
+                    <span className="text-xs font-mono text-muted-foreground">
                       {new Date(rev.createdAt).toLocaleDateString()} {new Date(rev.createdAt).toLocaleTimeString()}
                     </span>
                   </div>
@@ -6068,17 +6072,17 @@ export default function AdminClient({
       {activeTab === "PASSWORD_RESETS" && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="rounded-3xl border border-rose-500/30 bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-950 p-6 sm:p-8 relative overflow-hidden shadow-xl">
+          <div className="rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/40 via-card to-background p-6 sm:p-8 relative overflow-hidden shadow-xl">
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/20 border border-destructive/30 text-destructive text-xs font-bold uppercase tracking-wider">
                   <KeyRound className="h-3.5 w-3.5" />
                   <span>Access Recovery Management</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
                   Password Reset Approvals
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs sm:text-sm text-foreground leading-relaxed">
                   When an athlete forgets their password, they submit their email to request authorization. As League Admin, verify the athlete&apos;s request and approve permission so they can configure a new password and immediately log into their account.
                 </p>
               </div>
@@ -6088,7 +6092,7 @@ export default function AdminClient({
                   onClick={() => router.refresh()}
                   variant="outline"
                   size="sm"
-                  className="gap-2 border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-xs text-slate-300"
+                  className="gap-2 border-border bg-card/80 hover:bg-muted text-xs text-foreground"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>Refresh Queue</span>
@@ -6098,15 +6102,15 @@ export default function AdminClient({
           </div>
 
           {/* Search & Filters */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-background p-4 rounded-2xl border border-border">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by gamer tag, email, name, WhatsApp..."
                 value={resetSearch}
                 onChange={(e) => setResetSearch(e.target.value)}
-                className="pl-9 bg-slate-900 border-slate-800 text-xs text-white"
+                className="pl-9 bg-card border-border text-xs text-white"
               />
             </div>
 
@@ -6124,14 +6128,14 @@ export default function AdminClient({
                     onClick={() => setResetStatusFilter(status)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                       active
-                        ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20"
-                        : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800"
+                        ? "bg-destructive text-white shadow-lg"
+                        : "bg-card text-muted-foreground hover:text-white hover:bg-muted"
                     }`}
                   >
                     <span>{status === "ALL" ? "All Requests" : status.charAt(0) + status.slice(1).toLowerCase()}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                        active ? "bg-slate-950/60 text-white" : "bg-slate-800 text-slate-400"
+                      className={`text-xs px-1.5 py-0.2 rounded-full font-mono ${
+                        active ? "bg-background/60 text-white" : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {count}
@@ -6144,12 +6148,12 @@ export default function AdminClient({
 
           {/* List of Requests */}
           {filteredPasswordResets.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl border border-slate-800 bg-slate-950/60 space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+            <div className="p-12 text-center rounded-3xl border border-border bg-background/60 space-y-3">
+              <div className="h-12 w-12 rounded-2xl bg-card border border-border text-muted-foreground flex items-center justify-center mx-auto">
                 <KeyRound className="h-6 w-6" />
               </div>
               <h4 className="text-base font-bold text-white uppercase">No Password Reset Requests Found</h4>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 {resetSearch
                   ? "No requests matched your search filter criteria."
                   : "There are currently no password reset requests submitted by users."}
@@ -6169,16 +6173,16 @@ export default function AdminClient({
                     key={req.id}
                     className={`rounded-2xl border p-5 transition-all space-y-4 ${
                       isPending
-                        ? "border-amber-500/40 bg-gradient-to-b from-amber-950/20 to-slate-950 shadow-lg shadow-amber-950/10"
+                        ? "border-secondary/40 bg-gradient-to-b from-secondary/20 to-background shadow-lg"
                         : isApproved
-                        ? "border-emerald-500/40 bg-gradient-to-b from-emerald-950/20 to-slate-950"
-                        : "border-slate-800 bg-slate-950/80"
+                        ? "border-primary/40 bg-gradient-to-b from-primary/20 to-background"
+                        : "border-border bg-background/80"
                     }`}
                   >
                     {/* Athlete Info & Status Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-sm text-slate-200 shrink-0">
+                        <div className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center font-black text-sm text-foreground shrink-0">
                           {athlete?.gamerTag ? athlete.gamerTag.substring(0, 2).toUpperCase() : "USR"}
                         </div>
                         <div>
@@ -6187,12 +6191,12 @@ export default function AdminClient({
                               {athlete?.gamerTag || "Unknown Player"}
                             </h4>
                             {athlete?.division && (
-                              <Badge variant="outline" className="text-[10px] border-slate-700 bg-slate-900/80 text-sky-400">
+                              <Badge variant="outline" className="text-xs border-border bg-card/80 text-primary">
                                 {athlete.division}
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             {athlete?.fullName || "Registered Member"}
                           </p>
                         </div>
@@ -6200,25 +6204,25 @@ export default function AdminClient({
 
                       {/* Status Badge */}
                       {isPending && (
-                        <Badge variant="yellow" className="text-[10px] font-black uppercase animate-pulse flex items-center gap-1">
+                        <Badge variant="yellow" className="text-xs font-black uppercase animate-pulse flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           <span>Pending Approval</span>
                         </Badge>
                       )}
                       {isApproved && (
-                        <Badge variant="secondary" className="text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-1">
+                        <Badge variant="secondary" className="text-xs font-black uppercase bg-primary/20 text-primary border-primary/40 flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           <span>Approved (Awaiting Reset)</span>
                         </Badge>
                       )}
                       {isCompleted && (
-                        <Badge variant="secondary" className="text-[10px] font-black uppercase bg-sky-500/20 text-sky-300 border-sky-500/40 flex items-center gap-1">
+                        <Badge variant="secondary" className="text-xs font-black uppercase bg-primary/20 text-primary border-primary/40 flex items-center gap-1">
                           <Check className="h-3 w-3" />
                           <span>Completed</span>
                         </Badge>
                       )}
                       {req.status === "REJECTED" && (
-                        <Badge variant="destructive" className="text-[10px] font-black uppercase flex items-center gap-1">
+                        <Badge variant="destructive" className="text-xs font-black uppercase flex items-center gap-1">
                           <XCircle className="h-3 w-3" />
                           <span>Rejected</span>
                         </Badge>
@@ -6226,10 +6230,10 @@ export default function AdminClient({
                     </div>
 
                     {/* Contact & Request Details */}
-                    <div className="space-y-2 rounded-xl bg-slate-900/60 p-3 border border-slate-800/80 text-xs">
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span className="text-slate-400 flex items-center gap-1.5">
-                          <Mail className="h-3.5 w-3.5 text-slate-400" />
+                    <div className="space-y-2 rounded-xl bg-card/60 p-3 border border-border/80 text-xs">
+                      <div className="flex items-center justify-between text-foreground">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                           <span>Email:</span>
                         </span>
                         <div className="flex items-center gap-1 font-mono font-medium text-white">
@@ -6237,11 +6241,11 @@ export default function AdminClient({
                           <button
                             type="button"
                             onClick={() => handleCopyKonamiId(req.id, req.email)}
-                            className="p-1 text-slate-400 hover:text-white"
+                            className="p-1 text-muted-foreground hover:text-white"
                             title="Copy email"
                           >
                             {copiedId === req.id ? (
-                              <Check className="h-3 w-3 text-emerald-400" />
+                              <Check className="h-3 w-3 text-primary" />
                             ) : (
                               <Copy className="h-3 w-3" />
                             )}
@@ -6250,16 +6254,16 @@ export default function AdminClient({
                       </div>
 
                       {athlete?.whatsapp && (
-                        <div className="flex items-center justify-between text-slate-300">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Phone className="h-3.5 w-3.5 text-slate-400" />
+                        <div className="flex items-center justify-between text-foreground">
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                             <span>WhatsApp:</span>
                           </span>
                           <a
                             href={`https://wa.me/${athlete.whatsapp.replace(/[^0-9]/g, "")}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono text-emerald-400 hover:underline flex items-center gap-1"
+                            className="font-mono text-primary hover:underline flex items-center gap-1"
                           >
                             {athlete.whatsapp}
                             <ExternalLink className="h-2.5 w-2.5" />
@@ -6267,15 +6271,15 @@ export default function AdminClient({
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-slate-400 text-[11px] pt-1 border-t border-slate-800">
+                      <div className="flex items-center justify-between text-muted-foreground text-xs pt-1 border-t border-border">
                         <span>Requested At:</span>
-                        <span className="font-mono text-slate-300">
+                        <span className="font-mono text-foreground">
                           {new Date(req.createdAt).toLocaleDateString()} {new Date(req.createdAt).toLocaleTimeString()}
                         </span>
                       </div>
 
                       {req.approvedAt && (
-                        <div className="flex items-center justify-between text-emerald-400/80 text-[11px]">
+                        <div className="flex items-center justify-between text-primary/80 text-xs">
                           <span>Approved At:</span>
                           <span className="font-mono">
                             {new Date(req.approvedAt).toLocaleDateString()} {new Date(req.approvedAt).toLocaleTimeString()}
@@ -6284,7 +6288,7 @@ export default function AdminClient({
                       )}
 
                       {req.completedAt && (
-                        <div className="flex items-center justify-between text-sky-400/80 text-[11px]">
+                        <div className="flex items-center justify-between text-primary/80 text-xs">
                           <span>Password Reset At:</span>
                           <span className="font-mono">
                             {new Date(req.completedAt).toLocaleDateString()} {new Date(req.completedAt).toLocaleTimeString()}
@@ -6302,7 +6306,7 @@ export default function AdminClient({
                             variant="outline"
                             onClick={() => handleDeletePasswordReset(req.id, "REJECT")}
                             disabled={isLoading}
-                            className="text-xs border-slate-700 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400"
+                            className="text-xs border-border hover:bg-destructive/40 hover:text-destructive text-muted-foreground"
                           >
                             <XCircle className="h-3.5 w-3.5 mr-1" />
                             Decline
@@ -6311,7 +6315,7 @@ export default function AdminClient({
                             size="sm"
                             onClick={() => handleApprovePasswordReset(req.id, athlete?.gamerTag)}
                             disabled={isLoading}
-                            className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1.5 shadow-md shadow-emerald-600/20"
+                            className="text-xs bg-primary hover:bg-primary text-white font-bold gap-1.5 shadow-md"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             {isLoading ? "Approving..." : "Approve Permission"}
@@ -6321,7 +6325,7 @@ export default function AdminClient({
 
                       {isApproved && (
                         <div className="w-full flex items-center justify-between">
-                          <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                          <span className="text-xs text-primary flex items-center gap-1 font-medium">
                             <Check className="h-3.5 w-3.5" />
                             Ready for user to reset
                           </span>
@@ -6330,9 +6334,9 @@ export default function AdminClient({
                             variant="outline"
                             onClick={() => handleDeletePasswordReset(req.id, "DELETE")}
                             disabled={isLoading}
-                            className="text-xs border-slate-800 hover:bg-slate-900 text-slate-400"
+                            className="text-xs border-border hover:bg-card text-muted-foreground"
                           >
-                            <Trash2 className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                            <Trash2 className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                             Remove
                           </Button>
                         </div>
@@ -6344,9 +6348,9 @@ export default function AdminClient({
                           variant="outline"
                           onClick={() => handleDeletePasswordReset(req.id, "DELETE")}
                           disabled={isLoading}
-                          className="text-xs border-slate-800 hover:bg-slate-900 text-slate-400"
+                          className="text-xs border-border hover:bg-card text-muted-foreground"
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                          <Trash2 className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
                           Delete Log
                         </Button>
                       )}
@@ -6362,20 +6366,20 @@ export default function AdminClient({
       {/* REPLACE ATHLETE MODAL */}
       {replaceTargetPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4">
-          <div className="relative max-w-xl w-full max-h-[90vh] overflow-y-auto rounded-3xl border border-indigo-500/40 bg-slate-950 p-4 sm:p-6 space-y-5 shadow-2xl no-scrollbar">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+          <div className="relative max-w-xl w-full max-h-screen overflow-y-auto rounded-3xl border border-primary/40 bg-background p-4 sm:p-6 space-y-5 shadow-2xl no-scrollbar">
+            <div className="flex items-start justify-between border-b border-border pb-3">
               <div>
-                <div className="flex items-center gap-2 text-indigo-400">
+                <div className="flex items-center gap-2 text-primary">
                   <Shuffle className="h-5 w-5" />
                   <h3 className="text-lg font-black uppercase text-white">Replace Active Athlete</h3>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Replacing <strong className="text-white">{replaceTargetPlayer.gamerTag}</strong> ({replaceTargetPlayer.division})
                 </p>
               </div>
               <button
                 onClick={() => setReplaceTargetPlayer(null)}
-                className="rounded-full bg-slate-900 p-1.5 text-slate-400 hover:text-white"
+                className="rounded-full bg-card p-1.5 text-muted-foreground hover:text-white"
               >
                 ✕
               </button>
@@ -6383,14 +6387,14 @@ export default function AdminClient({
 
             <form onSubmit={handleReplaceAthleteSubmit} className="space-y-4">
               {/* Replacement Source Mode Tabs */}
-              <div className="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-2 gap-2 bg-card p-1 rounded-xl border border-border">
                 <button
                   type="button"
                   onClick={() => setReplaceMode("FROM_RESERVE")}
                   className={`py-2 text-xs font-bold rounded-lg transition-all ${
                     replaceMode === "FROM_RESERVE"
-                      ? "bg-indigo-600 text-white shadow-md"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-primary text-white shadow-md"
+                      : "text-muted-foreground hover:text-white"
                   }`}
                 >
                   From Reserve Pool ({reservePlayers.length})
@@ -6400,8 +6404,8 @@ export default function AdminClient({
                   onClick={() => setReplaceMode("NEW_DETAILS")}
                   className={`py-2 text-xs font-bold rounded-lg transition-all ${
                     replaceMode === "NEW_DETAILS"
-                      ? "bg-indigo-600 text-white shadow-md"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-primary text-white shadow-md"
+                      : "text-muted-foreground hover:text-white"
                   }`}
                 >
                   Register New Athlete
@@ -6410,18 +6414,18 @@ export default function AdminClient({
 
               {replaceMode === "FROM_RESERVE" ? (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-slate-400">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">
                     Select Replacement from Reserve Pool *
                   </label>
                   {reservePlayers.length === 0 ? (
-                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-300">
+                    <div className="p-4 rounded-xl bg-secondary/20 border border-secondary/30 text-xs text-secondary">
                       No athletes currently in the reserve pool. Switch to &quot;Register New Athlete&quot; instead.
                     </div>
                   ) : (
                     <select
                       value={selectedReserveId}
                       onChange={(e) => setSelectedReserveId(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white font-medium focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-xs text-white font-medium focus:ring-1 focus:ring-primary"
                       required
                     >
                       <option value="">-- Choose Reserve Athlete --</option>
@@ -6437,22 +6441,22 @@ export default function AdminClient({
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase text-slate-400">New Gamer Tag *</label>
+                      <label className="text-xs font-bold uppercase text-muted-foreground">New Gamer Tag *</label>
                       <Input
                         placeholder="e.g. RW_Champion"
                         value={repGamerTag}
                         onChange={(e) => setRepGamerTag(e.target.value)}
-                        className="bg-slate-900 border-slate-800 text-xs"
+                        className="bg-card border-border text-xs"
                         required
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase text-slate-400">Full Name *</label>
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Full Name *</label>
                       <Input
                         placeholder="e.g. Jean Paul"
                         value={repFullName}
                         onChange={(e) => setRepFullName(e.target.value)}
-                        className="bg-slate-900 border-slate-800 text-xs"
+                        className="bg-card border-border text-xs"
                         required
                       />
                     </div>
@@ -6460,50 +6464,50 @@ export default function AdminClient({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase text-slate-400">WhatsApp Number</label>
+                      <label className="text-xs font-bold uppercase text-muted-foreground">WhatsApp Number</label>
                       <Input
                         placeholder="e.g. +250 788 000 000"
                         value={repWhatsapp}
                         onChange={(e) => setRepWhatsapp(e.target.value)}
-                        className="bg-slate-900 border-slate-800 text-xs"
+                        className="bg-card border-border text-xs"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase text-slate-400">Login Email (Optional)</label>
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Login Email (Optional)</label>
                       <Input
                         type="email"
                         placeholder="New login email"
                         value={repEmail}
                         onChange={(e) => setRepEmail(e.target.value)}
-                        className="bg-slate-900 border-slate-800 text-xs"
+                        className="bg-card border-border text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase text-slate-400">Login Password (Optional)</label>
+                    <label className="text-xs font-bold uppercase text-muted-foreground">Login Password (Optional)</label>
                     <Input
                       type="password"
                       placeholder="Minimum 6 characters"
                       value={repPassword}
                       onChange={(e) => setRepPassword(e.target.value)}
-                      className="bg-slate-900 border-slate-800 text-xs"
+                      className="bg-card border-border text-xs"
                     />
                   </div>
                 </div>
               )}
 
               {/* Action on replaced athlete */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                <label className="text-xs font-bold uppercase text-slate-400">
+              <div className="space-y-1.5 pt-2 border-t border-border">
+                <label className="text-xs font-bold uppercase text-muted-foreground">
                   Outgoing Athlete Disposition:
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <label
                     className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs ${
                       outgoingAction === "REMOVE"
-                        ? "border-rose-500 bg-rose-950/20 text-white font-bold"
-                        : "border-slate-800 bg-slate-900 text-slate-400"
+                        ? "border-destructive bg-destructive/20 text-white font-bold"
+                        : "border-border bg-card text-muted-foreground"
                     }`}
                   >
                     <input
@@ -6512,15 +6516,15 @@ export default function AdminClient({
                       value="REMOVE"
                       checked={outgoingAction === "REMOVE"}
                       onChange={() => setOutgoingAction("REMOVE")}
-                      className="text-rose-600"
+                      className="text-destructive"
                     />
                     <span>Delete Account Permanently</span>
                   </label>
                   <label
                     className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs ${
                       outgoingAction === "MOVE_TO_RESERVE"
-                        ? "border-amber-500 bg-amber-950/20 text-white font-bold"
-                        : "border-slate-800 bg-slate-900 text-slate-400"
+                        ? "border-secondary bg-secondary/20 text-white font-bold"
+                        : "border-border bg-card text-muted-foreground"
                     }`}
                   >
                     <input
@@ -6529,14 +6533,14 @@ export default function AdminClient({
                       value="MOVE_TO_RESERVE"
                       checked={outgoingAction === "MOVE_TO_RESERVE"}
                       onChange={() => setOutgoingAction("MOVE_TO_RESERVE")}
-                      className="text-amber-500"
+                      className="text-secondary"
                     />
                     <span>Move to Reserve Pool</span>
                   </label>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-[11px] text-indigo-300">
+              <div className="p-3 rounded-xl bg-primary/20 border border-primary/20 text-xs text-primary">
                 💡 <strong>Automatic Cascading:</strong> All existing match fixtures, standings points, and UCL/Europa slots associated with this athlete slot will automatically update to display the new athlete&apos;s name immediately.
               </div>
 
@@ -6552,7 +6556,7 @@ export default function AdminClient({
                 <Button
                   type="submit"
                   disabled={replaceLoading}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                  className="bg-primary hover:bg-primary text-white font-bold text-xs"
                 >
                   <Shuffle className="h-4 w-4 mr-1.5" />
                   {replaceLoading ? "Replacing..." : "Confirm Athlete Replacement"}
@@ -6566,28 +6570,28 @@ export default function AdminClient({
       {/* ASSIGN / EDIT REAL CLUB MODAL */}
       {editingClubPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-slate-700 bg-slate-950 p-6 space-y-5 shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-background p-6 space-y-5 shadow-2xl max-h-screen flex flex-col">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
                   Assign Official Football Club
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Assigning club representation for <strong className="text-white">{editingClubPlayer.gamerTag}</strong> ({editingClubPlayer.division}).
                 </p>
               </div>
               <button
                 onClick={() => setEditingClubPlayer(null)}
-                className="text-slate-400 hover:text-white text-sm p-1.5 rounded-lg hover:bg-slate-900"
+                className="text-muted-foreground hover:text-white text-sm p-1.5 rounded-lg hover:bg-card"
               >
                 ✕
               </button>
             </div>
 
-            <div className="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div className="text-xs text-foreground bg-card/80 p-3 rounded-xl border border-border flex items-center justify-between">
               <span>
                 Eligible League:{" "}
-                <strong className="text-sky-400 uppercase">
+                <strong className="text-primary uppercase">
                   {editingClubPlayer.division === "Division 1"
                     ? "Premier League (England)"
                     : editingClubPlayer.division === "Division 2"
@@ -6595,13 +6599,13 @@ export default function AdminClient({
                     : "Serie A (Italy)"}
                 </strong>
               </span>
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-xs">
                 {getTeamsForDivision(editingClubPlayer.division).length} Clubs Available
               </Badge>
             </div>
 
             {/* Grid of clubs */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 overflow-y-auto p-1 max-h-[360px]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 overflow-y-auto p-1 max-h-96">
               {getTeamsForDivision(editingClubPlayer.division).map((team) => {
                 const isSelected = selectedClubName === team.name;
                 const otherPlayer = (playersList || []).find(
@@ -6620,13 +6624,13 @@ export default function AdminClient({
                     onClick={() => setSelectedClubName(team.name)}
                     className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 relative ${
                       isSelected
-                        ? "border-sky-400 bg-sky-500/20 shadow-lg shadow-sky-500/20 ring-2 ring-sky-400/50"
+                        ? "border-primary bg-primary/20 shadow-lg ring-2 ring-primary/50"
                         : isTaken
-                        ? "border-slate-800/60 bg-slate-950/80 opacity-40 cursor-not-allowed"
-                        : "border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-slate-700"
+                        ? "border-border/60 bg-background/80 opacity-40 cursor-not-allowed"
+                        : "border-border bg-card/60 hover:bg-muted/80 hover:border-border"
                     }`}
                   >
-                    <div className="h-12 w-12 rounded-xl bg-slate-950/60 p-1.5 flex items-center justify-center border border-slate-800">
+                    <div className="h-12 w-12 rounded-xl bg-background/60 p-1.5 flex items-center justify-center border border-border">
                       <img
                         src={team.logo}
                         alt={team.name}
@@ -6635,22 +6639,22 @@ export default function AdminClient({
                       />
                     </div>
                     <div className="w-full">
-                      <div className="text-[11px] font-bold text-white truncate" title={team.name}>
+                      <div className="text-xs font-bold text-white truncate" title={team.name}>
                         {team.name}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400">
+                      <div className="text-xs font-mono text-muted-foreground">
                         {team.shortName}
                       </div>
                       {isTaken ? (
-                        <span className="text-[8px] font-mono text-rose-400 font-bold block truncate mt-0.5">
+                        <span className="text-xs font-mono text-destructive font-bold block truncate mt-0.5">
                           TAKEN (@{otherPlayer?.gamerTag})
                         </span>
                       ) : isSelected ? (
-                        <span className="text-[8px] font-mono text-sky-400 font-bold block mt-0.5">
+                        <span className="text-xs font-mono text-primary font-bold block mt-0.5">
                           SELECTED
                         </span>
                       ) : (
-                        <span className="text-[8px] font-mono text-emerald-400 font-semibold block mt-0.5">
+                        <span className="text-xs font-mono text-primary font-semibold block mt-0.5">
                           Available
                         </span>
                       )}
@@ -6660,12 +6664,12 @@ export default function AdminClient({
               })}
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-between pt-3 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setSelectedClubName("")}
-                className="text-xs text-rose-400 border-rose-500/30 hover:bg-rose-950/30"
+                className="text-xs text-destructive border-destructive/30 hover:bg-destructive/30"
               >
                 Clear Club
               </Button>
@@ -6682,7 +6686,7 @@ export default function AdminClient({
                   type="button"
                   onClick={() => handleUpdatePlayerClub(editingClubPlayer.id, selectedClubName)}
                   disabled={updatingClub}
-                  className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs"
+                  className="bg-primary hover:bg-primary text-white font-bold text-xs"
                 >
                   {updatingClub ? "Saving..." : "Save Club Assignment"}
                 </Button>
@@ -6698,17 +6702,17 @@ export default function AdminClient({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
           onClick={() => setInspectImage(null)}
         >
-          <div className="relative max-w-4xl w-full max-h-[90vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
+          <div className="relative max-w-4xl w-full max-h-screen overflow-hidden rounded-2xl border border-border bg-background">
             <button
               onClick={() => setInspectImage(null)}
-              className="absolute top-4 right-4 z-10 rounded-full bg-slate-900/80 p-2 text-white hover:bg-slate-800"
+              className="absolute top-4 right-4 z-10 rounded-full bg-card/80 p-2 text-white hover:bg-muted"
             >
               ✕
             </button>
             <img
               src={inspectImage}
               alt="Screenshot Evidence Inspection"
-              className="w-full h-auto max-h-[85vh] object-contain mx-auto"
+              className="w-full h-auto max-h-screen object-contain mx-auto"
             />
           </div>
         </div>
@@ -6716,14 +6720,14 @@ export default function AdminClient({
 
       {/* CONTINENTAL ANIMATED DRAWS MODAL (ADMIN COMMISSIONER ONLY) */}
       {activeDrawModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/90 backdrop-blur-xl overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/90 backdrop-blur-xl overflow-y-auto">
           <div className="relative w-full max-w-5xl my-auto">
             <button
               onClick={() => setActiveDrawModal(null)}
-              className="absolute -top-3 -right-3 z-50 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-white shadow-xl border border-slate-600"
+              className="absolute -top-3 -right-3 z-50 p-2 rounded-full bg-muted hover:bg-muted text-white shadow-xl border border-border"
               title="Close Draw Screen"
             >
-              <XCircle className="h-6 w-6 text-slate-300" />
+              <XCircle className="h-6 w-6 text-foreground" />
             </button>
             <ContinentalDrawExperience
               competition={activeDrawModal}

@@ -205,37 +205,37 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="relative w-full max-w-md">
         {/* Back to Home Button */}
         <div className="mb-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl px-3.5 py-2 group shadow-sm"
+            className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-white transition-colors bg-card/80 hover:bg-muted border border-border rounded-xl px-3.5 py-2 group shadow-sm"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-slate-400 group-hover:text-yellow-400" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-secondary" />
             <span>Back to Home</span>
           </Link>
         </div>
 
         {/* Ambient glow */}
-        <div className="absolute -top-16 -left-16 w-60 h-60 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -right-16 w-60 h-60 bg-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -left-16 w-60 h-60 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -right-16 w-60 h-60 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative rounded-3xl border border-slate-800 bg-slate-950/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="relative rounded-3xl border border-border bg-background/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-0.5 shadow-lg shadow-sky-500/20 mb-3">
-              <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-slate-950">
-                <Smartphone className="h-6 w-6 text-yellow-400" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary p-0.5 shadow-lg mb-3">
+              <div className="flex h-full w-full items-center justify-center rounded-xl bg-background">
+                <Smartphone className="h-6 w-6 text-secondary" />
               </div>
             </div>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Badge variant="yellow" className="text-[10px] font-mono uppercase tracking-wider">
+              <Badge variant="yellow" className="text-xs font-mono uppercase tracking-wider">
                 eFootball Mobile Arena
               </Badge>
               {isAdminRequired && (
-                <Badge variant="destructive" className="text-[10px] uppercase font-mono">
+                <Badge variant="destructive" className="text-xs uppercase font-mono">
                   Admin Portal
                 </Badge>
               )}
@@ -243,7 +243,7 @@ function LoginForm() {
             <h1 className="text-2xl font-black uppercase text-white tracking-tight">
               {isAdminRequired ? "Administrator Sign In" : "Sign In to Your Account"}
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {isAdminRequired
                 ? "Enter verified administrator credentials to access the League Control Room."
                 : "Sign in to access your 24-hr daily match, coordinate on WhatsApp, and submit results."}
@@ -251,14 +251,14 @@ function LoginForm() {
           </div>
 
           {isAdminRequired && !error && (
-            <div className="mb-6 rounded-xl bg-sky-500/10 border border-sky-500/30 p-3 text-xs text-sky-300 flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-sky-400" />
+            <div className="mb-6 rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs text-primary flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
               <span>Authentication Required: Please sign in as an Administrator.</span>
             </div>
           )}
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-400 flex items-center gap-2">
+            <div className="mb-6 rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-xs text-destructive flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -267,7 +267,7 @@ function LoginForm() {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+              <label className="block text-xs font-bold text-foreground uppercase mb-1">
                 Email or Gamer Tag
               </label>
               <div className="relative">
@@ -278,13 +278,13 @@ function LoginForm() {
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="pl-9"
                 />
-                <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold text-slate-300 uppercase">
+                <label className="block text-xs font-bold text-foreground uppercase">
                   Password
                 </label>
                 <button
@@ -297,7 +297,7 @@ function LoginForm() {
                     setForgotMessage("");
                     setShowForgotModal(true);
                   }}
-                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
+                  className="text-xs font-bold text-primary hover:text-primary hover:underline transition-colors"
                 >
                   Forgot Password?
                 </button>
@@ -311,11 +311,11 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-9 pr-10"
                 />
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-white transition-colors focus:outline-none"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   title={showPassword ? "Hide password" : "Show password"}
                 >
@@ -332,7 +332,7 @@ function LoginForm() {
               type="submit"
               variant="yellow"
               size="lg"
-              className="w-full font-black text-slate-950 shadow-lg shadow-yellow-500/20"
+              className="w-full font-black text-secondary-foreground shadow-lg"
               disabled={loading}
             >
               {loading ? "Verifying..." : isAdminRequired ? "Authenticate as Admin" : "Sign In"}
@@ -341,8 +341,8 @@ function LoginForm() {
 
           {/* FORGOT PASSWORD MODAL */}
           {showForgotModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-              <div className="relative w-full max-w-md rounded-3xl border border-slate-800 bg-[#070b18] p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/85 backdrop-blur-md animate-fade-in duration-200">
+              <div className="relative w-full max-w-md rounded-3xl border border-border bg-background p-6 sm:p-8 shadow-2xl space-y-6">
                 {/* Close button */}
                 <button
                   type="button"
@@ -353,14 +353,14 @@ function LoginForm() {
                     setForgotMessage("");
                     setResetSuccess(false);
                   }}
-                  className="absolute right-4 top-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+                  className="absolute right-4 top-4 p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-card transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
 
                 {/* Modal Header */}
                 <div className="text-center space-y-2">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/30 text-primary">
                     <KeyRound className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl font-black uppercase text-white tracking-tight">
@@ -368,7 +368,7 @@ function LoginForm() {
                       ? "Set Your New Password"
                       : "Forgot Your Password?"}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     {forgotStatus === "APPROVED"
                       ? "The Commissioner has granted permission. Enter and confirm your new password below."
                       : "Enter your registered email address. The system will send a reset request to the League Commissioner for approval."}
@@ -377,15 +377,15 @@ function LoginForm() {
 
                 {/* Error & Message Alerts */}
                 {forgotError && (
-                  <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-400 flex items-center gap-2">
+                  <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-xs text-destructive flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>{forgotError}</span>
                   </div>
                 )}
 
                 {forgotMessage && (
-                  <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-3 text-xs text-cyan-300 flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-cyan-400" />
+                  <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-xs text-primary flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                     <span>{forgotMessage}</span>
                   </div>
                 )}
@@ -394,7 +394,7 @@ function LoginForm() {
                 {forgotStatus !== "APPROVED" && (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                      <label className="block text-xs font-bold text-foreground uppercase mb-1">
                         Your Registered Email Address
                       </label>
                       <div className="relative">
@@ -406,18 +406,18 @@ function LoginForm() {
                           onChange={(e) => setForgotEmail(e.target.value)}
                           className="pl-9"
                         />
-                        <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
 
                     {forgotStatus === "PENDING" ? (
                       <div className="space-y-3">
-                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 text-xs">
-                          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-amber-400">
+                        <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/30 text-secondary space-y-2 text-xs">
+                          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-secondary">
                             <Clock className="h-4 w-4 animate-spin" />
                             <span>Waiting for Admin Approval</span>
                           </div>
-                          <p className="text-slate-300 leading-relaxed">
+                          <p className="text-foreground leading-relaxed">
                             Your password reset request has been logged. The League Commissioner will grant permission in the Admin Office. Once approved, click the button below to set your new password.
                           </p>
                         </div>
@@ -427,7 +427,7 @@ function LoginForm() {
                           variant="yellow"
                           onClick={handleCheckStatus}
                           disabled={forgotLoading}
-                          className="w-full font-black text-slate-950 gap-2 min-h-[44px]"
+                          className="w-full font-black text-secondary-foreground gap-2 h-11"
                         >
                           <RefreshCw className={`h-4 w-4 ${forgotLoading ? "animate-spin" : ""}`} />
                           <span>{forgotLoading ? "Checking..." : "Check Commissioner Approval & Continue"}</span>
@@ -440,7 +440,7 @@ function LoginForm() {
                           variant="yellow"
                           onClick={() => handleRequestReset()}
                           disabled={forgotLoading}
-                          className="w-full font-black text-slate-950 min-h-[44px]"
+                          className="w-full font-black text-secondary-foreground h-11"
                         >
                           {forgotLoading ? "Sending Request..." : "Send Reset Request to Admin"}
                         </Button>
@@ -450,7 +450,7 @@ function LoginForm() {
                           variant="outline"
                           onClick={handleCheckStatus}
                           disabled={forgotLoading}
-                          className="w-full text-xs font-bold text-slate-300 min-h-[44px]"
+                          className="w-full text-xs font-bold text-foreground h-11"
                         >
                           <Clock className="h-4 w-4 mr-1.5" />
                           I Already Requested – Check Approval Status
@@ -463,13 +463,13 @@ function LoginForm() {
                 {/* STEP 2: ENTER NEW PASSWORD & CONFIRM (WHEN APPROVED) */}
                 {forgotStatus === "APPROVED" && (
                   <form onSubmit={handleConfirmReset} className="space-y-4">
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 flex items-center gap-2 text-primary text-xs font-bold">
                       <CheckCircle2 className="h-4 w-4 shrink-0" />
                       <span>Commissioner Permission Granted: Enter your new password</span>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                      <label className="block text-xs font-bold text-foreground uppercase mb-1">
                         New Password
                       </label>
                       <div className="relative">
@@ -482,11 +482,11 @@ function LoginForm() {
                           onChange={(e) => setNewPassword(e.target.value)}
                           className="pl-9 pr-10"
                         />
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                          className="absolute right-3 top-3 text-muted-foreground hover:text-white"
                         >
                           {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -494,7 +494,7 @@ function LoginForm() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
+                      <label className="block text-xs font-bold text-foreground uppercase mb-1">
                         Confirm New Password
                       </label>
                       <div className="relative">
@@ -507,11 +507,11 @@ function LoginForm() {
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           className="pl-9 pr-10"
                         />
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                          className="absolute right-3 top-3 text-muted-foreground hover:text-white"
                         >
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -522,7 +522,7 @@ function LoginForm() {
                       type="submit"
                       variant="yellow"
                       disabled={forgotLoading || resetSuccess}
-                      className="w-full font-black text-slate-950 min-h-[44px]"
+                      className="w-full font-black text-secondary-foreground h-11"
                     >
                       {forgotLoading ? "Updating Password..." : resetSuccess ? "Logging in..." : "Set New Password & Sign In"}
                     </Button>
@@ -533,12 +533,12 @@ function LoginForm() {
           )}
 
           {/* Registration link */}
-          <div className="mt-6 text-center text-xs text-slate-400 border-t border-slate-900 pt-5 space-y-2">
+          <div className="mt-6 text-center text-xs text-muted-foreground border-t border-border pt-5 space-y-2">
             <div>
               Don&apos;t have an eFootball Mobile account?{" "}
               <Link
                 href="/register"
-                className="font-bold text-sky-400 hover:text-sky-300 underline underline-offset-2 ml-1"
+                className="font-bold text-primary hover:text-primary underline underline-offset-2 ml-1"
               >
                 Create Account
               </Link>
@@ -546,7 +546,7 @@ function LoginForm() {
             <div className="pt-2">
               <Link
                 href="/admin/login"
-                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-1 hover:underline"
+                className="text-xs font-mono text-primary hover:text-primary flex items-center justify-center gap-1 hover:underline"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Go to Dedicated League Admin Office →
@@ -556,8 +556,8 @@ function LoginForm() {
         </div>
 
         {/* External Resources & Community Links */}
-        <div className="rounded-2xl border border-slate-800 bg-[#080d1e]/80 p-4 space-y-3">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+        <div className="rounded-2xl border border-border bg-background/80 p-4 space-y-3">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block text-center">
             External Community & League Tables (Open Access)
           </span>
           <div className="grid grid-cols-2 gap-2">
@@ -565,7 +565,7 @@ function LoginForm() {
               href="https://discord.gg/rbaFrBB5p"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
+              className="p-2 rounded-xl bg-card border border-border hover:border-primary/40 text-center text-xs text-foreground font-semibold transition-all hover:text-white"
             >
               Official Discord ↗
             </a>
@@ -573,7 +573,7 @@ function LoginForm() {
               href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-pink-500/40 text-center text-xs text-slate-300 font-semibold transition-all hover:text-white"
+              className="p-2 rounded-xl bg-card border border-border hover:border-primary/40 text-center text-xs text-foreground font-semibold transition-all hover:text-white"
             >
               Official Instagram ↗
             </a>
@@ -584,7 +584,7 @@ function LoginForm() {
         <div className="text-center">
           <Link
             href="/"
-            className="text-xs text-slate-500 hover:text-cyan-400 transition-colors uppercase font-bold tracking-wider"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase font-bold tracking-wider"
           >
             ← Back to eFootball Rwanda League Homepage
           </Link>

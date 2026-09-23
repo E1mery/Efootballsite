@@ -43,32 +43,32 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
   const isForfeit = match.status === "FORFEIT";
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border-2 border-yellow-500/50 bg-gradient-to-br from-slate-950 via-slate-900 to-yellow-950/20 p-6 sm:p-8 shadow-2xl shadow-yellow-500/10">
+    <div className="relative overflow-hidden rounded-3xl border-2 border-secondary/50 bg-gradient-to-br from-background via-card to-secondary/20 p-6 sm:p-8 shadow-2xl">
       {/* Background glowing flair */}
-      <div className="absolute -top-20 -right-20 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 -right-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Banner Ribbon */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-yellow-500/20 pb-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-secondary/20 pb-4 mb-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500 text-slate-950 font-black shadow-lg shadow-yellow-500/30 animate-pulse">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-secondary-foreground font-black shadow-lg animate-pulse">
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-widest text-yellow-400">
+              <span className="text-xs font-black uppercase tracking-widest text-secondary">
                 OFFICIAL MATCH OF THE DAY
               </span>
-              <Badge variant="yellow" className="text-[10px] font-mono">
+              <Badge variant="yellow" className="text-xs font-mono">
                 TABLE SELECTED
               </Badge>
             </div>
-            <p className="text-xs text-slate-300 font-semibold">{headline}</p>
+            <p className="text-xs text-foreground font-semibold">{headline}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="font-mono text-xs text-slate-300">
+          <Badge variant="secondary" className="font-mono text-xs text-foreground">
             {match.division} • {match.round}
           </Badge>
           {isLive ? (
@@ -80,7 +80,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
               FINISHED
             </Badge>
           ) : (
-            <Badge variant="default" className="text-xs text-sky-400">
+            <Badge variant="default" className="text-xs text-primary">
               24-HR CYCLE ACTIVE
             </Badge>
           )}
@@ -90,16 +90,16 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
       {/* Central Showdown Arena */}
       <div className="grid grid-cols-1 lg:grid-cols-11 items-center gap-6 my-2">
         {/* Home Contender */}
-        <div className="lg:col-span-5 rounded-2xl border border-sky-500/30 bg-slate-950/70 p-5 space-y-3 relative">
+        <div className="lg:col-span-5 rounded-2xl border border-primary/30 bg-background/70 p-5 space-y-3 relative">
           <div className="flex items-center justify-between">
             <Badge variant="default" className="text-xs font-mono font-bold">
               RANK #{homeRank} • {homePoints} PTS
             </Badge>
-            <span className="text-[11px] font-mono text-slate-500">HOME</span>
+            <span className="text-xs font-mono text-muted-foreground">HOME</span>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 border-2 border-sky-400 p-1.5 shadow-lg shadow-sky-500/20 overflow-hidden">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-card border-2 border-primary p-1.5 shadow-lg overflow-hidden">
               {match.homePlayer ? (
                 <img
                   src={resolvePlayerAvatar(match.homePlayer)}
@@ -107,7 +107,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <span className="text-sky-400 font-black text-xl">HM</span>
+                <span className="text-primary font-black text-xl">HM</span>
               )}
             </div>
             <div>
@@ -116,26 +116,26 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   {match.homePlayer?.gamerTag}
                 </h3>
                 {match.homePlayer?.realTeam && (
-                  <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold border-sky-500/40 text-sky-400 bg-sky-950/30">
+                  <Badge variant="outline" className="text-xs py-0 px-2 font-bold border-primary/40 text-primary bg-primary/30">
                     {match.homePlayer.realTeam}
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-slate-300">{match.homePlayer?.fullName}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+              <p className="text-xs text-foreground">{match.homePlayer?.fullName}</p>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">
                 Konami ID: {match.homePlayer?.efootballId}
               </p>
             </div>
           </div>
 
           {match.homePlayer?.whatsapp && (
-            <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400">{match.homePlayer.whatsapp}</span>
+            <div className="pt-2 border-t border-border flex items-center justify-between">
+              <span className="text-xs font-mono text-muted-foreground">{match.homePlayer.whatsapp}</span>
               <a
                 href={`https://wa.me/${match.homePlayer.whatsapp.replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary hover:underline"
               >
                 <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Direct
               </a>
@@ -146,27 +146,27 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
         {/* VS / Score Divider */}
         <div className="lg:col-span-1 text-center flex flex-col items-center justify-center">
           {isLive || isFinished || isForfeit ? (
-            <div className="rounded-2xl bg-slate-950 border border-yellow-500/40 p-3 font-mono text-2xl font-black text-yellow-400 shadow-xl">
+            <div className="rounded-2xl bg-background border border-secondary/40 p-3 font-mono text-2xl font-black text-secondary shadow-xl">
               {match.homeScore ?? 0} : {match.awayScore ?? 0}
             </div>
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/20 border-2 border-yellow-400 text-yellow-400 font-black text-sm shadow-xl shadow-yellow-500/20 animate-bounce">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20 border-2 border-secondary text-secondary font-black text-sm shadow-xl animate-bounce">
               VS
             </div>
           )}
         </div>
 
         {/* Away Contender */}
-        <div className="lg:col-span-5 rounded-2xl border border-emerald-500/30 bg-slate-950/70 p-5 space-y-3 relative">
+        <div className="lg:col-span-5 rounded-2xl border border-primary/30 bg-background/70 p-5 space-y-3 relative">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono text-slate-500">AWAY</span>
+            <span className="text-xs font-mono text-muted-foreground">AWAY</span>
             <Badge variant="green" className="text-xs font-mono font-bold">
               RANK #{awayRank} • {awayPoints} PTS
             </Badge>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 border-2 border-emerald-400 p-1.5 shadow-lg shadow-emerald-500/20 overflow-hidden">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-card border-2 border-primary p-1.5 shadow-lg overflow-hidden">
               {match.awayPlayer ? (
                 <img
                   src={resolvePlayerAvatar(match.awayPlayer)}
@@ -174,7 +174,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <span className="text-emerald-400 font-black text-xl">AW</span>
+                <span className="text-primary font-black text-xl">AW</span>
               )}
             </div>
             <div>
@@ -183,26 +183,26 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   {match.awayPlayer?.gamerTag}
                 </h3>
                 {match.awayPlayer?.realTeam && (
-                  <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold border-emerald-500/40 text-emerald-400 bg-emerald-950/30">
+                  <Badge variant="outline" className="text-xs py-0 px-2 font-bold border-primary/40 text-primary bg-primary/30">
                     {match.awayPlayer.realTeam}
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-slate-300">{match.awayPlayer?.fullName}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+              <p className="text-xs text-foreground">{match.awayPlayer?.fullName}</p>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">
                 Konami ID: {match.awayPlayer?.efootballId}
               </p>
             </div>
           </div>
 
           {match.awayPlayer?.whatsapp && (
-            <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400">{match.awayPlayer.whatsapp}</span>
+            <div className="pt-2 border-t border-border flex items-center justify-between">
+              <span className="text-xs font-mono text-muted-foreground">{match.awayPlayer.whatsapp}</span>
               <a
                 href={`https://wa.me/${match.awayPlayer.whatsapp.replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary hover:underline"
               >
                 <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Direct
               </a>
@@ -220,13 +220,13 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
       />
 
       {/* Footer Info */}
-      <div className="mt-5 pt-4 border-t border-yellow-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
+      <div className="mt-5 pt-4 border-t border-secondary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <Trophy className="h-4 w-4 text-yellow-400" />
+          <Trophy className="h-4 w-4 text-secondary" />
           <span>Selected on merit from current league standings. Highest stakes clash of the day.</span>
         </span>
 
-        <Link href="/dashboard" className="text-yellow-400 font-bold hover:underline flex items-center gap-1">
+        <Link href="/dashboard" className="text-secondary font-bold hover:underline flex items-center gap-1">
           <span>Go to Player Arena</span> →
         </Link>
       </div>
