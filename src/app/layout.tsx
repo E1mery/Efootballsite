@@ -42,7 +42,6 @@ export default function RootLayout({
       <body className={`${font.className} bg-background text-foreground min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white`}>
         {/* Subtle background ambient mesh */}
         <div className="fixed inset-0 pointer-events-none -z-10 bg-hero-glow" />
-        <div className="fixed inset-0 pointer-events-none -z-10 bg-ambient-success" />
         
         <Navbar />
         <main className="flex-1">{children}</main>

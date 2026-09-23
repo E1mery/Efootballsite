@@ -265,8 +265,8 @@ export default async function HomePage({
       {/* LIVE BROADCAST MATCH (IF ANY) */}
       {featuredLiveMatch && (
         <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-destructive/40 bg-gradient-to-r from-destructive/40 via-card/90 to-background/80 p-6 backdrop-blur-xl shadow-2xl">
-            <div className="flex items-center gap-3 mb-4 border-b border-destructive/20 pb-3">
+          <div className="rounded-2xl border border-destructive/30 bg-card/90 p-6 backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
               <Badge variant="destructive" className="text-xs px-2.5 py-1 uppercase font-bold">
                 🔴 CURRENTLY LIVE ON STREAM
               </Badge>

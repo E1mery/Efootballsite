@@ -103,7 +103,7 @@ export default function Navbar() {
             <EfootballGamingLogo size="md" showText={true} />
           </Link>
           {isAdminPortal && (
-            <Badge variant="destructive" className="font-mono text-xs tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex font-bold">
+            <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex font-bold">
               COMMISSIONER OFFICE
             </Badge>
           )}
@@ -138,14 +138,14 @@ export default function Navbar() {
           {isAdminPortal ? (
             /* Inside Admin Portal: Clean Header without any public portal links */
             <div className="flex items-center gap-2">
-              <Badge variant="destructive" className="font-mono text-xs tracking-wider uppercase px-3 py-1 font-bold shadow-md">
+              <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-3 py-1 font-bold shadow-md">
                 COMMISSIONER CONSOLE
               </Badge>
             </div>
           ) : session?.authenticated ? (
             session.user?.role === "ADMIN" ? (
               <Link href="/admin">
-                <Button variant="destructive" size="sm" className="font-black text-xs gap-1.5 shadow-md">
+                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md">
                   <ShieldAlert className="h-3.5 w-3.5" />
                   <span>Admin Office</span>
                 </Button>
@@ -167,7 +167,7 @@ export default function Navbar() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="yellow" size="sm" className="font-black text-xs text-secondary-foreground shadow-md">
+                <Button size="sm" className="font-black text-xs text-secondary-foreground shadow-md">
                   <span>Register</span>
                 </Button>
               </Link>
@@ -182,7 +182,7 @@ export default function Navbar() {
               <Link href={session.user?.role === "ADMIN" ? "/admin" : "/dashboard"}>
                 <Button
                   size="sm"
-                  variant={session.user?.role === "ADMIN" ? "destructive" : "yellow"}
+                  variant={session.user?.role === "ADMIN" ? "yellow" : "yellow"}
                   className="h-8 px-2.5 text-xs font-black"
                 >
                   <User className="h-3.5 w-3.5 mr-1" />
@@ -243,7 +243,7 @@ export default function Navbar() {
                 {session?.authenticated ? (
                   session.user?.role === "ADMIN" ? (
                     <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="destructive" className="w-full text-xs font-black h-11">
+                      <Button variant="yellow" className="w-full text-xs font-black h-11">
                         Open Admin Office
                       </Button>
                     </Link>

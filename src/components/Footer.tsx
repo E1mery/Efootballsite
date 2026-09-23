@@ -14,7 +14,7 @@ export default function Footer() {
       <footer className="border-t border-border bg-background text-muted-foreground py-6 px-4 mt-auto">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between text-xs gap-3">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
             <span className="font-bold text-foreground">eFootball Rwanda League (EFRL) Admin Office</span>
             <span className="text-muted-foreground">•</span>
             <span className="font-mono text-muted-foreground">Commissioner Workspace</span>

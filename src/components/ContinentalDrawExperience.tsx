@@ -57,16 +57,12 @@ export default function ContinentalDrawExperience({
   const isUcl = competition === "UCL";
   const themeColors = isUcl
     ? {
-        primary: "indigo",
-        accent: "sky",
         bgGrad: "from-background via-primary/70 to-background",
         border: "border-primary/40",
         glow: "",
         badge: "bg-primary/20 text-primary border-primary/40",
       }
     : {
-        primary: "amber",
-        accent: "orange",
         bgGrad: "from-background via-secondary/70 to-background",
         border: "border-secondary/40",
         glow: "",

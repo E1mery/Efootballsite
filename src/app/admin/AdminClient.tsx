@@ -1608,10 +1608,10 @@ export default function AdminClient({
   return (
     <div className="space-y-8">
       {/* Top Commissioner Bar */}
-      <div className="rounded-3xl border border-destructive/30 bg-gradient-to-r from-destructive/40 via-background to-background p-6 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-3xl border border-border bg-card/80 p-6 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="font-mono text-xs px-2 py-0.5 tracking-wider">
+            <Badge variant="yellow" className="font-mono text-xs px-2 py-0.5 tracking-wider">
               ADMIN OFFICE COMMISSIONER
             </Badge>
             <span className="text-xs font-mono text-muted-foreground">Logged in as: {adminEmail || "admin@efootball.rw"}</span>
@@ -1876,7 +1876,7 @@ export default function AdminClient({
 
           {/* Action Required Alert: Password Reset Requests */}
           {passwordResets.filter((r) => r.status === "PENDING").length > 0 && (
-            <div className="rounded-3xl border border-destructive/50 bg-gradient-to-r from-destructive/40 via-background to-background p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="rounded-3xl border border-destructive/40 bg-card/90 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/20 border border-destructive/40 text-destructive shrink-0">
                   <KeyRound className="h-6 w-6" />
@@ -3096,16 +3096,16 @@ export default function AdminClient({
           </div>
 
           {/* Relegations & Promotions Commissioner Trigger Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-destructive/30 bg-gradient-to-r from-destructive/30 via-background to-secondary/20 shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card/80 shadow-xl">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Badge variant="destructive" className="text-xs font-black bg-destructive/20 text-destructive border-destructive/40">
+                <Badge variant="yellow" className="text-xs font-black">
                   RELEGATION & PROMOTION DISPATCH
                 </Badge>
                 <span className="text-xs font-mono text-muted-foreground">Commissioner Authority</span>
               </div>
               <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
-                <ArrowDown className="h-4 w-4 text-destructive" />
+                <ArrowDown className="h-4 w-4 text-secondary" />
                 <span>Trigger Official Division Relegations & Promotions</span>
               </h3>
               <p className="text-xs text-foreground">
@@ -6072,7 +6072,7 @@ export default function AdminClient({
       {activeTab === "PASSWORD_RESETS" && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="rounded-3xl border border-destructive/30 bg-gradient-to-br from-destructive/40 via-card to-background p-6 sm:p-8 relative overflow-hidden shadow-xl">
+          <div className="rounded-3xl border border-border bg-card/80 p-6 sm:p-8 relative overflow-hidden shadow-xl">
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-2xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/20 border border-destructive/30 text-destructive text-xs font-bold uppercase tracking-wider">

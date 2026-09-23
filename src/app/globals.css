@@ -3,83 +3,72 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 224 71% 4%; 
-    --foreground: 210 40% 98%;
-    --card: 222 47% 7%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 198 100% 50; /* Electric Cyan #00B2FF */
-    --primary-foreground: 222 47% 7%;
-    --secondary: 45 93% 47%; /* Championship Gold #EAB308 */
-    --secondary-foreground: 222 47% 7%;
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 198 100% 50%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 198 100% 50%;
+  :root,
+  .dark {
+    --background: 0.13 0.028 261.692;
+    --foreground: 0.985 0.002 247.839;
+    --card: 0.21 0.034 264.665;
+    --card-foreground: 0.985 0.002 247.839;
+    --popover: 0.21 0.034 264.665;
+    --popover-foreground: 0.985 0.002 247.839;
+    --primary: 0.42 0.18 266;
+    --primary-foreground: 0.97 0.014 254.604;
+    --secondary: 0.86 0.18 92;
+    --secondary-foreground: 0.21 0.034 264.665;
+    --muted: 0.278 0.033 256.848;
+    --muted-foreground: 0.707 0.022 261.325;
+    --accent: 0.278 0.033 256.848;
+    --accent-foreground: 0.985 0.002 247.839;
+    --destructive: 0.704 0.191 22.216;
+    --destructive-foreground: 0.985 0.002 247.839;
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.551 0.027 264.364);
     --radius: 0.75rem;
+  }
+
+  * {
+    border-color: var(--border);
   }
 }
 
 body {
-  background-color: #050811;
-  color: #f1f5f9;
+  background-color: oklch(var(--background));
+  color: oklch(var(--foreground));
   font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
 }
 
-/* Professional Esports Gradients */
+/* Two-color brand gradient: primary blue -> secondary gold */
 .efootball-gradient-text {
-  background: linear-gradient(135deg, #38BDF8 0%, #00B2FF 50%, #FBBF24 100%);
+  background: linear-gradient(135deg, oklch(var(--primary)) 0%, oklch(var(--secondary)) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-.gold-gradient-text {
-  background: linear-gradient(135deg, #FDE047 0%, #EAB308 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.cyan-gradient-text {
-  background: linear-gradient(135deg, #E0F2FE 0%, #38BDF8 50%, #0284C7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.rwanda-gradient-text {
-  background: linear-gradient(135deg, #00B2FF 0%, #FBBF24 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* Glassmorphism & Esports Cards */
 .esports-card {
-  background: rgba(11, 17, 32, 0.75);
+  background: oklch(var(--card) / 0.85);
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .esports-card:hover {
-  border-color: rgba(56, 189, 248, 0.35);
-  box-shadow: 0 10px 30px -10px rgba(0, 178, 255, 0.15);
+  border-color: oklch(var(--primary) / 0.4);
+  box-shadow: 0 10px 30px -10px oklch(var(--primary) / 0.25);
   transform: translateY(-2px);
 }
 
-.glow-cyan {
-  box-shadow: 0 0 25px -5px rgba(0, 178, 255, 0.35);
+.glow-primary {
+  box-shadow: 0 0 25px -5px oklch(var(--primary) / 0.4);
 }
 
-.glow-gold {
-  box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.3);
+.glow-secondary {
+  box-shadow: 0 0 25px -5px oklch(var(--secondary) / 0.35);
 }
 
 /* Custom scrollbars */
@@ -89,16 +78,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #050811;
+  background: oklch(var(--background));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: oklch(var(--muted));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: oklch(var(--muted-foreground) / 0.5);
 }
 
 /* Animations */
@@ -148,26 +137,22 @@ body {
   animation: zoom-in 0.25s ease-out;
 }
 
-/* Token-based decorative surfaces (replace arbitrary-value backgrounds) */
-.bg-ambient-success {
-  background-image: radial-gradient(ellipse 60% 60% at 80% 80%, rgba(16, 185, 129, 0.08), transparent);
-}
-
+/* Token-based decorative surfaces (neutral only) */
 .bg-carbon-grid {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-image: linear-gradient(to right, oklch(1 0 0 / 0.02) 1px, transparent 1px), linear-gradient(to bottom, oklch(1 0 0 / 0.02) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
 .bg-logo-grid {
-  background-image: linear-gradient(45deg, hsl(var(--primary)) 1px, transparent 1px);
+  background-image: linear-gradient(45deg, oklch(var(--primary) / 0.5) 1px, transparent 1px);
   background-size: 6px 6px;
 }
 
 /* Token-based SVG gradient stops (currentColor cannot vary per stop) */
 .stop-primary {
-  stop-color: hsl(var(--primary));
+  stop-color: oklch(var(--primary));
 }
 
 .stop-secondary {
-  stop-color: hsl(var(--secondary));
+  stop-color: oklch(var(--secondary));
 }

@@ -73,18 +73,18 @@ export default function AdminLoginPage() {
             href="/"
             className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-white transition-colors bg-card/80 hover:bg-muted border border-border rounded-xl px-3.5 py-2 group shadow-sm"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-destructive" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-primary" />
             <span>Back to Home</span>
           </Link>
         </div>
 
         {/* Header Badge */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive shadow-lg">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 border border-primary/30 text-primary shadow-lg">
             <ShieldCheck className="h-10 w-10" />
           </div>
           <div className="flex items-center justify-center gap-2">
-            <Badge variant="destructive" className="font-mono tracking-widest text-xs px-2 py-0.5">
+            <Badge variant="yellow" className="font-mono tracking-widest text-xs px-2 py-0.5">
               OFFICIAL COMMISSIONER PORTAL
             </Badge>
           </div>
@@ -97,8 +97,8 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Login Box */}
-        <div className="rounded-3xl border border-destructive/20 bg-background/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-destructive via-secondary to-primary" />
+        <div className="rounded-3xl border border-border bg-background/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary" />
 
           {error && (
             <div className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/40 p-4 text-xs text-destructive">
@@ -110,7 +110,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-destructive" />
+                <Mail className="h-3.5 w-3.5 text-primary" />
                 Admin Official Email
               </label>
               <Input
@@ -119,14 +119,14 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-card/80 border-border text-white placeholder:text-muted-foreground focus:border-destructive"
+                className="bg-card/80 border-border text-white placeholder:text-muted-foreground focus:border-primary"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 text-destructive" />
+                  <Lock className="h-3.5 w-3.5 text-primary" />
                   Security Passphrase
                 </label>
               </div>
@@ -137,7 +137,7 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-card/80 border-border text-white placeholder:text-muted-foreground focus:border-destructive pr-10"
+                  className="bg-card/80 border-border text-white placeholder:text-muted-foreground focus:border-primary pr-10"
                 />
                 <button
                   type="button"
@@ -158,7 +158,8 @@ export default function AdminLoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-destructive hover:bg-destructive text-white font-black uppercase tracking-wider py-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+              variant="yellow"
+              className="w-full font-black uppercase tracking-wider py-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -177,7 +178,7 @@ export default function AdminLoginPage() {
           {/* Quick Notice */}
           <div className="mt-6 pt-5 border-t border-border/80 flex items-center justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Lock className="h-3 w-3 text-destructive" /> End-to-End Encrypted Session
+              <Lock className="h-3 w-3 text-secondary" /> End-to-End Encrypted Session
             </span>
             <span className="font-mono text-muted-foreground text-xs">Authorized Admins Only</span>
           </div>

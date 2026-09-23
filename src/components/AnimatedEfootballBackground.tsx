@@ -23,8 +23,12 @@ export default function AnimatedEfootballBackground() {
 
     window.addEventListener("resize", handleResize);
 
-    // Floating particles (Digital stadium dust/sparks)
-    const particleCount = 40;
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Floating particles (Digital stadium dust/sparks) — primary blue + secondary gold only
+    const particleCount = prefersReducedMotion ? 0 : 40;
     const particles = Array.from({ length: particleCount }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
@@ -32,7 +36,7 @@ export default function AnimatedEfootballBackground() {
       vy: (Math.random() - 0.5) * 0.4 - 0.2,
       radius: Math.random() * 2 + 1,
       alpha: Math.random() * 0.5 + 0.2,
-      color: Math.random() > 0.4 ? "#00B2FF" : "#FBBF24",
+      color: Math.random() > 0.4 ? "oklch(0.42 0.18 266)" : "oklch(0.86 0.18 92)",
     }));
 
     let pulseTime = 0;
@@ -50,15 +54,15 @@ export default function AnimatedEfootballBackground() {
         height / 2,
         Math.max(width, height) * 0.8
       );
-      gradient.addColorStop(0, "rgba(0, 178, 255, 0.07)");
-      gradient.addColorStop(0.5, "rgba(7, 11, 22, 0.4)");
-      gradient.addColorStop(1, "rgba(5, 8, 17, 0.95)");
+      gradient.addColorStop(0, "oklch(0.42 0.18 266 / 0.08)");
+      gradient.addColorStop(0.5, "oklch(0.13 0.028 261.692 / 0.4)");
+      gradient.addColorStop(1, "oklch(0.13 0.028 261.692 / 0.95)");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
 
       // 2. Animated Football Tactical Grid & Pitch Lines
       ctx.save();
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.08)";
+      ctx.strokeStyle = "oklch(0.42 0.18 266 / 0.12)";
       ctx.lineWidth = 1.5;
 
       const centerX = width / 2;
@@ -73,7 +77,7 @@ export default function AnimatedEfootballBackground() {
       ctx.stroke();
 
       // Center spot
-      ctx.fillStyle = "rgba(251, 191, 36, 0.4)";
+      ctx.fillStyle = "oklch(0.86 0.18 92 / 0.45)";
       ctx.beginPath();
       ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
       ctx.fill();
@@ -85,7 +89,7 @@ export default function AnimatedEfootballBackground() {
       ctx.stroke();
 
       // Outer Pitch Boundary
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.06)";
+      ctx.strokeStyle = "oklch(0.42 0.18 266 / 0.09)";
       ctx.strokeRect(
         centerX - pitchWidth / 2,
         centerY - pitchHeight / 2,
@@ -145,7 +149,7 @@ export default function AnimatedEfootballBackground() {
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
       {/* Carbon fiber grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
+      <div className="absolute inset-0 bg-carbon-grid opacity-40" />
     </div>
   );
 }
