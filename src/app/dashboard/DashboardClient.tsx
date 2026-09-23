@@ -208,11 +208,11 @@ function ContinentalGroupStandingsView({
       {/* Grid of 4 Groups */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {groups.map((grp) => {
-          let grpStandings = standings.filter(
-            (s) => s.division?.includes(grp) || s.division?.includes(grp.toLowerCase())
+          let grpStandings = (standings || []).filter(
+            (s) => s && (s.division?.includes(grp) || s.division?.includes(grp.toLowerCase()))
           );
 
-          const grpSlots = slots.filter((s) => s.groupName === grp);
+          const grpSlots = (slots || []).filter((s) => s && s.groupName === grp);
 
           if (grpStandings.length === 0 && grpSlots.length > 0) {
             grpStandings = grpSlots.map((sl, idx) => ({
@@ -356,9 +356,9 @@ function ContinentalGroupStandingsView({
                               {s.points ?? 0}
                             </td>
                             <td className="py-2.5 px-3 text-center">
-                              {s.form && s.form !== "-" ? (
+                              {typeof s.form === "string" && s.form.trim() !== "-" ? (
                                 <div className="flex items-center justify-center gap-1">
-                                  {s.form.split(",").slice(-3).map((res: string, fIdx: number) => (
+                                  {s.form.split(",").filter(Boolean).slice(-3).map((res: string, fIdx: number) => (
                                     <span
                                       key={fIdx}
                                       className={`inline-block w-4 h-4 rounded text-[9px] font-black leading-4 text-center ${
@@ -397,8 +397,8 @@ export default function DashboardClient({
   user,
   activeMatch: initialActiveMatch,
   allPlayerMatches = [],
-  announcements,
-  recentMatches,
+  announcements = [],
+  recentMatches = [],
   standing,
   leagueConfig: initialLeagueConfig,
   divisionalMotd = {},
@@ -425,8 +425,8 @@ export default function DashboardClient({
   user: any;
   activeMatch: any;
   allPlayerMatches?: any[];
-  announcements: any[];
-  recentMatches: any[];
+  announcements?: any[];
+  recentMatches?: any[];
   standing: any;
   leagueConfig?: any;
   divisionalMotd?: Record<string, any>;
@@ -452,6 +452,7 @@ export default function DashboardClient({
   const router = useRouter();
 
   const [leagueConfig, setLeagueConfig] = useState(initialLeagueConfig);
+  const [viewDrawModal, setViewDrawModal] = useState<"UCL" | "EUROPA" | null>(null);
 
   useEffect(() => {
     if (initialLeagueConfig) {
@@ -472,13 +473,25 @@ export default function DashboardClient({
         const data = await res.json();
         if (data.config && isMounted) {
           setLeagueConfig((prev: any) => {
-            // Auto launch modal if UCL just started and draw incomplete
-            if (data.config.uclStarted && !prev?.uclStarted && !data.config.uclDrawCompleted && !hasAutoOpenedUclRef.current) {
+            // Auto launch modal if UCL just started, draw incomplete, and slots/athletes ready
+            if (
+              data.config.uclStarted &&
+              !prev?.uclStarted &&
+              !data.config.uclDrawCompleted &&
+              !hasAutoOpenedUclRef.current &&
+              ((uclQualified || []).length >= 16 || (uclSlots || []).length >= 16)
+            ) {
               hasAutoOpenedUclRef.current = true;
               setViewDrawModal("UCL");
             }
-            // Auto launch modal if Europa just started and draw incomplete
-            if (data.config.europaStarted && !prev?.europaStarted && !data.config.europaDrawCompleted && !hasAutoOpenedEuropaRef.current) {
+            // Auto launch modal if Europa just started, draw incomplete, and slots/athletes ready
+            if (
+              data.config.europaStarted &&
+              !prev?.europaStarted &&
+              !data.config.europaDrawCompleted &&
+              !hasAutoOpenedEuropaRef.current &&
+              ((europaQualified || []).length >= 16 || (europaSlots || []).length >= 16)
+            ) {
               hasAutoOpenedEuropaRef.current = true;
               setViewDrawModal("EUROPA");
             }
@@ -556,7 +569,7 @@ export default function DashboardClient({
   const [currentUser, setCurrentUser] = useState(user);
 
   // Player's active division MOTD
-  const myDivMotd = divisionalMotd[player.division];
+  const myDivMotd = player?.division ? (divisionalMotd || {})[player.division] : null;
 
   // Dynamic current time ticker to ensure 24h auto-deletion updates live on page
   const [announcementNow, setAnnouncementNow] = useState<number>(Date.now());
@@ -568,7 +581,7 @@ export default function DashboardClient({
   // Announcements strictly within 24 hours of publication
   const activeAnnouncements = useMemo(() => {
     const cutoff24h = announcementNow - 24 * 60 * 60 * 1000;
-    return announcements.filter((a) => new Date(a.createdAt).getTime() > cutoff24h);
+    return (announcements || []).filter((a) => a && new Date(a.createdAt).getTime() > cutoff24h);
   }, [announcements, announcementNow]);
 
   // Announcement read tracking (interactive from localStorage)
@@ -773,7 +786,6 @@ export default function DashboardClient({
   const [showForfeitModal, setShowForfeitModal] = useState(false);
   const [showQuickGuide, setShowQuickGuide] = useState(false);
   const [showActionHub, setShowActionHub] = useState(false);
-  const [viewDrawModal, setViewDrawModal] = useState<"UCL" | "EUROPA" | null>(null);
 
   // Continental Qualified Athletes memo
   const uclQualifiedAthletes = useMemo(() => {
@@ -818,13 +830,18 @@ export default function DashboardClient({
   }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: false });
 
   useEffect(() => {
-    if (!leagueConfig?.uclDrawTime) return;
+    if (!leagueConfig?.uclDrawTime || !leagueConfig?.uclStarted) return;
     const calc = () => {
       const target = new Date(leagueConfig.uclDrawTime).getTime();
       const diff = target - Date.now();
       if (diff <= 0) {
         setUclDrawCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
-        if (!leagueConfig?.uclDrawCompleted && !hasAutoOpenedUclRef.current) {
+        if (
+          leagueConfig?.uclStarted &&
+          !leagueConfig?.uclDrawCompleted &&
+          !hasAutoOpenedUclRef.current &&
+          (uclQualifiedAthletes.length >= 16 || (uclSlots || []).length >= 16)
+        ) {
           hasAutoOpenedUclRef.current = true;
           setViewDrawModal("UCL");
         }
@@ -839,16 +856,21 @@ export default function DashboardClient({
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [leagueConfig?.uclDrawTime, leagueConfig?.uclDrawCompleted]);
+  }, [leagueConfig?.uclDrawTime, leagueConfig?.uclStarted, leagueConfig?.uclDrawCompleted, uclQualifiedAthletes.length, uclSlots]);
 
   useEffect(() => {
-    if (!leagueConfig?.europaDrawTime) return;
+    if (!leagueConfig?.europaDrawTime || !leagueConfig?.europaStarted) return;
     const calc = () => {
       const target = new Date(leagueConfig.europaDrawTime).getTime();
       const diff = target - Date.now();
       if (diff <= 0) {
         setEuropaDrawCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
-        if (!leagueConfig?.europaDrawCompleted && !hasAutoOpenedEuropaRef.current) {
+        if (
+          leagueConfig?.europaStarted &&
+          !leagueConfig?.europaDrawCompleted &&
+          !hasAutoOpenedEuropaRef.current &&
+          (europaQualifiedAthletes.length >= 16 || (europaSlots || []).length >= 16)
+        ) {
           hasAutoOpenedEuropaRef.current = true;
           setViewDrawModal("EUROPA");
         }
@@ -863,7 +885,7 @@ export default function DashboardClient({
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [leagueConfig?.europaDrawTime, leagueConfig?.europaDrawCompleted]);
+  }, [leagueConfig?.europaDrawTime, leagueConfig?.europaStarted, leagueConfig?.europaDrawCompleted, europaQualifiedAthletes.length, europaSlots]);
 
   // Auto-launch Quick Guide Tutorial on registration or first visit
   useEffect(() => {
@@ -1012,10 +1034,10 @@ export default function DashboardClient({
   };
 
   // Unread announcements count (based on active 24h announcements)
-  const unreadAnnouncementsCount = activeAnnouncements.filter((a) => !readAnnouncements.has(a.id)).length;
+  const unreadAnnouncementsCount = (activeAnnouncements || []).filter((a) => a && !readAnnouncements.has(a.id)).length;
 
   // Determine opponent
-  const isHomePlayer = activeMatch?.homePlayerId === player.id;
+  const isHomePlayer = activeMatch?.homePlayerId === player?.id;
   const opponent = isHomePlayer ? activeMatch?.awayPlayer : activeMatch?.homePlayer;
 
   // Countdown timer calculation
@@ -1023,18 +1045,21 @@ export default function DashboardClient({
     if (!activeMatch?.deadlineDate) return;
 
     const calculateTime = () => {
-      const deadline = new Date(activeMatch.deadlineDate).getTime();
-      const now = new Date().getTime();
-      const diff = deadline - now;
+      try {
+        const deadline = new Date(activeMatch.deadlineDate).getTime();
+        if (isNaN(deadline)) return;
+        const now = new Date().getTime();
+        const diff = deadline - now;
 
-      if (diff <= 0) {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isExpired: true });
-      } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeLeft({ hours, minutes, seconds, isExpired: false });
-      }
+        if (diff <= 0) {
+          setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isExpired: true });
+        } else {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setTimeLeft({ hours, minutes, seconds, isExpired: false });
+        }
+      } catch (e) {}
     };
 
     calculateTime();
@@ -1297,7 +1322,7 @@ export default function DashboardClient({
     router.refresh();
   };
 
-  const cleanWhatsapp = opponent?.whatsapp?.replace(/[^0-9]/g, "") || "";
+  const cleanWhatsapp = opponent?.whatsapp ? String(opponent.whatsapp).replace(/[^0-9]/g, "") : "";
 
   if (player.status === "PENDING_APPROVAL") {
     return (
@@ -1480,9 +1505,9 @@ export default function DashboardClient({
             >
               <Calendar className="h-4 w-4" />
               <span>Match Calendar</span>
-              {allPlayerMatches.length > 0 && (
+              {(allPlayerMatches || []).length > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-cyan-300">
-                  {allPlayerMatches.length}
+                  {(allPlayerMatches || []).length}
                 </span>
               )}
             </button>
@@ -2060,7 +2085,7 @@ export default function DashboardClient({
                       <h3 className="text-lg sm:text-xl font-black text-white truncate">{opponent?.gamerTag || "Unknown Opponent"}</h3>
                       {opponent?.realTeam && (
                         <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold truncate max-w-full">
-                          <span className="truncate">{findTeam(opponent.realTeam)?.name || opponent.realTeam}</span>
+                          <span className="truncate">{findTeam(opponent?.realTeam)?.name || opponent?.realTeam}</span>
                         </div>
                       )}
                     </div>
@@ -2087,7 +2112,8 @@ export default function DashboardClient({
                         Opponent Recent Form (Last {opponentPreviousMatches.length} Matches):
                       </span>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {opponentPreviousMatches.map((prevM: any) => {
+                        {(opponentPreviousMatches || []).map((prevM: any) => {
+                          if (!prevM) return null;
                           const isOppHome = prevM.homePlayerId === opponent?.id;
                           const oppScore = isOppHome ? (prevM.homeScore ?? 0) : (prevM.awayScore ?? 0);
                           const rivalScore = isOppHome ? (prevM.awayScore ?? 0) : (prevM.homeScore ?? 0);
@@ -2972,13 +2998,13 @@ export default function DashboardClient({
             Completed Match History
           </h3>
 
-          {recentMatches.length === 0 ? (
+          {(recentMatches || []).length === 0 ? (
             <p className="text-xs text-slate-500 italic py-8 text-center">
               No completed matches yet.
             </p>
           ) : (
             <div className="space-y-3">
-              {recentMatches.map((m) => (
+              {(recentMatches || []).map((m) => (
                 <div
                   key={m.id}
                   className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col sm:flex-row items-center justify-between gap-4"
@@ -3084,7 +3110,7 @@ export default function DashboardClient({
             </div>
           )}
 
-          {allPlayerMatches.length === 0 ? (
+          {(allPlayerMatches || []).length === 0 ? (
             <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center space-y-3">
               <Calendar className="h-12 w-12 text-slate-600 mx-auto" />
               <h4 className="text-base font-bold text-white uppercase">No Matches Scheduled Yet</h4>
@@ -3094,9 +3120,9 @@ export default function DashboardClient({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {allPlayerMatches.map((m: any) => {
+              {(allPlayerMatches || []).map((m: any) => {
                 const isCurrentActive = m.id === activeMatch?.id;
-                const isHome = m.homePlayerId === player.id;
+                const isHome = m.homePlayerId === player?.id;
                 const matchOpponent = isHome ? m.awayPlayer : m.homePlayer;
                 const isFinished = m.status === "FINISHED";
                 const isForfeit = m.status === "FORFEIT";
@@ -3561,7 +3587,7 @@ export default function DashboardClient({
                       ):
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[260px] overflow-y-auto p-1 border border-slate-800 rounded-2xl bg-slate-900/30">
-                      {getTeamsForDivision(currentPlayer.division).map((team) => {
+                      {getTeamsForDivision(currentPlayer?.division || "Division 1").map((team) => {
                         const isSelected = profileRealTeam === team.name;
                         const claimedBy = isTeamClaimedByOther(team.name);
                         const isTaken = Boolean(claimedBy);

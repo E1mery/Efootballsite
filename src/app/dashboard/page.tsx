@@ -68,9 +68,9 @@ export default async function DashboardPage() {
   };
 
   // Check if player is actively participating in the league vs. on standby in the reserve pool
-  const isReserved = player.status === "RESERVED";
-  const isSuspendedForMissed = (player.consecutiveMissed || 0) >= 3 || player.isDisqualified;
-  const isParticipating = !isReserved && !isSuspendedForMissed && (player.status === "ACTIVE" || player.status === "WARNING");
+  const isReserved = player?.status === "RESERVED";
+  const isSuspendedForMissed = Boolean((player?.consecutiveMissed || 0) >= 3 || player?.isDisqualified);
+  const isParticipating = !isReserved && !isSuspendedForMissed && (player?.status === "ACTIVE" || player?.status === "WARNING");
 
   let activeMatch = null;
   let allPlayerMatches: any[] = [];
@@ -195,36 +195,6 @@ export default async function DashboardPage() {
       });
     }
 
-    // Fetch all matches of this player across the entire season for Calendar Mode
-    const allPlayerMatchesRaw = await prisma.match.findMany({
-      where: {
-        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-      },
-      include: matchInclude,
-      orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
-    });
-
-    // RULE: When UCL or Europa starts, the match calendar page for participants ONLY is cleared of old domestic fixtures to show UCL / Europa matches
-    const continentalMatches = allPlayerMatchesRaw.filter(
-      (m) => m.division === "UCL" || m.division === "EUROPA"
-    );
-    const hasStartedContinental =
-      (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
-
-    const matchesToDisplay = hasStartedContinental ? continentalMatches : allPlayerMatchesRaw;
-
-    // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
-    allPlayerMatches = [...matchesToDisplay].sort((a, b) => {
-      const getRoundNum = (roundStr: string) => {
-        const m = roundStr?.match(/\d+/);
-        return m ? parseInt(m[0], 10) : 999;
-      };
-      const numA = getRoundNum(a.round || "");
-      const numB = getRoundNum(b.round || "");
-      if (numA !== numB) return numA - numB;
-      return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-    });
-
     // Check if the current round in player's division has matches, but this player is the remaining one (odd division rest day)
     const divisionMatchesThisRound = await prisma.match.count({
       where: {
@@ -262,6 +232,36 @@ export default async function DashboardPage() {
       }
     }
   }
+
+  // Fetch all matches of this player across the entire season for Calendar Mode
+  const allPlayerMatchesRaw = await prisma.match.findMany({
+    where: {
+      OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+    },
+    include: matchInclude,
+    orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+  });
+
+  // RULE: When UCL or Europa starts, the match calendar page for participants ONLY is cleared of old domestic fixtures to show UCL / Europa matches
+  const continentalMatches = allPlayerMatchesRaw.filter(
+    (m) => m.division === "UCL" || m.division === "EUROPA"
+  );
+  const hasStartedContinental =
+    (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
+
+  const matchesToDisplay = hasStartedContinental ? continentalMatches : allPlayerMatchesRaw;
+
+  // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
+  allPlayerMatches = [...matchesToDisplay].sort((a, b) => {
+    const getRoundNum = (roundStr: string) => {
+      const m = roundStr?.match(/\d+/);
+      return m ? parseInt(m[0], 10) : 999;
+    };
+    const numA = getRoundNum(a.round || "");
+    const numB = getRoundNum(b.round || "");
+    if (numA !== numB) return numA - numB;
+    return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+  });
 
   // Fetch player's existing feedback review if any
   const myReview = await prisma.feedbackReview.findFirst({
