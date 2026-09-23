@@ -93,9 +93,29 @@ export async function POST(req: Request) {
       );
     }
 
+    const isReplacementMatch = Boolean(match.notes?.includes("REPLACEMENT_BACKLOG"));
     const isReopenedByAdmin = Boolean(
-      match.allowLateSubmission || match.notes?.includes("ADMIN_REOPENED")
+      match.allowLateSubmission ||
+        match.notes?.includes("ADMIN_REOPENED") ||
+        isReplacementMatch
     );
+
+    // BLOCK SUBMISSION IF OPPONENT REACHED 3 MISSED MATCHES AND MATCH IS WAITING FOR SUB
+    const opponent = match.homePlayerId === user.player.id ? match.awayPlayer : match.homePlayer;
+    const isWaitingSub = Boolean(
+      match.notes?.includes("WAITING_FOR_SUB") ||
+        (!isReplacementMatch && (opponent?.consecutiveMissed >= 3 || opponent?.isDisqualified))
+    );
+
+    if (isWaitingSub && !isReplacementMatch) {
+      return NextResponse.json(
+        {
+          error:
+            "This fixture is currently on hold. Your opponent reached 3 missed matches and is awaiting a replacement athlete from the League Admin. Submissions will unlock for 48 hours once the replacement arrives.",
+        },
+        { status: 400 }
+      );
+    }
 
     // If match is already completed
     if ((match.status === "FINISHED" || match.status === "FORFEIT") && !isReopenedByAdmin) {
@@ -130,13 +150,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if deadline has passed, allowing submissions if admin approved late entry or reopened
+    // Check if deadline has passed, allowing submissions if admin approved late entry, reopened, or 48-hr replacement window is active
     const isPastDeadline = new Date() > new Date(match.deadlineDate);
     if (isPastDeadline && !isReopenedByAdmin) {
       return NextResponse.json(
         {
-          error:
-            "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Please contact the League Admin to request a deadline extension.",
+          error: isReplacementMatch
+            ? "The 48-hour completion window for this replacement fixture has expired."
+            : "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Please contact the League Admin to request a deadline extension.",
         },
         { status: 400 }
       );

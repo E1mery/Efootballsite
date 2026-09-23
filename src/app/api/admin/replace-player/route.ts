@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { recalculateStandings } from "@/lib/recalculateStandings";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
     const division = targetPlayer.division;
     const oldGamerTag = targetPlayer.gamerTag;
     let replacementGamerTag = "";
+    let activeReplacementPlayerId = targetPlayer.id;
 
     if (replacementMode === "FROM_RESERVE") {
       if (!reservePlayerId) {
@@ -64,6 +66,7 @@ export async function POST(req: Request) {
       }
 
       replacementGamerTag = reservePlayer.gamerTag;
+      activeReplacementPlayerId = reservePlayer.id;
 
       // 1. Re-link scheduled & unplayed matches from targetPlayer to reservePlayer
       await prisma.match.updateMany({
@@ -143,6 +146,7 @@ export async function POST(req: Request) {
 
       const cleanGamerTag = newGamerTag.trim();
       replacementGamerTag = cleanGamerTag;
+      activeReplacementPlayerId = targetPlayer.id;
 
       // Check gamerTag uniqueness
       const existingTag = await prisma.player.findFirst({
@@ -193,7 +197,108 @@ export async function POST(req: Request) {
       }
     }
 
-    // 5. Broadcast official league roster replacement notice
+    // 5. REOPEN MISSED MATCHES (FORFEITS & AUTOMATIC DRAWS) FOR REPLACEMENT ATHLETE
+    // The replacement athlete must begin with those backlog matches, with 48 hours to complete them!
+    const playerIdsToCheck = [targetPlayer.id, activeReplacementPlayerId];
+    const candidateMatches = await prisma.match.findMany({
+      where: {
+        OR: [
+          { homePlayerId: { in: playerIdsToCheck } },
+          { awayPlayerId: { in: playerIdsToCheck } },
+        ],
+      },
+      include: { homePlayer: true, awayPlayer: true },
+    });
+
+    const now = new Date();
+    const deadline48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    let reopenedCount = 0;
+
+    for (const m of candidateMatches) {
+      const isForfeit = m.status === "FORFEIT";
+      const isDrawFromMiss =
+        m.status === "FINISHED" &&
+        (m.notes?.includes("Automatic 0-0 Draw") ||
+          m.notes?.includes("0-0 Draw") ||
+          m.notes?.includes("missed match") ||
+          m.notes?.includes("elapsed without submitted score"));
+      const isWaitingSub = m.notes?.includes("WAITING_FOR_SUB");
+      const isUnplayedScheduled = m.status === "SCHEDULED";
+
+      if (isForfeit || isDrawFromMiss || isWaitingSub || isUnplayedScheduled) {
+        // Re-link to the active replacement player if needed
+        let newHomeId = m.homePlayerId;
+        let newAwayId = m.awayPlayerId;
+        if (m.homePlayerId === targetPlayer.id) newHomeId = activeReplacementPlayerId;
+        if (m.awayPlayerId === targetPlayer.id) newAwayId = activeReplacementPlayerId;
+
+        // Reopen match for 48 hours
+        await prisma.match.update({
+          where: { id: m.id },
+          data: {
+            homePlayerId: newHomeId,
+            awayPlayerId: newAwayId,
+            status: "SCHEDULED",
+            homeScore: null,
+            awayScore: null,
+            leg2HomeScore: null,
+            leg2AwayScore: null,
+            aggregateHomeScore: null,
+            aggregateAwayScore: null,
+            screenshotUrl: null,
+            leg2ScreenshotUrl: null,
+            allowLateSubmission: true,
+            notes: `REPLACEMENT_BACKLOG: Reopened for replacement athlete @${replacementGamerTag}. 48-hour completion window.`,
+            matchDate: now,
+            deadlineDate: deadline48h,
+            extendedDeadlineDate: deadline48h,
+          },
+        });
+
+        // Clear any old submissions or forfeit claims for this match
+        await prisma.matchSubmission.deleteMany({ where: { matchId: m.id } }).catch(() => {});
+        await prisma.forfeitClaim.deleteMany({ where: { matchId: m.id } }).catch(() => {});
+
+        // Identify the opponent
+        const opponentId = newHomeId === activeReplacementPlayerId ? newAwayId : newHomeId;
+
+        // Notify the opponent that the substitute has arrived and the match has a 48-hour window
+        if (opponentId) {
+          await prisma.announcement.create({
+            data: {
+              title: `⚡ Replacement Match Ready: 48 Hours (${m.round})`,
+              content: `Athlete @${replacementGamerTag} has officially arrived as the substitute. Your match for ${m.round} is now active! Both you and your opponent have a 48-hour window to play and upload your result screenshots.`,
+              type: "INDIVIDUAL",
+              targetPlayerId: opponentId,
+              isPinned: true,
+            },
+          });
+        }
+
+        // Notify the replacement athlete that they must begin with this backlog match
+        await prisma.announcement.create({
+          data: {
+            title: `⚡ Priority Backlog Match: 48 Hours (${m.round})`,
+            content: `Welcome @${replacementGamerTag}! You must begin with this fixture (${m.round}). You and your opponent have 48 hours to complete this match and upload your result screenshots before it closes.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: activeReplacementPlayerId,
+            isPinned: true,
+          },
+        });
+
+        reopenedCount++;
+      }
+    }
+
+    // 6. Recalculate standings so old 0-0/forfeit points are reset and reflected accurately
+    const targetStanding = await prisma.standing.findFirst({
+      where: { playerId: activeReplacementPlayerId, division },
+    });
+    if (targetStanding?.tournamentId) {
+      await recalculateStandings(targetStanding.tournamentId, division);
+    }
+
+    // 7. Broadcast official league roster replacement notice
     await prisma.announcement.create({
       data: {
         title: `📢 OFFICIAL ROSTER REPLACEMENT: ${replacementGamerTag} Enters ${division}`,
@@ -205,7 +310,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully replaced ${oldGamerTag} with ${replacementGamerTag}. Standings and matches updated!`,
+      message: `Successfully replaced ${oldGamerTag} with ${replacementGamerTag}. Reopened ${reopenedCount} backlog match(es) with a 48-hour window!`,
     });
   } catch (err: any) {
     console.error("replace-player error:", err);

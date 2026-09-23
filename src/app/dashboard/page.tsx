@@ -69,11 +69,13 @@ export default async function DashboardPage() {
 
   // Check if player is actively participating in the league vs. on standby in the reserve pool
   const isReserved = player.status === "RESERVED";
-  const isParticipating = !isReserved && (player.status === "ACTIVE" || player.status === "WARNING");
+  const isSuspendedForMissed = (player.consecutiveMissed || 0) >= 3 || player.isDisqualified;
+  const isParticipating = !isReserved && !isSuspendedForMissed && (player.status === "ACTIVE" || player.status === "WARNING");
 
   let activeMatch = null;
   let allPlayerMatches: any[] = [];
   let isRestDayToday = false;
+  let isWaitingForSub = false;
 
   // Automatic deletion of announcements older than 24 hours
   await cleanupExpiredAnnouncements();
@@ -113,19 +115,36 @@ export default async function DashboardPage() {
 
   // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool
   if (isParticipating) {
-    // 0. Continental priority: If player has an active/scheduled match in UCL or Europa, prioritize it on Today's 24-Hr match page!
-    const activeContinentalMatch = await prisma.match.findFirst({
+    // 0. PRIORITY BACKLOG REPLACEMENT MATCH: If player has an open 48-hr replacement match, they must begin with that!
+    const priorityBacklogMatch = await prisma.match.findFirst({
       where: {
-        division: { in: ["UCL", "EUROPA"] },
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
         status: { in: ["SCHEDULED", "LIVE"] },
+        notes: { contains: "REPLACEMENT_BACKLOG" },
       },
       include: matchInclude,
-      orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
     });
 
-    if (activeContinentalMatch) {
-      activeMatch = activeContinentalMatch;
+    if (priorityBacklogMatch) {
+      activeMatch = priorityBacklogMatch;
+    }
+
+    // 0.5 Continental priority: If player has an active/scheduled match in UCL or Europa, prioritize it on Today's 24-Hr match page!
+    if (!activeMatch) {
+      const activeContinentalMatch = await prisma.match.findFirst({
+        where: {
+          division: { in: ["UCL", "EUROPA"] },
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        include: matchInclude,
+        orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+      });
+
+      if (activeContinentalMatch) {
+        activeMatch = activeContinentalMatch;
+      }
     }
 
     // 1. Scheduled or Live match in current league round
@@ -397,6 +416,13 @@ export default async function DashboardPage() {
     }
   }
 
+  if (activeMatch && !activeMatch.notes?.includes("REPLACEMENT_BACKLOG")) {
+    const opp = activeMatch.homePlayerId === player.id ? activeMatch.awayPlayer : activeMatch.homePlayer;
+    if (opp && ((opp.consecutiveMissed || 0) >= 3 || opp.isDisqualified || activeMatch.notes?.includes("WAITING_FOR_SUB"))) {
+      isWaitingForSub = true;
+    }
+  }
+
   // Continental Group Stage Matches of the Day
   const allDomesticStandings = [...div1Standings, ...div2Standings, ...div3Standings];
   const uclGroupMatches = await prisma.match.findMany({
@@ -436,6 +462,8 @@ export default async function DashboardPage() {
         europaQualified={europaQualified}
         initialReview={myReview}
         isRestDayToday={isRestDayToday}
+        isWaitingForSub={isWaitingForSub}
+        isSuspendedForMissed={isSuspendedForMissed}
         currentRoundName={currentRoundName}
         opponentStanding={opponentStanding}
         opponentPreviousMatches={opponentPreviousMatches}

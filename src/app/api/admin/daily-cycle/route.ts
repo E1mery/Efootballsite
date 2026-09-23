@@ -15,10 +15,17 @@ export async function POST(req: Request) {
     const nextRoundName = `Matchday ${nextMatchday}`;
 
     // 1. Process unplayed matches from the current/previous matchday that expired
+    // Note: Exclude matches that are WAITING_FOR_SUB (on hold for admin replacement)
+    // and REPLACEMENT_BACKLOG matches (which have their own 48-hour deadline)
+    const now = new Date();
     const expiredMatches = await prisma.match.findMany({
       where: {
         round: previousRoundName,
         status: "SCHEDULED",
+        NOT: [
+          { notes: { contains: "WAITING_FOR_SUB" } },
+          { notes: { contains: "REPLACEMENT_BACKLOG" } },
+        ],
       },
       include: { homePlayer: true, awayPlayer: true },
     });
@@ -68,20 +75,73 @@ export async function POST(req: Request) {
         });
 
         if (isDisqualified) {
+          // Private notification to the suspended player (not broadcasted to all players)
           await prisma.announcement.create({
             data: {
-              title: `🚨 DISQUALIFICATION: ${player.gamerTag} Removed from League`,
-              content: `Player ${player.gamerTag} (${player.fullName}, ${player.division}) has missed 3 consecutive scheduled fixtures without valid forfeit proof. In accordance with official EFRL rules, they have been disqualified from the active roster. Commissioner review required.`,
-              type: "BROADCAST",
+              title: `🚨 ACCOUNT SUSPENDED: 3 Missed Matches`,
+              content: `Hello ${player.gamerTag}. You have reached 3 missed matches without submitting results or claiming forfeit. In accordance with league rules, you have been removed from active match fixtures until the League Admin assigns a replacement.`,
+              type: "INDIVIDUAL",
+              targetPlayerId: player.id,
               isPinned: true,
             },
           });
+
+          // Mark all upcoming scheduled matches for this player as WAITING_FOR_SUB and notify opponents
+          const upcomingMatches = await prisma.match.findMany({
+            where: {
+              OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+              status: "SCHEDULED",
+            },
+          });
+
+          for (const upm of upcomingMatches) {
+            await prisma.match.update({
+              where: { id: upm.id },
+              data: {
+                notes: "WAITING_FOR_SUB: Opponent reached 3 missed matches. Awaiting Admin replacement.",
+              },
+            });
+
+            const opponentId = upm.homePlayerId === player.id ? upm.awayPlayerId : upm.homePlayerId;
+            if (opponentId) {
+              await prisma.announcement.create({
+                data: {
+                  title: `⏳ Match on Hold — Waiting for Sub (${upm.round})`,
+                  content: `Your scheduled match against @${player.gamerTag} for ${upm.round} is on hold because your opponent reached 3 missed matches. The League Admin is currently assigning a replacement player. You will receive a 48-hour window once the substitute arrives.`,
+                  type: "INDIVIDUAL",
+                  targetPlayerId: opponentId,
+                  isPinned: true,
+                },
+              });
+            }
+          }
         }
       }
     }
 
+    // Process any REPLACEMENT_BACKLOG matches whose 48-hour deadline has expired
+    const expiredReplacementMatches = await prisma.match.findMany({
+      where: {
+        status: "SCHEDULED",
+        notes: { contains: "REPLACEMENT_BACKLOG" },
+        deadlineDate: { lte: now },
+      },
+    });
+
+    for (const rm of expiredReplacementMatches) {
+      await prisma.match.update({
+        where: { id: rm.id },
+        data: {
+          homeScore: 0,
+          awayScore: 0,
+          status: "FINISHED",
+          notes: "Automatic 0-0 Draw (1 pt each): 48-hour replacement window elapsed without submitted score.",
+        },
+      });
+      await recalculateStandings(rm.tournamentId, rm.division);
+    }
+
     // 2. Activate next matchday fixtures (24 hour countdown starting now)
-    const now = new Date();
     const deadlineDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const updatedMatches = await prisma.match.updateMany({
@@ -91,6 +151,39 @@ export async function POST(req: Request) {
         deadlineDate: deadlineDate,
       },
     });
+
+    // Check newly activated fixtures: if any match involves a player who has reached 3 missed matches, put it on hold!
+    const nextRoundFixtures = await prisma.match.findMany({
+      where: { round: nextRoundName },
+      include: { homePlayer: true, awayPlayer: true },
+    });
+
+    for (const nrf of nextRoundFixtures) {
+      const homeSuspended = nrf.homePlayer.consecutiveMissed >= 3 || nrf.homePlayer.isDisqualified;
+      const awaySuspended = nrf.awayPlayer.consecutiveMissed >= 3 || nrf.awayPlayer.isDisqualified;
+
+      if (homeSuspended || awaySuspended) {
+        const suspendedTag = homeSuspended ? nrf.homePlayer.gamerTag : nrf.awayPlayer.gamerTag;
+        const innocentPlayerId = homeSuspended ? nrf.awayPlayerId : nrf.homePlayerId;
+
+        await prisma.match.update({
+          where: { id: nrf.id },
+          data: {
+            notes: "WAITING_FOR_SUB: Opponent reached 3 missed matches. Awaiting Admin replacement.",
+          },
+        });
+
+        await prisma.announcement.create({
+          data: {
+            title: `⏳ Match on Hold — Waiting for Sub (${nextRoundName})`,
+            content: `Your scheduled match against @${suspendedTag} for ${nextRoundName} is on hold because your opponent reached 3 missed matches. The League Admin will assign a replacement athlete soon. You will receive a 48-hour window once the substitute arrives.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: innocentPlayerId,
+            isPinned: true,
+          },
+        });
+      }
+    }
 
     // 3. Update LeagueConfig with the new matchday
     await prisma.leagueConfig.upsert({

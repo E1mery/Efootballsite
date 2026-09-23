@@ -5208,17 +5208,23 @@ export default function AdminClient({
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-bold">
-                          <span className={p.consecutiveMissed >= 2 ? "text-rose-400" : "text-slate-400"}>
+                          <span className={p.consecutiveMissed >= 3 ? "text-rose-400 font-black animate-pulse" : p.consecutiveMissed >= 2 ? "text-rose-400" : "text-slate-400"}>
                             {p.consecutiveMissed}/3
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <Badge
-                            variant={p.isDisqualified ? "destructive" : "secondary"}
-                            className="text-[10px]"
-                          >
-                            {p.status}
-                          </Badge>
+                          {p.consecutiveMissed >= 3 || p.isDisqualified ? (
+                            <Badge variant="destructive" className="text-[10px] animate-pulse bg-rose-600/30 border-rose-500/50 text-rose-300">
+                              AWAITING SUB
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant={p.isDisqualified ? "destructive" : "secondary"}
+                              className="text-[10px]"
+                            >
+                              {p.status}
+                            </Badge>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
@@ -5236,7 +5242,7 @@ export default function AdminClient({
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant={p.consecutiveMissed >= 3 || p.isDisqualified ? "yellow" : "outline"}
                               onClick={() => {
                                 setReplaceTargetPlayer(p);
                                 setRepGamerTag("");
@@ -5246,10 +5252,14 @@ export default function AdminClient({
                                 setRepPassword("");
                                 setSelectedReserveId(reservePlayers[0]?.id || "");
                               }}
-                              className="h-7 px-2 text-[11px] font-bold border-indigo-500/40 text-indigo-400 hover:bg-indigo-950/50 hover:text-indigo-300"
+                              className={`h-7 px-2 text-[11px] font-bold ${
+                                p.consecutiveMissed >= 3 || p.isDisqualified
+                                  ? "bg-amber-500 text-slate-950 hover:bg-amber-400 font-black shadow-md shadow-amber-500/20"
+                                  : "border-indigo-500/40 text-indigo-400 hover:bg-indigo-950/50 hover:text-indigo-300"
+                              }`}
                             >
                               <Shuffle className="h-3 w-3 mr-1" />
-                              Replace
+                              {p.consecutiveMissed >= 3 || p.isDisqualified ? "Replace (Sub)" : "Replace"}
                             </Button>
                             <Button
                               size="sm"
@@ -6513,6 +6523,11 @@ export default function AdminClient({
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
                   Replacing <strong className="text-white">{replaceTargetPlayer.gamerTag}</strong> ({replaceTargetPlayer.division})
+                  {replaceTargetPlayer.consecutiveMissed >= 3 && (
+                    <span className="ml-2 px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
+                      {replaceTargetPlayer.consecutiveMissed} Missed Matches
+                    </span>
+                  )}
                 </p>
               </div>
               <button
@@ -6521,6 +6536,17 @@ export default function AdminClient({
               >
                 ✕
               </button>
+            </div>
+
+            {/* 48-Hour Priority Backlog Protocol Info */}
+            <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 space-y-1">
+              <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wide">
+                <Clock className="h-4 w-4 text-indigo-400 shrink-0" />
+                <span>48-Hour Priority Backlog Protocol</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Upon confirmation, any missed fixtures, unplayed auto-draws (0-0), and on-hold matches will be transferred to the replacement athlete with an active <strong>48-hour completion window</strong>. Both the replacement athlete and their opponents will be notified immediately to upload results.
+              </p>
             </div>
 
             <form onSubmit={handleReplaceAthleteSubmit} className="space-y-4">

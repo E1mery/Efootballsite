@@ -58,9 +58,29 @@ export async function POST(req: Request) {
       );
     }
 
+    const isReplacementMatch = Boolean(match.notes?.includes("REPLACEMENT_BACKLOG"));
     const isReopenedByAdmin = Boolean(
-      match.allowLateSubmission || match.notes?.includes("ADMIN_REOPENED")
+      match.allowLateSubmission ||
+        match.notes?.includes("ADMIN_REOPENED") ||
+        isReplacementMatch
     );
+
+    // BLOCK FORFEIT CLAIM IF OPPONENT REACHED 3 MISSED MATCHES AND MATCH IS WAITING FOR SUB
+    const opponent = match.homePlayerId === user.player.id ? match.awayPlayer : match.homePlayer;
+    const isWaitingSub = Boolean(
+      match.notes?.includes("WAITING_FOR_SUB") ||
+        (!isReplacementMatch && (opponent?.consecutiveMissed >= 3 || opponent?.isDisqualified))
+    );
+
+    if (isWaitingSub && !isReplacementMatch) {
+      return NextResponse.json(
+        {
+          error:
+            "This fixture is currently on hold. Your opponent reached 3 missed matches and is awaiting a replacement athlete from the League Admin. Forfeit claims are paused while awaiting substitute assignment.",
+        },
+        { status: 400 }
+      );
+    }
 
     // If match is already completed
     if ((match.status === "FINISHED" || match.status === "FORFEIT") && !isReopenedByAdmin) {
@@ -99,8 +119,9 @@ export async function POST(req: Request) {
     if (new Date() > new Date(match.deadlineDate) && !isReopenedByAdmin) {
       return NextResponse.json(
         {
-          error:
-            "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Forfeit submissions are closed.",
+          error: isReplacementMatch
+            ? "The 48-hour completion window for this replacement fixture has expired."
+            : "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Forfeit submissions are closed.",
         },
         { status: 400 }
       );

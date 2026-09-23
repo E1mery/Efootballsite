@@ -413,6 +413,8 @@ export default function DashboardClient({
   europaQualified = [],
   initialReview = null,
   isRestDayToday = false,
+  isWaitingForSub = false,
+  isSuspendedForMissed = false,
   currentRoundName,
   opponentStanding = null,
   opponentPreviousMatches = [],
@@ -441,6 +443,8 @@ export default function DashboardClient({
   europaQualified?: any[];
   initialReview?: any;
   isRestDayToday?: boolean;
+  isWaitingForSub?: boolean;
+  isSuspendedForMissed?: boolean;
   currentRoundName?: string;
   opponentStanding?: any;
   opponentPreviousMatches?: any[];
@@ -493,18 +497,40 @@ export default function DashboardClient({
   // Targeted match state for result/forfeit modal (can be opened from Overview or directly from Calendar cards)
   const [actionMatch, setActionMatch] = useState<any>(null);
 
-  // Check if player is on standby in reserve pool
+  // Check if player is on standby in reserve pool or suspended for 3 missed matches
   const isReserved = player.status === "RESERVED" || player?.status === "RESERVED";
+  const isSuspended = Boolean(isSuspendedForMissed || (player.consecutiveMissed || 0) >= 3 || player.isDisqualified);
 
-  // Compute robust active match (strictly for participating players, NEVER for reserve pool or rest day players):
-  // 1. If reserved or on rest day today, activeMatch is strictly null
-  // 2. Initial server-provided active match
-  // 3. Current matchday scheduled or live match from allPlayerMatches
-  // 4. Earliest unplayed scheduled or live match
-  // 5. Any match from current matchday (even if pending/finished so user sees score & proof)
-  // 6. Most recent fixture
+  // Replacement backlog matches (reopened matches with 48h deadline)
+  const [selectedBacklogMatchId, setSelectedBacklogMatchId] = useState<string | null>(null);
+
+  const replacementBacklogMatches = useMemo(() => {
+    return (allPlayerMatches || []).filter(
+      (m: any) => m.notes?.includes("REPLACEMENT_BACKLOG") && m.status === "SCHEDULED"
+    );
+  }, [allPlayerMatches]);
+
+  // Compute robust active match:
+  // 1. If reserved, rest day, or suspended, activeMatch is strictly null
+  // 2. If a specific backlog match is selected, use it
+  // 3. Priority: Earliest unplayed REPLACEMENT_BACKLOG match (replacement player begins here!)
+  // 4. Initial server-provided active match
+  // 5. Current matchday scheduled or live match from allPlayerMatches
+  // 6. Earliest unplayed scheduled or live match
+  // 7. Any match from current matchday
+  // 8. Most recent fixture
   const activeMatch = useMemo(() => {
-    if (isReserved || isRestDayToday) return null;
+    if (isReserved || isRestDayToday || isSuspended) return null;
+
+    if (selectedBacklogMatchId) {
+      const match = allPlayerMatches?.find((m: any) => m.id === selectedBacklogMatchId);
+      if (match) return match;
+    }
+
+    if (replacementBacklogMatches.length > 0) {
+      return replacementBacklogMatches[0];
+    }
+
     if (initialActiveMatch) return initialActiveMatch;
     if (!allPlayerMatches || allPlayerMatches.length === 0) return null;
 
@@ -523,7 +549,7 @@ export default function DashboardClient({
     if (anyCurrentRound) return anyCurrentRound;
 
     return allPlayerMatches[0] || null;
-  }, [isReserved, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
+  }, [isReserved, isRestDayToday, isSuspended, selectedBacklogMatchId, replacementBacklogMatches, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
 
   // Dynamic user and player profile state
   const [currentPlayer, setCurrentPlayer] = useState(player);
@@ -1854,41 +1880,105 @@ export default function DashboardClient({
           )}
 
           {activeMatch ? (
-            <div className="rounded-3xl border-2 border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div className={`rounded-3xl border-2 p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden ${
+              activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                ? "border-amber-500/50 bg-gradient-to-b from-amber-950/30 via-slate-950 to-slate-900"
+                : isWaitingForSub
+                ? "border-amber-500/40 bg-gradient-to-b from-amber-950/20 via-slate-950 to-slate-900"
+                : "border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900"
+            }`}>
               {/* Background ambient lighting */}
               <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              {/* Match Header with Live 24-Hour Timer */}
+              {/* Priority Backlog Matches Selector (if replacement player has multiple backlog fixtures to complete) */}
+              {replacementBacklogMatches.length > 1 && (
+                <div className="flex items-center gap-2 mb-4 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 overflow-x-auto no-scrollbar">
+                  <span className="text-xs font-black uppercase text-amber-400 shrink-0 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Priority Backlog Matches ({replacementBacklogMatches.length}):
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {replacementBacklogMatches.map((bm: any) => {
+                      const isSelected = activeMatch?.id === bm.id;
+                      return (
+                        <button
+                          key={bm.id}
+                          onClick={() => setSelectedBacklogMatchId(bm.id)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                            isSelected
+                              ? "bg-amber-500 text-slate-950 shadow-md font-black"
+                              : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-700/80"
+                          }`}
+                        >
+                          {bm.round}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Match Header with Live 24-Hour / 48-Hour Timer */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="yellow">{activeMatch.round}</Badge>
+                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") ? (
+                      <Badge variant="yellow" className="text-[10px] font-black uppercase tracking-wider bg-amber-500/20 border-amber-500/40 text-amber-300">
+                        ⚡ REPLACEMENT MATCH • 48-HR WINDOW
+                      </Badge>
+                    ) : isWaitingForSub ? (
+                      <Badge variant="outline" className="border-amber-400/40 text-amber-300 font-black text-[10px] uppercase animate-pulse">
+                        ⏳ WAITING FOR SUB
+                      </Badge>
+                    ) : (
+                      <Badge variant="live" className="text-[10px] uppercase">
+                        24-HR WINDOW ACTIVE
+                      </Badge>
+                    )}
                     {activeMatch.isMatchOfTheDay && (
                       <Badge variant="yellow" className="text-[10px] font-black uppercase tracking-wider bg-yellow-500/20 border-yellow-500/40 text-yellow-400 animate-pulse">
                         🌟 MATCH OF THE DAY
                       </Badge>
                     )}
-                    <Badge variant="live" className="text-[10px] uppercase">
-                      24-HR WINDOW ACTIVE
-                    </Badge>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black text-white uppercase">
-                    Today's Official League Match
+                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                      ? "Priority Replacement Match"
+                      : isWaitingForSub
+                      ? "Fixture On Hold (Awaiting Sub)"
+                      : "Today's Official League Match"}
                   </h2>
                 </div>
 
-                {/* 24-Hour Countdown Clock */}
-                <div className="rounded-2xl border border-sky-500/40 bg-slate-950/80 p-3 sm:px-5 text-right">
+                {/* Countdown Clock */}
+                <div className={`rounded-2xl border p-3 sm:px-5 text-right ${
+                  activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                    ? "border-amber-500/40 bg-amber-950/30"
+                    : isWaitingForSub
+                    ? "border-amber-500/30 bg-slate-950/80"
+                    : "border-sky-500/40 bg-slate-950/80"
+                }`}>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block flex items-center gap-1.5 justify-end">
-                    <Clock className="h-3 w-3 text-yellow-400" />
-                    Time Remaining (12:00 AM Reset)
+                    <Clock className={`h-3 w-3 ${activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") || isWaitingForSub ? "text-amber-400" : "text-yellow-400"}`} />
+                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                      ? "Time Remaining (48-Hour Deadline)"
+                      : isWaitingForSub
+                      ? "Match On Hold (Awaiting Sub)"
+                      : "Time Remaining (12:00 AM Reset)"}
                   </span>
-                  {timeLeft.isExpired ? (
+                  {isWaitingForSub ? (
+                    <span className="text-xs sm:text-sm font-black text-amber-300 animate-pulse">
+                      Pending Admin Replacement
+                    </span>
+                  ) : timeLeft.isExpired ? (
                     <span className="text-sm sm:text-base font-black text-red-400 animate-pulse">
                       Window Closed (Expired)
                     </span>
                   ) : (
-                    <div className="font-mono text-xl sm:text-2xl font-black text-yellow-400 flex items-center gap-1 justify-end">
+                    <div className={`font-mono text-xl sm:text-2xl font-black flex items-center gap-1 justify-end ${
+                      activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") ? "text-amber-400" : "text-yellow-400"
+                    }`}>
                       <span>{String(timeLeft.hours).padStart(2, "0")}h</span>
                       <span>:</span>
                       <span>{String(timeLeft.minutes).padStart(2, "0")}m</span>
@@ -2224,7 +2314,19 @@ export default function DashboardClient({
                   Coordinate with your opponent on WhatsApp, complete the match on eFootball Mobile, and upload a screenshot of the post-game score screen before the 24-hour timer expires.
                 </p>
 
-                {isAdminPermissionGranted && activeMatch?.status !== "FINISHED" ? (
+                {isWaitingForSub ? (
+                  <div className="w-full sm:w-auto p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-xs text-amber-200 flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-amber-400 shrink-0 animate-pulse" />
+                    <div>
+                      <span className="font-black uppercase tracking-wider text-amber-300 block">
+                        Match On Hold (Awaiting Sub)
+                      </span>
+                      <span className="text-[11px] text-slate-300">
+                        Your scheduled opponent reached 3 missed matches. The League Admin is assigning a replacement athlete. Submissions will unlock for 48 hours once the replacement arrives.
+                      </span>
+                    </div>
+                  </div>
+                ) : isAdminPermissionGranted && activeMatch?.status !== "FINISHED" ? (
                   <div className="w-full sm:w-auto space-y-3">
                     <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 text-xs text-emerald-200 flex items-center gap-2.5">
                       <Unlock className="h-5 w-5 text-emerald-400 shrink-0" />
@@ -2336,6 +2438,27 @@ export default function DashboardClient({
                     </Button>
                   </div>
                 )}
+              </div>
+            </div>
+          ) : isSuspended ? (
+            <div className="rounded-3xl border-2 border-rose-500/50 bg-gradient-to-b from-rose-950/40 via-slate-950 to-slate-900 p-8 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="inline-flex p-4 rounded-3xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <Badge variant="destructive" className="text-xs font-mono font-bold uppercase tracking-wider px-3 py-1">
+                  ACCOUNT SUSPENDED • 3 MISSED MATCHES
+                </Badge>
+                <h3 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight">
+                  Removed from Active Match Schedule
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                You have reached 3 missed fixtures without submitting scores or claiming forfeit. In accordance with league rules, you will not receive matches to play until the League Administrator replaces your spot.
+              </p>
+              <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-rose-500/30 max-w-md mx-auto text-xs text-rose-300">
+                Commissioner review required. Contact admin on WhatsApp for further arbitration.
               </div>
             </div>
           ) : isRestDayToday ? (
