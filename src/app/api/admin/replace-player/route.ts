@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { recalculateStandings } from "@/lib/recalculateStandings";
+import { findTeam } from "@/lib/teams";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -107,6 +108,15 @@ export async function POST(req: Request) {
         data: { awayPlayerId: reservePlayer.id },
       });
 
+      // Verify if reserve player's club matches the division
+      let reserveTeamUpdate: { realTeam?: string | null; avatar?: string | null } = {};
+      if (reservePlayer.realTeam) {
+        const teamObj = findTeam(reservePlayer.realTeam);
+        if (!teamObj || teamObj.division !== division) {
+          reserveTeamUpdate = { realTeam: null, avatar: null };
+        }
+      }
+
       // 3. Activate reserve player in this division
       await prisma.player.update({
         where: { id: reservePlayer.id },
@@ -115,6 +125,7 @@ export async function POST(req: Request) {
           status: "ACTIVE",
           isDisqualified: false,
           consecutiveMissed: 0,
+          ...reserveTeamUpdate,
         },
       });
 

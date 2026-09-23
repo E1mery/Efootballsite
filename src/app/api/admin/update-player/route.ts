@@ -60,9 +60,22 @@ export async function POST(req: Request) {
       updateData.status = status;
     }
 
+    const effectiveDivision = division || player.division;
+
     if (realTeam !== undefined) {
       const team = findTeam(realTeam);
       if (team) {
+        // Strict Division-to-League Verification:
+        // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+        if (effectiveDivision && effectiveDivision !== "RESERVE" && team.division !== effectiveDivision) {
+          return NextResponse.json(
+            {
+              error: `Invalid Club: "${team.name}" belongs to ${team.division} (${team.league}), but this athlete is in ${effectiveDivision}. Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A.`,
+            },
+            { status: 400 }
+          );
+        }
+
         const existingClaim = await prisma.player.findFirst({
           where: {
             id: { not: playerId },
@@ -86,6 +99,15 @@ export async function POST(req: Request) {
         updateData.avatar = team.logo;
       } else if (realTeam === "" || realTeam === null) {
         updateData.realTeam = null;
+      }
+    } else if (division && division !== player.division) {
+      // If division was changed without supplying a new club, clear club if it belonged to the old division
+      if (player.realTeam) {
+        const currentTeam = findTeam(player.realTeam);
+        if (currentTeam && currentTeam.division !== division) {
+          updateData.realTeam = null;
+          updateData.avatar = null;
+        }
       }
     } else if (avatar !== undefined) {
       updateData.avatar = avatar;

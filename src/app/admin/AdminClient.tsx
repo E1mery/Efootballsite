@@ -7,6 +7,7 @@ import {
   Bell,
   Upload,
   ShieldAlert,
+  ShieldCheck,
   CheckCircle2,
   XCircle,
   Trophy,
@@ -137,6 +138,7 @@ export default function AdminClient({
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
   const [resettingTournament, setResettingTournament] = useState(false);
   const [resettingTeams, setResettingTeams] = useState(false);
+  const [auditingTeams, setAuditingTeams] = useState(false);
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
   const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
   const [uclDrawInput, setUclDrawInput] = useState<string>(
@@ -730,6 +732,54 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setResettingTeams(false);
+    }
+  };
+
+  // Audit and verify player club assignments against division
+  const handleAuditTeams = async () => {
+    setAuditingTeams(true);
+    try {
+      const res = await fetch("/api/admin/teams/audit");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to audit team assignments");
+
+      if (data.mismatchedCount === 0) {
+        alert(
+          `✅ Perfect Alignment!\nAll ${data.validCount} assigned clubs correctly match their respective division:\n` +
+          `• Division 1: Premier League\n` +
+          `• Division 2: La Liga\n` +
+          `• Division 3: Serie A\n\nNo mismatches found!`
+        );
+        return;
+      }
+
+      const listStr = data.mismatches
+        .slice(0, 10)
+        .map(
+          (m: any) =>
+            `• ${m.gamerTag} (${m.playerDivision}) -> ${m.currentTeam} (${m.teamDivision} / ${m.teamLeague})`
+        )
+        .join("\n");
+
+      const overflowMsg = data.mismatches.length > 10 ? `\n...and ${data.mismatches.length - 10} more` : "";
+
+      const confirmFix = confirm(
+        `⚠️ Found ${data.mismatchedCount} mismatched club assignment(s):\n\n${listStr}${overflowMsg}\n\nWould you like to automatically clear these mismatched club assignments so affected players can select valid clubs from their correct division?`
+      );
+
+      if (confirmFix) {
+        const fixRes = await fetch("/api/admin/teams/audit?fix=true");
+        const fixData = await fixRes.json();
+        if (!fixRes.ok) throw new Error(fixData.error || "Failed to fix mismatched teams");
+        alert(
+          `Successfully reset ${fixData.fixedCount} mismatched player club choices. Athletes can now pick clubs from their correct division.`
+        );
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAuditingTeams(false);
     }
   };
 
@@ -2256,6 +2306,17 @@ export default function AdminClient({
                 >
                   <RotateCcw className={`h-3.5 w-3.5 ${resettingTeams ? "animate-spin" : ""}`} />
                   {resettingTeams ? "Resetting Clubs..." : "Reset All Real Team Choices"}
+                </Button>
+
+                <Button
+                  onClick={handleAuditTeams}
+                  disabled={auditingTeams}
+                  variant="outline"
+                  className="font-bold text-xs uppercase tracking-wider gap-1.5 border-amber-500/50 text-amber-300 hover:bg-amber-950/40"
+                  title="Check whether every athlete's assigned real team matches their division (Div 1 = Premier League, Div 2 = La Liga, Div 3 = Serie A)"
+                >
+                  <ShieldCheck className={`h-3.5 w-3.5 ${auditingTeams ? "animate-spin" : ""}`} />
+                  {auditingTeams ? "Auditing Teams..." : "Audit Team Divisions"}
                 </Button>
               </div>
             </div>
@@ -5178,11 +5239,19 @@ export default function AdminClient({
                         </td>
                         <td className="px-4 py-3">
                           {p.realTeam ? (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-semibold text-white">{p.realTeam}</span>
                               {teamObj && (
                                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
                                   {teamObj.shortName}
+                                </span>
+                              )}
+                              {teamObj && teamObj.division !== p.division && (
+                                <span
+                                  className="text-[9px] font-black px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                  title={`Mismatch: ${teamObj.shortName} belongs to ${teamObj.division} (${teamObj.league}), but athlete is in ${p.division}`}
+                                >
+                                  WRONG DIV ({teamObj.league})
                                 </span>
                               )}
                             </div>

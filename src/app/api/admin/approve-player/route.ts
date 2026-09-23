@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { findTeam } from "@/lib/teams";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -57,6 +58,16 @@ async function processAthlete({
       );
     }
 
+    // Verify realTeam compatibility with targetDivision:
+    // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+    let teamUpdate: { realTeam?: string | null; avatar?: string | null } = {};
+    if (player.realTeam) {
+      const team = findTeam(player.realTeam);
+      if (team && team.division !== targetDivision) {
+        teamUpdate = { realTeam: null, avatar: null };
+      }
+    }
+
     const updatedPlayer = await prisma.player.update({
       where: { id: playerId },
       data: {
@@ -64,6 +75,7 @@ async function processAthlete({
         division: targetDivision,
         isDisqualified: false,
         consecutiveMissed: 0,
+        ...teamUpdate,
       },
       include: { user: true },
     });

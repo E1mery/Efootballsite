@@ -58,9 +58,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check real football team uniqueness
+    // Check real football team uniqueness and division consistency
     const selectedClub = realTeam ? findTeam(realTeam) : undefined;
     if (selectedClub || realTeam) {
+      // Strict Division-to-League Verification:
+      // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+      if (selectedClub && preferredDivision && preferredDivision !== "RESERVE") {
+        if (selectedClub.division !== preferredDivision) {
+          return NextResponse.json(
+            {
+              error: `Invalid Club Selection: "${selectedClub.name}" is a ${selectedClub.league} club assigned strictly to ${selectedClub.division}. Since you chose ${preferredDivision}, you must pick a club from ${preferredDivision}.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
       const teamNameToMatch = selectedClub ? selectedClub.name : realTeam.trim();
       const existingTeamClaim = await prisma.player.findFirst({
         where: {
