@@ -982,19 +982,33 @@ export default function DashboardClient({
   };
 
   // Active tab: Reserve athletes are on STANDINGS by default and do not participate in match tabs
-  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE";
+  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE" | "DRAWS";
   const [activeTab, setActiveTab] = useState<DashboardTab>(
     isReserved ? "STANDINGS" : "OVERVIEW"
   );
+
+  const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
+  const [drawsTabComp, setDrawsTabComp] = useState<"UCL" | "EUROPA">("UCL");
+  // Standings sub-category state: Domestic Divisions, UCL, Europa
+  const [standingsCategory, setStandingsCategory] = useState<"DIVISIONS" | "UCL" | "EUROPA">("DIVISIONS");
+
+  // Immediate removal: If admin locks either competition again, immediately eject from DRAWS and reset standings category
+  useEffect(() => {
+    if (!bothLeaguesUnlocked) {
+      if (activeTab === "DRAWS") {
+        setActiveTab(isReserved ? "STANDINGS" : "OVERVIEW");
+      }
+      if (standingsCategory !== "DIVISIONS") {
+        setStandingsCategory("DIVISIONS");
+      }
+    }
+  }, [bothLeaguesUnlocked, activeTab, standingsCategory, isReserved]);
 
   useEffect(() => {
     if (isReserved && (activeTab === "OVERVIEW" || activeTab === "CALENDAR" || activeTab === "HISTORY")) {
       setActiveTab("STANDINGS");
     }
   }, [isReserved, activeTab]);
-
-  // Standings sub-category state: Domestic Divisions, UCL, Europa
-  const [standingsCategory, setStandingsCategory] = useState<"DIVISIONS" | "UCL" | "EUROPA">("DIVISIONS");
 
   // Rating & Review State
   const [userRating, setUserRating] = useState<number>(initialReview?.rating || 5);
@@ -1526,6 +1540,23 @@ export default function DashboardClient({
           <span>All Division Tables</span>
         </button>
 
+        {bothLeaguesUnlocked && (
+          <button
+            onClick={() => setActiveTab("DRAWS")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
+              activeTab === "DRAWS"
+                ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-amber-600 text-white font-black shadow-lg shadow-indigo-600/30"
+                : "text-amber-300 hover:text-white hover:bg-slate-900 border border-amber-500/30 bg-amber-950/20"
+            }`}
+          >
+            <Trophy className="h-4 w-4 text-amber-400" />
+            <span>UCL & Europa Draws</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-black text-amber-300 border border-amber-500/40 animate-pulse">
+              LIVE
+            </span>
+          </button>
+        )}
+
         <button
           onClick={() => setActiveTab("INBOX")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
@@ -1591,64 +1622,69 @@ export default function DashboardClient({
               </p>
             </div>
 
-            {/* Direct Tournament Center Link */}
-            <Link
-              href="/continental"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all shrink-0"
-            >
-              <Trophy className="h-4 w-4" />
-              <span>Continental Cup Center</span>
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+            {/* Direct Tournament Center Link - Only visible when both leagues are unlocked */}
+            {bothLeaguesUnlocked && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("DRAWS")}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all shrink-0"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>UCL & Europa Draws Hub</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Category Switcher Tabs: Divisions, UCL, Europa */}
-          <div className="flex items-center gap-2 bg-[#080d1a] p-1.5 rounded-2xl border border-slate-800 w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
-            <button
-              type="button"
-              onClick={() => setStandingsCategory("DIVISIONS")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-                standingsCategory === "DIVISIONS"
-                  ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Trophy className="h-4 w-4" />
-              <span>3 Domestic Divisions</span>
-            </button>
+          {bothLeaguesUnlocked && (
+            <div className="flex items-center gap-2 bg-[#080d1a] p-1.5 rounded-2xl border border-slate-800 w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
+              <button
+                type="button"
+                onClick={() => setStandingsCategory("DIVISIONS")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                  standingsCategory === "DIVISIONS"
+                    ? "bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Trophy className="h-4 w-4" />
+                <span>3 Domestic Divisions</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setStandingsCategory("UCL")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-                standingsCategory === "UCL"
-                  ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Star className="h-4 w-4 text-indigo-300" />
-              <span>eFootball UCL Groups</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 text-indigo-300 border border-indigo-500/30">
-                16 Players
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setStandingsCategory("UCL")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                  standingsCategory === "UCL"
+                    ? "bg-indigo-600 text-white font-black shadow-lg shadow-indigo-600/30"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Star className="h-4 w-4 text-indigo-300" />
+                <span>eFootball UCL Groups</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 text-indigo-300 border border-indigo-500/30">
+                  16 Players
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setStandingsCategory("EUROPA")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-                standingsCategory === "EUROPA"
-                  ? "bg-amber-600 text-white font-black shadow-lg shadow-amber-600/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Flame className="h-4 w-4 text-amber-300" />
-              <span>eFootball Europa Groups</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500/30">
-                16 Players
-              </span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setStandingsCategory("EUROPA")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                  standingsCategory === "EUROPA"
+                    ? "bg-amber-600 text-white font-black shadow-lg shadow-amber-600/30"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Flame className="h-4 w-4 text-amber-300" />
+                <span>eFootball Europa Groups</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500/30">
+                  16 Players
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* VIEW 1: DOMESTIC 3 DIVISIONS */}
           {standingsCategory === "DIVISIONS" && (
@@ -1665,20 +1701,97 @@ export default function DashboardClient({
           )}
 
           {/* VIEW 2 & 3: CONTINENTAL GROUP STANDINGS (UCL & EUROPA) */}
-          {(standingsCategory === "UCL" || standingsCategory === "EUROPA") && (
+          {bothLeaguesUnlocked && (standingsCategory === "UCL" || standingsCategory === "EUROPA") && (
             <ContinentalGroupStandingsView
               competition={standingsCategory}
               standings={standingsCategory === "UCL" ? uclGroupStandings : europaGroupStandings}
               slots={standingsCategory === "UCL" ? uclSlots : europaSlots}
               currentPlayerId={currentPlayer.id}
-              isStarted={
-                standingsCategory === "UCL"
-                  ? Boolean(leagueConfig?.uclStarted)
-                  : Boolean(leagueConfig?.europaStarted)
-              }
+              isStarted={true}
               onWatchDraw={() => setViewDrawModal(standingsCategory)}
             />
           )}
+        </div>
+      )}
+
+      {/* TAB: UCL & EUROPA DRAWS PAGE (DISPLAYED ONLY WHEN BOTH LEAGUES ARE UNLOCKED BY ADMIN) */}
+      {bothLeaguesUnlocked && activeTab === "DRAWS" && (
+        <div className="space-y-6">
+          {/* Esports Banner Header */}
+          <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-slate-950 to-amber-950/60 p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-amber-500/10 via-indigo-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="space-y-2 relative z-10">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="yellow" className="font-black text-[10px] sm:text-xs tracking-wider uppercase px-2.5 py-0.5">
+                  OFFICIAL ESPORTS CONTINENTAL ARENA
+                </Badge>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono text-[10px] font-black animate-pulse flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  BOTH LEAGUES UNLOCKED
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px]">
+                  16 Athletes / Tournament
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight flex items-center gap-3">
+                <Trophy className="h-7 w-7 text-amber-400 shrink-0" />
+                <span>UCL & Europa Draws</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
+                Official interactive group stage draws for Rwanda's elite continental tournaments. Experience live animated wheel spins with strict division protection ensuring balanced competitive groups!
+              </p>
+            </div>
+
+            {/* Competition Switcher Buttons */}
+            <div className="flex items-center gap-2 bg-[#060913]/90 p-1.5 rounded-2xl border border-slate-800 shrink-0 relative z-10">
+              <button
+                type="button"
+                onClick={() => setDrawsTabComp("UCL")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+                  drawsTabComp === "UCL"
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/40"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900"
+                }`}
+              >
+                <Star className="h-4 w-4 text-indigo-300" />
+                <span>eFootball UCL</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawsTabComp("EUROPA")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+                  drawsTabComp === "EUROPA"
+                    ? "bg-amber-600 text-white shadow-lg shadow-amber-600/40"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900"
+                }`}
+              >
+                <Flame className="h-4 w-4 text-amber-300" />
+                <span>Europa League</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Draw Experience Component */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
+            <ContinentalDrawExperience
+              competition={drawsTabComp}
+              qualifiedAthletes={drawsTabComp === "UCL" ? uclQualifiedAthletes : europaQualifiedAthletes}
+              existingSlots={drawsTabComp === "UCL" ? uclSlots : europaSlots}
+              isAdmin={false}
+            />
+          </div>
+
+          {/* Current Group Standings & Fixtures */}
+          <div className="space-y-4">
+            <ContinentalGroupStandingsView
+              competition={drawsTabComp}
+              standings={drawsTabComp === "UCL" ? uclGroupStandings : europaGroupStandings}
+              slots={drawsTabComp === "UCL" ? uclSlots : europaSlots}
+              currentPlayerId={currentPlayer.id}
+              isStarted={true}
+              onWatchDraw={() => setViewDrawModal(drawsTabComp)}
+            />
+          </div>
         </div>
       )}
 
@@ -1686,7 +1799,7 @@ export default function DashboardClient({
       {!isReserved && activeTab === "OVERVIEW" && (
         <div className="space-y-8">
           {/* CONTINENTAL DRAWS BROADCAST & SCHEDULE BANNER */}
-          {Boolean(leagueConfig?.uclDrawTime || leagueConfig?.uclStarted || leagueConfig?.europaDrawTime || leagueConfig?.europaStarted) && (
+          {bothLeaguesUnlocked && Boolean(leagueConfig?.uclDrawTime || leagueConfig?.uclStarted || leagueConfig?.europaDrawTime || leagueConfig?.europaStarted) && (
             <div className={`grid grid-cols-1 ${
               (leagueConfig?.uclDrawTime || leagueConfig?.uclStarted) && (leagueConfig?.europaDrawTime || leagueConfig?.europaStarted)
                 ? "md:grid-cols-2"
@@ -2603,7 +2716,7 @@ export default function DashboardClient({
             )}
 
             {/* CONTINENTAL GROUP MATCHES OF THE DAY (VISIBLE TO ALL PARTICIPANTS & SPECTATORS) */}
-            {(() => {
+            {bothLeaguesUnlocked && (() => {
               const uclList = Object.values(uclGroupMotds || {}).filter((m: any) => Boolean(m && m.id));
               const europaList = Object.values(europaGroupMotds || {}).filter((m: any) => Boolean(m && m.id));
               if (uclList.length === 0 && europaList.length === 0) return null;

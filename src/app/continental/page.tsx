@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { redirect } from "next/navigation";
 import ContinentalClient from "./ContinentalClient";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 
@@ -56,6 +57,13 @@ export default async function ContinentalCupsPage() {
         europaStarted: false,
       },
     });
+
+    const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
+
+    // If both leagues are not unlocked and the viewer is not an Admin, redirect immediately
+    if (!isAdmin && !bothLeaguesUnlocked) {
+      redirect(sessionUserId ? "/dashboard" : "/");
+    }
 
     const resultsUcl = await Promise.all([
       prisma.standing.findMany({

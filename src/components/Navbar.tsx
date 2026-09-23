@@ -54,16 +54,26 @@ export default function Navbar() {
   }, [pathname]);
 
   const [currentSeason, setCurrentSeason] = useState<string>("Season 1 (2026)");
+  const [bothLeaguesUnlocked, setBothLeaguesUnlocked] = useState<boolean>(false);
 
   useEffect(() => {
-    fetch("/api/league/config")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.config?.season) {
-          setCurrentSeason(data.config.season);
-        }
-      })
-      .catch(() => {});
+    const fetchConfig = () => {
+      fetch("/api/league/config")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.config) {
+            if (data.config.season) {
+              setCurrentSeason(data.config.season);
+            }
+            setBothLeaguesUnlocked(Boolean(data.config.uclStarted && data.config.europaStarted));
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchConfig();
+    const interval = setInterval(fetchConfig, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -80,12 +90,19 @@ export default function Navbar() {
   );
 
   const navLinks = isUserOrAdminLoggedIn
-    ? [{ name: "Home", href: "/", icon: Shield }]
+    ? [
+        { name: "Home", href: "/", icon: Shield },
+        ...(bothLeaguesUnlocked && !isAdminPortal
+          ? [{ name: "UCL & Europa Draws", href: "/continental", icon: Globe }]
+          : []),
+      ]
     : [
         { name: "Home", href: "/", icon: Shield },
         { name: "Fixtures", href: "/fixtures", icon: Calendar },
         { name: "3 Divisions", href: "/standings", icon: Trophy },
-        { name: "UCL & Europa", href: "/continental", icon: Globe },
+        ...(bothLeaguesUnlocked
+          ? [{ name: "UCL & Europa Draws", href: "/continental", icon: Globe }]
+          : []),
         { name: "Admin Office", href: "/admin", icon: ShieldAlert },
       ];
 

@@ -17,18 +17,26 @@ export default async function StandingsPage({
 
   // Fetch standings for selected division with player profile and team
   let standings: any[] = [];
+  let leagueConfig: any = null;
   try {
-    standings = await prisma.standing.findMany({
-      where: { division: currentDivision },
-      include: {
-        player: true,
-      },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-      take: 20, // Strict 20 players cap per division
-    });
+    const [st, cfg] = await Promise.all([
+      prisma.standing.findMany({
+        where: { division: currentDivision },
+        include: {
+          player: true,
+        },
+        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+        take: 20, // Strict 20 players cap per division
+      }),
+      prisma.leagueConfig.findUnique({ where: { id: "default" } }),
+    ]);
+    standings = st;
+    leagueConfig = cfg;
   } catch (error) {
     console.error("Standings fetch error:", error);
   }
+
+  const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
 
   const totalGoals = standings.reduce((acc, curr) => acc + (curr.goalsFor || 0), 0);
   const bestPlayer = standings[0];
@@ -103,20 +111,24 @@ export default async function StandingsPage({
             <ShieldCheck className="h-4 w-4" />
             <span>3rd Division (National Academy)</span>
           </a>
-          <a
-            href="/continental"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-indigo-400 hover:text-white hover:bg-indigo-950/40 border border-indigo-500/30"
-          >
-            <Trophy className="h-4 w-4 text-indigo-400" />
-            <span>eFootball UCL Groups</span>
-          </a>
-          <a
-            href="/continental"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-amber-400 hover:text-white hover:bg-amber-950/40 border border-amber-500/30"
-          >
-            <Flame className="h-4 w-4 text-amber-400" />
-            <span>eFootball Europa Groups</span>
-          </a>
+          {bothLeaguesUnlocked && (
+            <>
+              <a
+                href="/continental"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-indigo-400 hover:text-white hover:bg-indigo-950/40 border border-indigo-500/30"
+              >
+                <Trophy className="h-4 w-4 text-indigo-400" />
+                <span>eFootball UCL Groups</span>
+              </a>
+              <a
+                href="/continental"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-amber-400 hover:text-white hover:bg-amber-950/40 border border-amber-500/30"
+              >
+                <Flame className="h-4 w-4 text-amber-400" />
+                <span>eFootball Europa Groups</span>
+              </a>
+            </>
+          )}
         </div>
       </div>
 
