@@ -143,23 +143,17 @@ export default async function HomePage({
         <div className="flex flex-col items-center justify-center gap-4">
           <EfootballGamingLogo size="xl" showText={false} />
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary shadow-lg">
-            <Gamepad2 className="h-4 w-4 text-secondary" />
-            <span>RWANDA EFOOTBALL ESPORTS LEAGUE • 3 DIVISIONS</span>
-          </div>
-
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-tight break-words">
-            Competitive <br />
             <span className="efootball-gradient-text">eFootball Rwanda</span>
           </h1>
 
           <p className="text-sm sm:text-base text-foreground max-w-2xl mx-auto leading-relaxed">
-            The official national digital football championship. Athletes compete across <strong>Division 1, 2, and 3</strong> in daily <strong>24-hour matchday cycles</strong>, coordinated via WhatsApp with automated season-end promotions.
+            The official national digital football championship. Athletes compete across <strong>Division 1, 2, and 3</strong> in daily <strong>24-hour matchday cycles</strong>.
           </p>
         </div>
 
         {/* MAIN USER ACTIONS HUB (What users can do) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 text-left">
           {/* Action 1: Player Login */}
           <Link
             href="/login"
@@ -198,25 +192,6 @@ export default async function HomePage({
             </span>
           </Link>
 
-          {/* Action 3: Admin Office */}
-          <Link
-            href="/admin"
-            className="group p-5 rounded-2xl bg-card/80 border border-border hover:border-destructive/50 hover:bg-card transition-all shadow-xl backdrop-blur-md flex flex-col justify-between"
-          >
-            <div className="space-y-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20 group-hover:scale-105 transition-transform">
-                <ShieldAlert className="h-5 w-5" />
-              </div>
-              <h3 className="font-black text-sm uppercase text-white tracking-wide">Admin Office</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Commissioner desk: inspect score screenshots, input verified goals, manage league.
-              </p>
-            </div>
-            <span className="mt-4 text-xs font-bold text-destructive group-hover:underline flex items-center gap-1">
-              Admin Office Access →
-            </span>
-          </Link>
-
           {/* Action 4: Continental Cups */}
           <Link
             href="/continental"
@@ -244,7 +219,6 @@ export default async function HomePage({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-secondary" />
                 <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-wide">
                   Official Community & Social Channels
                 </h2>
@@ -317,7 +291,7 @@ export default async function HomePage({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-secondary" />
+              <Trophy className="h-6 w-6" />
               <h2 className="text-2xl font-black uppercase text-white tracking-tight">
                 All Divisions Official Standings
               </h2>
@@ -352,7 +326,7 @@ export default async function HomePage({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-secondary/20 pb-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/10 border border-secondary/30 text-secondary">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/10 border border-secondary/30">
                 <Crown className="h-5 w-5" />
               </div>
               <h2 className="text-2xl font-black uppercase text-white tracking-tight">
