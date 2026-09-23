@@ -99,6 +99,7 @@ export async function POST(req: Request) {
         updateData.avatar = team.logo;
       } else if (realTeam === "" || realTeam === null) {
         updateData.realTeam = null;
+        updateData.avatar = null;
       }
     } else if (division && division !== player.division) {
       // If division was changed without supplying a new club, clear club if it belonged to the old division
@@ -131,3 +132,6 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const PUT = POST;
+

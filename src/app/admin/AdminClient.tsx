@@ -1147,15 +1147,15 @@ export default function AdminClient({
     setUpdatingClub(true);
     try {
       const res = await fetch("/api/admin/update-player", {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           playerId,
           realTeam,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update player club");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed to update player club (${res.status} ${res.statusText})`);
       alert(data.message || "Player club updated successfully!");
       setEditingClubPlayer(null);
       router.refresh();
