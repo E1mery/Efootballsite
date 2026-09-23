@@ -2604,8 +2604,8 @@ export default function DashboardClient({
 
             {/* CONTINENTAL GROUP MATCHES OF THE DAY (VISIBLE TO ALL PARTICIPANTS & SPECTATORS) */}
             {(() => {
-              const uclList = Object.values(uclGroupMotds || {});
-              const europaList = Object.values(europaGroupMotds || {});
+              const uclList = Object.values(uclGroupMotds || {}).filter((m: any) => Boolean(m && m.id));
+              const europaList = Object.values(europaGroupMotds || {}).filter((m: any) => Boolean(m && m.id));
               if (uclList.length === 0 && europaList.length === 0) return null;
 
               return (
@@ -2624,20 +2624,20 @@ export default function DashboardClient({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {uclList.map((m: any) => (
-                      <div key={m.id} className="relative">
+                      <div key={m?.id} className="relative">
                         <div className="absolute top-2 right-2 z-10">
                           <Badge variant="secondary" className="text-[9px] font-mono border-indigo-500/40 text-indigo-300 bg-indigo-950/40">
-                            {m.groupName || "UCL Group Stage"}
+                            {m?.groupName || "UCL Group Stage"}
                           </Badge>
                         </div>
                         <MatchOfTheDayCard match={m} />
                       </div>
                     ))}
                     {europaList.map((m: any) => (
-                      <div key={m.id} className="relative">
+                      <div key={m?.id} className="relative">
                         <div className="absolute top-2 right-2 z-10">
                           <Badge variant="secondary" className="text-[9px] font-mono border-amber-500/40 text-amber-300 bg-amber-950/40">
-                            {m.groupName || "Europa Group Stage"}
+                            {m?.groupName || "Europa Group Stage"}
                           </Badge>
                         </div>
                         <MatchOfTheDayCard match={m} />
