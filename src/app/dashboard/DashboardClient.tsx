@@ -640,10 +640,10 @@ export default function DashboardClient({
   };
 
   // Profile Update State
-  const [profileGamerTag, setProfileGamerTag] = useState(player.gamerTag || "");
-  const [profileFullName, setProfileFullName] = useState(player.fullName || "");
-  const [profileWhatsapp, setProfileWhatsapp] = useState(player.whatsapp || "");
-  const [profileRealTeam, setProfileRealTeam] = useState(player.realTeam || "");
+  const [profileGamerTag, setProfileGamerTag] = useState(player?.gamerTag || "");
+  const [profileFullName, setProfileFullName] = useState(player?.fullName || "");
+  const [profileWhatsapp, setProfileWhatsapp] = useState(player?.whatsapp || "");
+  const [profileRealTeam, setProfileRealTeam] = useState(player?.realTeam || "");
   const [profileEmail, setProfileEmail] = useState(user?.email || "");
   const [profilePassword, setProfilePassword] = useState("");
   const [profileConfirmPassword, setProfileConfirmPassword] = useState("");

@@ -12,22 +12,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const isAdminPortal = pathname?.startsWith("/admin");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("efrl_user");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          return {
-            authenticated: true,
-            user: parsed,
-            player: parsed.player,
-          };
-        }
-      } catch (e) {}
-    }
-    return null;
-  });
+  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(null);
 
   useEffect(() => {
     // 1. Immediately hydrate from localStorage to prevent flash of "Log In" on refresh

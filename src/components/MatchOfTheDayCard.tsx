@@ -27,6 +27,7 @@ interface MotdProps {
 }
 
 export default function MatchOfTheDayCard({ match }: MotdProps) {
+  if (!match) return null;
   const homeRank = match.motdHomeRank || match.homeStanding?.rank || 1;
   const awayRank = match.motdAwayRank || match.awayStanding?.rank || 2;
   const homePoints = match.motdHomePoints ?? match.homeStanding?.points ?? 0;
@@ -144,7 +145,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
             <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
               <span className="text-xs font-mono text-slate-400">{match.homePlayer.whatsapp}</span>
               <a
-                href={`https://wa.me/${match.homePlayer.whatsapp.replace(/[^0-9]/g, "")}`}
+                href={`https://wa.me/${String(match.homePlayer.whatsapp).replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline"
@@ -219,7 +220,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
             <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
               <span className="text-xs font-mono text-slate-400">{match.awayPlayer.whatsapp}</span>
               <a
-                href={`https://wa.me/${match.awayPlayer.whatsapp.replace(/[^0-9]/g, "")}`}
+                href={`https://wa.me/${String(match.awayPlayer.whatsapp).replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline"

@@ -44,7 +44,7 @@ export default function HomeDivisionsTabs({
     },
   };
 
-  const current = divisionData[activeDivision];
+  const current = divisionData[activeDivision] || divisionData["Division 1"];
 
   return (
     <div className="space-y-6">
