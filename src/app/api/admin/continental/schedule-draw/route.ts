@@ -25,8 +25,19 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, competition = "UCL", drawTime, started, slots } = body;
 
+    // Check if competition is unlocked
+    const currentLeagueConfig = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+    const isCompUnlocked = competition === "UCL" ? currentLeagueConfig?.uclStarted : currentLeagueConfig?.europaStarted;
+
     // 1. SCHEDULE DRAW
     if (action === "SCHEDULE_DRAW") {
+      if (!isCompUnlocked) {
+        return NextResponse.json(
+          { error: `Cannot schedule ${competition} draw while ${competition} is locked. Please click "Unlock ${competition}" once qualification tables are concluded.` },
+          { status: 400 }
+        );
+      }
+
       const updateData: any = {};
       const dateVal = drawTime ? new Date(drawTime) : null;
 

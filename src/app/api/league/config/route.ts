@@ -12,6 +12,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       config: config || {
+        season: "Season 1 (2026)",
         registrationOpen: true,
         currentMatchday: 1,
         uclStarted: false,

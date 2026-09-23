@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recalculateStandings } from "@/lib/recalculateStandings";
 
 export async function POST(req: Request) {
   try {
@@ -23,11 +24,22 @@ export async function POST(req: Request) {
     });
 
     for (const match of expiredMatches) {
-      // Mark match expired
+      // Mark match as 0-0 draw with 1 point each
       await prisma.match.update({
         where: { id: match.id },
-        data: { status: "FORFEIT", notes: "Expired unplayed: Neither player submitted proof within 24hr window." },
+        data: {
+          homeScore: 0,
+          awayScore: 0,
+          status: "FINISHED",
+          notes: "Automatic 0-0 Draw (1 pt each): 24-hour midnight window elapsed without submitted score. Both players assigned 1 missed match.",
+        },
       });
+
+      // Recalculate standings so each player receives 1 point for the 0-0 draw
+      const divToRecalc = match.stage === "GROUP" && match.groupName
+        ? `${match.division} ${match.groupName}`
+        : match.division;
+      await recalculateStandings(match.tournamentId, divToRecalc);
 
       // Increment consecutiveMissed for both players
       for (const player of [match.homePlayer, match.awayPlayer]) {
@@ -41,7 +53,7 @@ export async function POST(req: Request) {
             isDisqualified,
             status: isDisqualified ? "DISQUALIFIED" : newMissed >= 2 ? "WARNING" : "ACTIVE",
             disqualificationReason: isDisqualified
-              ? "Missed 3 consecutive league fixtures within 24-hour matchday deadlines."
+              ? "Missed 3 consecutive league fixtures without submitting results or claiming forfeit."
               : null,
           },
         });

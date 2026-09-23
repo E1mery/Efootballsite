@@ -4,6 +4,7 @@ import { promoteTopPlayersAtSeasonEnd } from "@/lib/seasonPromotion";
 import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
 import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
+import { recalculateStandings } from "@/lib/recalculateStandings";
 
 /**
  * Checks if the current matchday deadline has expired (12:00 AM midnight passed)
@@ -63,12 +64,20 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
       await prisma.match.update({
         where: { id: match.id },
         data: {
-          status: "FORFEIT",
-          notes: "Expired unplayed: 24-hour midnight window elapsed without submitted score.",
+          homeScore: 0,
+          awayScore: 0,
+          status: "FINISHED",
+          notes: "Automatic 0-0 Draw (1 pt each): 24-hour midnight window elapsed without submitted score. Both players assigned 1 missed match.",
         },
       });
 
-      // Increment consecutiveMissed count for both players
+      // Recalculate standings so both players officially receive 1 point each for the 0-0 draw
+      const divToRecalc = match.stage === "GROUP" && match.groupName
+        ? `${match.division} ${match.groupName}`
+        : match.division;
+      await recalculateStandings(match.tournamentId, divToRecalc);
+
+      // Increment consecutiveMissed count for both players (disqualifying if >= 3)
       for (const player of [match.homePlayer, match.awayPlayer]) {
         const newMissed = (player.consecutiveMissed || 0) + 1;
         const isDisqualified = newMissed >= 3;
@@ -80,7 +89,7 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
             isDisqualified,
             status: isDisqualified ? "DISQUALIFIED" : newMissed >= 2 ? "WARNING" : "ACTIVE",
             disqualificationReason: isDisqualified
-              ? "Missed 3 consecutive league fixtures within 24-hour matchday deadlines."
+              ? "Disqualified: Missed 3 consecutive league fixtures without submitting results or claiming forfeit."
               : null,
           },
         });

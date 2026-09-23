@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import DashboardClient from "./DashboardClient";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
-import { evaluateAllDivisionsMatchOfTheDay } from "@/lib/matchOfTheDay";
+import { evaluateAllDivisionsMatchOfTheDay, evaluateContinentalGroupMotds } from "@/lib/matchOfTheDay";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
 export const dynamic = "force-dynamic";
@@ -113,16 +113,33 @@ export default async function DashboardPage() {
 
   // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool
   if (isParticipating) {
-    // 1. Scheduled or Live match in current league round
-    activeMatch = await prisma.match.findFirst({
+    // 0. Continental priority: If player has an active/scheduled match in UCL or Europa, prioritize it on Today's 24-Hr match page!
+    const activeContinentalMatch = await prisma.match.findFirst({
       where: {
+        division: { in: ["UCL", "EUROPA"] },
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-        round: currentRoundName,
         status: { in: ["SCHEDULED", "LIVE"] },
       },
       include: matchInclude,
-      orderBy: { matchDate: "asc" },
+      orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
     });
+
+    if (activeContinentalMatch) {
+      activeMatch = activeContinentalMatch;
+    }
+
+    // 1. Scheduled or Live match in current league round
+    if (!activeMatch) {
+      activeMatch = await prisma.match.findFirst({
+        where: {
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          round: currentRoundName,
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        include: matchInclude,
+        orderBy: { matchDate: "asc" },
+      });
+    }
 
     // 2. Earliest scheduled or live match for this player across all stages (Divisions, UCL, Europa)
     if (!activeMatch) {
@@ -168,8 +185,17 @@ export default async function DashboardPage() {
       orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
     });
 
+    // RULE: When UCL or Europa starts, the match calendar page for participants ONLY is cleared of old domestic fixtures to show UCL / Europa matches
+    const continentalMatches = allPlayerMatchesRaw.filter(
+      (m) => m.division === "UCL" || m.division === "EUROPA"
+    );
+    const hasStartedContinental =
+      (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
+
+    const matchesToDisplay = hasStartedContinental ? continentalMatches : allPlayerMatchesRaw;
+
     // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
-    allPlayerMatches = [...allPlayerMatchesRaw].sort((a, b) => {
+    allPlayerMatches = [...matchesToDisplay].sort((a, b) => {
       const getRoundNum = (roundStr: string) => {
         const m = roundStr?.match(/\d+/);
         return m ? parseInt(m[0], 10) : 999;
@@ -325,6 +351,66 @@ export default async function DashboardPage() {
     ...div3Standings.slice(4, 10),
   ];
 
+  // Opponent Intelligence for Today's 24-Hr Match Day
+  let opponentStanding: any = null;
+  let opponentPreviousMatches: any[] = [];
+
+  if (activeMatch) {
+    const oppId = activeMatch.homePlayerId === player.id ? activeMatch.awayPlayerId : activeMatch.homePlayerId;
+    if (oppId) {
+      if (activeMatch.division === "UCL" || activeMatch.division === "EUROPA") {
+        if (activeMatch.stage === "GROUP" && activeMatch.groupName) {
+          opponentStanding = await prisma.standing.findFirst({
+            where: {
+              playerId: oppId,
+              division: `${activeMatch.division} ${activeMatch.groupName}`,
+            },
+          });
+        } else {
+          opponentStanding =
+            (await prisma.standing.findFirst({
+              where: { playerId: oppId, division: activeMatch.division },
+            })) ||
+            (await prisma.standing.findFirst({
+              where: { playerId: oppId },
+            }));
+        }
+      } else {
+        opponentStanding = await prisma.standing.findFirst({
+          where: { playerId: oppId, division: player.division },
+        });
+      }
+
+      opponentPreviousMatches = await prisma.match.findMany({
+        where: {
+          OR: [{ homePlayerId: oppId }, { awayPlayerId: oppId }],
+          status: { in: ["FINISHED", "FORFEIT"] },
+          id: { not: activeMatch.id },
+        },
+        include: {
+          homePlayer: true,
+          awayPlayer: true,
+        },
+        orderBy: { matchDate: "desc" },
+        take: 3,
+      });
+    }
+  }
+
+  // Continental Group Stage Matches of the Day
+  const allDomesticStandings = [...div1Standings, ...div2Standings, ...div3Standings];
+  const uclGroupMatches = await prisma.match.findMany({
+    where: { division: "UCL", stage: "GROUP" },
+    include: { homePlayer: true, awayPlayer: true },
+  });
+  const uclGroupMotds = evaluateContinentalGroupMotds(uclGroupMatches, allDomesticStandings, "UCL");
+
+  const europaGroupMatches = await prisma.match.findMany({
+    where: { division: "EUROPA", stage: "GROUP" },
+    include: { homePlayer: true, awayPlayer: true },
+  });
+  const europaGroupMotds = evaluateContinentalGroupMotds(europaGroupMatches, allDomesticStandings, "EUROPA");
+
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <DashboardClient
@@ -337,6 +423,8 @@ export default async function DashboardPage() {
         standing={currentStanding}
         leagueConfig={leagueConfig}
         divisionalMotd={divisionalMotd}
+        uclGroupMotds={uclGroupMotds}
+        europaGroupMotds={europaGroupMotds}
         div1Standings={div1Standings}
         div2Standings={div2Standings}
         div3Standings={div3Standings}
@@ -349,6 +437,8 @@ export default async function DashboardPage() {
         initialReview={myReview}
         isRestDayToday={isRestDayToday}
         currentRoundName={currentRoundName}
+        opponentStanding={opponentStanding}
+        opponentPreviousMatches={opponentPreviousMatches}
       />
     </div>
   );

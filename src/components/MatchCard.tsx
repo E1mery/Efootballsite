@@ -148,12 +148,12 @@ export default function MatchCard({ match }: MatchProps) {
               </span>
             )}
           </div>
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-white/95 border border-slate-700/80 p-1 font-black text-xs sm:text-sm text-slate-900 shadow-md overflow-hidden">
             {match.homePlayer ? (
               <img
                 src={resolvePlayerAvatar(match.homePlayer)}
                 alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
@@ -186,12 +186,12 @@ export default function MatchCard({ match }: MatchProps) {
 
         {/* Away Player */}
         <div className="flex-1 min-w-0 flex items-center justify-start gap-2 sm:gap-3 text-left">
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-white/95 border border-slate-700/80 p-1 font-black text-xs sm:text-sm text-slate-900 shadow-md overflow-hidden">
             {match.awayPlayer ? (
               <img
                 src={resolvePlayerAvatar(match.awayPlayer)}
                 alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;

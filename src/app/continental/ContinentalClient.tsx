@@ -83,7 +83,22 @@ export default function ContinentalClient({
     };
   }, []);
   const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">("UCL");
-  const [activeTab, setActiveTab] = useState<"DRAWS" | "GROUPS" | "KNOCKOUT" | "TROPHY_POLL">("DRAWS");
+
+  const isUclDrawDone = Boolean(leagueConfig.uclDrawCompleted || uclSlots.length >= 16);
+  const isEuropaDrawDone = Boolean(leagueConfig.europaDrawCompleted || europaSlots.length >= 16);
+  const isCurrentDrawDone = selectedCompetition === "UCL" ? isUclDrawDone : isEuropaDrawDone;
+
+  const [activeTab, setActiveTab] = useState<"DRAWS" | "GROUPS" | "KNOCKOUT" | "TROPHY_POLL">(() => {
+    return (selectedCompetition === "UCL" ? isUclDrawDone : isEuropaDrawDone) && !isAdmin
+      ? "GROUPS"
+      : "DRAWS";
+  });
+
+  useEffect(() => {
+    if (isCurrentDrawDone && !isAdmin && activeTab === "DRAWS") {
+      setActiveTab("GROUPS");
+    }
+  }, [isCurrentDrawDone, isAdmin, activeTab]);
 
   const [votingLoading, setVotingLoading] = useState<string | null>(null);
   const [voteError, setVoteError] = useState<string | null>(null);
@@ -296,22 +311,24 @@ export default function ContinentalClient({
 
       {/* Tournament Stage Sub-Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
-        <button
-          onClick={() => setActiveTab("DRAWS")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
-            activeTab === "DRAWS"
-              ? selectedCompetition === "UCL"
-                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
-                : "bg-amber-600/20 text-amber-300 border border-amber-500/40"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          <Vote className="h-3.5 w-3.5" />
-          <span>Interactive Group Draws</span>
-          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300">
-            {currentSlots.length}/16
-          </span>
-        </button>
+        {(!isCurrentDrawDone || isAdmin) && (
+          <button
+            onClick={() => setActiveTab("DRAWS")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
+              activeTab === "DRAWS"
+                ? selectedCompetition === "UCL"
+                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
+                  : "bg-amber-600/20 text-amber-300 border border-amber-500/40"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Vote className="h-3.5 w-3.5" />
+            <span>Interactive Group Draws</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300">
+              {currentSlots.length}/16
+            </span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab("GROUPS")}
@@ -553,7 +570,22 @@ export default function ContinentalClient({
       {/* TAB 2: GROUP STAGE (STANDINGS & 2-LEGGED FIXTURES) */}
       {/* ===================================================================== */}
       {activeTab === "GROUPS" && (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {/* Directed banner for completed draw */}
+          {isCurrentDrawDone && (
+            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 flex items-center gap-3 shadow-lg">
+              <Sparkles className="h-5 w-5 text-emerald-400 shrink-0" />
+              <div className="text-xs">
+                <span className="font-bold text-emerald-300 uppercase mr-1.5">
+                  Official Draw Concluded:
+                </span>
+                <span className="text-slate-300">
+                  All 16 athletes have been officially drafted into Groups A, B, C, and D. Review your group rivals below while the League Commissioner prepares the 2-legged group matchdays!
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div>
               <span className="font-bold text-white block">Group Stage Format: 2-Legged Simultaneous Matches</span>
@@ -568,13 +600,31 @@ export default function ContinentalClient({
 
           {/* Group Tables */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {groups.map((grp) => {
+            {groups.map((grp, gIdx) => {
               const grpStandings = currentStandings.filter((s) => s.division.includes(grp));
+              const theme =
+                grp === "Group A"
+                  ? { border: "border-cyan-500/40", shadow: "shadow-cyan-500/10", dot: "bg-cyan-400", title: "text-cyan-400" }
+                  : grp === "Group B"
+                  ? { border: "border-emerald-500/40", shadow: "shadow-emerald-500/10", dot: "bg-emerald-400", title: "text-emerald-400" }
+                  : grp === "Group C"
+                  ? { border: "border-amber-500/40", shadow: "shadow-amber-500/10", dot: "bg-amber-400", title: "text-amber-400" }
+                  : { border: "border-purple-500/40", shadow: "shadow-purple-500/10", dot: "bg-purple-400", title: "text-purple-400" };
+
               return (
-                <div key={grp} className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 space-y-3 shadow-lg">
+                <div
+                  key={grp}
+                  className={`rounded-2xl border ${theme.border} bg-slate-950/90 p-5 space-y-3 shadow-xl ${theme.shadow} backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-500`}
+                  style={{ animationDelay: `${gIdx * 150}ms` }}
+                >
                   <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="font-black uppercase text-sm text-white">{grp} Table</span>
-                    <span className="text-[11px] text-slate-400 font-mono">Top 2 Qualify for QF</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${theme.dot} animate-pulse`} />
+                      <span className={`font-black uppercase text-sm ${theme.title}`}>{grp} Standings</span>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/40 bg-emerald-950/20 font-mono">
+                      Top 2 → QF
+                    </Badge>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -615,11 +665,11 @@ export default function ContinentalClient({
                               </td>
                               <td className="py-2.5 text-white">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="h-6 w-6 sm:h-7 sm:h-7 rounded-md bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden">
+                                  <div className="h-6 w-6 sm:h-7 sm:h-7 rounded-md bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                                     <img
                                       src={resolvePlayerAvatar(s.player)}
                                       alt={s.player.realTeam || s.player.gamerTag}
-                                      className="h-full w-full object-contain"
+                                      className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                       loading="lazy"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
@@ -630,7 +680,7 @@ export default function ContinentalClient({
                                     <div className="flex items-center gap-1.5 truncate">
                                       <span className="font-bold truncate text-xs">{s.player.gamerTag}</span>
                                       {s.player.realTeam && (
-                                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-sky-400 font-bold border border-sky-500/20 hidden sm:inline-block">
+                                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-amber-400 font-bold border border-amber-500/20 hidden sm:inline-block">
                                           {findTeam(s.player.realTeam)?.shortName || s.player.realTeam}
                                         </span>
                                       )}

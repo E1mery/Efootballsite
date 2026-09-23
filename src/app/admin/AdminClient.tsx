@@ -639,12 +639,19 @@ export default function AdminClient({
     }
   };
 
+  // Fixed Kickoff date for schedule generator (Midnight 12:00 AM)
+  const [leagueStartDate, setLeagueStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  });
+
   // Generate Scheduled Round Robin Matches
   const handleGenerateSchedule = async (division: string) => {
     const confirmMsg =
       division === "ALL"
-        ? "Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, all players play every round) for ALL divisions?"
-        : `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing) for ${division}?`;
+        ? `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, starting on ${leagueStartDate} at 12:00 AM midnight) for ALL divisions?`
+        : `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, starting on ${leagueStartDate} at 12:00 AM midnight) for ${division}?`;
     if (!confirm(confirmMsg)) return;
 
     setActionLoading(true);
@@ -652,7 +659,7 @@ export default function AdminClient({
       const res = await fetch("/api/admin/generate-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ division }),
+        body: JSON.stringify({ division, startDate: leagueStartDate }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate schedule");
@@ -1271,9 +1278,9 @@ export default function AdminClient({
     }
   };
 
-  // Execute End of Season Relegations and/or Promotions
+  // Execute End of Season Relegations, Promotions, or Complete Season Wipe
   const handleExecuteSeasonTransition = async (
-    action: "ALL" | "RELEGATE_ONLY" | "PROMOTE_ONLY" = "ALL"
+    action: "ALL" | "RELEGATE_ONLY" | "PROMOTE_ONLY" | "WIPE_FOR_NEW_SEASON" = "ALL"
   ) => {
     let confirmMsg =
       "Are you sure you want to finalize the season and execute BOTH promotions (Top 3 of Div 2 & 3) AND relegations (Bottom 3 of Div 1 & 2)?";
@@ -1283,9 +1290,18 @@ export default function AdminClient({
     } else if (action === "PROMOTE_ONLY") {
       confirmMsg =
         "Are you sure you want to trigger DIVISION PROMOTIONS?\n\n• Top 3 in Division 2 -> Promoted to Division 1\n• Top 3 in Division 3 -> Promoted to Division 2";
+    } else if (action === "WIPE_FOR_NEW_SEASON") {
+      confirmMsg =
+        "⚠️ CRITICAL ACTION: Conclude the current season and WIPE all season data?\n\n1. Champions and podium athletes will be permanently enshrined into the Hall of Fame.\n2. All matches, submissions, forfeit claims, and continental slots will be cleared.\n3. Standings and statistics will be reset to 0.\n4. Real team selections will be reset to null so all players can draft fresh clubs for the new season.\n5. The league season counter will advance (e.g. to Season 2).\n\nAre you sure you want to execute the Season Reset?";
     }
 
     if (!confirm(confirmMsg)) return;
+
+    if (action === "WIPE_FOR_NEW_SEASON") {
+      if (!confirm("FINAL CONFIRMATION: Type OK to wipe all season fixtures and advance to the new season.")) {
+        return;
+      }
+    }
 
     setActionLoading(true);
     try {
@@ -2198,7 +2214,20 @@ export default function AdminClient({
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                  <span className="text-[11px] font-bold text-slate-400 pl-1.5">Kickoff Date:</span>
+                  <input
+                    type="date"
+                    value={leagueStartDate}
+                    onChange={(e) => setLeagueStartDate(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:border-amber-400 focus:outline-none"
+                  />
+                  <Badge variant="outline" className="text-[10px] font-mono border-amber-500/40 text-amber-300 bg-amber-950/20">
+                    Dropout: 12:00 AM Midnight
+                  </Badge>
+                </div>
+
                 <Button
                   onClick={() => handleGenerateSchedule("ALL")}
                   disabled={actionLoading || leagueConfig.registrationOpen}
@@ -2466,11 +2495,14 @@ export default function AdminClient({
                 <div className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-amber-400" />
                   <h3 className="text-lg font-black uppercase text-white">
-                    Season Finale: Promotions & Relegations
+                    Season Finale & Transition
                   </h3>
+                  <Badge variant="outline" className="border-purple-500/40 text-purple-300 bg-purple-950/20 font-mono text-xs">
+                    Active: {leagueConfig?.season || "Season 1 (2026)"}
+                  </Badge>
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  At season end, the bottom 3 from Division 1 relegate to Division 2, the bottom 3 from Division 2 relegate to Division 3, while the top 3 from Division 2 promote to Division 1 and top 3 from Division 3 promote to Division 2.
+                  Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
                 </p>
               </div>
 
@@ -2489,7 +2521,16 @@ export default function AdminClient({
                   className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20"
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
-                  Execute Full Transition
+                  Execute Promotions & Relegations
+                </Button>
+                <Button
+                  onClick={() => handleExecuteSeasonTransition("WIPE_FOR_NEW_SEASON")}
+                  disabled={actionLoading}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-600/20"
+                  title="Archive champions to Hall of Fame, wipe fixtures & standings, reset clubs to null, and advance season"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  Conclude Season & Wipe Data for New Season
                 </Button>
               </div>
             </div>
@@ -3964,6 +4005,13 @@ export default function AdminClient({
 
                 {/* Schedule Draw Event Controls */}
                 <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  {!leagueConfig.uclStarted && (
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-2.5 text-[11px] text-rose-300 flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                      <span>UCL is currently <strong>LOCKED</strong>. Click &quot;Unlock UCL&quot; below once domestic qualifications conclude before scheduling or launching draws.</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-indigo-400" />
@@ -3980,14 +4028,15 @@ export default function AdminClient({
                       type="datetime-local"
                       value={uclDrawInput}
                       onChange={(e) => setUclDrawInput(e.target.value)}
-                      className="bg-slate-900 border-slate-700 text-xs text-white"
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      className="bg-slate-900 border-slate-700 text-xs text-white disabled:opacity-50"
                     />
                     <Button
                       onClick={() => handleScheduleDraw("UCL", uclDrawInput)}
-                      disabled={actionLoading}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
                       size="sm"
                       variant="outline"
-                      className="text-xs shrink-0 font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white"
+                      className="text-xs shrink-0 font-bold border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white disabled:opacity-40"
                     >
                       Schedule Event
                     </Button>
@@ -3996,8 +4045,8 @@ export default function AdminClient({
                     <Button
                       type="button"
                       onClick={() => handleLaunchLiveDraw("UCL")}
-                      disabled={actionLoading}
-                      className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30"
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
                       <span>Launch Official UCL Animated Draws System</span>
@@ -4111,6 +4160,13 @@ export default function AdminClient({
 
                 {/* Schedule Draw Event Controls */}
                 <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  {!leagueConfig.europaStarted && (
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-2.5 text-[11px] text-rose-300 flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                      <span>Europa League is currently <strong>LOCKED</strong>. Click &quot;Unlock Europa&quot; below once domestic qualifications conclude before scheduling or launching draws.</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-amber-400" />
@@ -4127,14 +4183,15 @@ export default function AdminClient({
                       type="datetime-local"
                       value={europaDrawInput}
                       onChange={(e) => setEuropaDrawInput(e.target.value)}
-                      className="bg-slate-900 border-slate-700 text-xs text-white"
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      className="bg-slate-900 border-slate-700 text-xs text-white disabled:opacity-50"
                     />
                     <Button
                       onClick={() => handleScheduleDraw("EUROPA", europaDrawInput)}
-                      disabled={actionLoading}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
                       size="sm"
                       variant="outline"
-                      className="text-xs shrink-0 font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white"
+                      className="text-xs shrink-0 font-bold border-amber-500/40 text-amber-300 hover:bg-amber-600 hover:text-white disabled:opacity-40"
                     >
                       Schedule Event
                     </Button>
@@ -4143,8 +4200,8 @@ export default function AdminClient({
                     <Button
                       type="button"
                       onClick={() => handleLaunchLiveDraw("EUROPA")}
-                      disabled={actionLoading}
-                      className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-amber-600/30"
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg shadow-amber-600/30 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
                       <span>Launch Official Europa Animated Draws System</span>

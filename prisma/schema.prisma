@@ -9,6 +9,7 @@ generator client {
 
 model LeagueConfig {
   id               String   @id @default("default")
+  season           String   @default("Season 1 (2026)")
   registrationOpen Boolean  @default(true)
   currentMatchday  Int      @default(1)
   uclStarted       Boolean  @default(false)

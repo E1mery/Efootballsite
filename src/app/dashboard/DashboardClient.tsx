@@ -414,6 +414,10 @@ export default function DashboardClient({
   initialReview = null,
   isRestDayToday = false,
   currentRoundName,
+  opponentStanding = null,
+  opponentPreviousMatches = [],
+  uclGroupMotds = {},
+  europaGroupMotds = {},
 }: {
   player: any;
   user: any;
@@ -424,6 +428,8 @@ export default function DashboardClient({
   standing: any;
   leagueConfig?: any;
   divisionalMotd?: Record<string, any>;
+  uclGroupMotds?: Record<string, any>;
+  europaGroupMotds?: Record<string, any>;
   div1Standings?: any[];
   div2Standings?: any[];
   div3Standings?: any[];
@@ -436,6 +442,8 @@ export default function DashboardClient({
   initialReview?: any;
   isRestDayToday?: boolean;
   currentRoundName?: string;
+  opponentStanding?: any;
+  opponentPreviousMatches?: any[];
 }) {
   const router = useRouter();
 
@@ -521,10 +529,8 @@ export default function DashboardClient({
   const [currentPlayer, setCurrentPlayer] = useState(player);
   const [currentUser, setCurrentUser] = useState(user);
 
-  // Selected MOTD tab in dashboard
-  const [selectedMotdDiv, setSelectedMotdDiv] = useState<string>(
-    player.division || "Division 1"
-  );
+  // Player's active division MOTD
+  const myDivMotd = divisionalMotd[player.division];
 
   // Dynamic current time ticker to ensure 24h auto-deletion updates live on page
   const [announcementNow, setAnnouncementNow] = useState<number>(Date.now());
@@ -928,7 +934,7 @@ export default function DashboardClient({
   };
 
   // Active tab: Reserve athletes are on STANDINGS by default and do not participate in match tabs
-  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "FEEDBACK" | "PROFILE";
+  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE";
   const [activeTab, setActiveTab] = useState<DashboardTab>(
     isReserved ? "STANDINGS" : "OVERVIEW"
   );
@@ -1501,18 +1507,6 @@ export default function DashboardClient({
         )}
 
         <button
-          onClick={() => setActiveTab("FEEDBACK")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
-            activeTab === "FEEDBACK"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
-          }`}
-        >
-          <Star className="h-4 w-4" />
-          <span>Rate & Feedback</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab("PROFILE")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
             activeTab === "PROFILE"
@@ -1986,6 +1980,51 @@ export default function DashboardClient({
                     Konami ID: {opponent?.efootballId}
                   </span>
 
+                  {/* Opponent Group / Division Table Position */}
+                  {opponentStanding && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] font-bold text-slate-400">Position:</span>
+                      <Badge variant="outline" className="text-[10px] font-mono font-bold text-sky-400 border-sky-500/30">
+                        #{opponentStanding.rank || opponentStanding.position || 1} in {opponentStanding.division}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Opponent Last 3 Match Results Form */}
+                  {opponentPreviousMatches && opponentPreviousMatches.length > 0 && (
+                    <div className="pt-2 border-t border-slate-900 space-y-1">
+                      <span className="text-[9px] font-mono uppercase text-slate-400 block font-bold">
+                        Opponent Recent Form (Last {opponentPreviousMatches.length} Matches):
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {opponentPreviousMatches.map((prevM: any) => {
+                          const isOppHome = prevM.homePlayerId === opponent?.id;
+                          const oppScore = isOppHome ? (prevM.homeScore ?? 0) : (prevM.awayScore ?? 0);
+                          const rivalScore = isOppHome ? (prevM.awayScore ?? 0) : (prevM.homeScore ?? 0);
+                          const rivalTag = isOppHome ? prevM.awayPlayer?.gamerTag : prevM.homePlayer?.gamerTag;
+                          const won = oppScore > rivalScore;
+                          const drew = oppScore === rivalScore;
+                          return (
+                            <span
+                              key={prevM.id}
+                              title={`vs @${rivalTag || "rival"} (${oppScore}-${rivalScore})`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${
+                                won
+                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                                  : drew
+                                  ? "bg-slate-800 text-slate-300 border-slate-700"
+                                  : "bg-red-500/20 text-red-400 border-red-500/40"
+                              }`}
+                            >
+                              <span>{won ? "W" : drew ? "D" : "L"}</span>
+                              <span className="text-[9px] opacity-80">{oppScore}-{rivalScore}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Opponent WhatsApp Direct Chat */}
                   <div className="pt-2 border-t border-slate-900 space-y-2">
                     <div className="flex items-center justify-between text-xs">
@@ -2383,54 +2422,82 @@ export default function DashboardClient({
             </div>
           )}
 
-          {/* DIVISION MATCH OF THE DAY SECTION */}
+          {/* DIVISION MATCH OF THE DAY SECTION (ISOLATED TO PLAYER'S DIVISION ONLY) */}
           <div className="space-y-4 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 <h3 className="text-lg font-black uppercase text-white tracking-wide">
-                  Match of the Day (By Division)
+                  Match of the Day ({player.division})
                 </h3>
               </div>
-
-              {/* Division Selector Tabs for MOTD */}
-              <div className="flex items-center gap-1.5 bg-[#080d1e] p-1 rounded-xl border border-slate-800">
-                {(["Division 1", "Division 2", "Division 3"] as const).map((div) => {
-                  const isSelected = selectedMotdDiv === div;
-                  return (
-                    <button
-                      key={div}
-                      type="button"
-                      onClick={() => setSelectedMotdDiv(div)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
-                        isSelected
-                          ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {div === player.division ? `${div} (Yours)` : div}
-                    </button>
-                  );
-                })}
-              </div>
+              <Badge variant="yellow" className="text-xs font-mono font-bold w-fit">
+                {player.division} Exclusive
+              </Badge>
             </div>
 
-            {divisionalMotd[selectedMotdDiv] ? (
-              <MatchOfTheDayCard match={divisionalMotd[selectedMotdDiv]} />
+            {myDivMotd ? (
+              <MatchOfTheDayCard match={myDivMotd} />
             ) : (
               <div className="rounded-2xl border border-slate-800 bg-[#080d1e]/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
                 <div className="flex items-center gap-2.5">
                   <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400" />
                   <span className="font-bold text-slate-300">
-                    {selectedMotdDiv} Match of the Day:
+                    {player.division} Match of the Day:
                   </span>
-                  <span>Activates from Matchday 2 onwards based on table rankings.</span>
+                  <span>Evaluated and selected dynamically based on standings & performance.</span>
                 </div>
                 <Badge variant="secondary" className="font-mono text-[10px] w-fit">
                   Matchday {leagueConfig?.currentMatchday || 1}
                 </Badge>
               </div>
             )}
+
+            {/* CONTINENTAL GROUP MATCHES OF THE DAY (VISIBLE TO ALL PARTICIPANTS & SPECTATORS) */}
+            {(() => {
+              const uclList = Object.values(uclGroupMotds || {});
+              const europaList = Object.values(europaGroupMotds || {});
+              if (uclList.length === 0 && europaList.length === 0) return null;
+
+              return (
+                <div className="pt-4 border-t border-slate-800/80 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-cyan-400" />
+                      <h4 className="text-sm font-black uppercase tracking-wider text-slate-200">
+                        Continental Group Stage Matches of the Day
+                      </h4>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono uppercase">
+                      Visible to All Athletes
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {uclList.map((m: any) => (
+                      <div key={m.id} className="relative">
+                        <div className="absolute top-2 right-2 z-10">
+                          <Badge variant="secondary" className="text-[9px] font-mono border-indigo-500/40 text-indigo-300 bg-indigo-950/40">
+                            {m.groupName || "UCL Group Stage"}
+                          </Badge>
+                        </div>
+                        <MatchOfTheDayCard match={m} />
+                      </div>
+                    ))}
+                    {europaList.map((m: any) => (
+                      <div key={m.id} className="relative">
+                        <div className="absolute top-2 right-2 z-10">
+                          <Badge variant="secondary" className="text-[9px] font-mono border-amber-500/40 text-amber-300 bg-amber-950/40">
+                            {m.groupName || "Europa Group Stage"}
+                          </Badge>
+                        </div>
+                        <MatchOfTheDayCard match={m} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
 
@@ -2903,7 +2970,7 @@ export default function DashboardClient({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {allPlayerMatches.map((m: any) => {
                 const isCurrentActive = m.id === activeMatch?.id;
                 const isHome = m.homePlayerId === player.id;
@@ -2915,85 +2982,92 @@ export default function DashboardClient({
                 const hasSubOrForfeit = Boolean(sub || forfeit);
                 const isPending = sub?.status === "PENDING";
                 const isForfeitPending = forfeit?.status === "PENDING";
-                const isApprovedSub = sub?.status === "APPROVED" || isFinished;
 
                 return (
                   <div
                     key={m.id}
-                    className={`rounded-3xl border p-5 sm:p-6 transition-all backdrop-blur-xl shadow-xl space-y-4 ${
+                    className={`rounded-3xl border p-5 flex flex-col justify-between transition-all backdrop-blur-xl shadow-xl space-y-4 ${
                       isCurrentActive
-                        ? "border-cyan-500/60 bg-gradient-to-r from-cyan-950/30 via-slate-900/90 to-slate-950/90 ring-2 ring-cyan-500/30"
+                        ? "border-cyan-500/60 bg-gradient-to-b from-cyan-950/40 via-slate-900/90 to-slate-950/90 ring-2 ring-cyan-500/40 shadow-cyan-500/10"
                         : isFinished || isForfeit
-                        ? "border-slate-800 bg-slate-950/60"
-                        : "border-slate-800/80 bg-slate-950/40"
+                        ? "border-slate-800 bg-slate-950/70"
+                        : "border-slate-800/80 bg-slate-950/50 hover:border-slate-700"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={isCurrentActive ? "yellow" : "secondary"} className="text-xs font-mono font-bold">
-                          {m.round}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {m.division}
-                        </Badge>
+                    {/* Card Header */}
+                    <div className="space-y-2 border-b border-slate-800/80 pb-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant={isCurrentActive ? "yellow" : "secondary"} className="text-[10px] font-mono font-bold">
+                            {m.round}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            {m.division}
+                          </Badge>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {new Date(m.matchDate).toLocaleDateString([], { month: "short", day: "numeric" })}
+                        </span>
+                      </div>
+
+                      {/* Status Badges */}
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {isCurrentActive && (
-                          <Badge variant="live" className="text-[10px] animate-pulse">
-                            ⚡ CURRENT MATCHDAY (ACTIVE NOW)
+                          <Badge variant="live" className="text-[9px] animate-pulse">
+                            ⚡ ACTIVE 24-HR FIXTURE
                           </Badge>
                         )}
                         {isFinished && (
-                          <Badge variant="green" className="text-[10px] font-black">
-                            APPROVED / COMPLETED
+                          <Badge variant="green" className="text-[9px] font-black">
+                            COMPLETED
                           </Badge>
                         )}
                         {isForfeit && (
-                          <Badge variant="destructive" className="text-[10px] font-black">
-                            FORFEIT (WALKOVER)
+                          <Badge variant="destructive" className="text-[9px] font-black">
+                            FORFEIT (0-3)
                           </Badge>
                         )}
                         {isPending && (
-                          <Badge variant="yellow" className="text-[10px] font-black animate-pulse">
-                            RESULT PENDING ADMIN APPROVAL
+                          <Badge variant="yellow" className="text-[9px] font-black animate-pulse">
+                            PENDING APPROVAL
                           </Badge>
                         )}
                         {isForfeitPending && !isPending && (
-                          <Badge variant="destructive" className="text-[10px] font-black animate-pulse">
-                            FORFEIT CLAIM UNDER ARBITRATION
+                          <Badge variant="destructive" className="text-[9px] font-black animate-pulse">
+                            FORFEIT ARBITRATION
                           </Badge>
                         )}
                         {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && (
-                          <Badge variant="secondary" className="text-[10px] text-slate-400">
+                          <Badge variant="secondary" className="text-[9px] text-slate-400">
                             UPCOMING
                           </Badge>
                         )}
                       </div>
-
-                      <span className="text-[11px] font-mono text-slate-400">
-                        Scheduled: {new Date(m.matchDate).toLocaleDateString()}
-                      </span>
                     </div>
 
-                    {/* Match Pairing Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                        {/* You */}
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 w-full sm:w-auto sm:min-w-[160px] flex items-center gap-3">
-                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                    {/* Team Pairings & Score Grid */}
+                    <div className="space-y-2.5 py-1">
+                      {/* You */}
+                      <div className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(player)}
                               alt={player.realTeam || player.gamerTag || "Team"}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
                               }}
                             />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block truncate">
-                              {isHome ? "HOME (YOU)" : "AWAY (YOU)"}
-                            </span>
-                            <span className="font-bold text-sm text-white block truncate">{player.gamerTag}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white truncate">{player.gamerTag}</span>
+                              <span className="text-[8px] px-1 py-0 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
+                                {isHome ? "H" : "A"}
+                              </span>
+                            </div>
                             {player.realTeam && (
                               <span className="text-[9px] text-amber-400 font-bold block truncate">
                                 {findTeam(player.realTeam)?.shortName || player.realTeam}
@@ -3002,42 +3076,42 @@ export default function DashboardClient({
                           </div>
                         </div>
 
-                        {/* VS Score Box */}
-                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-slate-950 border border-slate-800 text-center min-w-[90px] shrink-0 self-center">
+                        <div className="shrink-0 text-right">
                           {isFinished || isForfeit ? (
-                            <span className="text-xl font-black font-mono text-cyan-400">
-                              {m.homeScore} : {m.awayScore}
+                            <span className="font-mono text-base font-black text-cyan-400">
+                              {isHome ? m.homeScore : m.awayScore}
                             </span>
                           ) : sub ? (
-                            <div>
-                              <span className="text-base font-black font-mono text-amber-400">
-                                {sub.homeScore} : {sub.awayScore}
-                              </span>
-                              <span className="text-[9px] text-amber-400 block uppercase font-mono">Pending</span>
-                            </div>
+                            <span className="font-mono text-sm font-black text-amber-400">
+                              {isHome ? sub.homeScore : sub.awayScore}
+                            </span>
                           ) : (
-                            <span className="text-xs font-black text-slate-500">VS</span>
+                            <span className="text-xs font-mono text-slate-500">-</span>
                           )}
                         </div>
+                      </div>
 
-                        {/* Opponent */}
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 w-full sm:w-auto sm:min-w-[160px] flex items-center gap-3">
-                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                      {/* Opponent */}
+                      <div className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(matchOpponent)}
                               alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(matchOpponent?.gamerTag || "opponent")}`;
                               }}
                             />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block truncate">
-                              {isHome ? "AWAY OPPONENT" : "HOME OPPONENT"}
-                            </span>
-                            <span className="font-bold text-sm text-white block truncate">{matchOpponent?.gamerTag || "TBD"}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white truncate">{matchOpponent?.gamerTag || "TBD"}</span>
+                              <span className="text-[8px] px-1 py-0 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">
+                                {isHome ? "A" : "H"}
+                              </span>
+                            </div>
                             {matchOpponent?.realTeam && (
                               <span className="text-[9px] text-amber-400 font-bold block truncate">
                                 {findTeam(matchOpponent.realTeam)?.shortName || matchOpponent.realTeam}
@@ -3045,27 +3119,36 @@ export default function DashboardClient({
                             )}
                           </div>
                         </div>
+
+                        <div className="shrink-0 text-right">
+                          {isFinished || isForfeit ? (
+                            <span className="font-mono text-base font-black text-cyan-400">
+                              {isHome ? m.awayScore : m.homeScore}
+                            </span>
+                          ) : sub ? (
+                            <span className="font-mono text-sm font-black text-amber-400">
+                              {isHome ? sub.awayScore : sub.homeScore}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-mono text-slate-500">-</span>
+                          )}
+                        </div>
                       </div>
+                    </div>
 
-                      {/* Actions & Status Details */}
-                      <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-2">
-                        {isCurrentActive && !isFinished && !isForfeit && (
-                          <Button
-                            variant="yellow"
-                            size="sm"
-                            onClick={() => setActiveTab("OVERVIEW")}
-                            className="font-bold text-xs gap-1.5 shadow-md shadow-yellow-500/20"
+                    {/* Card Footer Actions */}
+                    <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {matchOpponent?.whatsapp && (
+                          <a
+                            href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shadow-sm"
                           >
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>Play in Today&apos;s Match</span>
-                          </Button>
-                        )}
-
-                        {hasSubOrForfeit && !isFinished && !isForfeit && (
-                          <span className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 text-xs font-bold">
-                            <Lock className="h-3.5 w-3.5 text-amber-400" />
-                            {sub ? "Result Uploaded (Closed)" : "Forfeit Lodged (Closed)"}
-                          </span>
+                            <MessageSquare className="h-3 w-3" />
+                            WhatsApp
+                          </a>
                         )}
 
                         {sub?.screenshotUrl && (
@@ -3073,9 +3156,9 @@ export default function DashboardClient({
                             href={sub.screenshotUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-sky-400 font-bold hover:bg-slate-800"
+                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] text-sky-400 font-bold hover:bg-slate-800"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye className="h-3 w-3" />
                             Proof
                           </a>
                         )}
@@ -3085,45 +3168,26 @@ export default function DashboardClient({
                             href={forfeit.proofScreenshotUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold hover:bg-slate-800"
+                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] text-rose-400 font-bold hover:bg-slate-800"
                           >
-                            <Eye className="h-3.5 w-3.5" />
-                            Forfeit Proof
-                          </a>
-                        )}
-
-                        {matchOpponent?.whatsapp && (
-                          <a
-                            href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                            WhatsApp
+                            <Eye className="h-3 w-3" />
+                            Forfeit
                           </a>
                         )}
                       </div>
+
+                      {isCurrentActive && !isFinished && !isForfeit && (
+                        <Button
+                          variant="yellow"
+                          size="sm"
+                          onClick={() => setActiveTab("OVERVIEW")}
+                          className="font-bold text-[11px] py-1 px-2.5 h-auto gap-1 shadow-md shadow-yellow-500/20"
+                        >
+                          <Clock className="h-3 w-3" />
+                          <span>Play Now</span>
+                        </Button>
+                      )}
                     </div>
-
-                    {/* Pending review notice */}
-                    {isPending && (
-                      <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
-                        <Clock className="h-4 w-4 shrink-0 text-amber-400 animate-pulse" />
-                        <span>
-                          Screenshot submitted ({sub.homeScore} - {sub.awayScore}) by @{sub.submittedByPlayer?.gamerTag || "player"}. Awaiting official commissioner review. Uploading is closed for both athletes.
-                        </span>
-                      </div>
-                    )}
-
-                    {isForfeitPending && (
-                      <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
-                        <ShieldAlert className="h-4 w-4 shrink-0 text-red-400 animate-pulse" />
-                        <span>
-                          Forfeit claim lodged by @{forfeit.claimantPlayer?.gamerTag || "claimant"} ({forfeit.reason}). Awaiting administrator arbitration. Uploading is closed for both athletes.
-                        </span>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -3514,163 +3578,7 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* TAB 7: RATE & FEEDBACK */}
-      {activeTab === "FEEDBACK" && (
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-[#080d1e]/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-            <div className="border-b border-slate-800/80 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-                  <Star className="h-6 w-6 fill-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black uppercase text-white tracking-wide">
-                    Rate & League Feedback
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Your voice shapes the future of eFootball Rwanda League. Share your experience and rating with the administration.
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            {reviewSuccessMsg && (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-3 animate-in fade-in">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
-                <span className="font-semibold">{reviewSuccessMsg}</span>
-              </div>
-            )}
-
-            {reviewErrorMsg && (
-              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0" />
-                <span className="font-semibold">{reviewErrorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitReview} className="space-y-6">
-              {/* Star Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block">
-                  Overall Rating
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setUserRating(star)}
-                      className={`p-2 rounded-xl border transition-all ${
-                        userRating >= star
-                          ? "border-amber-400/60 bg-amber-400/10 text-amber-400 shadow-md shadow-amber-500/20"
-                          : "border-slate-800 bg-slate-900/60 text-slate-600 hover:text-slate-400"
-                      }`}
-                    >
-                      <Star
-                        className={`h-7 w-7 ${
-                          userRating >= star ? "fill-amber-400" : "fill-none"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="ml-3 text-sm font-black text-amber-400">
-                    {userRating === 5 && "5 / 5 - Outstanding ⭐⭐⭐⭐⭐"}
-                    {userRating === 4 && "4 / 5 - Very Good ⭐⭐⭐⭐"}
-                    {userRating === 3 && "3 / 5 - Satisfactory ⭐⭐⭐"}
-                    {userRating === 2 && "2 / 5 - Needs Improvement ⭐⭐"}
-                    {userRating === 1 && "1 / 5 - Poor ⭐"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Category Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block">
-                  Feedback Category
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {[
-                    { id: "GENERAL", label: "General League" },
-                    { id: "TOURNAMENT", label: "Tournament & Rules" },
-                    { id: "MATCHMAKING", label: "Schedule & Deadlines" },
-                    { id: "PLATFORM", label: "Website & Tech" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setReviewCategory(cat.id)}
-                      className={`px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
-                        reviewCategory === cat.id
-                          ? "border-amber-500 bg-amber-500/20 text-white shadow-md shadow-amber-500/10"
-                          : "border-slate-800 bg-slate-900/50 text-slate-400 hover:text-white hover:border-slate-700"
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Comment Textarea */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300 block">
-                  Detailed Feedback or Suggestions
-                </label>
-                <textarea
-                  rows={4}
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Share what you enjoy, issues you experienced, or suggestions to make the eFootball Rwanda League even better..."
-                  className="w-full rounded-2xl border border-slate-800 bg-slate-900/90 p-4 text-xs text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end pt-2">
-                <Button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-6 py-2.5 shadow-lg shadow-amber-500/20"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {submittingReview ? "Submitting..." : activeReview ? "Update Review" : "Submit Rating & Review"}
-                </Button>
-              </div>
-            </form>
-
-            {/* Current Active Review Display */}
-            {activeReview && (
-              <div className="mt-8 pt-6 border-t border-slate-800/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
-                    Your Registered League Feedback
-                  </h4>
-                  <span className="text-[11px] text-slate-500">
-                    Last updated: {new Date(activeReview.updatedAt || activeReview.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center text-amber-400">
-                      {[...Array(activeReview.rating || 5)].map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-amber-400" />
-                      ))}
-                    </div>
-                    <Badge variant="outline" className="text-[10px] text-slate-300 border-slate-700">
-                      {activeReview.category || "GENERAL"}
-                    </Badge>
-                  </div>
-                  {activeReview.comment && (
-                    <p className="text-xs text-slate-200 leading-relaxed italic">
-                      "{activeReview.comment}"
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* MODAL 1: UPLOAD MATCH RESULT SCREENSHOT */}
       {showResultModal && (() => {
@@ -4184,6 +4092,68 @@ export default function DashboardClient({
       })()}
 
       {/* ========================================================================= */}
+      {/* COMPACT FOOTER: RATE & LEAGUE FEEDBACK WIDGET */}
+      {/* ========================================================================= */}
+      <footer className="pt-8 border-t border-slate-800/80 mt-12 pb-6">
+        <div className="rounded-2xl border border-slate-800 bg-[#080d1e]/90 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1 max-w-sm">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <span className="text-xs font-black uppercase tracking-wider text-white">Rate League Experience</span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Share your 1-5 ⭐ rating and feedback directly with League Administration.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmitReview} className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* 5-Star Selection */}
+            <div className="flex items-center gap-1 shrink-0 bg-slate-900/80 border border-slate-800 p-1.5 rounded-xl self-start sm:self-auto">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setUserRating(star)}
+                  className="p-1 rounded hover:scale-110 transition-transform"
+                >
+                  <Star
+                    className={`h-4 w-4 ${
+                      userRating >= star ? "fill-amber-400 text-amber-400" : "fill-none text-slate-600"
+                    }`}
+                  />
+                </button>
+              ))}
+              <span className="text-[10px] font-bold text-amber-400 px-1 font-mono">{userRating}/5</span>
+            </div>
+
+            {/* Quick Comment Input */}
+            <Input
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Short comment or suggestion..."
+              className="h-9 text-xs bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-amber-500"
+            />
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              size="sm"
+              disabled={submittingReview}
+              className="h-9 font-black text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 shrink-0 shadow-md shadow-amber-500/20"
+            >
+              <Send className="h-3 w-3 mr-1.5" />
+              {submittingReview ? "..." : activeReview ? "Update" : "Send"}
+            </Button>
+          </form>
+        </div>
+        {reviewSuccessMsg && (
+          <div className="mt-2 text-center text-xs text-emerald-400 font-bold animate-in fade-in">
+            ✓ {reviewSuccessMsg}
+          </div>
+        )}
+      </footer>
+
+      {/* ========================================================================= */}
       {/* FLOATING QUICK ACTIONS BUTTON (Compact Circle Shape) */}
       {/* ========================================================================= */}
       <div className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
@@ -4225,7 +4195,11 @@ export default function DashboardClient({
           isOpen={showActionHub}
           onClose={() => setShowActionHub(false)}
           onNavigateTab={(tab, subTab) => {
-            setActiveTab(tab);
+            if (tab === "FEEDBACK") {
+              window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            } else {
+              setActiveTab(tab as any);
+            }
             if (subTab) {
               setInboxSubTab(subTab as any);
             }
@@ -4264,7 +4238,12 @@ export default function DashboardClient({
               qualifiedAthletes={viewDrawModal === "UCL" ? uclQualifiedAthletes : europaQualifiedAthletes}
               existingSlots={viewDrawModal === "UCL" ? uclSlots : europaSlots}
               isAdmin={false}
-              onClose={() => setViewDrawModal(null)}
+              onClose={() => {
+                const comp = viewDrawModal;
+                setViewDrawModal(null);
+                setActiveTab("STANDINGS");
+                setStandingsCategory(comp === "UCL" ? "UCL" : "EUROPA");
+              }}
             />
           </div>
         </div>
