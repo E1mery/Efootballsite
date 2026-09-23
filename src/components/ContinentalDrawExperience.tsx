@@ -494,15 +494,17 @@ export default function ContinentalDrawExperience({
                     className="flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <img
-                        src={avatarUrl}
-                        alt={athlete.gamerTag}
-                        className="h-6 w-6 rounded-full object-contain shrink-0 aspect-square bg-slate-950 p-0.5 border border-slate-700"
-                        loading="lazy"
-                        onError={(e: any) => {
-                          e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
-                        }}
-                      />
+                      <div className="h-6 w-6 rounded-full bg-white/95 p-0.5 border border-slate-700 shrink-0 aspect-square flex items-center justify-center overflow-hidden shadow-sm">
+                        <img
+                          src={avatarUrl}
+                          alt={athlete.gamerTag}
+                          className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                          loading="lazy"
+                          onError={(e: any) => {
+                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
+                          }}
+                        />
+                      </div>
                       <span className="font-bold text-white truncate max-w-[120px]">
                         {athlete.gamerTag}
                       </span>
@@ -561,15 +563,17 @@ export default function ContinentalDrawExperience({
               {/* Athlete Card Reveal */}
               <div className="flex flex-col items-center p-4 rounded-2xl bg-slate-900/90 border-2 border-yellow-500/60 shadow-xl shadow-yellow-500/10 min-w-[240px]">
                 <div className="relative mb-2">
-                  <img
-                    src={resolvePlayerAvatar(currentDrawnAthlete)}
-                    alt={currentDrawnAthlete.gamerTag}
-                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl object-contain bg-slate-950 p-2 border-2 border-slate-700 shrink-0 aspect-square shadow-xl"
-                    loading="lazy"
-                    onError={(e: any) => {
-                      e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentDrawnAthlete.gamerTag || "player")}`;
-                    }}
-                  />
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-white/95 p-2 border-2 border-slate-700 shrink-0 aspect-square shadow-xl flex items-center justify-center overflow-hidden">
+                    <img
+                      src={resolvePlayerAvatar(currentDrawnAthlete)}
+                      alt={currentDrawnAthlete.gamerTag}
+                      className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
+                      loading="lazy"
+                      onError={(e: any) => {
+                        e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentDrawnAthlete.gamerTag || "player")}`;
+                      }}
+                    />
+                  </div>
                   <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-yellow-400 text-slate-950 text-[10px] font-black font-mono">
                     {currentDrawnAthlete.overallRating || 85}
                   </div>
@@ -706,15 +710,17 @@ export default function ContinentalDrawExperience({
                       className="flex items-center justify-between rounded-xl bg-slate-950/80 p-2 text-xs border border-slate-800 hover:border-slate-700 transition-colors"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <img
-                          src={avatarUrl}
-                          alt={athlete.gamerTag}
-                          className="h-6 w-6 sm:h-7 sm:h-7 rounded-full object-contain shrink-0 aspect-square bg-slate-950 p-0.5 border border-slate-700 shadow-sm"
-                          loading="lazy"
-                          onError={(e: any) => {
-                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
-                          }}
-                        />
+                        <div className="h-6 w-6 sm:h-7 sm:h-7 rounded-full bg-white/95 p-0.5 border border-slate-700 shadow-sm shrink-0 aspect-square flex items-center justify-center overflow-hidden">
+                          <img
+                            src={avatarUrl}
+                            alt={athlete.gamerTag}
+                            className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                            loading="lazy"
+                            onError={(e: any) => {
+                              e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
+                            }}
+                          />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <span className="font-bold text-white truncate block">
                             {athlete.gamerTag}

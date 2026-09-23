@@ -1604,11 +1604,11 @@ export default function AdminClient({
                       </td>
                       <td className="px-4 py-3.5 font-bold text-white">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(s.player)}
                               alt={s.player.realTeam || s.player.gamerTag || "Team Crest"}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player.gamerTag || "player")}`;
                               }}
@@ -3398,11 +3398,11 @@ export default function AdminClient({
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-slate-500 text-[10px]">{pIdx + 1}.</span>
-                                    <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                    <div className="w-5 h-5 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                       <img
                                         src={resolvePlayerAvatar(slot.player)}
                                         alt={slot.player?.realTeam || slot.player?.gamerTag || "Team"}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                         onError={(e) => {
                                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(slot.player?.gamerTag || "player")}`;
                                         }}
@@ -3513,11 +3513,11 @@ export default function AdminClient({
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-slate-500 text-[10px]">{pIdx + 1}.</span>
-                                    <div className="w-5 h-5 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                    <div className="w-5 h-5 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                       <img
                                         src={resolvePlayerAvatar(slot.player)}
                                         alt={slot.player?.realTeam || slot.player?.gamerTag || "Team"}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                         onError={(e) => {
                                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(slot.player?.gamerTag || "player")}`;
                                         }}
@@ -3848,11 +3848,11 @@ export default function AdminClient({
                           <div className="col-span-5 text-left space-y-0.5">
                             <span className="text-[10px] font-bold uppercase text-slate-500 block">HOME</span>
                             <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-5 h-5 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                 <img
                                   src={resolvePlayerAvatar(m.homePlayer)}
                                   alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
-                                  className="w-full h-full object-contain"
+                                  className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
                                   }}
@@ -3902,11 +3902,11 @@ export default function AdminClient({
                               <span className="font-black text-white text-sm block truncate">
                                 {m.awayPlayer?.gamerTag}
                               </span>
-                              <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-5 h-5 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                 <img
                                   src={resolvePlayerAvatar(m.awayPlayer)}
                                   alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
-                                  className="w-full h-full object-contain"
+                                  className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
                                   }}
@@ -4420,11 +4420,11 @@ export default function AdminClient({
 
                       <div className="flex items-center justify-between py-2 text-center gap-2">
                         <div className="flex-1 text-left flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(sub.match.homePlayer)}
                               alt={sub.match.homePlayer?.realTeam || sub.match.homePlayer?.gamerTag || "Home"}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.homePlayer?.gamerTag || "player")}`;
                               }}
@@ -4453,11 +4453,11 @@ export default function AdminClient({
                             )}
                             <span className="text-[10px] text-slate-500 block">{sub.match.awayPlayer.whatsapp}</span>
                           </div>
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(sub.match.awayPlayer)}
                               alt={sub.match.awayPlayer?.realTeam || sub.match.awayPlayer?.gamerTag || "Away"}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.awayPlayer?.gamerTag || "player")}`;
                               }}
@@ -4779,11 +4779,11 @@ export default function AdminClient({
                             {/* Home Side */}
                             <div className="flex-1 text-left space-y-1">
                               <div className="flex items-center gap-1.5">
-                                <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <div className="w-5 h-5 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                   <img
                                     src={resolvePlayerAvatar(match.homePlayer)}
                                     alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag || "Home"}
-                                    className="w-full h-full object-contain"
+                                    className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                     onError={(e) => {
                                       (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
                                     }}
@@ -4830,11 +4830,11 @@ export default function AdminClient({
                                 <span className="text-xs font-black text-white block truncate">
                                   {match.awayPlayer?.gamerTag || "Away Player"}
                                 </span>
-                                <div className="w-5 h-5 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <div className="w-5 h-5 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                   <img
                                     src={resolvePlayerAvatar(match.awayPlayer)}
                                     alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag || "Away"}
-                                    className="w-full h-full object-contain"
+                                    className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                     onError={(e) => {
                                       (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
                                     }}
@@ -5160,12 +5160,12 @@ export default function AdminClient({
                       <tr key={p.id} className="hover:bg-slate-900/40">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow">
+                            <div className="h-8 w-8 rounded-lg bg-white/95 border border-slate-700/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-sm">
                               {avatarUrl ? (
                                 <img
                                   src={avatarUrl}
                                   alt={p.realTeam || p.gamerTag}
-                                  className="h-full w-full object-contain"
+                                  className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                 />
                               ) : (
                                 <span className="font-black text-xs text-sky-400">
@@ -5965,11 +5965,11 @@ export default function AdminClient({
                                 )}
                                 <span className="text-[10px] text-slate-400 block font-mono">{match.homePlayer?.efootballId}</span>
                               </div>
-                              <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-6 h-6 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                 <img
                                   src={resolvePlayerAvatar(match.homePlayer)}
                                   alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag || "Home"}
-                                  className="w-full h-full object-contain"
+                                  className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
                                   }}
@@ -5988,11 +5988,11 @@ export default function AdminClient({
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                              <div className="w-6 h-6 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                 <img
                                   src={resolvePlayerAvatar(match.awayPlayer)}
                                   alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag || "Away"}
-                                  className="w-full h-full object-contain"
+                                  className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
                                   }}

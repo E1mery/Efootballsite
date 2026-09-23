@@ -144,12 +144,12 @@ export default function StandingsTable({
                     const teamObj = row.player.realTeam ? findTeam(row.player.realTeam) : null;
                     return (
                       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 shadow-sm overflow-hidden">
+                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-white/95 border border-slate-700/80 p-0.5 shadow-sm overflow-hidden">
                           {avatarUrl ? (
                             <img
                               src={avatarUrl}
                               alt={row.player.realTeam || row.player.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;

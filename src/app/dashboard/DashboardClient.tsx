@@ -300,11 +300,11 @@ function ContinentalGroupStandingsView({
                             </td>
                             <td className="py-2.5 px-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                                   <img
                                     src={resolvePlayerAvatar(s.player)}
                                     alt={s.player?.realTeam || s.player?.gamerTag || "Team Crest"}
-                                    className="w-full h-full object-contain"
+                                    className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                     loading="lazy"
                                     onError={(e) => {
                                       (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
@@ -1349,12 +1349,12 @@ export default function DashboardClient({
       {/* Top Welcome Bar */}
       <div className="rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
         <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-          <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-slate-700/80 p-1.5 sm:p-2 shadow-2xl overflow-hidden">
+          <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-white/95 border-2 border-slate-600/80 p-1.5 sm:p-2 shadow-2xl overflow-hidden">
             {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
               <img
                 src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
                 alt={currentPlayer.realTeam || currentPlayer.gamerTag}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
@@ -1907,11 +1907,11 @@ export default function DashboardClient({
                     {isHomePlayer ? "HOME ATHLETE (YOU)" : "AWAY ATHLETE (YOU)"}
                   </span>
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-white/95 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-md">
                       <img
                         src={resolvePlayerAvatar(player)}
                         alt={player.realTeam || player.gamerTag || "Team Crest"}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                         loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
@@ -1955,11 +1955,11 @@ export default function DashboardClient({
                   </div>
 
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-white/95 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-md">
                       <img
                         src={resolvePlayerAvatar(opponent)}
                         alt={opponent?.realTeam || opponent?.gamerTag || "Opponent Crest"}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                         loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(opponent?.gamerTag || "opponent")}`;
@@ -2866,11 +2866,11 @@ export default function DashboardClient({
                     </span>
                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mt-1">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                           <img
                             src={resolvePlayerAvatar(m.homePlayer)}
                             alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                             loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -2886,11 +2886,11 @@ export default function DashboardClient({
                       </div>
                       <span className="text-xs text-slate-500 font-bold shrink-0">vs</span>
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                           <img
                             src={resolvePlayerAvatar(m.awayPlayer)}
                             alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                             loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -3234,12 +3234,12 @@ export default function DashboardClient({
             {/* Athlete Profile Summary Card */}
             <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5 h-fit backdrop-blur-xl">
               <div className="text-center space-y-3 pb-4 border-b border-slate-800">
-                <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 p-2 text-white font-black text-2xl sm:text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/10 overflow-hidden">
+                <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 aspect-square rounded-2xl sm:rounded-3xl bg-white/95 border-2 border-slate-600/80 p-2 text-slate-800 font-black text-2xl sm:text-3xl flex items-center justify-center mx-auto shadow-xl shadow-sky-500/10 overflow-hidden">
                   {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
                     <img
                       src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
                       alt={currentPlayer.realTeam || currentPlayer.gamerTag}
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
                       loading="lazy"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;

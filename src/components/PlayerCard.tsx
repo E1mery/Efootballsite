@@ -65,11 +65,11 @@ export default function PlayerCard({ player, rank }: PlayerProps) {
 
       {/* Player Identity with Responsive Avatar */}
       <div className="mt-3.5 flex items-center gap-3">
-        <div className="flex h-11 w-11 sm:h-13 sm:w-13 md:h-14 md:w-14 shrink-0 aspect-square items-center justify-center rounded-2xl bg-slate-950 border border-slate-700/80 p-1.5 shadow-md overflow-hidden group-hover:border-sky-500/50 transition-colors">
+        <div className="flex h-11 w-11 sm:h-13 sm:w-13 md:h-14 md:w-14 shrink-0 aspect-square items-center justify-center rounded-2xl bg-white/95 border border-slate-700/80 p-1.5 shadow-md overflow-hidden group-hover:border-sky-500/50 transition-colors">
           <img
             src={avatarUrl}
             alt={player.realTeam || player.gamerTag}
-            className="h-full w-full object-contain"
+            className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
             loading="lazy"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;

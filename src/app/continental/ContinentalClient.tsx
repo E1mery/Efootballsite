@@ -520,15 +520,17 @@ export default function ContinentalClient({
                     </div>
 
                     <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={avatarUrl}
-                        alt={s.player.gamerTag}
-                        className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain bg-slate-950 p-1 border border-slate-800 shrink-0 aspect-square shadow-md"
-                        loading="lazy"
-                        onError={(e: any) => {
-                          e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player.gamerTag || "player")}`;
-                        }}
-                      />
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-white/95 p-1 border border-slate-700/80 shrink-0 aspect-square shadow-md flex items-center justify-center overflow-hidden">
+                        <img
+                          src={avatarUrl}
+                          alt={s.player.gamerTag}
+                          className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                          loading="lazy"
+                          onError={(e: any) => {
+                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player.gamerTag || "player")}`;
+                          }}
+                        />
+                      </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-extrabold text-white text-sm truncate">
                           {s.player.gamerTag}
@@ -745,11 +747,11 @@ export default function ContinentalClient({
 
                       <div className="grid grid-cols-3 items-center text-center gap-2">
                         <div className="flex items-center gap-2 sm:gap-2.5 text-left min-w-0">
-                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-slate-950 border border-slate-800 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -803,11 +805,11 @@ export default function ContinentalClient({
                             </div>
                             <span className="text-[10px] text-slate-500 block truncate">{m.awayPlayer.division}</span>
                           </div>
-                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-slate-950 border border-slate-800 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -895,11 +897,11 @@ export default function ContinentalClient({
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -917,11 +919,11 @@ export default function ContinentalClient({
                         )}
                         <div className="flex items-center gap-2 min-w-0 justify-end">
                           <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -966,11 +968,11 @@ export default function ContinentalClient({
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -988,11 +990,11 @@ export default function ContinentalClient({
                         )}
                         <div className="flex items-center gap-2 min-w-0 justify-end">
                           <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -1030,11 +1032,11 @@ export default function ContinentalClient({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-6">
                   <div className="space-y-2 text-center sm:text-right">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-slate-950 border border-slate-700 p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-white/95 border-2 border-slate-600/80 p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
                       <img
                         src={resolvePlayerAvatar(finalMatch.homePlayer)}
                         alt={finalMatch.homePlayer.realTeam || finalMatch.homePlayer.gamerTag}
-                        className="h-full w-full object-contain"
+                        className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
                         loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.homePlayer?.gamerTag || "player")}`;
@@ -1065,11 +1067,11 @@ export default function ContinentalClient({
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-slate-950 border border-slate-700 p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-white/95 border-2 border-slate-600/80 p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
                       <img
                         src={resolvePlayerAvatar(finalMatch.awayPlayer)}
                         alt={finalMatch.awayPlayer.realTeam || finalMatch.awayPlayer.gamerTag}
-                        className="h-full w-full object-contain"
+                        className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
                         loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.awayPlayer?.gamerTag || "player")}`;

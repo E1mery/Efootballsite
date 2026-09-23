@@ -98,11 +98,11 @@ export default async function PlayersPage() {
                 <span className="text-sm font-black text-white px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-500/30">{player.assists} Ast</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 shrink-0 aspect-square rounded-xl bg-slate-950 border border-slate-700/80 p-1 overflow-hidden flex items-center justify-center shadow-md">
+                <div className="h-11 w-11 shrink-0 aspect-square rounded-xl bg-white/95 border border-slate-700/80 p-1 overflow-hidden flex items-center justify-center shadow-md">
                   <img
                     src={resolvePlayerAvatar(player)}
                     alt={player.gamerTag}
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                     loading="lazy"
                   />
                 </div>
@@ -142,11 +142,11 @@ export default async function PlayersPage() {
                 <tr key={p.id} className="hover:bg-slate-800/40 transition-colors whitespace-nowrap">
                   <td className="p-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 aspect-square rounded-lg bg-slate-950 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden shadow-inner">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 aspect-square rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center overflow-hidden shadow-sm">
                         <img
                           src={resolvePlayerAvatar(p)}
                           alt={p.realTeam || p.gamerTag}
-                          className="h-full w-full object-contain"
+                          className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                           loading="lazy"
                         />
                       </div>
