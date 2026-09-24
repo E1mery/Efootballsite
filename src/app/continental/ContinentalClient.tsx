@@ -26,7 +26,7 @@ import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import { Badge } from "@/components/ui/badge";
 
 export default function ContinentalClient({
-  leagueConfig,
+  leagueConfig: initialLeagueConfig,
   uclQualified,
   europaQualified,
   uclSlots,
@@ -53,8 +53,50 @@ export default function ContinentalClient({
   isAdmin?: boolean;
 }) {
   const router = useRouter();
+  const [leagueConfig, setLeagueConfig] = useState(initialLeagueConfig);
+
+  useEffect(() => {
+    if (initialLeagueConfig) {
+      setLeagueConfig(initialLeagueConfig);
+    }
+  }, [initialLeagueConfig]);
+
+  // Live polling for draw updates and leagueConfig changes
+  useEffect(() => {
+    let isMounted = true;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/league/config", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.config && isMounted) {
+          setLeagueConfig((prev: any) => ({ ...prev, ...data.config }));
+        }
+      } catch (e) {}
+    };
+    const interval = setInterval(poll, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
   const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">("UCL");
-  const [activeTab, setActiveTab] = useState<"DRAWS" | "GROUPS" | "KNOCKOUT" | "TROPHY_POLL">("DRAWS");
+
+  const isUclDrawDone = Boolean(leagueConfig.uclDrawCompleted || uclSlots.length >= 16);
+  const isEuropaDrawDone = Boolean(leagueConfig.europaDrawCompleted || europaSlots.length >= 16);
+  const isCurrentDrawDone = selectedCompetition === "UCL" ? isUclDrawDone : isEuropaDrawDone;
+
+  const [activeTab, setActiveTab] = useState<"DRAWS" | "GROUPS" | "KNOCKOUT" | "TROPHY_POLL">(() => {
+    return (selectedCompetition === "UCL" ? isUclDrawDone : isEuropaDrawDone) && !isAdmin
+      ? "GROUPS"
+      : "DRAWS";
+  });
+
+  useEffect(() => {
+    if (isCurrentDrawDone && !isAdmin && activeTab === "DRAWS") {
+      setActiveTab("GROUPS");
+    }
+  }, [isCurrentDrawDone, isAdmin, activeTab]);
 
   const [votingLoading, setVotingLoading] = useState<string | null>(null);
   const [voteError, setVoteError] = useState<string | null>(null);
@@ -255,22 +297,24 @@ export default function ContinentalClient({
 
       {/* Tournament Stage Sub-Tabs */}
       <div className="flex items-center gap-2 border-b border-border pb-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
-        <button
-          onClick={() => setActiveTab("DRAWS")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap h-10 ${
-            activeTab === "DRAWS"
-              ? selectedCompetition === "UCL"
-                ? "bg-primary/20 text-primary border border-primary/40"
-                : "bg-secondary/20 text-secondary border border-secondary/40"
-              : "text-muted-foreground hover:text-white"
-          }`}
-        >
-          <Vote className="h-3.5 w-3.5" />
-          <span>Interactive Group Draws</span>
-          <span className="text-xs font-mono px-1.5 py-0.2 rounded-full bg-muted text-foreground">
-            {currentSlots.length}/16
-          </span>
-        </button>
+        {(!isCurrentDrawDone || isAdmin) && (
+          <button
+            onClick={() => setActiveTab("DRAWS")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap h-10 ${
+              activeTab === "DRAWS"
+                ? selectedCompetition === "UCL"
+                  ? "bg-primary/20 text-primary border border-primary/40"
+                  : "bg-secondary/20 text-secondary border border-secondary/40"
+                : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            <Vote className="h-3.5 w-3.5" />
+            <span>Interactive Group Draws</span>
+            <span className="text-xs font-mono px-1.5 py-0.2 rounded-full bg-muted text-foreground">
+              {currentSlots.length}/16
+            </span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab("GROUPS")}
@@ -398,7 +442,7 @@ export default function ContinentalClient({
                 ⚡ <strong>UEFA-style Division Protection:</strong> The animated draw system will automatically ensure no group has more than 2 athletes from the same league!
               </div>
             </div>
-          ) : !isStarted && !isAdmin ? (
+          ) : !isStarted && !drawCountdown.isDue && !isAdmin ? (
             <div className="rounded-3xl border border-primary/20 bg-background/90 p-10 text-center space-y-4 shadow-2xl">
               <div className="inline-flex p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary">
                 <Lock className="h-10 w-10" />
@@ -458,16 +502,19 @@ export default function ContinentalClient({
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={avatarUrl}
-                        alt={s.player.gamerTag}
-                        className="h-10 w-10 rounded-xl object-contain bg-card p-1 border border-border shrink-0 shadow-md"
-                        onError={(e: any) => {
-                          e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${s.player.gamerTag}`;
-                        }}
-                      />
-                      <div className="truncate">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-card p-1 border border-border shrink-0 aspect-square shadow-md flex items-center justify-center overflow-hidden">
+                        <img
+                          src={avatarUrl}
+                          alt={s.player.gamerTag}
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                          onError={(e: any) => {
+                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player.gamerTag || "player")}`;
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <h4 className="font-extrabold text-white text-sm truncate">
                           {s.player.gamerTag}
                         </h4>
@@ -509,6 +556,21 @@ export default function ContinentalClient({
       {/* ===================================================================== */}
       {activeTab === "GROUPS" && (
         <div className="space-y-8">
+          {/* Directed banner for completed draw */}
+          {isCurrentDrawDone && (
+            <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4 flex items-center gap-3 shadow-lg">
+              <Sparkles className="h-5 w-5 text-primary shrink-0" />
+              <div className="text-xs">
+                <span className="font-bold text-primary uppercase mr-1.5">
+                  Official Draw Concluded:
+                </span>
+                <span className="text-foreground">
+                  All 16 athletes have been officially drafted into Groups A, B, C, and D. Review your group rivals below while the League Commissioner prepares the 2-legged group matchdays!
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-border bg-background/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div>
               <span className="font-bold text-white block">Group Stage Format: 2-Legged Simultaneous Matches</span>
@@ -523,13 +585,30 @@ export default function ContinentalClient({
 
           {/* Group Tables */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {groups.map((grp) => {
+            {groups.map((grp, gIdx) => {
               const grpStandings = currentStandings.filter((s) => s.division.includes(grp));
+              const theme =
+                grp === "Group A"
+                  ? { border: "border-primary/40", dot: "bg-primary", title: "text-primary" }
+                  : grp === "Group B"
+                  ? { border: "border-secondary/40", dot: "bg-secondary", title: "text-secondary" }
+                  : grp === "Group C"
+                  ? { border: "border-primary/40", dot: "bg-primary", title: "text-primary" }
+                  : { border: "border-secondary/40", dot: "bg-secondary", title: "text-secondary" };
+
               return (
-                <div key={grp} className="rounded-2xl border border-border bg-background/90 p-5 space-y-3 shadow-lg">
+                <div
+                  key={grp}
+                  className={`rounded-2xl border ${theme.border} bg-background/90 p-5 space-y-3 shadow-xl backdrop-blur-xl`}
+                >
                   <div className="flex items-center justify-between border-b border-border pb-2">
-                    <span className="font-black uppercase text-sm text-white">{grp} Table</span>
-                    <span className="text-xs text-muted-foreground font-mono">Top 2 Qualify for QF</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${theme.dot} animate-pulse`} />
+                      <span className={`font-black uppercase text-sm ${theme.title}`}>{grp} Standings</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs text-primary border-primary/40 bg-primary/10 font-mono">
+                      Top 2 → QF
+                    </Badge>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -570,14 +649,18 @@ export default function ContinentalClient({
                               </td>
                               <td className="py-2.5 text-white">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                                  <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden">
                                     <img
                                       src={resolvePlayerAvatar(s.player)}
                                       alt={s.player.realTeam || s.player.gamerTag}
                                       className="h-full w-full object-contain"
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
+                                      }}
                                     />
                                   </div>
-                                  <div className="truncate">
+                                  <div className="truncate min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5 truncate">
                                       <span className="font-bold truncate text-xs">{s.player.gamerTag}</span>
                                       {s.player.realTeam && (
@@ -644,20 +727,24 @@ export default function ContinentalClient({
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-3 items-center text-center">
-                        <div className="flex items-center gap-2.5 text-left">
-                          <div className="h-8 w-8 rounded-lg bg-card border border-border p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="grid grid-cols-3 items-center text-center gap-2">
+                        <div className="flex items-center gap-2 sm:gap-2.5 text-left min-w-0">
+                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
                               className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
+                              }}
                             />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1 flex-wrap">
                               <span className="font-bold text-white block text-xs sm:text-sm truncate">{m.homePlayer.gamerTag}</span>
                               {m.homePlayer.realTeam && (
-                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold">
+                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold truncate">
                                   {findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam}
                                 </span>
                               )}
@@ -669,7 +756,7 @@ export default function ContinentalClient({
                         <div className="space-y-1">
                           {isFinished ? (
                             <div>
-                              <span className="text-lg font-black text-secondary font-mono">
+                              <span className="text-base sm:text-lg font-black text-secondary font-mono">
                                 {m.homeScore} - {m.awayScore}
                               </span>
                               {hasLeg2 && (
@@ -688,23 +775,27 @@ export default function ContinentalClient({
                           )}
                         </div>
 
-                        <div className="flex items-center justify-end gap-2.5 text-right">
-                          <div className="min-w-0">
+                        <div className="flex items-center justify-end gap-2 sm:gap-2.5 text-right min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-end gap-1 flex-wrap">
                               <span className="font-bold text-white block text-xs sm:text-sm truncate">{m.awayPlayer.gamerTag}</span>
                               {m.awayPlayer.realTeam && (
-                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold">
+                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold truncate">
                                   {findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam}
                                 </span>
                               )}
                             </div>
                             <span className="text-xs text-muted-foreground block truncate">{m.awayPlayer.division}</span>
                           </div>
-                          <div className="h-8 w-8 rounded-lg bg-card border border-border p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
                               className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
+                              }}
                             />
                           </div>
                         </div>
@@ -788,17 +879,21 @@ export default function ContinentalClient({
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
                               className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
+                              }}
                             />
                           </div>
                           <span className="truncate">{m.homePlayer.gamerTag}</span>
                         </div>
                         {isFinished ? (
-                          <span className="font-mono text-secondary shrink-0">
+                          <span className="font-mono text-secondary shrink-0 text-xs sm:text-sm">
                             Agg: {aggHome} - {aggAway}
                           </span>
                         ) : (
@@ -806,11 +901,15 @@ export default function ContinentalClient({
                         )}
                         <div className="flex items-center gap-2 min-w-0 justify-end">
                           <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
                               className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
+                              }}
                             />
                           </div>
                         </div>
@@ -822,7 +921,7 @@ export default function ContinentalClient({
             )}
           </div>
 
-          {/* Semi Finals */}
+          {/* Semi-Finals */}
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-border pb-2">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
@@ -851,17 +950,21 @@ export default function ContinentalClient({
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
                               className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
+                              }}
                             />
                           </div>
                           <span className="truncate">{m.homePlayer.gamerTag}</span>
                         </div>
                         {isFinished ? (
-                          <span className="font-mono text-secondary shrink-0">
+                          <span className="font-mono text-secondary shrink-0 text-xs sm:text-sm">
                             Agg: {aggHome} - {aggAway}
                           </span>
                         ) : (
@@ -869,11 +972,15 @@ export default function ContinentalClient({
                         )}
                         <div className="flex items-center gap-2 min-w-0 justify-end">
                           <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
                               className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
+                              }}
                             />
                           </div>
                         </div>
@@ -907,11 +1014,15 @@ export default function ContinentalClient({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-6">
                   <div className="space-y-2 text-center sm:text-right">
-                    <div className="h-16 w-16 rounded-2xl bg-card border border-border p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center overflow-hidden shadow-lg">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card border border-border p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
                       <img
                         src={resolvePlayerAvatar(finalMatch.homePlayer)}
                         alt={finalMatch.homePlayer.realTeam || finalMatch.homePlayer.gamerTag}
                         className="h-full w-full object-contain"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.homePlayer?.gamerTag || "player")}`;
+                        }}
                       />
                     </div>
                     <h4 className="text-xl font-black text-white">{finalMatch.homePlayer.gamerTag}</h4>
@@ -938,11 +1049,15 @@ export default function ContinentalClient({
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left">
-                    <div className="h-16 w-16 rounded-2xl bg-card border border-border p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center overflow-hidden shadow-lg">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card border border-border p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
                       <img
                         src={resolvePlayerAvatar(finalMatch.awayPlayer)}
                         alt={finalMatch.awayPlayer.realTeam || finalMatch.awayPlayer.gamerTag}
                         className="h-full w-full object-contain"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.awayPlayer?.gamerTag || "player")}`;
+                        }}
                       />
                     </div>
                     <h4 className="text-xl font-black text-white">{finalMatch.awayPlayer.gamerTag}</h4>

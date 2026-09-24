@@ -25,8 +25,19 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, competition = "UCL", drawTime, started, slots } = body;
 
+    // Check if competition is unlocked
+    const currentLeagueConfig = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+    const isCompUnlocked = competition === "UCL" ? currentLeagueConfig?.uclStarted : currentLeagueConfig?.europaStarted;
+
     // 1. SCHEDULE DRAW
     if (action === "SCHEDULE_DRAW") {
+      if (!isCompUnlocked) {
+        return NextResponse.json(
+          { error: `Cannot schedule ${competition} draw while ${competition} is locked. Please click "Unlock ${competition}" once qualification tables are concluded.` },
+          { status: 400 }
+        );
+      }
+
       const updateData: any = {};
       const dateVal = drawTime ? new Date(drawTime) : null;
 
@@ -61,7 +72,46 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2. TOGGLE COMPETITION LOCK/UNLOCK
+    // 2. LAUNCH LIVE DRAW (Commissioner triggers live broadcast for all players)
+    if (action === "LAUNCH_LIVE_DRAW") {
+      const updateData: any = {};
+      if (competition === "UCL") {
+        updateData.uclStarted = true;
+        updateData.uclDrawCompleted = false;
+      } else {
+        updateData.europaStarted = true;
+        updateData.europaDrawCompleted = false;
+      }
+
+      const config = await prisma.leagueConfig.upsert({
+        where: { id: "default" },
+        update: updateData,
+        create: { id: "default", ...updateData },
+      });
+
+      // Clear any unfinalized slots so draw can proceed cleanly
+      await prisma.uclGroupSlot.deleteMany({
+        where: { competition },
+      });
+
+      // Broadcast announcement that the live draw is officially underway
+      await prisma.announcement.create({
+        data: {
+          title: `🔴 ${competition} LIVE ANIMATED DRAWS UNDERWAY!`,
+          content: `The League Commissioner has officially initiated the live animated draw event for ${competition}! Watch the live broadcast now on your player dashboard or Continental page.`,
+          type: "BROADCAST",
+          isPinned: true,
+        },
+      }).catch(() => {});
+
+      return NextResponse.json({
+        success: true,
+        message: `Official live ${competition} draw has been launched across all player portals!`,
+        config,
+      });
+    }
+
+    // 3. TOGGLE COMPETITION LOCK/UNLOCK
     if (action === "TOGGLE_COMPETITION") {
       const updateData: any = {};
       if (competition === "UCL") {

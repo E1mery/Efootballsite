@@ -7,6 +7,7 @@ import {
   Bell,
   Upload,
   ShieldAlert,
+  ShieldCheck,
   CheckCircle2,
   XCircle,
   Trophy,
@@ -53,6 +54,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
+
+function toLocalDatetimeInput(dateInput: Date | string | null | undefined): string {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default function AdminClient({
   matches,
@@ -128,13 +137,15 @@ export default function AdminClient({
   // New admin operations state
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
   const [resettingTournament, setResettingTournament] = useState(false);
+  const [resettingTeams, setResettingTeams] = useState(false);
+  const [auditingTeams, setAuditingTeams] = useState(false);
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
   const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
   const [uclDrawInput, setUclDrawInput] = useState<string>(
-    leagueConfig?.uclDrawTime ? new Date(leagueConfig.uclDrawTime).toISOString().slice(0, 16) : ""
+    toLocalDatetimeInput(leagueConfig?.uclDrawTime)
   );
   const [europaDrawInput, setEuropaDrawInput] = useState<string>(
-    leagueConfig?.europaDrawTime ? new Date(leagueConfig.europaDrawTime).toISOString().slice(0, 16) : ""
+    toLocalDatetimeInput(leagueConfig?.europaDrawTime)
   );
 
   // Club Assignment / Edit State
@@ -630,12 +641,19 @@ export default function AdminClient({
     }
   };
 
+  // Fixed Kickoff date for schedule generator (Midnight 12:00 AM)
+  const [leagueStartDate, setLeagueStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  });
+
   // Generate Scheduled Round Robin Matches
   const handleGenerateSchedule = async (division: string) => {
     const confirmMsg =
       division === "ALL"
-        ? "Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, all players play every round) for ALL divisions?"
-        : `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing) for ${division}?`;
+        ? `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, starting on ${leagueStartDate} at 12:00 AM midnight) for ALL divisions?`
+        : `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, starting on ${leagueStartDate} at 12:00 AM midnight) for ${division}?`;
     if (!confirm(confirmMsg)) return;
 
     setActionLoading(true);
@@ -643,7 +661,7 @@ export default function AdminClient({
       const res = await fetch("/api/admin/generate-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ division }),
+        body: JSON.stringify({ division, startDate: leagueStartDate }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate schedule");
@@ -684,6 +702,84 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setResettingTournament(false);
+    }
+  };
+
+  // Reset Real Teams & Avatars for Players
+  const handleResetRealTeams = async (division: string = "ALL") => {
+    if (
+      !confirm(
+        `Are you sure you want to reset real football team choices and avatars for ${
+          division === "ALL" ? "ALL registered players across the entire league" : division
+        }? All affected players will have their chosen club cleared and will start selecting fresh.`
+      )
+    ) {
+      return;
+    }
+
+    setResettingTeams(true);
+    try {
+      const res = await fetch("/api/admin/teams/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ division }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset real football teams");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setResettingTeams(false);
+    }
+  };
+
+  // Audit and verify player club assignments against division
+  const handleAuditTeams = async () => {
+    setAuditingTeams(true);
+    try {
+      const res = await fetch("/api/admin/teams/audit");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to audit team assignments");
+
+      if (data.mismatchedCount === 0) {
+        alert(
+          `✅ Perfect Alignment!\nAll ${data.validCount} assigned clubs correctly match their respective division:\n` +
+          `• Division 1: Premier League\n` +
+          `• Division 2: La Liga\n` +
+          `• Division 3: Serie A\n\nNo mismatches found!`
+        );
+        return;
+      }
+
+      const listStr = data.mismatches
+        .slice(0, 10)
+        .map(
+          (m: any) =>
+            `• ${m.gamerTag} (${m.playerDivision}) -> ${m.currentTeam} (${m.teamDivision} / ${m.teamLeague})`
+        )
+        .join("\n");
+
+      const overflowMsg = data.mismatches.length > 10 ? `\n...and ${data.mismatches.length - 10} more` : "";
+
+      const confirmFix = confirm(
+        `⚠️ Found ${data.mismatchedCount} mismatched club assignment(s):\n\n${listStr}${overflowMsg}\n\nWould you like to automatically clear these mismatched club assignments so affected players can select valid clubs from their correct division?`
+      );
+
+      if (confirmFix) {
+        const fixRes = await fetch("/api/admin/teams/audit?fix=true");
+        const fixData = await fixRes.json();
+        if (!fixRes.ok) throw new Error(fixData.error || "Failed to fix mismatched teams");
+        alert(
+          `Successfully reset ${fixData.fixedCount} mismatched player club choices. Athletes can now pick clubs from their correct division.`
+        );
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAuditingTeams(false);
     }
   };
 
@@ -868,7 +964,7 @@ export default function AdminClient({
     }
   };
 
-  // Schedule Continental Draw Event
+  // Schedule Continental Draw Event (Preserving exact local time)
   const handleScheduleDraw = async (competition: "UCL" | "EUROPA", drawTime: string) => {
     if (!drawTime) {
       alert("Please choose a valid date and time for the draw event.");
@@ -876,18 +972,53 @@ export default function AdminClient({
     }
     setActionLoading(true);
     try {
+      const isoDrawTime = new Date(drawTime).toISOString();
       const res = await fetch("/api/admin/continental/schedule-draw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "SCHEDULE_DRAW",
           competition,
-          drawTime,
+          drawTime: isoDrawTime,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to schedule draw");
       alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Launch Official Live Animated Draws System (Broadcasts simultaneously to all player portals)
+  const handleLaunchLiveDraw = async (competition: "UCL" | "EUROPA") => {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/continental/schedule-draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "LAUNCH_LIVE_DRAW",
+          competition,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to launch live draw");
+
+      if (leagueConfig) {
+        if (competition === "UCL") {
+          leagueConfig.uclStarted = true;
+          leagueConfig.uclDrawCompleted = false;
+        } else {
+          leagueConfig.europaStarted = true;
+          leagueConfig.europaDrawCompleted = false;
+        }
+      }
+
+      setActiveDrawModal(competition);
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -1016,15 +1147,15 @@ export default function AdminClient({
     setUpdatingClub(true);
     try {
       const res = await fetch("/api/admin/update-player", {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           playerId,
           realTeam,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update player club");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed to update player club (${res.status} ${res.statusText})`);
       alert(data.message || "Player club updated successfully!");
       setEditingClubPlayer(null);
       router.refresh();
@@ -1197,9 +1328,9 @@ export default function AdminClient({
     }
   };
 
-  // Execute End of Season Relegations and/or Promotions
+  // Execute End of Season Relegations, Promotions, or Complete Season Wipe
   const handleExecuteSeasonTransition = async (
-    action: "ALL" | "RELEGATE_ONLY" | "PROMOTE_ONLY" = "ALL"
+    action: "ALL" | "RELEGATE_ONLY" | "PROMOTE_ONLY" | "WIPE_FOR_NEW_SEASON" = "ALL"
   ) => {
     let confirmMsg =
       "Are you sure you want to finalize the season and execute BOTH promotions (Top 3 of Div 2 & 3) AND relegations (Bottom 3 of Div 1 & 2)?";
@@ -1209,9 +1340,18 @@ export default function AdminClient({
     } else if (action === "PROMOTE_ONLY") {
       confirmMsg =
         "Are you sure you want to trigger DIVISION PROMOTIONS?\n\n• Top 3 in Division 2 -> Promoted to Division 1\n• Top 3 in Division 3 -> Promoted to Division 2";
+    } else if (action === "WIPE_FOR_NEW_SEASON") {
+      confirmMsg =
+        "⚠️ CRITICAL ACTION: Conclude the current season and WIPE all season data?\n\n1. Champions and podium athletes will be permanently enshrined into the Hall of Fame.\n2. All matches, submissions, forfeit claims, and continental slots will be cleared.\n3. Standings and statistics will be reset to 0.\n4. Real team selections will be reset to null so all players can draft fresh clubs for the new season.\n5. The league season counter will advance (e.g. to Season 2).\n\nAre you sure you want to execute the Season Reset?";
     }
 
     if (!confirm(confirmMsg)) return;
+
+    if (action === "WIPE_FOR_NEW_SEASON") {
+      if (!confirm("FINAL CONFIRMATION: Type OK to wipe all season fixtures and advance to the new season.")) {
+        return;
+      }
+    }
 
     setActionLoading(true);
     try {
@@ -2124,7 +2264,20 @@ export default function AdminClient({
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 bg-card border border-border p-1.5 rounded-xl">
+                  <span className="text-xs font-bold text-muted-foreground pl-1.5">Kickoff Date:</span>
+                  <input
+                    type="date"
+                    value={leagueStartDate}
+                    onChange={(e) => setLeagueStartDate(e.target.value)}
+                    className="bg-background border border-border rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:border-secondary focus:outline-none"
+                  />
+                  <Badge variant="outline" className="text-xs font-mono border-secondary/40 text-secondary bg-secondary/10">
+                    Dropout: 12:00 AM Midnight
+                  </Badge>
+                </div>
+
                 <Button
                   onClick={() => handleGenerateSchedule("ALL")}
                   disabled={actionLoading || leagueConfig.registrationOpen}
@@ -2142,6 +2295,28 @@ export default function AdminClient({
                 >
                   <RotateCcw className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`} />
                   {resettingTournament ? "Resetting..." : "Reset All Matches & Standings"}
+                </Button>
+
+                <Button
+                  onClick={() => handleResetRealTeams("ALL")}
+                  disabled={resettingTeams}
+                  variant="outline"
+                  className="font-bold text-xs uppercase tracking-wider gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/20"
+                  title="Clear all players real team assignments and avatars so they can select fresh"
+                >
+                  <RotateCcw className={`h-3.5 w-3.5 ${resettingTeams ? "animate-spin" : ""}`} />
+                  {resettingTeams ? "Resetting Clubs..." : "Reset All Real Team Choices"}
+                </Button>
+
+                <Button
+                  onClick={handleAuditTeams}
+                  disabled={auditingTeams}
+                  variant="outline"
+                  className="font-bold text-xs uppercase tracking-wider gap-1.5 border-secondary/50 text-secondary hover:bg-secondary/20"
+                  title="Check whether every athlete's assigned real team matches their division (Div 1 = Premier League, Div 2 = La Liga, Div 3 = Serie A)"
+                >
+                  <ShieldCheck className={`h-3.5 w-3.5 ${auditingTeams ? "animate-spin" : ""}`} />
+                  {auditingTeams ? "Auditing Teams..." : "Audit Team Divisions"}
                 </Button>
               </div>
             </div>
@@ -2381,11 +2556,14 @@ export default function AdminClient({
                 <div className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-secondary" />
                   <h3 className="text-lg font-black uppercase text-white">
-                    Season Finale: Promotions & Relegations
+                    Season Finale & Transition
                   </h3>
+                  <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 font-mono text-xs">
+                    Active: {leagueConfig?.season || "Season 1 (2026)"}
+                  </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  At season end, the bottom 3 from Division 1 relegate to Division 2, the bottom 3 from Division 2 relegate to Division 3, while the top 3 from Division 2 promote to Division 1 and top 3 from Division 3 promote to Division 2.
+                  Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
                 </p>
               </div>
 
@@ -2404,7 +2582,16 @@ export default function AdminClient({
                   className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-lg"
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1" />
-                  Execute Full Transition
+                  Execute Promotions & Relegations
+                </Button>
+                <Button
+                  onClick={() => handleExecuteSeasonTransition("WIPE_FOR_NEW_SEASON")}
+                  disabled={actionLoading}
+                  className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider shadow-lg"
+                  title="Archive champions to Hall of Fame, wipe fixtures & standings, reset clubs to null, and advance season"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  Conclude Season & Wipe Data for New Season
                 </Button>
               </div>
             </div>
@@ -3882,6 +4069,12 @@ export default function AdminClient({
 
                 {/* Schedule Draw Event Controls */}
                 <div className="p-3.5 rounded-xl bg-background/80 border border-border space-y-2">
+                  {!leagueConfig.uclStarted && (
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                      <span>UCL is currently <strong>LOCKED</strong>. Click &quot;Unlock UCL&quot; below once domestic qualifications conclude before scheduling or launching draws.</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-wider text-primary flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-primary" />
@@ -3898,14 +4091,15 @@ export default function AdminClient({
                       type="datetime-local"
                       value={uclDrawInput}
                       onChange={(e) => setUclDrawInput(e.target.value)}
-                      className="bg-card border-border text-xs text-white"
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      className="bg-card border-border text-xs text-white disabled:opacity-50"
                     />
                     <Button
                       onClick={() => handleScheduleDraw("UCL", uclDrawInput)}
-                      disabled={actionLoading}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
                       size="sm"
                       variant="outline"
-                      className="text-xs shrink-0 font-bold border-primary/40 text-primary hover:bg-primary hover:text-white"
+                      className="text-xs shrink-0 font-bold border-primary/40 text-primary hover:bg-primary hover:text-white disabled:opacity-40"
                     >
                       Schedule Event
                     </Button>
@@ -3913,9 +4107,9 @@ export default function AdminClient({
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
                       type="button"
-                      onClick={() => setActiveDrawModal("UCL")}
-                      disabled={!leagueConfig.uclStarted}
-                      className="w-full bg-gradient-to-r from-primary via-primary to-primary hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg"
+                      onClick={() => handleLaunchLiveDraw("UCL")}
+                      disabled={actionLoading || !leagueConfig.uclStarted}
+                      className="w-full bg-gradient-to-r from-primary via-primary to-primary hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Sparkles className="h-4 w-4 text-secondary animate-pulse" />
                       <span>Launch Official UCL Animated Draws System</span>
@@ -4029,6 +4223,12 @@ export default function AdminClient({
 
                 {/* Schedule Draw Event Controls */}
                 <div className="p-3.5 rounded-xl bg-background/80 border border-border space-y-2">
+                  {!leagueConfig.europaStarted && (
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                      <span>Europa League is currently <strong>LOCKED</strong>. Click &quot;Unlock Europa&quot; below once domestic qualifications conclude before scheduling or launching draws.</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-wider text-secondary flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-secondary" />
@@ -4045,14 +4245,15 @@ export default function AdminClient({
                       type="datetime-local"
                       value={europaDrawInput}
                       onChange={(e) => setEuropaDrawInput(e.target.value)}
-                      className="bg-card border-border text-xs text-white"
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      className="bg-card border-border text-xs text-white disabled:opacity-50"
                     />
                     <Button
                       onClick={() => handleScheduleDraw("EUROPA", europaDrawInput)}
-                      disabled={actionLoading}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
                       size="sm"
                       variant="outline"
-                      className="text-xs shrink-0 font-bold border-secondary/40 text-secondary hover:bg-secondary hover:text-white"
+                      className="text-xs shrink-0 font-bold border-secondary/40 text-secondary hover:bg-secondary hover:text-white disabled:opacity-40"
                     >
                       Schedule Event
                     </Button>
@@ -4060,9 +4261,9 @@ export default function AdminClient({
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
                       type="button"
-                      onClick={() => setActiveDrawModal("EUROPA")}
-                      disabled={!leagueConfig.europaStarted}
-                      className="w-full bg-gradient-to-r from-secondary via-secondary to-secondary hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg"
+                      onClick={() => handleLaunchLiveDraw("EUROPA")}
+                      disabled={actionLoading || !leagueConfig.europaStarted}
+                      className="w-full bg-gradient-to-r from-secondary via-secondary to-secondary hover:brightness-110 text-white font-black text-xs gap-2 py-2.5 rounded-xl shadow-lg disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Sparkles className="h-4 w-4 text-secondary animate-pulse" />
                       <span>Launch Official Europa Animated Draws System</span>
@@ -5039,11 +5240,19 @@ export default function AdminClient({
                         </td>
                         <td className="px-4 py-3">
                           {p.realTeam ? (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-semibold text-white">{p.realTeam}</span>
                               {teamObj && (
                                 <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-foreground">
                                   {teamObj.shortName}
+                                </span>
+                              )}
+                              {teamObj && teamObj.division !== p.division && (
+                                <span
+                                  className="text-xs font-black px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30"
+                                  title={`Mismatch: ${teamObj.shortName} belongs to ${teamObj.division} (${teamObj.league}), but athlete is in ${p.division}`}
+                                >
+                                  WRONG DIV ({teamObj.league})
                                 </span>
                               )}
                             </div>
@@ -5069,17 +5278,23 @@ export default function AdminClient({
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-bold">
-                          <span className={p.consecutiveMissed >= 2 ? "text-destructive" : "text-muted-foreground"}>
+                          <span className={p.consecutiveMissed >= 3 ? "text-destructive font-black animate-pulse" : p.consecutiveMissed >= 2 ? "text-destructive" : "text-muted-foreground"}>
                             {p.consecutiveMissed}/3
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <Badge
-                            variant={p.isDisqualified ? "destructive" : "secondary"}
-                            className="text-xs"
-                          >
-                            {p.status}
-                          </Badge>
+                          {p.consecutiveMissed >= 3 || p.isDisqualified ? (
+                            <Badge variant="destructive" className="text-xs animate-pulse">
+                              AWAITING SUB
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant={p.isDisqualified ? "destructive" : "secondary"}
+                              className="text-xs"
+                            >
+                              {p.status}
+                            </Badge>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
@@ -5097,7 +5312,7 @@ export default function AdminClient({
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant={p.consecutiveMissed >= 3 || p.isDisqualified ? "yellow" : "outline"}
                               onClick={() => {
                                 setReplaceTargetPlayer(p);
                                 setRepGamerTag("");
@@ -5107,10 +5322,14 @@ export default function AdminClient({
                                 setRepPassword("");
                                 setSelectedReserveId(reservePlayers[0]?.id || "");
                               }}
-                              className="h-7 px-2 text-xs font-bold border-primary/40 text-primary hover:bg-primary/50 hover:text-primary"
+                              className={`h-7 px-2 text-xs font-bold ${
+                                p.consecutiveMissed >= 3 || p.isDisqualified
+                                  ? "bg-secondary text-secondary-foreground hover:bg-secondary font-black shadow-md"
+                                  : "border-primary/40 text-primary hover:bg-primary/50 hover:text-primary"
+                              }`}
                             >
                               <Shuffle className="h-3 w-3 mr-1" />
-                              Replace
+                              {p.consecutiveMissed >= 3 || p.isDisqualified ? "Replace (Sub)" : "Replace"}
                             </Button>
                             <Button
                               size="sm"
@@ -6375,6 +6594,11 @@ export default function AdminClient({
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Replacing <strong className="text-white">{replaceTargetPlayer.gamerTag}</strong> ({replaceTargetPlayer.division})
+                  {replaceTargetPlayer.consecutiveMissed >= 3 && (
+                      <span className="ml-2 px-2 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-xs font-bold">
+                      {replaceTargetPlayer.consecutiveMissed} Missed Matches
+                    </span>
+                  )}
                 </p>
               </div>
               <button
@@ -6383,6 +6607,17 @@ export default function AdminClient({
               >
                 ✕
               </button>
+            </div>
+
+            {/* 48-Hour Priority Backlog Protocol Info */}
+            <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/30 space-y-1">
+              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wide">
+                <Clock className="h-4 w-4 text-primary shrink-0" />
+                <span>48-Hour Priority Backlog Protocol</span>
+              </div>
+              <p className="text-xs text-foreground leading-relaxed">
+                Upon confirmation, any missed fixtures, unplayed auto-draws (0-0), and on-hold matches will be transferred to the replacement athlete with an active <strong>48-hour completion window</strong>. Both the replacement athlete and their opponents will be notified immediately to upload results.
+              </p>
             </div>
 
             <form onSubmit={handleReplaceAthleteSubmit} className="space-y-4">

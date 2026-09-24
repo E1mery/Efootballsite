@@ -143,13 +143,17 @@ export default function StandingsTable({
                     const avatarUrl = resolvePlayerAvatar(row.player);
                     const teamObj = row.player.realTeam ? findTeam(row.player.realTeam) : null;
                     return (
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-card border border-border p-1 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-border p-0.5 shadow-sm overflow-hidden">
                           {avatarUrl ? (
                             <img
                               src={avatarUrl}
                               alt={row.player.realTeam || row.player.gamerTag}
-                              className="h-full w-full object-contain"
+                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
+                              }}
                             />
                           ) : (
                             <span className="font-black text-xs text-primary">
@@ -157,9 +161,9 @@ export default function StandingsTable({
                             </span>
                           )}
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <span className="font-bold text-white text-sm tracking-wide group-hover:text-primary transition-colors">
+                            <span className="font-bold text-white text-xs sm:text-sm tracking-wide group-hover:text-primary transition-colors truncate">
                               {row.player.gamerTag}
                             </span>
 

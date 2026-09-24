@@ -75,9 +75,10 @@ export default function ContinentalDrawExperience({
   // Prepare draw order and pots
   // UCL: Pot 1 (Top 8 Div 1), Pot 2 (Top 4 Div 2), Pot 3 (Top 4 Div 3)
   // Europa: Pot 1 (4 Div 1), Pot 2 (6 Div 2), Pot 3 (6 Div 3)
-  const div1Players = qualifiedAthletes.filter((a) => a.division === "Division 1");
-  const div2Players = qualifiedAthletes.filter((a) => a.division === "Division 2");
-  const div3Players = qualifiedAthletes.filter((a) => a.division === "Division 3");
+  const safeQualified = qualifiedAthletes || [];
+  const div1Players = safeQualified.filter((a) => a.division === "Division 1");
+  const div2Players = safeQualified.filter((a) => a.division === "Division 2");
+  const div3Players = safeQualified.filter((a) => a.division === "Division 3");
 
   // Draw Sequence state
   const [currentGroupAllocations, setCurrentGroupAllocations] = useState<
@@ -100,11 +101,11 @@ export default function ContinentalDrawExperience({
   const [committing, setCommitting] = useState(false);
   const [commitSuccess, setCommitSuccess] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(drawAudio.isMuted());
+  const [isMuted, setIsMuted] = useState(drawAudio?.isMuted ? drawAudio.isMuted() : false);
 
   // Initialize pool
   useEffect(() => {
-    if (existingSlots.length >= 16) {
+    if ((existingSlots || []).length >= 16) {
       // Reconstitute existing completed slots
       const initial: Record<string, DrawAthlete[]> = {
         "Group A": [],
@@ -112,8 +113,8 @@ export default function ContinentalDrawExperience({
         "Group C": [],
         "Group D": [],
       };
-      existingSlots.forEach((slot) => {
-        const found = qualifiedAthletes.find((a) => a.id === slot.playerId) || {
+      (existingSlots || []).forEach((slot) => {
+        const found = safeQualified.find((a) => a.id === slot.playerId) || {
           id: slot.playerId,
           gamerTag: slot.player?.gamerTag || "Player",
           fullName: slot.player?.fullName || "",
@@ -153,8 +154,11 @@ export default function ContinentalDrawExperience({
         "Group D": [],
       });
       setIsCompleted(false);
+      if (!isAdmin && sequence.length > 0) {
+        setIsAutoPlaying(true);
+      }
     }
-  }, [qualifiedAthletes, existingSlots, isUcl]);
+  }, [qualifiedAthletes, existingSlots, isUcl, isAdmin]);
 
   // Find eligible group for an athlete with division protection:
   // "no more than 2 players from the same division in the same group"
@@ -189,7 +193,7 @@ export default function ContinentalDrawExperience({
 
   // Perform a single step draw
   const performDrawStep = () => {
-    if (remainingPool.length === 0 || isSpinning) return;
+    if (!remainingPool || remainingPool.length === 0 || isSpinning) return;
 
     setIsSpinning(true);
     setBlockedGroups([]);
@@ -197,14 +201,28 @@ export default function ContinentalDrawExperience({
     setCurrentDrawnAthlete(null);
 
     const nextAthlete = remainingPool[0];
+    if (!nextAthlete) {
+      setIsSpinning(false);
+      return;
+    }
 
     // High-speed cycling roulette effect
     let cycleCount = 0;
-    const allAthletesPool = qualifiedAthletes;
+    const allAthletesPool = safeQualified;
+    if (allAthletesPool.length === 0) {
+      finalizePick(nextAthlete);
+      return;
+    }
+
     const interval = setInterval(() => {
       const randomIdx = Math.floor(Math.random() * allAthletesPool.length);
-      setSpinName(allAthletesPool[randomIdx].gamerTag);
-      drawAudio.playSpinTick(0.9 + (cycleCount / 22) * 0.4);
+      const randomAthlete = allAthletesPool[randomIdx];
+      if (randomAthlete?.gamerTag) {
+        setSpinName(randomAthlete.gamerTag);
+      }
+      try {
+        drawAudio?.playSpinTick?.(0.9 + (cycleCount / 22) * 0.4);
+      } catch (e) {}
       cycleCount++;
 
       if (cycleCount > 22) {
@@ -215,9 +233,12 @@ export default function ContinentalDrawExperience({
   };
 
   const finalizePick = (athlete: DrawAthlete) => {
-    drawAudio.playAthleteReveal();
+    if (!athlete) return;
+    try {
+      drawAudio?.playAthleteReveal?.();
+    } catch (e) {}
     setCurrentDrawnAthlete(athlete);
-    setSpinName(athlete.gamerTag);
+    setSpinName(athlete.gamerTag || "Athlete");
 
     // Compute destination group enforcing division protection
     const { validGroup, invalidGroups } = findEligibleGroup(athlete, currentGroupAllocations);
@@ -231,17 +252,21 @@ export default function ContinentalDrawExperience({
       setTimeout(() => {
         setCurrentGroupAllocations((prev) => {
           const updated = { ...prev };
-          updated[validGroup] = [...updated[validGroup], athlete];
+          updated[validGroup] = [...(updated[validGroup] || []), athlete];
           return updated;
         });
-        drawAudio.playGroupLock();
+        try {
+          drawAudio?.playGroupLock?.();
+        } catch (e) {}
 
         setRemainingPool((prev) => {
-          const next = prev.slice(1);
+          const next = (prev || []).slice(1);
           if (next.length === 0) {
             setIsCompleted(true);
             setIsAutoPlaying(false);
-            drawAudio.playFanfare();
+            try {
+              drawAudio?.playFanfare?.();
+            } catch (e) {}
           }
           return next;
         });
@@ -254,7 +279,7 @@ export default function ContinentalDrawExperience({
   // Auto-play loop
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isAutoPlaying && !isSpinning && remainingPool.length > 0 && !isCompleted) {
+    if (isAutoPlaying && !isSpinning && (remainingPool || []).length > 0 && !isCompleted) {
       timer = setTimeout(() => {
         performDrawStep();
       }, 1200);
@@ -266,12 +291,13 @@ export default function ContinentalDrawExperience({
   const handleInstantComplete = () => {
     setIsAutoPlaying(false);
     let tempAllocations = { ...currentGroupAllocations };
-    let tempPool = [...remainingPool];
+    let tempPool = [...(remainingPool || [])];
 
     while (tempPool.length > 0) {
-      const athlete = tempPool.shift()!;
+      const athlete = tempPool.shift();
+      if (!athlete) continue;
       const { validGroup } = findEligibleGroup(athlete, tempAllocations);
-      tempAllocations[validGroup] = [...tempAllocations[validGroup], athlete];
+      tempAllocations[validGroup] = [...(tempAllocations[validGroup] || []), athlete];
     }
 
     setCurrentGroupAllocations(tempAllocations);
@@ -318,6 +344,23 @@ export default function ContinentalDrawExperience({
   };
 
   const totalDrawn = 16 - remainingPool.length;
+
+  if (safeQualified.length === 0 && (existingSlots || []).length === 0) {
+    return (
+      <div className={`relative rounded-3xl border ${themeColors.border} bg-gradient-to-b ${themeColors.bgGrad} p-8 text-center space-y-4 text-white shadow-2xl`}>
+        <Trophy className="h-12 w-12 text-primary mx-auto" />
+        <h3 className="text-xl font-black uppercase">Draw Roster Initializing</h3>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+          The qualified athletes for this continental tournament have not been selected or published yet. Please check back once regular season play concludes.
+        </p>
+        {onClose && (
+          <Button onClick={onClose} className="bg-muted hover:bg-accent text-white text-xs font-bold px-4 py-2 rounded-xl">
+            Close
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`relative rounded-3xl border ${themeColors.border} bg-gradient-to-b ${themeColors.bgGrad} p-4 sm:p-8 backdrop-blur-2xl shadow-2xl text-white space-y-6 overflow-hidden`}>
@@ -486,16 +529,19 @@ export default function ContinentalDrawExperience({
                     key={athlete.id}
                     className="flex items-center justify-between p-2 rounded-xl bg-background/70 border border-border/80 text-xs"
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <img
-                        src={avatarUrl}
-                        alt={athlete.gamerTag}
-                        className="h-5 w-5 rounded-full object-contain shrink-0 bg-card p-0.5 border border-border"
-                        onError={(e: any) => {
-                          e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${athlete.gamerTag}`;
-                        }}
-                      />
-                      <span className="font-bold text-white truncate w-28">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="h-6 w-6 rounded-full bg-card p-0.5 border border-border shrink-0 aspect-square flex items-center justify-center overflow-hidden">
+                        <img
+                          src={avatarUrl}
+                          alt={athlete.gamerTag}
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                          onError={(e: any) => {
+                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
+                          }}
+                        />
+                      </div>
+                      <span className="font-bold text-white truncate">
                         {athlete.gamerTag}
                       </span>
                     </div>
@@ -553,14 +599,17 @@ export default function ContinentalDrawExperience({
               {/* Athlete Card Reveal */}
               <div className="flex flex-col items-center p-4 rounded-2xl bg-card/90 border-2 border-secondary/60 shadow-xl w-60">
                 <div className="relative mb-2">
-                  <img
-                    src={resolvePlayerAvatar(currentDrawnAthlete)}
-                    alt={currentDrawnAthlete.gamerTag}
-                    className="h-16 w-16 rounded-2xl object-contain bg-background p-2 border-2 border-border shadow-lg"
-                    onError={(e: any) => {
-                      e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentDrawnAthlete.gamerTag}`;
-                    }}
-                  />
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card p-2 border-2 border-border shrink-0 aspect-square shadow-xl flex items-center justify-center overflow-hidden">
+                    <img
+                      src={resolvePlayerAvatar(currentDrawnAthlete)}
+                      alt={currentDrawnAthlete.gamerTag}
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                      onError={(e: any) => {
+                        e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentDrawnAthlete.gamerTag || "player")}`;
+                      }}
+                    />
+                  </div>
                   <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-black font-mono">
                     {currentDrawnAthlete.overallRating || 85}
                   </div>
@@ -696,16 +745,19 @@ export default function ContinentalDrawExperience({
                       key={athlete.id}
                       className="flex items-center justify-between rounded-xl bg-background/80 p-2 text-xs border border-border hover:border-border transition-colors"
                     >
-                      <div className="flex items-center gap-2 truncate">
-                        <img
-                          src={avatarUrl}
-                          alt={athlete.gamerTag}
-                          className="h-6 w-6 rounded-full object-contain shrink-0 bg-card p-0.5 border border-border"
-                          onError={(e: any) => {
-                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${athlete.gamerTag}`;
-                          }}
-                        />
-                        <div className="truncate">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-card p-0.5 border border-border shrink-0 aspect-square flex items-center justify-center overflow-hidden">
+                          <img
+                            src={avatarUrl}
+                            alt={athlete.gamerTag}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                            onError={(e: any) => {
+                              e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
                           <span className="font-bold text-white truncate block">
                             {athlete.gamerTag}
                           </span>

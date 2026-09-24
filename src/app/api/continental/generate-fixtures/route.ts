@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { syncContinentalGroupMotds } from "@/lib/matchOfTheDay";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -149,6 +150,9 @@ export async function POST(req: Request) {
           }
         }
       }
+
+      // Automatically evaluate and set Group Matches of the Day based on domestic league performance
+      await syncContinentalGroupMotds(competition);
 
       // Announcement
       await prisma.announcement.create({

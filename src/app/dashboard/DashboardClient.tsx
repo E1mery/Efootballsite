@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -208,11 +208,11 @@ function ContinentalGroupStandingsView({
       {/* Grid of 4 Groups */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {groups.map((grp) => {
-          let grpStandings = standings.filter(
-            (s) => s.division?.includes(grp) || s.division?.includes(grp.toLowerCase())
+          let grpStandings = (standings || []).filter(
+            (s) => s && (s.division?.includes(grp) || s.division?.includes(grp.toLowerCase()))
           );
 
-          const grpSlots = slots.filter((s) => s.groupName === grp);
+          const grpSlots = (slots || []).filter((s) => s && s.groupName === grp);
 
           if (grpStandings.length === 0 && grpSlots.length > 0) {
             grpStandings = grpSlots.map((sl, idx) => ({
@@ -300,11 +300,12 @@ function ContinentalGroupStandingsView({
                             </td>
                             <td className="py-2.5 px-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                                   <img
                                     src={resolvePlayerAvatar(s.player)}
                                     alt={s.player?.realTeam || s.player?.gamerTag || "Team Crest"}
                                     className="w-full h-full object-contain"
+                                    loading="lazy"
                                     onError={(e) => {
                                       (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
                                     }}
@@ -355,9 +356,9 @@ function ContinentalGroupStandingsView({
                               {s.points ?? 0}
                             </td>
                             <td className="py-2.5 px-3 text-center">
-                              {s.form && s.form !== "-" ? (
+                              {typeof s.form === "string" && s.form.trim() !== "-" ? (
                                 <div className="flex items-center justify-center gap-1">
-                                  {s.form.split(",").slice(-3).map((res: string, fIdx: number) => (
+                                  {s.form.split(",").filter(Boolean).slice(-3).map((res: string, fIdx: number) => (
                                     <span
                                       key={fIdx}
                                       className={`inline-block w-4 h-4 rounded text-xs font-black leading-4 text-center ${
@@ -396,10 +397,10 @@ export default function DashboardClient({
   user,
   activeMatch: initialActiveMatch,
   allPlayerMatches = [],
-  announcements,
-  recentMatches,
+  announcements = [],
+  recentMatches = [],
   standing,
-  leagueConfig,
+  leagueConfig: initialLeagueConfig,
   divisionalMotd = {},
   div1Standings = [],
   div2Standings = [],
@@ -412,17 +413,25 @@ export default function DashboardClient({
   europaQualified = [],
   initialReview = null,
   isRestDayToday = false,
+  isWaitingForSub = false,
+  isSuspendedForMissed = false,
   currentRoundName,
+  opponentStanding = null,
+  opponentPreviousMatches = [],
+  uclGroupMotds = {},
+  europaGroupMotds = {},
 }: {
   player: any;
   user: any;
   activeMatch: any;
   allPlayerMatches?: any[];
-  announcements: any[];
-  recentMatches: any[];
+  announcements?: any[];
+  recentMatches?: any[];
   standing: any;
   leagueConfig?: any;
   divisionalMotd?: Record<string, any>;
+  uclGroupMotds?: Record<string, any>;
+  europaGroupMotds?: Record<string, any>;
   div1Standings?: any[];
   div2Standings?: any[];
   div3Standings?: any[];
@@ -434,25 +443,107 @@ export default function DashboardClient({
   europaQualified?: any[];
   initialReview?: any;
   isRestDayToday?: boolean;
+  isWaitingForSub?: boolean;
+  isSuspendedForMissed?: boolean;
   currentRoundName?: string;
+  opponentStanding?: any;
+  opponentPreviousMatches?: any[];
 }) {
   const router = useRouter();
+
+  const [leagueConfig, setLeagueConfig] = useState(initialLeagueConfig);
+  const [viewDrawModal, setViewDrawModal] = useState<"UCL" | "EUROPA" | null>(null);
+
+  useEffect(() => {
+    if (initialLeagueConfig) {
+      setLeagueConfig(initialLeagueConfig);
+    }
+  }, [initialLeagueConfig]);
+
+  const hasAutoOpenedUclRef = useRef(false);
+  const hasAutoOpenedEuropaRef = useRef(false);
+
+  // Live polling for draw broadcast triggers and leagueConfig changes
+  useEffect(() => {
+    let isMounted = true;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/league/config", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.config && isMounted) {
+          setLeagueConfig((prev: any) => {
+            // Auto launch modal if UCL just started, draw incomplete, and slots/athletes ready
+            if (
+              data.config.uclStarted &&
+              !prev?.uclStarted &&
+              !data.config.uclDrawCompleted &&
+              !hasAutoOpenedUclRef.current &&
+              ((uclQualified || []).length >= 16 || (uclSlots || []).length >= 16)
+            ) {
+              hasAutoOpenedUclRef.current = true;
+              setViewDrawModal("UCL");
+            }
+            // Auto launch modal if Europa just started, draw incomplete, and slots/athletes ready
+            if (
+              data.config.europaStarted &&
+              !prev?.europaStarted &&
+              !data.config.europaDrawCompleted &&
+              !hasAutoOpenedEuropaRef.current &&
+              ((europaQualified || []).length >= 16 || (europaSlots || []).length >= 16)
+            ) {
+              hasAutoOpenedEuropaRef.current = true;
+              setViewDrawModal("EUROPA");
+            }
+            return { ...prev, ...data.config };
+          });
+        }
+      } catch (e) {}
+    };
+    const interval = setInterval(poll, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Targeted match state for result/forfeit modal (can be opened from Overview or directly from Calendar cards)
   const [actionMatch, setActionMatch] = useState<any>(null);
 
-  // Check if player is on standby in reserve pool
+  // Check if player is on standby in reserve pool or suspended for 3 missed matches
   const isReserved = player.status === "RESERVED" || player?.status === "RESERVED";
+  const isSuspended = Boolean(isSuspendedForMissed || (player.consecutiveMissed || 0) >= 3 || player.isDisqualified);
 
-  // Compute robust active match (strictly for participating players, NEVER for reserve pool or rest day players):
-  // 1. If reserved or on rest day today, activeMatch is strictly null
-  // 2. Initial server-provided active match
-  // 3. Current matchday scheduled or live match from allPlayerMatches
-  // 4. Earliest unplayed scheduled or live match
-  // 5. Any match from current matchday (even if pending/finished so user sees score & proof)
-  // 6. Most recent fixture
+  // Replacement backlog matches (reopened matches with 48h deadline)
+  const [selectedBacklogMatchId, setSelectedBacklogMatchId] = useState<string | null>(null);
+
+  const replacementBacklogMatches = useMemo(() => {
+    return (allPlayerMatches || []).filter(
+      (m: any) => m.notes?.includes("REPLACEMENT_BACKLOG") && m.status === "SCHEDULED"
+    );
+  }, [allPlayerMatches]);
+
+  // Compute robust active match:
+  // 1. If reserved, rest day, or suspended, activeMatch is strictly null
+  // 2. If a specific backlog match is selected, use it
+  // 3. Priority: Earliest unplayed REPLACEMENT_BACKLOG match (replacement player begins here!)
+  // 4. Initial server-provided active match
+  // 5. Current matchday scheduled or live match from allPlayerMatches
+  // 6. Earliest unplayed scheduled or live match
+  // 7. Any match from current matchday
+  // 8. Most recent fixture
   const activeMatch = useMemo(() => {
-    if (isReserved || isRestDayToday) return null;
+    if (isReserved || isRestDayToday || isSuspended) return null;
+
+    if (selectedBacklogMatchId) {
+      const match = allPlayerMatches?.find((m: any) => m.id === selectedBacklogMatchId);
+      if (match) return match;
+    }
+
+    if (replacementBacklogMatches.length > 0) {
+      return replacementBacklogMatches[0];
+    }
+
     if (initialActiveMatch) return initialActiveMatch;
     if (!allPlayerMatches || allPlayerMatches.length === 0) return null;
 
@@ -471,16 +562,14 @@ export default function DashboardClient({
     if (anyCurrentRound) return anyCurrentRound;
 
     return allPlayerMatches[0] || null;
-  }, [isReserved, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
+  }, [isReserved, isRestDayToday, isSuspended, selectedBacklogMatchId, replacementBacklogMatches, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
 
   // Dynamic user and player profile state
   const [currentPlayer, setCurrentPlayer] = useState(player);
   const [currentUser, setCurrentUser] = useState(user);
 
-  // Selected MOTD tab in dashboard
-  const [selectedMotdDiv, setSelectedMotdDiv] = useState<string>(
-    player.division || "Division 1"
-  );
+  // Player's active division MOTD
+  const myDivMotd = player?.division ? (divisionalMotd || {})[player.division] : null;
 
   // Dynamic current time ticker to ensure 24h auto-deletion updates live on page
   const [announcementNow, setAnnouncementNow] = useState<number>(Date.now());
@@ -492,7 +581,7 @@ export default function DashboardClient({
   // Announcements strictly within 24 hours of publication
   const activeAnnouncements = useMemo(() => {
     const cutoff24h = announcementNow - 24 * 60 * 60 * 1000;
-    return announcements.filter((a) => new Date(a.createdAt).getTime() > cutoff24h);
+    return (announcements || []).filter((a) => a && new Date(a.createdAt).getTime() > cutoff24h);
   }, [announcements, announcementNow]);
 
   // Announcement read tracking (interactive from localStorage)
@@ -551,10 +640,10 @@ export default function DashboardClient({
   };
 
   // Profile Update State
-  const [profileGamerTag, setProfileGamerTag] = useState(player.gamerTag || "");
-  const [profileFullName, setProfileFullName] = useState(player.fullName || "");
-  const [profileWhatsapp, setProfileWhatsapp] = useState(player.whatsapp || "");
-  const [profileRealTeam, setProfileRealTeam] = useState(player.realTeam || "");
+  const [profileGamerTag, setProfileGamerTag] = useState(player?.gamerTag || "");
+  const [profileFullName, setProfileFullName] = useState(player?.fullName || "");
+  const [profileWhatsapp, setProfileWhatsapp] = useState(player?.whatsapp || "");
+  const [profileRealTeam, setProfileRealTeam] = useState(player?.realTeam || "");
   const [profileEmail, setProfileEmail] = useState(user?.email || "");
   const [profilePassword, setProfilePassword] = useState("");
   const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
@@ -585,6 +674,21 @@ export default function DashboardClient({
     if (fromApi && fromApi.playerId !== currentPlayer.id) {
       return fromApi.gamerTag;
     }
+    const foundClub = findTeam(teamName);
+    if (foundClub) {
+      const fromShort = takenTeamsMap[foundClub.shortName.toLowerCase()];
+      if (fromShort && fromShort.playerId !== currentPlayer.id) {
+        return fromShort.gamerTag;
+      }
+      const fromId = takenTeamsMap[foundClub.id.toLowerCase()];
+      if (fromId && fromId.playerId !== currentPlayer.id) {
+        return fromId.gamerTag;
+      }
+      const fromName = takenTeamsMap[foundClub.name.toLowerCase()];
+      if (fromName && fromName.playerId !== currentPlayer.id) {
+        return fromName.gamerTag;
+      }
+    }
     const allStandings = [
       ...(div1Standings || []),
       ...(div2Standings || []),
@@ -594,7 +698,8 @@ export default function DashboardClient({
       (s: any) =>
         s.player?.id !== currentPlayer.id &&
         s.player?.realTeam &&
-        s.player.realTeam.trim().toLowerCase() === norm
+        (s.player.realTeam.trim().toLowerCase() === norm ||
+         (foundClub && findTeam(s.player.realTeam)?.name.toLowerCase() === foundClub.name.toLowerCase()))
     );
     if (match) {
       return match.player.gamerTag;
@@ -681,7 +786,6 @@ export default function DashboardClient({
   const [showForfeitModal, setShowForfeitModal] = useState(false);
   const [showQuickGuide, setShowQuickGuide] = useState(false);
   const [showActionHub, setShowActionHub] = useState(false);
-  const [viewDrawModal, setViewDrawModal] = useState<"UCL" | "EUROPA" | null>(null);
 
   // Continental Qualified Athletes memo
   const uclQualifiedAthletes = useMemo(() => {
@@ -726,12 +830,21 @@ export default function DashboardClient({
   }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: false });
 
   useEffect(() => {
-    if (!leagueConfig?.uclDrawTime) return;
+    if (!leagueConfig?.uclDrawTime || !leagueConfig?.uclStarted) return;
     const calc = () => {
       const target = new Date(leagueConfig.uclDrawTime).getTime();
       const diff = target - Date.now();
       if (diff <= 0) {
         setUclDrawCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
+        if (
+          leagueConfig?.uclStarted &&
+          !leagueConfig?.uclDrawCompleted &&
+          !hasAutoOpenedUclRef.current &&
+          (uclQualifiedAthletes.length >= 16 || (uclSlots || []).length >= 16)
+        ) {
+          hasAutoOpenedUclRef.current = true;
+          setViewDrawModal("UCL");
+        }
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -743,15 +856,24 @@ export default function DashboardClient({
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [leagueConfig?.uclDrawTime]);
+  }, [leagueConfig?.uclDrawTime, leagueConfig?.uclStarted, leagueConfig?.uclDrawCompleted, uclQualifiedAthletes.length, uclSlots]);
 
   useEffect(() => {
-    if (!leagueConfig?.europaDrawTime) return;
+    if (!leagueConfig?.europaDrawTime || !leagueConfig?.europaStarted) return;
     const calc = () => {
       const target = new Date(leagueConfig.europaDrawTime).getTime();
       const diff = target - Date.now();
       if (diff <= 0) {
         setEuropaDrawCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
+        if (
+          leagueConfig?.europaStarted &&
+          !leagueConfig?.europaDrawCompleted &&
+          !hasAutoOpenedEuropaRef.current &&
+          (europaQualifiedAthletes.length >= 16 || (europaSlots || []).length >= 16)
+        ) {
+          hasAutoOpenedEuropaRef.current = true;
+          setViewDrawModal("EUROPA");
+        }
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -763,7 +885,7 @@ export default function DashboardClient({
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [leagueConfig?.europaDrawTime]);
+  }, [leagueConfig?.europaDrawTime, leagueConfig?.europaStarted, leagueConfig?.europaDrawCompleted, europaQualifiedAthletes.length, europaSlots]);
 
   // Auto-launch Quick Guide Tutorial on registration or first visit
   useEffect(() => {
@@ -860,19 +982,33 @@ export default function DashboardClient({
   };
 
   // Active tab: Reserve athletes are on STANDINGS by default and do not participate in match tabs
-  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "FEEDBACK" | "PROFILE";
+  type DashboardTab = "OVERVIEW" | "CALENDAR" | "INBOX" | "HISTORY" | "STANDINGS" | "PROFILE" | "DRAWS";
   const [activeTab, setActiveTab] = useState<DashboardTab>(
     isReserved ? "STANDINGS" : "OVERVIEW"
   );
+
+  const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
+  const [drawsTabComp, setDrawsTabComp] = useState<"UCL" | "EUROPA">("UCL");
+  // Standings sub-category state: Domestic Divisions, UCL, Europa
+  const [standingsCategory, setStandingsCategory] = useState<"DIVISIONS" | "UCL" | "EUROPA">("DIVISIONS");
+
+  // Immediate removal: If admin locks either competition again, immediately eject from DRAWS and reset standings category
+  useEffect(() => {
+    if (!bothLeaguesUnlocked) {
+      if (activeTab === "DRAWS") {
+        setActiveTab(isReserved ? "STANDINGS" : "OVERVIEW");
+      }
+      if (standingsCategory !== "DIVISIONS") {
+        setStandingsCategory("DIVISIONS");
+      }
+    }
+  }, [bothLeaguesUnlocked, activeTab, standingsCategory, isReserved]);
 
   useEffect(() => {
     if (isReserved && (activeTab === "OVERVIEW" || activeTab === "CALENDAR" || activeTab === "HISTORY")) {
       setActiveTab("STANDINGS");
     }
   }, [isReserved, activeTab]);
-
-  // Standings sub-category state: Domestic Divisions, UCL, Europa
-  const [standingsCategory, setStandingsCategory] = useState<"DIVISIONS" | "UCL" | "EUROPA">("DIVISIONS");
 
   // Rating & Review State
   const [userRating, setUserRating] = useState<number>(initialReview?.rating || 5);
@@ -912,10 +1048,10 @@ export default function DashboardClient({
   };
 
   // Unread announcements count (based on active 24h announcements)
-  const unreadAnnouncementsCount = activeAnnouncements.filter((a) => !readAnnouncements.has(a.id)).length;
+  const unreadAnnouncementsCount = (activeAnnouncements || []).filter((a) => a && !readAnnouncements.has(a.id)).length;
 
   // Determine opponent
-  const isHomePlayer = activeMatch?.homePlayerId === player.id;
+  const isHomePlayer = activeMatch?.homePlayerId === player?.id;
   const opponent = isHomePlayer ? activeMatch?.awayPlayer : activeMatch?.homePlayer;
 
   // Countdown timer calculation
@@ -923,18 +1059,21 @@ export default function DashboardClient({
     if (!activeMatch?.deadlineDate) return;
 
     const calculateTime = () => {
-      const deadline = new Date(activeMatch.deadlineDate).getTime();
-      const now = new Date().getTime();
-      const diff = deadline - now;
+      try {
+        const deadline = new Date(activeMatch.deadlineDate).getTime();
+        if (isNaN(deadline)) return;
+        const now = new Date().getTime();
+        const diff = deadline - now;
 
-      if (diff <= 0) {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isExpired: true });
-      } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeLeft({ hours, minutes, seconds, isExpired: false });
-      }
+        if (diff <= 0) {
+          setTimeLeft({ hours: 0, minutes: 0, seconds: 0, isExpired: true });
+        } else {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setTimeLeft({ hours, minutes, seconds, isExpired: false });
+        }
+      } catch (e) {}
     };
 
     calculateTime();
@@ -1197,7 +1336,7 @@ export default function DashboardClient({
     router.refresh();
   };
 
-  const cleanWhatsapp = opponent?.whatsapp?.replace(/[^0-9]/g, "") || "";
+  const cleanWhatsapp = opponent?.whatsapp ? String(opponent.whatsapp).replace(/[^0-9]/g, "") : "";
 
   if (player.status === "PENDING_APPROVAL") {
     return (
@@ -1274,16 +1413,20 @@ export default function DashboardClient({
     <div className="space-y-8">
       {/* Top Welcome Bar */}
       <div className="rounded-3xl border border-border bg-gradient-to-r from-card via-background to-card p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="flex h-13 w-13 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-card to-background border border-border p-1.5 shadow-xl overflow-hidden">
+        <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+          <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-1.5 sm:p-2 shadow-2xl overflow-hidden">
             {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
               <img
                 src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
                 alt={currentPlayer.realTeam || currentPlayer.gamerTag}
                 className="h-full w-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
+                }}
               />
             ) : (
-              <span className="font-black text-xl sm:text-2xl text-secondary">
+              <span className="font-black text-xl sm:text-2xl md:text-3xl text-secondary">
                 {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
               </span>
             )}
@@ -1376,9 +1519,9 @@ export default function DashboardClient({
             >
               <Calendar className="h-4 w-4" />
               <span>Match Calendar</span>
-              {allPlayerMatches.length > 0 && (
+              {(allPlayerMatches || []).length > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-muted text-xs font-mono text-primary">
-                  {allPlayerMatches.length}
+                  {(allPlayerMatches || []).length}
                 </span>
               )}
             </button>
@@ -1396,6 +1539,23 @@ export default function DashboardClient({
           <Trophy className="h-4 w-4" />
           <span>All Division Tables</span>
         </button>
+
+        {bothLeaguesUnlocked && (
+          <button
+            onClick={() => setActiveTab("DRAWS")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
+              activeTab === "DRAWS"
+                ? "bg-gradient-to-r from-primary via-primary to-secondary text-white font-black shadow-lg"
+                : "text-secondary hover:text-white hover:bg-card border border-secondary/30 bg-secondary/10"
+            }`}
+          >
+            <Trophy className="h-4 w-4 text-secondary" />
+            <span>UCL & Europa Draws</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-secondary/20 text-xs font-black text-secondary border border-secondary/40 animate-pulse">
+              LIVE
+            </span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab("INBOX")}
@@ -1427,18 +1587,6 @@ export default function DashboardClient({
             <span>Match History & Proof</span>
           </button>
         )}
-
-        <button
-          onClick={() => setActiveTab("FEEDBACK")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
-            activeTab === "FEEDBACK"
-              ? "bg-secondary text-secondary-foreground font-black shadow-lg"
-              : "text-muted-foreground hover:text-white hover:bg-card"
-          }`}
-        >
-          <Star className="h-4 w-4" />
-          <span>Rate & Feedback</span>
-        </button>
 
         <button
           onClick={() => setActiveTab("PROFILE")}
@@ -1474,64 +1622,69 @@ export default function DashboardClient({
               </p>
             </div>
 
-            {/* Direct Tournament Center Link */}
-            <Link
-              href="/continental"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-primary hover:bg-primary text-white shadow-lg transition-all shrink-0"
-            >
-              <Trophy className="h-4 w-4" />
-              <span>Continental Cup Center</span>
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+            {/* Direct Tournament Center Link - Only visible when both leagues are unlocked */}
+            {bothLeaguesUnlocked && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("DRAWS")}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-primary hover:bg-primary text-white shadow-lg transition-all shrink-0"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>UCL & Europa Draws Hub</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Category Switcher Tabs: Divisions, UCL, Europa */}
-          <div className="flex items-center gap-2 bg-background p-1.5 rounded-2xl border border-border w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
-            <button
-              type="button"
-              onClick={() => setStandingsCategory("DIVISIONS")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-                standingsCategory === "DIVISIONS"
-                  ? "bg-primary text-white font-black shadow-lg"
-                  : "text-muted-foreground hover:text-white hover:bg-muted/60"
-              }`}
-            >
-              <Trophy className="h-4 w-4" />
-              <span>3 Domestic Divisions</span>
-            </button>
+          {bothLeaguesUnlocked && (
+            <div className="flex items-center gap-2 bg-background p-1.5 rounded-2xl border border-border w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
+              <button
+                type="button"
+                onClick={() => setStandingsCategory("DIVISIONS")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                  standingsCategory === "DIVISIONS"
+                    ? "bg-primary text-white font-black shadow-lg"
+                    : "text-muted-foreground hover:text-white hover:bg-muted/60"
+                }`}
+              >
+                <Trophy className="h-4 w-4" />
+                <span>3 Domestic Divisions</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setStandingsCategory("UCL")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-                standingsCategory === "UCL"
-                  ? "bg-primary text-white font-black shadow-lg"
-                  : "text-muted-foreground hover:text-white hover:bg-muted/60"
-              }`}
-            >
-              <Star className="h-4 w-4 text-primary" />
-              <span>eFootball UCL Groups</span>
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-primary border border-primary/30">
-                16 Players
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setStandingsCategory("UCL")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                  standingsCategory === "UCL"
+                    ? "bg-primary text-white font-black shadow-lg"
+                    : "text-muted-foreground hover:text-white hover:bg-muted/60"
+                }`}
+              >
+                <Star className="h-4 w-4 text-primary" />
+                <span>eFootball UCL Groups</span>
+                <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-primary border border-primary/30">
+                  16 Players
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setStandingsCategory("EUROPA")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
-                standingsCategory === "EUROPA"
-                  ? "bg-secondary text-white font-black shadow-lg"
-                  : "text-muted-foreground hover:text-white hover:bg-muted/60"
-              }`}
-            >
-              <Flame className="h-4 w-4 text-secondary" />
-              <span>eFootball Europa Groups</span>
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-secondary border border-secondary/30">
-                16 Players
-              </span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setStandingsCategory("EUROPA")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+                  standingsCategory === "EUROPA"
+                    ? "bg-secondary text-white font-black shadow-lg"
+                    : "text-muted-foreground hover:text-white hover:bg-muted/60"
+                }`}
+              >
+                <Flame className="h-4 w-4 text-secondary" />
+                <span>eFootball Europa Groups</span>
+                <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-secondary border border-secondary/30">
+                  16 Players
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* VIEW 1: DOMESTIC 3 DIVISIONS */}
           {standingsCategory === "DIVISIONS" && (
@@ -1548,20 +1701,97 @@ export default function DashboardClient({
           )}
 
           {/* VIEW 2 & 3: CONTINENTAL GROUP STANDINGS (UCL & EUROPA) */}
-          {(standingsCategory === "UCL" || standingsCategory === "EUROPA") && (
+          {bothLeaguesUnlocked && (standingsCategory === "UCL" || standingsCategory === "EUROPA") && (
             <ContinentalGroupStandingsView
               competition={standingsCategory}
               standings={standingsCategory === "UCL" ? uclGroupStandings : europaGroupStandings}
               slots={standingsCategory === "UCL" ? uclSlots : europaSlots}
               currentPlayerId={currentPlayer.id}
-              isStarted={
-                standingsCategory === "UCL"
-                  ? Boolean(leagueConfig?.uclStarted)
-                  : Boolean(leagueConfig?.europaStarted)
-              }
+              isStarted={true}
               onWatchDraw={() => setViewDrawModal(standingsCategory)}
             />
           )}
+        </div>
+      )}
+
+      {/* TAB: UCL & EUROPA DRAWS PAGE (DISPLAYED ONLY WHEN BOTH LEAGUES ARE UNLOCKED BY ADMIN) */}
+      {bothLeaguesUnlocked && activeTab === "DRAWS" && (
+        <div className="space-y-6">
+          {/* Esports Banner Header */}
+          <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/20 via-background to-secondary/20 p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-secondary/10 via-primary/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="space-y-2 relative z-10">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="yellow" className="font-black text-xs tracking-wider uppercase px-2.5 py-0.5">
+                  OFFICIAL ESPORTS CONTINENTAL ARENA
+                </Badge>
+                <span className="px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/40 font-mono text-xs font-black animate-pulse flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  BOTH LEAGUES UNLOCKED
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-card border border-border text-muted-foreground font-mono text-xs">
+                  16 Athletes / Tournament
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight flex items-center gap-3">
+                <Trophy className="h-7 w-7 text-secondary shrink-0" />
+                <span>UCL & Europa Draws</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
+                Official interactive group stage draws for Rwanda's elite continental tournaments. Experience live animated wheel spins with strict division protection ensuring balanced competitive groups!
+              </p>
+            </div>
+
+            {/* Competition Switcher Buttons */}
+            <div className="flex items-center gap-2 bg-background/90 p-1.5 rounded-2xl border border-border shrink-0 relative z-10">
+              <button
+                type="button"
+                onClick={() => setDrawsTabComp("UCL")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+                  drawsTabComp === "UCL"
+                    ? "bg-primary text-white shadow-lg"
+                    : "text-muted-foreground hover:text-white hover:bg-card"
+                }`}
+              >
+                <Star className="h-4 w-4 text-primary" />
+                <span>eFootball UCL</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawsTabComp("EUROPA")}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+                  drawsTabComp === "EUROPA"
+                    ? "bg-secondary text-white shadow-lg"
+                    : "text-muted-foreground hover:text-white hover:bg-card"
+                }`}
+              >
+                <Flame className="h-4 w-4 text-secondary" />
+                <span>Europa League</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Draw Experience Component */}
+          <div className="rounded-3xl border border-border bg-background/80 p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
+            <ContinentalDrawExperience
+              competition={drawsTabComp}
+              qualifiedAthletes={drawsTabComp === "UCL" ? uclQualifiedAthletes : europaQualifiedAthletes}
+              existingSlots={drawsTabComp === "UCL" ? uclSlots : europaSlots}
+              isAdmin={false}
+            />
+          </div>
+
+          {/* Current Group Standings & Fixtures */}
+          <div className="space-y-4">
+            <ContinentalGroupStandingsView
+              competition={drawsTabComp}
+              standings={drawsTabComp === "UCL" ? uclGroupStandings : europaGroupStandings}
+              slots={drawsTabComp === "UCL" ? uclSlots : europaSlots}
+              currentPlayerId={currentPlayer.id}
+              isStarted={true}
+              onWatchDraw={() => setViewDrawModal(drawsTabComp)}
+            />
+          </div>
         </div>
       )}
 
@@ -1569,10 +1799,14 @@ export default function DashboardClient({
       {!isReserved && activeTab === "OVERVIEW" && (
         <div className="space-y-8">
           {/* CONTINENTAL DRAWS BROADCAST & SCHEDULE BANNER */}
-          {(leagueConfig?.uclStarted || leagueConfig?.europaStarted) && (
-            <div className={`grid grid-cols-1 ${leagueConfig?.uclStarted && leagueConfig?.europaStarted ? "md:grid-cols-2" : ""} gap-4`}>
+          {bothLeaguesUnlocked && Boolean(leagueConfig?.uclDrawTime || leagueConfig?.uclStarted || leagueConfig?.europaDrawTime || leagueConfig?.europaStarted) && (
+            <div className={`grid grid-cols-1 ${
+              (leagueConfig?.uclDrawTime || leagueConfig?.uclStarted) && (leagueConfig?.europaDrawTime || leagueConfig?.europaStarted)
+                ? "md:grid-cols-2"
+                : ""
+            } gap-4`}>
               {/* UCL DRAW BANNER */}
-              {leagueConfig?.uclStarted && (
+              {(leagueConfig?.uclDrawTime || leagueConfig?.uclStarted) && (
                 <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/40 via-background to-card p-5 relative overflow-hidden shadow-xl">
                   <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -1592,6 +1826,10 @@ export default function DashboardClient({
                     {leagueConfig?.uclDrawCompleted ? (
                       <Badge variant="green" className="text-xs font-black uppercase">
                         DRAW COMPLETED
+                      </Badge>
+                    ) : (leagueConfig?.uclStarted || uclDrawCountdown.isDue) ? (
+                      <Badge variant="live" className="text-xs font-black uppercase animate-pulse">
+                        🔴 LIVE DRAW IN PROGRESS
                       </Badge>
                     ) : leagueConfig?.uclDrawTime ? (
                       uclDrawCountdown.isDue ? (
@@ -1620,7 +1858,7 @@ export default function DashboardClient({
                       <span className="font-bold text-white font-mono text-xs">
                         {leagueConfig?.uclDrawTime
                           ? `${new Date(leagueConfig.uclDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                          : "Post-Division Conclusion"}
+                          : "Awaiting Schedule"}
                       </span>
                     </div>
 
@@ -1645,23 +1883,41 @@ export default function DashboardClient({
                     <span className="text-xs text-muted-foreground">
                       16 Qualified Athletes • Groups A-D
                     </span>
-                    <Button
-                      type="button"
-                      onClick={() => leagueConfig?.uclStarted && setViewDrawModal("UCL")}
-                      disabled={!leagueConfig?.uclStarted}
-                      className="bg-primary hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs gap-1.5 py-2 px-3 rounded-xl shadow-lg"
-                    >
-                      <Play className="h-3.5 w-3.5" />
-                      <span>
-                        {leagueConfig?.uclDrawCompleted ? "Watch Draw Event" : "Watch Draw / Preview"}
-                      </span>
-                    </Button>
+                    {(() => {
+                      const isUclLive = Boolean(leagueConfig?.uclStarted || uclDrawCountdown.isDue);
+                      return (
+                        <Button
+                          type="button"
+                          onClick={() => isUclLive && setViewDrawModal("UCL")}
+                          disabled={!isUclLive}
+                          className={`font-black text-xs gap-1.5 py-2 px-3.5 rounded-xl shadow-lg transition-all ${
+                            !isUclLive
+                              ? "opacity-50 cursor-not-allowed bg-card border border-border text-muted-foreground"
+                              : "bg-primary hover:bg-primary text-white shadow-lg"
+                          }`}
+                        >
+                          {!isUclLive ? (
+                            <>
+                              <Lock className="h-3.5 w-3.5" />
+                              <span>Draw Locked (Awaiting Launch)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5 fill-current" />
+                              <span>
+                                {leagueConfig?.uclDrawCompleted ? "Watch Draw Event" : "Watch Live Draw"}
+                              </span>
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
 
               {/* EUROPA DRAW BANNER */}
-              {leagueConfig?.europaStarted && (
+              {(leagueConfig?.europaDrawTime || leagueConfig?.europaStarted) && (
                 <div className="rounded-3xl border border-secondary/30 bg-gradient-to-br from-secondary/40 via-background to-card p-5 relative overflow-hidden shadow-xl">
                   <div className="absolute top-0 right-0 w-48 h-48 bg-secondary/10 rounded-full blur-2xl pointer-events-none" />
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -1681,6 +1937,10 @@ export default function DashboardClient({
                     {leagueConfig?.europaDrawCompleted ? (
                       <Badge variant="green" className="text-xs font-black uppercase">
                         DRAW COMPLETED
+                      </Badge>
+                    ) : (leagueConfig?.europaStarted || europaDrawCountdown.isDue) ? (
+                      <Badge variant="live" className="text-xs font-black uppercase animate-pulse">
+                        🔴 LIVE DRAW IN PROGRESS
                       </Badge>
                     ) : leagueConfig?.europaDrawTime ? (
                       europaDrawCountdown.isDue ? (
@@ -1709,7 +1969,7 @@ export default function DashboardClient({
                       <span className="font-bold text-white font-mono text-xs">
                         {leagueConfig?.europaDrawTime
                           ? `${new Date(leagueConfig.europaDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                          : "Post-Division Conclusion"}
+                          : "Awaiting Schedule"}
                       </span>
                     </div>
 
@@ -1734,17 +1994,35 @@ export default function DashboardClient({
                     <span className="text-xs text-muted-foreground">
                       16 Qualified Athletes • Groups A-D
                     </span>
-                    <Button
-                      type="button"
-                      onClick={() => leagueConfig?.europaStarted && setViewDrawModal("EUROPA")}
-                      disabled={!leagueConfig?.europaStarted}
-                      className="bg-secondary hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs gap-1.5 py-2 px-3 rounded-xl shadow-lg"
-                    >
-                      <Play className="h-3.5 w-3.5" />
-                      <span>
-                        {leagueConfig?.europaDrawCompleted ? "Watch Draw Event" : "Watch Draw / Preview"}
-                      </span>
-                    </Button>
+                    {(() => {
+                      const isEuropaLive = Boolean(leagueConfig?.europaStarted || europaDrawCountdown.isDue);
+                      return (
+                        <Button
+                          type="button"
+                          onClick={() => isEuropaLive && setViewDrawModal("EUROPA")}
+                          disabled={!isEuropaLive}
+                          className={`font-black text-xs gap-1.5 py-2 px-3.5 rounded-xl shadow-lg transition-all ${
+                            !isEuropaLive
+                              ? "opacity-50 cursor-not-allowed bg-card border border-border text-muted-foreground"
+                              : "bg-secondary hover:bg-secondary text-white shadow-lg"
+                          }`}
+                        >
+                          {!isEuropaLive ? (
+                            <>
+                              <Lock className="h-3.5 w-3.5" />
+                              <span>Draw Locked (Awaiting Launch)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5 fill-current" />
+                              <span>
+                                {leagueConfig?.europaDrawCompleted ? "Watch Draw Event" : "Watch Live Draw"}
+                              </span>
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -1752,36 +2030,98 @@ export default function DashboardClient({
           )}
 
           {activeMatch ? (
-            <div className="rounded-3xl border-2 border-primary/40 bg-gradient-to-b from-card via-background to-card p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div className={`rounded-3xl border-2 p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden ${
+              activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                ? "border-secondary/50 bg-gradient-to-b from-secondary/20 via-background to-card"
+                : isWaitingForSub
+                ? "border-secondary/40 bg-gradient-to-b from-secondary/10 via-background to-card"
+                : "border-primary/40 bg-gradient-to-b from-primary/20 via-background to-card"
+            }`}>
               {/* Background ambient lighting */}
               <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-              {/* Match Header with Live 24-Hour Timer */}
+              {/* Priority Backlog Matches Selector (if replacement player has multiple backlog fixtures to complete) */}
+              {replacementBacklogMatches.length > 1 && (
+                <div className="flex items-center gap-2 mb-4 p-2.5 rounded-2xl bg-secondary/10 border border-secondary/30 overflow-x-auto no-scrollbar">
+                  <span className="text-xs font-black uppercase text-secondary shrink-0 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Priority Backlog Matches ({replacementBacklogMatches.length}):
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {replacementBacklogMatches.map((bm: any) => {
+                      const isSelected = activeMatch?.id === bm.id;
+                      return (
+                        <button
+                          key={bm.id}
+                          onClick={() => setSelectedBacklogMatchId(bm.id)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                            isSelected
+                              ? "bg-secondary text-secondary-foreground shadow-md font-black"
+                              : "bg-card text-muted-foreground hover:bg-muted border border-border"
+                          }`}
+                        >
+                          {bm.round}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Match Header with Live 24-Hour / 48-Hour Timer */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5 mb-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="yellow">{activeMatch.round}</Badge>
+                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") ? (
+                      <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-secondary/20 border-secondary/40 text-secondary">
+                        ⚡ REPLACEMENT MATCH • 48-HR WINDOW
+                      </Badge>
+                    ) : isWaitingForSub ? (
+                      <Badge variant="outline" className="border-secondary/40 text-secondary font-black text-xs uppercase animate-pulse">
+                        ⏳ WAITING FOR SUB
+                      </Badge>
+                    ) : (
+                      <Badge variant="live" className="text-xs uppercase">
+                        24-HR WINDOW ACTIVE
+                      </Badge>
+                    )}
                     {activeMatch.isMatchOfTheDay && (
                       <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-secondary/20 border-secondary/40 text-secondary animate-pulse">
                         🌟 MATCH OF THE DAY
                       </Badge>
                     )}
-                    <Badge variant="live" className="text-xs uppercase">
-                      24-HR WINDOW ACTIVE
-                    </Badge>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black text-white uppercase">
-                    Today's Official League Match
+                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                      ? "Priority Replacement Match"
+                      : isWaitingForSub
+                      ? "Fixture On Hold (Awaiting Sub)"
+                      : "Today's Official League Match"}
                   </h2>
                 </div>
 
-                {/* 24-Hour Countdown Clock */}
-                <div className="rounded-2xl border border-primary/40 bg-background/80 p-3 sm:px-5 text-right">
+                {/* Countdown Clock */}
+                <div className={`rounded-2xl border p-3 sm:px-5 text-right ${
+                  activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                    ? "border-secondary/40 bg-secondary/10"
+                    : isWaitingForSub
+                    ? "border-secondary/30 bg-background/80"
+                    : "border-primary/40 bg-background/80"
+                }`}>
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest block flex items-center gap-1.5 justify-end">
                     <Clock className="h-3 w-3 text-secondary" />
-                    Time Remaining (12:00 AM Reset)
+                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                      ? "Time Remaining (48-Hour Deadline)"
+                      : isWaitingForSub
+                      ? "Match On Hold (Awaiting Sub)"
+                      : "Time Remaining (12:00 AM Reset)"}
                   </span>
-                  {timeLeft.isExpired ? (
+                  {isWaitingForSub ? (
+                    <span className="text-xs sm:text-sm font-black text-secondary animate-pulse">
+                      Pending Admin Replacement
+                    </span>
+                  ) : timeLeft.isExpired ? (
                     <span className="text-sm sm:text-base font-black text-destructive animate-pulse">
                       Window Closed (Expired)
                     </span>
@@ -1800,32 +2140,33 @@ export default function DashboardClient({
               {/* Opponent & Match Coordination Card */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4">
                 {/* Your Profile */}
-                <div className="lg:col-span-4 rounded-2xl bg-background/70 border border-border p-5 text-center sm:text-left">
+                <div className="lg:col-span-4 rounded-2xl bg-background/70 border border-border p-4 sm:p-5 text-center sm:text-left">
                   <span className="text-xs font-black uppercase tracking-widest text-primary block mb-2">
                     {isHomePlayer ? "HOME ATHLETE (YOU)" : "AWAY ATHLETE (YOU)"}
                   </span>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-card border border-border/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-card border border-border/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-md">
                       <img
                         src={resolvePlayerAvatar(player)}
                         alt={player.realTeam || player.gamerTag || "Team Crest"}
                         className="w-full h-full object-contain"
+                        loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
                         }}
                       />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-white">{player.gamerTag}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg sm:text-xl font-black text-white truncate">{player.gamerTag}</h3>
                       {player.realTeam && (
-                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold">
-                          <span>{findTeam(player.realTeam)?.name || player.realTeam}</span>
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold truncate max-w-full">
+                          <span className="truncate">{findTeam(player.realTeam)?.name || player.realTeam}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{player.fullName}</p>
-                  <span className="font-mono text-xs text-muted-foreground block mt-1">
+                  <p className="text-xs text-muted-foreground mt-2 truncate">{player.fullName}</p>
+                  <span className="font-mono text-xs text-muted-foreground block mt-1 truncate">
                     Konami ID: {player.efootballId}
                   </span>
                 </div>
@@ -1841,7 +2182,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* Opponent Card with WhatsApp Connect */}
-                <div className="lg:col-span-4 rounded-2xl bg-background/90 border-2 border-primary/40 p-5 space-y-3">
+                <div className="lg:col-span-4 rounded-2xl bg-background/90 border-2 border-primary/40 p-4 sm:p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-widest text-primary">
                       YOUR OPPONENT
@@ -1851,30 +2192,77 @@ export default function DashboardClient({
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-card border border-border/80 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-card border border-border/80 p-1 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-md">
                       <img
                         src={resolvePlayerAvatar(opponent)}
                         alt={opponent?.realTeam || opponent?.gamerTag || "Opponent Crest"}
                         className="w-full h-full object-contain"
+                        loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(opponent?.gamerTag || "opponent")}`;
                         }}
                       />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-white">{opponent?.gamerTag || "Unknown Opponent"}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg sm:text-xl font-black text-white truncate">{opponent?.gamerTag || "Unknown Opponent"}</h3>
                       {opponent?.realTeam && (
-                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold">
-                          <span>{findTeam(opponent.realTeam)?.name || opponent.realTeam}</span>
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold truncate max-w-full">
+                          <span className="truncate">{findTeam(opponent?.realTeam)?.name || opponent?.realTeam}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{opponent?.fullName}</p>
-                  <span className="font-mono text-xs text-muted-foreground block mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-2 truncate">{opponent?.fullName}</p>
+                  <span className="font-mono text-xs text-muted-foreground block mt-0.5 truncate">
                     Konami ID: {opponent?.efootballId}
                   </span>
+
+                  {/* Opponent Group / Division Table Position */}
+                  {opponentStanding && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-xs font-bold text-muted-foreground">Position:</span>
+                      <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/30">
+                        #{opponentStanding.rank || opponentStanding.position || 1} in {opponentStanding.division}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Opponent Last 3 Match Results Form */}
+                  {opponentPreviousMatches && opponentPreviousMatches.length > 0 && (
+                      <div className="pt-2 border-t border-border space-y-1">
+                      <span className="text-xs font-mono uppercase text-muted-foreground block font-bold">
+                        Opponent Recent Form (Last {opponentPreviousMatches.length} Matches):
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {(opponentPreviousMatches || []).map((prevM: any) => {
+                          if (!prevM) return null;
+                          const isOppHome = prevM.homePlayerId === opponent?.id;
+                          const oppScore = isOppHome ? (prevM.homeScore ?? 0) : (prevM.awayScore ?? 0);
+                          const rivalScore = isOppHome ? (prevM.awayScore ?? 0) : (prevM.homeScore ?? 0);
+                          const rivalTag = isOppHome ? prevM.awayPlayer?.gamerTag : prevM.homePlayer?.gamerTag;
+                          const won = oppScore > rivalScore;
+                          const drew = oppScore === rivalScore;
+                          return (
+                            <span
+                              key={prevM.id}
+                              title={`vs @${rivalTag || "rival"} (${oppScore}-${rivalScore})`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono font-bold border ${
+                                won
+                                  ? "bg-primary/20 text-primary border-primary/40"
+                                  : drew
+                                  ? "bg-muted text-muted-foreground border-border"
+                                  : "bg-destructive/20 text-destructive border-destructive/40"
+                              }`}
+                            >
+                              <span>{won ? "W" : drew ? "D" : "L"}</span>
+                              <span className="text-xs opacity-80">{oppScore}-{rivalScore}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Opponent WhatsApp Direct Chat */}
                   <div className="pt-2 border-t border-border space-y-2">
@@ -2075,7 +2463,19 @@ export default function DashboardClient({
                   Coordinate with your opponent on WhatsApp, complete the match on eFootball Mobile, and upload a screenshot of the post-game score screen before the 24-hour timer expires.
                 </p>
 
-                {isAdminPermissionGranted && activeMatch?.status !== "FINISHED" ? (
+                {isWaitingForSub ? (
+                  <div className="w-full sm:w-auto p-4 rounded-2xl bg-secondary/10 border border-secondary/40 text-xs text-secondary flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-secondary shrink-0 animate-pulse" />
+                    <div>
+                      <span className="font-black uppercase tracking-wider text-secondary block">
+                        Match On Hold (Awaiting Sub)
+                      </span>
+                      <span className="text-xs text-foreground">
+                        Your scheduled opponent reached 3 missed matches. The League Admin is assigning a replacement athlete. Submissions will unlock for 48 hours once the replacement arrives.
+                      </span>
+                    </div>
+                  </div>
+                ) : isAdminPermissionGranted && activeMatch?.status !== "FINISHED" ? (
                   <div className="w-full sm:w-auto space-y-3">
                     <div className="p-3 rounded-2xl bg-primary/30 border border-primary/40 text-xs text-primary flex items-center gap-2.5">
                       <Unlock className="h-5 w-5 text-primary shrink-0" />
@@ -2189,6 +2589,27 @@ export default function DashboardClient({
                 )}
               </div>
             </div>
+          ) : isSuspended ? (
+            <div className="rounded-3xl border-2 border-destructive/50 bg-gradient-to-b from-destructive/20 via-background to-card p-8 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-destructive/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="inline-flex p-4 rounded-3xl bg-destructive/10 border border-destructive/30 text-destructive">
+                <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <Badge variant="destructive" className="text-xs font-mono font-bold uppercase tracking-wider px-3 py-1">
+                  ACCOUNT SUSPENDED • 3 MISSED MATCHES
+                </Badge>
+                <h3 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight">
+                  Removed from Active Match Schedule
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                You have reached 3 missed fixtures without submitting scores or claiming forfeit. In accordance with league rules, you will not receive matches to play until the League Administrator replaces your spot.
+              </p>
+              <div className="p-3.5 rounded-2xl bg-card/80 border border-destructive/30 max-w-md mx-auto text-xs text-destructive">
+                Commissioner review required. Contact admin on WhatsApp for further arbitration.
+              </div>
+            </div>
           ) : isRestDayToday ? (
             <div className="rounded-3xl border-2 border-primary/50 bg-gradient-to-b from-primary/40 via-background to-card p-8 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
@@ -2273,54 +2694,82 @@ export default function DashboardClient({
             </div>
           )}
 
-          {/* DIVISION MATCH OF THE DAY SECTION */}
+          {/* DIVISION MATCH OF THE DAY SECTION (ISOLATED TO PLAYER'S DIVISION ONLY) */}
           <div className="space-y-4 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-secondary" />
                 <h3 className="text-lg font-black uppercase text-white tracking-wide">
-                  Match of the Day (By Division)
+                  Match of the Day ({player.division})
                 </h3>
               </div>
-
-              {/* Division Selector Tabs for MOTD */}
-              <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-border">
-                {(["Division 1", "Division 2", "Division 3"] as const).map((div) => {
-                  const isSelected = selectedMotdDiv === div;
-                  return (
-                    <button
-                      key={div}
-                      type="button"
-                      onClick={() => setSelectedMotdDiv(div)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
-                        isSelected
-                          ? "bg-primary text-white font-black shadow-md"
-                          : "text-muted-foreground hover:text-white"
-                      }`}
-                    >
-                      {div === player.division ? `${div} (Yours)` : div}
-                    </button>
-                  );
-                })}
-              </div>
+              <Badge variant="yellow" className="text-xs font-mono font-bold w-fit">
+                {player.division} Exclusive
+              </Badge>
             </div>
 
-            {divisionalMotd[selectedMotdDiv] ? (
-              <MatchOfTheDayCard match={divisionalMotd[selectedMotdDiv]} />
+            {myDivMotd ? (
+              <MatchOfTheDayCard match={myDivMotd} />
             ) : (
               <div className="rounded-2xl border border-border bg-background/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2.5">
                   <span className="flex h-2.5 w-2.5 rounded-full bg-secondary" />
                   <span className="font-bold text-foreground">
-                    {selectedMotdDiv} Match of the Day:
+                    {player.division} Match of the Day:
                   </span>
-                  <span>Activates from Matchday 2 onwards based on table rankings.</span>
+                  <span>Evaluated and selected dynamically based on standings & performance.</span>
                 </div>
                 <Badge variant="secondary" className="font-mono text-xs w-fit">
                   Matchday {leagueConfig?.currentMatchday || 1}
                 </Badge>
               </div>
             )}
+
+            {/* CONTINENTAL GROUP MATCHES OF THE DAY (VISIBLE TO ALL PARTICIPANTS & SPECTATORS) */}
+            {bothLeaguesUnlocked && (() => {
+              const uclList = Object.values(uclGroupMotds || {}).filter((m: any) => Boolean(m && m.id));
+              const europaList = Object.values(europaGroupMotds || {}).filter((m: any) => Boolean(m && m.id));
+              if (uclList.length === 0 && europaList.length === 0) return null;
+
+              return (
+                <div className="pt-4 border-t border-border/80 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-primary" />
+                      <h4 className="text-sm font-black uppercase tracking-wider text-foreground">
+                        Continental Group Stage Matches of the Day
+                      </h4>
+                    </div>
+                    <span className="text-xs text-muted-foreground font-mono uppercase">
+                      Visible to All Athletes
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {uclList.map((m: any) => (
+                      <div key={m?.id} className="relative">
+                        <div className="absolute top-2 right-2 z-10">
+                          <Badge variant="secondary" className="text-xs font-mono border-primary/40 text-primary bg-primary/10">
+                            {m?.groupName || "UCL Group Stage"}
+                          </Badge>
+                        </div>
+                        <MatchOfTheDayCard match={m} />
+                      </div>
+                    ))}
+                    {europaList.map((m: any) => (
+                      <div key={m?.id} className="relative">
+                        <div className="absolute top-2 right-2 z-10">
+                          <Badge variant="secondary" className="text-xs font-mono border-secondary/40 text-secondary bg-secondary/10">
+                            {m?.groupName || "Europa Group Stage"}
+                          </Badge>
+                        </div>
+                        <MatchOfTheDayCard match={m} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
 
@@ -2672,13 +3121,13 @@ export default function DashboardClient({
             Completed Match History
           </h3>
 
-          {recentMatches.length === 0 ? (
+          {(recentMatches || []).length === 0 ? (
             <p className="text-xs text-muted-foreground italic py-8 text-center">
               No completed matches yet.
             </p>
           ) : (
             <div className="space-y-3">
-              {recentMatches.map((m) => (
+              {(recentMatches || []).map((m) => (
                 <div
                   key={m.id}
                   className="rounded-2xl border border-border bg-card/60 p-4 flex flex-col sm:flex-row items-center justify-between gap-4"
@@ -2687,40 +3136,42 @@ export default function DashboardClient({
                     <span className="text-xs font-bold text-muted-foreground uppercase block">
                       {m.round} • {m.division}
                     </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                           <img
                             src={resolvePlayerAvatar(m.homePlayer)}
                             alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
                             className="w-full h-full object-contain"
+                            loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
                             }}
                           />
                         </div>
-                        <span className="text-sm font-extrabold text-white">{m.homePlayer.gamerTag}</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-white truncate">{m.homePlayer.gamerTag}</span>
                         {m.homePlayer.realTeam && (
-                          <span className="text-xs text-secondary font-bold">
+                          <span className="text-xs text-secondary font-bold truncate">
                             ({findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam})
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground font-bold">vs</span>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                      <span className="text-xs text-muted-foreground font-bold shrink-0">vs</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                           <img
                             src={resolvePlayerAvatar(m.awayPlayer)}
                             alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
                             className="w-full h-full object-contain"
+                            loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
                             }}
                           />
                         </div>
-                        <span className="text-sm font-extrabold text-white">{m.awayPlayer.gamerTag}</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-white truncate">{m.awayPlayer.gamerTag}</span>
                         {m.awayPlayer.realTeam && (
-                          <span className="text-xs text-secondary font-bold">
+                          <span className="text-xs text-secondary font-bold truncate">
                             ({findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam})
                           </span>
                         )}
@@ -2782,7 +3233,7 @@ export default function DashboardClient({
             </div>
           )}
 
-          {allPlayerMatches.length === 0 ? (
+          {(allPlayerMatches || []).length === 0 ? (
             <div className="rounded-3xl border border-border bg-background/60 p-12 text-center space-y-3">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto" />
               <h4 className="text-base font-bold text-white uppercase">No Matches Scheduled Yet</h4>
@@ -2791,10 +3242,10 @@ export default function DashboardClient({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {allPlayerMatches.map((m: any) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {(allPlayerMatches || []).map((m: any) => {
                 const isCurrentActive = m.id === activeMatch?.id;
-                const isHome = m.homePlayerId === player.id;
+                const isHome = m.homePlayerId === player?.id;
                 const matchOpponent = isHome ? m.awayPlayer : m.homePlayer;
                 const isFinished = m.status === "FINISHED";
                 const isForfeit = m.status === "FORFEIT";
@@ -2803,50 +3254,59 @@ export default function DashboardClient({
                 const hasSubOrForfeit = Boolean(sub || forfeit);
                 const isPending = sub?.status === "PENDING";
                 const isForfeitPending = forfeit?.status === "PENDING";
-                const isApprovedSub = sub?.status === "APPROVED" || isFinished;
 
                 return (
                   <div
                     key={m.id}
-                    className={`rounded-3xl border p-5 sm:p-6 transition-all backdrop-blur-xl shadow-xl space-y-4 ${
+                    className={`rounded-3xl border p-5 flex flex-col justify-between transition-all backdrop-blur-xl shadow-xl space-y-4 ${
                       isCurrentActive
                         ? "border-primary/60 bg-gradient-to-r from-primary/30 via-card/90 to-background/90 ring-2 ring-primary/30"
                         : isFinished || isForfeit
                         ? "border-border bg-background/60"
-                        : "border-border/80 bg-background/40"
+                        : "border-border/80 bg-background/40 hover:border-muted-foreground"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={isCurrentActive ? "yellow" : "secondary"} className="text-xs font-mono font-bold">
-                          {m.round}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {m.division}
-                        </Badge>
+                    {/* Card Header */}
+                    <div className="space-y-2 border-b border-border/80 pb-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant={isCurrentActive ? "yellow" : "secondary"} className="text-xs font-mono font-bold">
+                            {m.round}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {m.division}
+                          </Badge>
+                        </div>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {new Date(m.matchDate).toLocaleDateString([], { month: "short", day: "numeric" })}
+                        </span>
+                      </div>
+
+                      {/* Status Badges */}
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {isCurrentActive && (
                           <Badge variant="live" className="text-xs animate-pulse">
-                            ⚡ CURRENT MATCHDAY (ACTIVE NOW)
+                            ⚡ ACTIVE 24-HR FIXTURE
                           </Badge>
                         )}
                         {isFinished && (
                           <Badge variant="green" className="text-xs font-black">
-                            APPROVED / COMPLETED
+                            COMPLETED
                           </Badge>
                         )}
                         {isForfeit && (
                           <Badge variant="destructive" className="text-xs font-black">
-                            FORFEIT (WALKOVER)
+                            FORFEIT (0-3)
                           </Badge>
                         )}
                         {isPending && (
                           <Badge variant="yellow" className="text-xs font-black animate-pulse">
-                            RESULT PENDING ADMIN APPROVAL
+                            PENDING APPROVAL
                           </Badge>
                         )}
                         {isForfeitPending && !isPending && (
                           <Badge variant="destructive" className="text-xs font-black animate-pulse">
-                            FORFEIT CLAIM UNDER ARBITRATION
+                            FORFEIT ARBITRATION
                           </Badge>
                         )}
                         {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && (
@@ -2855,103 +3315,112 @@ export default function DashboardClient({
                           </Badge>
                         )}
                       </div>
-
-                      <span className="text-xs font-mono text-muted-foreground">
-                        Scheduled: {new Date(m.matchDate).toLocaleDateString()}
-                      </span>
                     </div>
 
-                    {/* Match Pairing Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      <div className="md:col-span-8 flex flex-col sm:flex-row sm:items-center gap-4">
-                        {/* You */}
-                        <div className="p-3 rounded-2xl bg-card/80 border border-border w-36 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                    {/* Team Pairings & Score Grid */}
+                    <div className="space-y-2.5 py-1">
+                      {/* You */}
+                      <div className="p-2.5 rounded-2xl bg-card/80 border border-border flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(player)}
                               alt={player.realTeam || player.gamerTag || "Team"}
                               className="w-full h-full object-contain"
+                              loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
                               }}
                             />
                           </div>
-                          <div>
-                            <span className="text-xs font-black uppercase tracking-wider text-primary block">
-                              {isHome ? "HOME (YOU)" : "AWAY (YOU)"}
-                            </span>
-                            <span className="font-bold text-sm text-white block">{player.gamerTag}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white truncate">{player.gamerTag}</span>
+                              <span className="text-xs px-1 py-0 rounded bg-primary/20 text-primary font-bold border border-primary/30">
+                                {isHome ? "H" : "A"}
+                              </span>
+                            </div>
                             {player.realTeam && (
-                              <span className="text-xs text-secondary font-bold block">
+                              <span className="text-xs text-secondary font-bold block truncate">
                                 {findTeam(player.realTeam)?.shortName || player.realTeam}
                               </span>
                             )}
                           </div>
                         </div>
 
-                        {/* VS Score Box */}
-                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-background border border-border text-center w-24">
+                        <div className="shrink-0 text-right">
                           {isFinished || isForfeit ? (
-                            <span className="text-xl font-black font-mono text-primary">
-                              {m.homeScore} : {m.awayScore}
+                            <span className="font-mono text-base font-black text-primary">
+                              {isHome ? m.homeScore : m.awayScore}
                             </span>
                           ) : sub ? (
-                            <div>
-                              <span className="text-base font-black font-mono text-secondary">
-                                {sub.homeScore} : {sub.awayScore}
-                              </span>
-                              <span className="text-xs text-secondary block uppercase font-mono">Pending</span>
-                            </div>
+                            <span className="font-mono text-sm font-black text-secondary">
+                              {isHome ? sub.homeScore : sub.awayScore}
+                            </span>
                           ) : (
-                            <span className="text-xs font-black text-muted-foreground">VS</span>
+                            <span className="text-xs font-mono text-muted-foreground">-</span>
                           )}
                         </div>
+                      </div>
 
-                        {/* Opponent */}
-                        <div className="p-3 rounded-2xl bg-card/80 border border-border w-36 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                      {/* Opponent */}
+                      <div className="p-2.5 rounded-2xl bg-card/80 border border-border flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
                             <img
                               src={resolvePlayerAvatar(matchOpponent)}
                               alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
                               className="w-full h-full object-contain"
+                              loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(matchOpponent?.gamerTag || "opponent")}`;
                               }}
                             />
                           </div>
-                          <div>
-                            <span className="text-xs font-black uppercase tracking-wider text-primary block">
-                              {isHome ? "AWAY OPPONENT" : "HOME OPPONENT"}
-                            </span>
-                            <span className="font-bold text-sm text-white block">{matchOpponent?.gamerTag || "TBD"}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-white truncate">{matchOpponent?.gamerTag || "TBD"}</span>
+                              <span className="text-xs px-1 py-0 rounded bg-muted text-muted-foreground font-bold border border-border">
+                                {isHome ? "A" : "H"}
+                              </span>
+                            </div>
                             {matchOpponent?.realTeam && (
-                              <span className="text-xs text-secondary font-bold block">
+                              <span className="text-xs text-secondary font-bold block truncate">
                                 {findTeam(matchOpponent.realTeam)?.shortName || matchOpponent.realTeam}
                               </span>
                             )}
                           </div>
                         </div>
+
+                        <div className="shrink-0 text-right">
+                          {isFinished || isForfeit ? (
+                            <span className="font-mono text-base font-black text-primary">
+                              {isHome ? m.awayScore : m.homeScore}
+                            </span>
+                          ) : sub ? (
+                            <span className="font-mono text-sm font-black text-secondary">
+                              {isHome ? sub.awayScore : sub.homeScore}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-mono text-muted-foreground">-</span>
+                          )}
+                        </div>
                       </div>
+                    </div>
 
-                      {/* Actions & Status Details */}
-                      <div className="md:col-span-4 flex flex-wrap items-center justify-end gap-2">
-                        {isCurrentActive && !isFinished && !isForfeit && (
-                          <Button
-                            variant="yellow"
-                            size="sm"
-                            onClick={() => setActiveTab("OVERVIEW")}
-                            className="font-bold text-xs gap-1.5 shadow-md"
+                    {/* Card Footer Actions */}
+                    <div className="pt-2 border-t border-border/80 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {matchOpponent?.whatsapp && (
+                          <a
+                            href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-primary hover:bg-primary text-white text-xs font-bold shadow-sm"
                           >
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>Play in Today&apos;s Match</span>
-                          </Button>
-                        )}
-
-                        {hasSubOrForfeit && !isFinished && !isForfeit && (
-                          <span className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-card border border-secondary/40 text-secondary text-xs font-bold">
-                            <Lock className="h-3.5 w-3.5 text-secondary" />
-                            {sub ? "Result Uploaded (Closed)" : "Forfeit Lodged (Closed)"}
-                          </span>
+                            <MessageSquare className="h-3 w-3" />
+                            WhatsApp
+                          </a>
                         )}
 
                         {sub?.screenshotUrl && (
@@ -2959,9 +3428,9 @@ export default function DashboardClient({
                             href={sub.screenshotUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-card border border-border text-xs text-primary font-bold hover:bg-muted"
+                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-primary font-bold hover:bg-muted"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye className="h-3 w-3" />
                             Proof
                           </a>
                         )}
@@ -2971,45 +3440,26 @@ export default function DashboardClient({
                             href={forfeit.proofScreenshotUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-card border border-border text-xs text-destructive font-bold hover:bg-muted"
+                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-destructive font-bold hover:bg-muted"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye className="h-3 w-3" />
                             Forfeit Proof
                           </a>
                         )}
-
-                        {matchOpponent?.whatsapp && (
-                          <a
-                            href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-xl bg-primary hover:bg-primary text-white text-xs font-bold shadow-sm"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                            WhatsApp
-                          </a>
-                        )}
                       </div>
+
+                      {isCurrentActive && !isFinished && !isForfeit && (
+                        <Button
+                          variant="yellow"
+                          size="sm"
+                          onClick={() => setActiveTab("OVERVIEW")}
+                          className="font-bold text-xs py-1 px-2.5 h-auto gap-1 shadow-md"
+                        >
+                          <Clock className="h-3 w-3" />
+                          <span>Play Now</span>
+                        </Button>
+                      )}
                     </div>
-
-                    {/* Pending review notice */}
-                    {isPending && (
-                      <div className="p-3 rounded-xl bg-secondary/30 border border-secondary/30 text-xs text-secondary flex items-center gap-2">
-                        <Clock className="h-4 w-4 shrink-0 text-secondary animate-pulse" />
-                        <span>
-                          Screenshot submitted ({sub.homeScore} - {sub.awayScore}) by @{sub.submittedByPlayer?.gamerTag || "player"}. Awaiting official commissioner review. Uploading is closed for both athletes.
-                        </span>
-                      </div>
-                    )}
-
-                    {isForfeitPending && (
-                      <div className="p-3 rounded-xl bg-destructive/30 border border-destructive/30 text-xs text-destructive flex items-center gap-2">
-                        <ShieldAlert className="h-4 w-4 shrink-0 text-destructive animate-pulse" />
-                        <span>
-                          Forfeit claim lodged by @{forfeit.claimantPlayer?.gamerTag || "claimant"} ({forfeit.reason}). Awaiting administrator arbitration. Uploading is closed for both athletes.
-                        </span>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -3056,15 +3506,19 @@ export default function DashboardClient({
             {/* Athlete Profile Summary Card */}
             <div className="rounded-3xl border border-border bg-card/60 p-6 space-y-5 h-fit backdrop-blur-xl">
               <div className="text-center space-y-3 pb-4 border-b border-border">
-                <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-card to-background border border-border p-2 text-white font-black text-3xl flex items-center justify-center mx-auto shadow-xl overflow-hidden">
+                <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-2 text-foreground font-black text-2xl sm:text-3xl flex items-center justify-center mx-auto shadow-xl overflow-hidden">
                   {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
                     <img
                       src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
                       alt={currentPlayer.realTeam || currentPlayer.gamerTag}
                       className="h-full w-full object-contain"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
+                      }}
                     />
                   ) : (
-                    <div className="h-full w-full rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center font-black text-2xl text-white">
+                    <div className="h-full w-full rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center font-black text-xl sm:text-2xl text-white">
                       {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -3256,7 +3710,7 @@ export default function DashboardClient({
                       ):
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-64 overflow-y-auto p-1 border border-border rounded-2xl bg-card/30">
-                      {getTeamsForDivision(currentPlayer.division).map((team) => {
+                      {getTeamsForDivision(currentPlayer?.division || "Division 1").map((team) => {
                         const isSelected = profileRealTeam === team.name;
                         const claimedBy = isTeamClaimedByOther(team.name);
                         const isTaken = Boolean(claimedBy);
@@ -3396,163 +3850,6 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* TAB 7: RATE & FEEDBACK */}
-      {activeTab === "FEEDBACK" && (
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-border bg-background/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-            <div className="border-b border-border/80 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-secondary/10 border border-secondary/30 text-secondary">
-                  <Star className="h-6 w-6 fill-secondary" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black uppercase text-white tracking-wide">
-                    Rate & League Feedback
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Your voice shapes the future of eFootball Rwanda League. Share your experience and rating with the administration.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {reviewSuccessMsg && (
-              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary text-xs flex items-center gap-3 animate-fade-in">
-                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                <span className="font-semibold">{reviewSuccessMsg}</span>
-              </div>
-            )}
-
-            {reviewErrorMsg && (
-              <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-                <span className="font-semibold">{reviewErrorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitReview} className="space-y-6">
-              {/* Star Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-foreground block">
-                  Overall Rating
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setUserRating(star)}
-                      className={`p-2 rounded-xl border transition-all ${
-                        userRating >= star
-                          ? "border-secondary/60 bg-secondary/10 text-secondary shadow-md"
-                          : "border-border bg-card/60 text-muted-foreground hover:text-muted-foreground"
-                      }`}
-                    >
-                      <Star
-                        className={`h-7 w-7 ${
-                          userRating >= star ? "fill-secondary" : "fill-none"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="ml-3 text-sm font-black text-secondary">
-                    {userRating === 5 && "5 / 5 - Outstanding ⭐⭐⭐⭐⭐"}
-                    {userRating === 4 && "4 / 5 - Very Good ⭐⭐⭐⭐"}
-                    {userRating === 3 && "3 / 5 - Satisfactory ⭐⭐⭐"}
-                    {userRating === 2 && "2 / 5 - Needs Improvement ⭐⭐"}
-                    {userRating === 1 && "1 / 5 - Poor ⭐"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Category Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-foreground block">
-                  Feedback Category
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {[
-                    { id: "GENERAL", label: "General League" },
-                    { id: "TOURNAMENT", label: "Tournament & Rules" },
-                    { id: "MATCHMAKING", label: "Schedule & Deadlines" },
-                    { id: "PLATFORM", label: "Website & Tech" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setReviewCategory(cat.id)}
-                      className={`px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
-                        reviewCategory === cat.id
-                          ? "border-secondary bg-secondary/20 text-white shadow-md"
-                          : "border-border bg-card/50 text-muted-foreground hover:text-white hover:border-border"
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Comment Textarea */}
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-foreground block">
-                  Detailed Feedback or Suggestions
-                </label>
-                <textarea
-                  rows={4}
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Share what you enjoy, issues you experienced, or suggestions to make the eFootball Rwanda League even better..."
-                  className="w-full rounded-2xl border border-border bg-card/90 p-4 text-xs text-white placeholder:text-muted-foreground focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end pt-2">
-                <Button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs px-6 py-2.5 shadow-lg"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {submittingReview ? "Submitting..." : activeReview ? "Update Review" : "Submit Rating & Review"}
-                </Button>
-              </div>
-            </form>
-
-            {/* Current Active Review Display */}
-            {activeReview && (
-              <div className="mt-8 pt-6 border-t border-border/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                    Your Registered League Feedback
-                  </h4>
-                  <span className="text-xs text-muted-foreground">
-                    Last updated: {new Date(activeReview.updatedAt || activeReview.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="p-4 rounded-2xl bg-card/80 border border-border space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center text-secondary">
-                      {[...Array(activeReview.rating || 5)].map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-secondary" />
-                      ))}
-                    </div>
-                    <Badge variant="outline" className="text-xs text-foreground border-border">
-                      {activeReview.category || "GENERAL"}
-                    </Badge>
-                  </div>
-                  {activeReview.comment && (
-                    <p className="text-xs text-foreground leading-relaxed italic">
-                      "{activeReview.comment}"
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* MODAL 1: UPLOAD MATCH RESULT SCREENSHOT */}
       {showResultModal && (() => {
@@ -4066,6 +4363,68 @@ export default function DashboardClient({
       })()}
 
       {/* ========================================================================= */}
+      {/* COMPACT FOOTER: RATE & LEAGUE FEEDBACK WIDGET */}
+      {/* ========================================================================= */}
+      <footer className="pt-8 border-t border-border/80 mt-12 pb-6">
+        <div className="rounded-2xl border border-border bg-card/90 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1 max-w-sm">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 fill-secondary text-secondary" />
+              <span className="text-xs font-black uppercase tracking-wider text-white">Rate League Experience</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Share your 1-5 ⭐ rating and feedback directly with League Administration.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmitReview} className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* 5-Star Selection */}
+            <div className="flex items-center gap-1 shrink-0 bg-muted/60 border border-border p-1.5 rounded-xl self-start sm:self-auto">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setUserRating(star)}
+                  className="p-1 rounded hover:scale-110 transition-transform"
+                >
+                  <Star
+                    className={`h-4 w-4 ${
+                      userRating >= star ? "fill-secondary text-secondary" : "fill-none text-muted-foreground"
+                    }`}
+                  />
+                </button>
+              ))}
+              <span className="text-xs font-bold text-secondary px-1 font-mono">{userRating}/5</span>
+            </div>
+
+            {/* Quick Comment Input */}
+            <Input
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Short comment or suggestion..."
+              className="h-9 text-xs bg-card/90 border-border text-white placeholder:text-muted-foreground focus:border-secondary"
+            />
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              size="sm"
+              disabled={submittingReview}
+              className="h-9 font-black text-xs bg-secondary hover:bg-secondary text-secondary-foreground px-4 shrink-0 shadow-md"
+            >
+              <Send className="h-3 w-3 mr-1.5" />
+              {submittingReview ? "..." : activeReview ? "Update" : "Send"}
+            </Button>
+          </form>
+        </div>
+        {reviewSuccessMsg && (
+          <div className="mt-2 text-center text-xs text-primary font-bold">
+            ✓ {reviewSuccessMsg}
+          </div>
+        )}
+      </footer>
+
+      {/* ========================================================================= */}
       {/* FLOATING QUICK ACTIONS BUTTON (Compact Circle Shape) */}
       {/* ========================================================================= */}
       <div className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
@@ -4107,7 +4466,11 @@ export default function DashboardClient({
           isOpen={showActionHub}
           onClose={() => setShowActionHub(false)}
           onNavigateTab={(tab, subTab) => {
-            setActiveTab(tab);
+            if (tab === "FEEDBACK") {
+              window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            } else {
+              setActiveTab(tab as any);
+            }
             if (subTab) {
               setInboxSubTab(subTab as any);
             }
@@ -4131,7 +4494,7 @@ export default function DashboardClient({
       {/* ========================================================================= */}
       {/* CONTINENTAL ANIMATED DRAWS VIEWER MODAL (PLAYER BROADCAST) */}
       {/* ========================================================================= */}
-      {viewDrawModal && (viewDrawModal === "UCL" ? leagueConfig?.uclStarted : leagueConfig?.europaStarted) && (
+      {viewDrawModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/90 backdrop-blur-xl overflow-y-auto">
           <div className="relative w-full max-w-5xl my-auto">
             <button
@@ -4146,7 +4509,12 @@ export default function DashboardClient({
               qualifiedAthletes={viewDrawModal === "UCL" ? uclQualifiedAthletes : europaQualifiedAthletes}
               existingSlots={viewDrawModal === "UCL" ? uclSlots : europaSlots}
               isAdmin={false}
-              onClose={() => setViewDrawModal(null)}
+              onClose={() => {
+                const comp = viewDrawModal;
+                setViewDrawModal(null);
+                setActiveTab("STANDINGS");
+                setStandingsCategory(comp === "UCL" ? "UCL" : "EUROPA");
+              }}
             />
           </div>
         </div>

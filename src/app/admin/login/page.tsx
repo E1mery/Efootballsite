@@ -55,8 +55,7 @@ export default function AdminLoginPage() {
       if (typeof window !== "undefined") {
         localStorage.setItem("efrl_user", JSON.stringify(data.user));
       }
-      router.push("/admin");
-      router.refresh();
+      window.location.href = "/admin";
     } catch (err: any) {
       setError(err.message);
     } finally {

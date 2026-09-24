@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import DashboardClient from "./DashboardClient";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
-import { evaluateAllDivisionsMatchOfTheDay } from "@/lib/matchOfTheDay";
+import { evaluateAllDivisionsMatchOfTheDay, evaluateContinentalGroupMotds } from "@/lib/matchOfTheDay";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
 export const dynamic = "force-dynamic";
@@ -68,12 +68,14 @@ export default async function DashboardPage() {
   };
 
   // Check if player is actively participating in the league vs. on standby in the reserve pool
-  const isReserved = player.status === "RESERVED";
-  const isParticipating = !isReserved && (player.status === "ACTIVE" || player.status === "WARNING");
+  const isReserved = player?.status === "RESERVED";
+  const isSuspendedForMissed = Boolean((player?.consecutiveMissed || 0) >= 3 || player?.isDisqualified);
+  const isParticipating = !isReserved && !isSuspendedForMissed && (player?.status === "ACTIVE" || player?.status === "WARNING");
 
   let activeMatch = null;
   let allPlayerMatches: any[] = [];
   let isRestDayToday = false;
+  let isWaitingForSub = false;
 
   // Automatic deletion of announcements older than 24 hours
   await cleanupExpiredAnnouncements();
@@ -113,16 +115,50 @@ export default async function DashboardPage() {
 
   // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool
   if (isParticipating) {
-    // 1. Scheduled or Live match in current league round
-    activeMatch = await prisma.match.findFirst({
+    // 0. PRIORITY BACKLOG REPLACEMENT MATCH: If player has an open 48-hr replacement match, they must begin with that!
+    const priorityBacklogMatch = await prisma.match.findFirst({
       where: {
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-        round: currentRoundName,
         status: { in: ["SCHEDULED", "LIVE"] },
+        notes: { contains: "REPLACEMENT_BACKLOG" },
       },
       include: matchInclude,
-      orderBy: { matchDate: "asc" },
+      orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
     });
+
+    if (priorityBacklogMatch) {
+      activeMatch = priorityBacklogMatch;
+    }
+
+    // 0.5 Continental priority: If player has an active/scheduled match in UCL or Europa, prioritize it on Today's 24-Hr match page!
+    if (!activeMatch) {
+      const activeContinentalMatch = await prisma.match.findFirst({
+        where: {
+          division: { in: ["UCL", "EUROPA"] },
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        include: matchInclude,
+        orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+      });
+
+      if (activeContinentalMatch) {
+        activeMatch = activeContinentalMatch;
+      }
+    }
+
+    // 1. Scheduled or Live match in current league round
+    if (!activeMatch) {
+      activeMatch = await prisma.match.findFirst({
+        where: {
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          round: currentRoundName,
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        include: matchInclude,
+        orderBy: { matchDate: "asc" },
+      });
+    }
 
     // 2. Earliest scheduled or live match for this player across all stages (Divisions, UCL, Europa)
     if (!activeMatch) {
@@ -158,27 +194,6 @@ export default async function DashboardPage() {
         orderBy: { matchDate: "desc" },
       });
     }
-
-    // Fetch all matches of this player across the entire season for Calendar Mode
-    const allPlayerMatchesRaw = await prisma.match.findMany({
-      where: {
-        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-      },
-      include: matchInclude,
-      orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
-    });
-
-    // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
-    allPlayerMatches = [...allPlayerMatchesRaw].sort((a, b) => {
-      const getRoundNum = (roundStr: string) => {
-        const m = roundStr?.match(/\d+/);
-        return m ? parseInt(m[0], 10) : 999;
-      };
-      const numA = getRoundNum(a.round || "");
-      const numB = getRoundNum(b.round || "");
-      if (numA !== numB) return numA - numB;
-      return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-    });
 
     // Check if the current round in player's division has matches, but this player is the remaining one (odd division rest day)
     const divisionMatchesThisRound = await prisma.match.count({
@@ -217,6 +232,36 @@ export default async function DashboardPage() {
       }
     }
   }
+
+  // Fetch all matches of this player across the entire season for Calendar Mode
+  const allPlayerMatchesRaw = await prisma.match.findMany({
+    where: {
+      OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+    },
+    include: matchInclude,
+    orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
+  });
+
+  // RULE: When UCL or Europa starts, the match calendar page for participants ONLY is cleared of old domestic fixtures to show UCL / Europa matches
+  const continentalMatches = allPlayerMatchesRaw.filter(
+    (m) => m.division === "UCL" || m.division === "EUROPA"
+  );
+  const hasStartedContinental =
+    (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
+
+  const matchesToDisplay = hasStartedContinental ? continentalMatches : allPlayerMatchesRaw;
+
+  // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
+  allPlayerMatches = [...matchesToDisplay].sort((a, b) => {
+    const getRoundNum = (roundStr: string) => {
+      const m = roundStr?.match(/\d+/);
+      return m ? parseInt(m[0], 10) : 999;
+    };
+    const numA = getRoundNum(a.round || "");
+    const numB = getRoundNum(b.round || "");
+    if (numA !== numB) return numA - numB;
+    return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+  });
 
   // Fetch player's existing feedback review if any
   const myReview = await prisma.feedbackReview.findFirst({
@@ -325,6 +370,73 @@ export default async function DashboardPage() {
     ...div3Standings.slice(4, 10),
   ];
 
+  // Opponent Intelligence for Today's 24-Hr Match Day
+  let opponentStanding: any = null;
+  let opponentPreviousMatches: any[] = [];
+
+  if (activeMatch) {
+    const oppId = activeMatch.homePlayerId === player.id ? activeMatch.awayPlayerId : activeMatch.homePlayerId;
+    if (oppId) {
+      if (activeMatch.division === "UCL" || activeMatch.division === "EUROPA") {
+        if (activeMatch.stage === "GROUP" && activeMatch.groupName) {
+          opponentStanding = await prisma.standing.findFirst({
+            where: {
+              playerId: oppId,
+              division: `${activeMatch.division} ${activeMatch.groupName}`,
+            },
+          });
+        } else {
+          opponentStanding =
+            (await prisma.standing.findFirst({
+              where: { playerId: oppId, division: activeMatch.division },
+            })) ||
+            (await prisma.standing.findFirst({
+              where: { playerId: oppId },
+            }));
+        }
+      } else {
+        opponentStanding = await prisma.standing.findFirst({
+          where: { playerId: oppId, division: player.division },
+        });
+      }
+
+      opponentPreviousMatches = await prisma.match.findMany({
+        where: {
+          OR: [{ homePlayerId: oppId }, { awayPlayerId: oppId }],
+          status: { in: ["FINISHED", "FORFEIT"] },
+          id: { not: activeMatch.id },
+        },
+        include: {
+          homePlayer: true,
+          awayPlayer: true,
+        },
+        orderBy: { matchDate: "desc" },
+        take: 3,
+      });
+    }
+  }
+
+  if (activeMatch && !activeMatch.notes?.includes("REPLACEMENT_BACKLOG")) {
+    const opp = activeMatch.homePlayerId === player.id ? activeMatch.awayPlayer : activeMatch.homePlayer;
+    if (opp && ((opp.consecutiveMissed || 0) >= 3 || opp.isDisqualified || activeMatch.notes?.includes("WAITING_FOR_SUB"))) {
+      isWaitingForSub = true;
+    }
+  }
+
+  // Continental Group Stage Matches of the Day
+  const allDomesticStandings = [...div1Standings, ...div2Standings, ...div3Standings];
+  const uclGroupMatches = await prisma.match.findMany({
+    where: { division: "UCL", stage: "GROUP" },
+    include: { homePlayer: true, awayPlayer: true },
+  });
+  const uclGroupMotds = evaluateContinentalGroupMotds(uclGroupMatches, allDomesticStandings, "UCL");
+
+  const europaGroupMatches = await prisma.match.findMany({
+    where: { division: "EUROPA", stage: "GROUP" },
+    include: { homePlayer: true, awayPlayer: true },
+  });
+  const europaGroupMotds = evaluateContinentalGroupMotds(europaGroupMatches, allDomesticStandings, "EUROPA");
+
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <DashboardClient
@@ -337,6 +449,8 @@ export default async function DashboardPage() {
         standing={currentStanding}
         leagueConfig={leagueConfig}
         divisionalMotd={divisionalMotd}
+        uclGroupMotds={uclGroupMotds}
+        europaGroupMotds={europaGroupMotds}
         div1Standings={div1Standings}
         div2Standings={div2Standings}
         div3Standings={div3Standings}
@@ -348,7 +462,11 @@ export default async function DashboardPage() {
         europaQualified={europaQualified}
         initialReview={myReview}
         isRestDayToday={isRestDayToday}
+        isWaitingForSub={isWaitingForSub}
+        isSuspendedForMissed={isSuspendedForMissed}
         currentRoundName={currentRoundName}
+        opponentStanding={opponentStanding}
+        opponentPreviousMatches={opponentPreviousMatches}
       />
     </div>
   );

@@ -12,22 +12,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const isAdminPortal = pathname?.startsWith("/admin");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("efrl_user");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          return {
-            authenticated: true,
-            user: parsed,
-            player: parsed.player,
-          };
-        }
-      } catch (e) {}
-    }
-    return null;
-  });
+  const [session, setSession] = useState<{ authenticated: boolean; user?: any; player?: any } | null>(null);
 
   useEffect(() => {
     // 1. Immediately hydrate from localStorage to prevent flash of "Log In" on refresh
@@ -68,6 +53,29 @@ export default function Navbar() {
       });
   }, [pathname]);
 
+  const [currentSeason, setCurrentSeason] = useState<string>("Season 1 (2026)");
+  const [bothLeaguesUnlocked, setBothLeaguesUnlocked] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchConfig = () => {
+      fetch("/api/league/config")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.config) {
+            if (data.config.season) {
+              setCurrentSeason(data.config.season);
+            }
+            setBothLeaguesUnlocked(Boolean(data.config.uclStarted && data.config.europaStarted));
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchConfig();
+    const interval = setInterval(fetchConfig, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     // If admin is authenticated, restrict navigation strictly to /admin
     if (session?.authenticated && session.user?.role === "ADMIN" && !pathname?.startsWith("/admin")) {
@@ -82,12 +90,19 @@ export default function Navbar() {
   );
 
   const navLinks = isUserOrAdminLoggedIn
-    ? [{ name: "Home", href: "/", icon: Shield }]
+    ? [
+        { name: "Home", href: "/", icon: Shield },
+        ...(bothLeaguesUnlocked && !isAdminPortal
+          ? [{ name: "UCL & Europa Draws", href: "/continental", icon: Globe }]
+          : []),
+      ]
     : [
         { name: "Home", href: "/", icon: Shield },
         { name: "Fixtures", href: "/fixtures", icon: Calendar },
         { name: "3 Divisions", href: "/standings", icon: Trophy },
-        { name: "UCL & Europa", href: "/continental", icon: Globe },
+        ...(bothLeaguesUnlocked
+          ? [{ name: "UCL & Europa Draws", href: "/continental", icon: Globe }]
+          : []),
         { name: "Admin Office", href: "/admin", icon: ShieldAlert },
       ];
 
@@ -97,11 +112,15 @@ export default function Navbar() {
       <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary to-secondary opacity-80" />
 
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
-        {/* Gaming Brand Logo & Admin Badge */}
-        <div className="flex items-center gap-3">
+        {/* Gaming Brand Logo, Season Pill & Admin Badge */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href={isAdminPortal ? "/admin" : (session?.authenticated ? "/dashboard" : "/")} className="flex items-center gap-3 group">
             <EfootballGamingLogo size="md" showText={true} />
           </Link>
+          <div className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 text-amber-300 font-mono text-[10px] sm:text-xs font-black shadow-inner tracking-wide">
+            <Trophy className="h-3 w-3 text-amber-400 shrink-0" />
+            <span>{currentSeason}</span>
+          </div>
           {isAdminPortal && (
             <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex font-bold">
               COMMISSIONER OFFICE

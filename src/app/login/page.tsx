@@ -72,15 +72,14 @@ function LoginForm() {
       }
 
       if (data.user?.role === "ADMIN") {
-        router.push("/admin");
+        window.location.href = "/admin";
       } else {
         if (isAdminRequired) {
           setError("Your account is a Player account. Administrator access is required.");
           return;
         }
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       }
-      router.refresh();
     } catch (err: any) {
       setError(err.message || "Invalid credentials");
     } finally {

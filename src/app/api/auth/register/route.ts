@@ -58,12 +58,34 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check real football team uniqueness
+    // Check real football team uniqueness and division consistency
     const selectedClub = realTeam ? findTeam(realTeam) : undefined;
-    if (selectedClub) {
+    if (selectedClub || realTeam) {
+      // Strict Division-to-League Verification:
+      // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+      if (selectedClub && preferredDivision && preferredDivision !== "RESERVE") {
+        if (selectedClub.division !== preferredDivision) {
+          return NextResponse.json(
+            {
+              error: `Invalid Club Selection: "${selectedClub.name}" is a ${selectedClub.league} club assigned strictly to ${selectedClub.division}. Since you chose ${preferredDivision}, you must pick a club from ${preferredDivision}.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      const teamNameToMatch = selectedClub ? selectedClub.name : realTeam.trim();
       const existingTeamClaim = await prisma.player.findFirst({
         where: {
-          realTeam: selectedClub.name,
+          OR: [
+            { realTeam: { equals: teamNameToMatch, mode: "insensitive" as const } },
+            ...(selectedClub
+              ? [
+                  { realTeam: { equals: selectedClub.shortName, mode: "insensitive" as const } },
+                  { realTeam: { equals: selectedClub.id, mode: "insensitive" as const } },
+                ]
+              : []),
+          ],
           status: { not: "REJECTED" },
         },
         select: { gamerTag: true },
@@ -71,7 +93,7 @@ export async function POST(req: Request) {
       if (existingTeamClaim) {
         return NextResponse.json(
           {
-            error: `The football club "${selectedClub.name}" has already been chosen by another athlete (@${existingTeamClaim.gamerTag}). Please choose another club.`,
+            error: `The football club "${teamNameToMatch}" has already been chosen by another athlete (@${existingTeamClaim.gamerTag}). Please choose another club.`,
           },
           { status: 400 }
         );

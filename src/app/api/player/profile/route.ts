@@ -106,11 +106,26 @@ export async function PUT(req: Request) {
     if (realTeam !== undefined) {
       const team = findTeam(realTeam);
       if (team) {
+        // Strict Division-to-League Verification:
+        // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+        if (user.player.division && user.player.division !== "RESERVE" && team.division !== user.player.division) {
+          return NextResponse.json(
+            {
+              error: `Invalid Club: "${team.name}" belongs to ${team.division} (${team.league}). Since you compete in ${user.player.division}, you must select a club from your division.`,
+            },
+            { status: 400 }
+          );
+        }
+
         // Validate that no other athlete has claimed this club
         const existingClaim = await prisma.player.findFirst({
           where: {
             id: { not: user.player.id },
-            realTeam: team.name,
+            OR: [
+              { realTeam: { equals: team.name, mode: "insensitive" as const } },
+              { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
+              { realTeam: { equals: team.id, mode: "insensitive" as const } },
+            ],
             status: { not: "REJECTED" },
           },
           select: { gamerTag: true },
