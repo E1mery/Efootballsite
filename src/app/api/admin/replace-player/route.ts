@@ -309,15 +309,23 @@ export async function POST(req: Request) {
       await recalculateStandings(targetStanding.tournamentId, division);
     }
 
-    // 7. Broadcast official league roster replacement notice
-    await prisma.announcement.create({
-      data: {
-        title: `📢 OFFICIAL ROSTER REPLACEMENT: ${replacementGamerTag} Enters ${division}`,
-        content: `League roster update: Athlete ${replacementGamerTag} has officially replaced ${oldGamerTag} in ${division}. All upcoming matches, fixtures, and standings tables have been synchronized to reflect ${replacementGamerTag}.`,
-        type: "BROADCAST",
-        isPinned: true,
-      },
+    // 7. Announce official roster replacement strictly to players in the same division only
+    const divisionPlayers = await prisma.player.findMany({
+      where: { division: division, status: "ACTIVE" },
+      select: { id: true },
     });
+
+    if (divisionPlayers.length > 0) {
+      await prisma.announcement.createMany({
+        data: divisionPlayers.map((dp) => ({
+          title: `📢 OFFICIAL ROSTER REPLACEMENT: ${replacementGamerTag} Enters ${division}`,
+          content: `League roster update: Athlete ${replacementGamerTag} has officially replaced ${oldGamerTag} in ${division}. All upcoming matches, fixtures, and standings tables have been synchronized to reflect ${replacementGamerTag}.`,
+          type: "INDIVIDUAL",
+          targetPlayerId: dp.id,
+          isPinned: true,
+        })),
+      });
+    }
 
     return NextResponse.json({
       success: true,
