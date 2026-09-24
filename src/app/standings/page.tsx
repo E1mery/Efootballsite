@@ -210,12 +210,12 @@ export default async function StandingsPage(props: {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center space-y-4">
         <h2 className="text-xl font-bold text-white">Standings Temporarily Updating</h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           The league standings table is updating. Please click below to refresh.
         </p>
         <a
           href="/standings"
-          className="inline-block px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-lg shadow-sky-600/30"
+          className="inline-block px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/80 text-primary-foreground text-xs font-bold transition-all shadow-lg shadow-primary/30"
         >
           Reload Standings
         </a>

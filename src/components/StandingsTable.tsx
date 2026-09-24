@@ -78,7 +78,7 @@ export default function StandingsTable({
         <TableBody>
           {validStandings.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={compact ? 8 : 12} className="text-center py-10 text-slate-500 italic text-xs">
+              <TableCell colSpan={compact ? 8 : 12} className="text-center py-10 text-muted-foreground italic text-xs">
                 No active athlete standings available for {divisionName} yet.
               </TableCell>
             </TableRow>
