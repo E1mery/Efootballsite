@@ -5,45 +5,43 @@ import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
-export default async function StandingsPage({
-  searchParams,
-}: {
+export default async function StandingsPage(props: {
   searchParams?: Promise<{ division?: string }>;
 }) {
-  const params = (searchParams ? await searchParams : {}) || {};
-  const currentDivision = params.division || "Division 1";
-
-  // Fetch standings for selected division with player profile and team
-  let standings: any[] = [];
-  let leagueConfig: any = null;
   try {
-    const [st, cfg] = await Promise.all([
-      prisma.standing.findMany({
-        where: { division: currentDivision },
-        include: {
-          player: true,
-        },
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-        take: 20, // Strict 20 players cap per division
-      }),
-      prisma.leagueConfig.findUnique({ where: { id: "default" } }),
-    ]);
-    // Defensively ensure only records with populated player relations are included
-    standings = (st || []).filter((s: any) => s && s.player);
-    leagueConfig = cfg;
-  } catch (error) {
-    console.error("Standings fetch error:", error);
-  }
+    const params = (props?.searchParams ? await props.searchParams : {}) || {};
+    const currentDivision = params.division || "Division 1";
 
-  const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
+    // Fetch standings for selected division with player profile and team
+    let standings: any[] = [];
+    let leagueConfig: any = null;
+    try {
+      const [st, cfg] = await Promise.all([
+        prisma.standing.findMany({
+          where: { division: currentDivision },
+          include: {
+            player: true,
+          },
+          orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+          take: 20, // Strict 20 players cap per division
+        }),
+        prisma.leagueConfig.findUnique({ where: { id: "default" } }),
+      ]);
+      // Defensively ensure only records with populated player relations are included
+      standings = (st || []).filter((s: any) => s && s.player);
+      leagueConfig = cfg;
+    } catch (error) {
+      console.error("Standings fetch error:", error);
+    }
 
-  const totalGoals = standings.reduce((acc, curr) => acc + (curr?.goalsFor || 0), 0);
-  const bestPlayer = standings[0];
-  const flaggedPlayers = standings.filter(
-    (s) => Boolean(s && s.player && ((s.consecutiveMissed || 0) >= 3 || s.isDisqualified))
-  );
+    const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
 
-  return (
+    const totalGoals = standings.reduce((acc, curr) => acc + (curr?.goalsFor || 0), 0);
+    const flaggedPlayers = standings.filter(
+      (s) => Boolean(s && s.player && ((s.consecutiveMissed || 0) >= 3 || s.isDisqualified))
+    );
+
+    return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header */}
       <div className="border-b border-slate-800 pb-6">
@@ -215,4 +213,21 @@ export default async function StandingsPage({
       </div>
     </div>
   );
+  } catch (renderError: any) {
+    console.error("StandingsPage top-level error caught:", renderError);
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center space-y-4">
+        <h2 className="text-xl font-bold text-white">Standings Temporarily Updating</h2>
+        <p className="text-xs text-slate-400">
+          The league standings table is updating. Please click below to refresh.
+        </p>
+        <a
+          href="/standings"
+          className="inline-block px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-lg shadow-sky-600/30"
+        >
+          Reload Standings
+        </a>
+      </div>
+    );
+  }
 }

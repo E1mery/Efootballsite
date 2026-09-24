@@ -1,3 +1,5 @@
+"use client";
+
 import { Award, Flame, Zap, Shield, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
