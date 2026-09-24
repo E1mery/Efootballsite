@@ -167,7 +167,7 @@ export default function Navbar() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm" className="font-black text-xs text-secondary-foreground shadow-md">
+                <Button size="sm">
                   <span>Register</span>
                 </Button>
               </Link>
@@ -262,7 +262,7 @@ export default function Navbar() {
                       </Button>
                     </Link>
                     <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="yellow" className="w-full text-xs font-black h-11">
+                      <Button  className="w-full text-xs font-black h-11">
                         Register
                       </Button>
                     </Link>

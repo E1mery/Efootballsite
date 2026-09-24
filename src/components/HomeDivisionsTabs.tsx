@@ -59,11 +59,11 @@ export default function HomeDivisionsTabs({
               onClick={() => setActiveDivision(div)}
               className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 isActive
-                  ? "bg-primary text-secondary-foreground font-black shadow-lg"
+                  ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-muted/60"
               }`}
             >
-              <Trophy className={`h-4 w-4 ${isActive ? "text-secondary-foreground" : "text-muted-foreground"}`} />
+              <Trophy className={`h-4 w-4 ${isActive ? "text-white" : "text-muted-foreground"}`} />
               <span>{div}</span>
             </button>
           );

@@ -1679,7 +1679,7 @@ export default function AdminClient({
           onClick={() => setActiveTab("RESERVE_POOL")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "RESERVE_POOL"
-              ? "bg-primary text-secondary-foreground font-black shadow-lg"
+              ? "bg-primary text-white font-black shadow-lg"
               : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
@@ -1703,7 +1703,7 @@ export default function AdminClient({
           onClick={() => setActiveTab("ALL_MATCHES")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "ALL_MATCHES"
-              ? "bg-primary text-secondary-foreground font-black shadow-lg"
+              ? "bg-primary text-white font-black shadow-lg"
               : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
         >
@@ -4195,7 +4195,7 @@ export default function AdminClient({
                 onClick={() => setScoreQueueSubTab("SUBMISSIONS")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
                   scoreQueueSubTab === "SUBMISSIONS"
-                    ? "bg-primary text-secondary-foreground shadow-md"
+                    ? "bg-primary text-white shadow-md"
                     : "text-muted-foreground hover:text-white"
                 }`}
               >
@@ -4215,7 +4215,7 @@ export default function AdminClient({
                 onClick={() => setScoreQueueSubTab("DIRECT_ENTRY")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
                   scoreQueueSubTab === "DIRECT_ENTRY"
-                    ? "bg-primary text-secondary-foreground shadow-md"
+                    ? "bg-primary text-white shadow-md"
                     : "text-muted-foreground hover:text-white"
                 }`}
               >
@@ -4245,12 +4245,12 @@ export default function AdminClient({
                   <Button
                     disabled={batchLoading}
                     onClick={handleBatchApproveSubmissions}
-                    className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-secondary-foreground font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg whitespace-nowrap"
+                    className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-white font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg whitespace-nowrap"
                   >
                     {batchLoading ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckCircle2 className="h-4 w-4 text-secondary-foreground" />
+                      <CheckCircle2 className="h-4 w-4 text-white" />
                     )}
                     Insert All {pendingSubmissions.length} Match Goals & Update Tables Once
                   </Button>
@@ -4460,9 +4460,9 @@ export default function AdminClient({
                               submissionScores[sub.id]?.away ?? sub.awayScore
                             )
                           }
-                          className="bg-primary hover:bg-primary text-secondary-foreground font-black text-xs gap-1.5 shadow-lg"
+                          className="bg-primary hover:bg-primary text-white font-black text-xs gap-1.5 shadow-lg"
                         >
-                          <CheckCircle2 className="h-4 w-4 text-secondary-foreground" />
+                          <CheckCircle2 className="h-4 w-4 text-white" />
                           Approve Individually
                         </Button>
                         <Button
@@ -4548,12 +4548,12 @@ export default function AdminClient({
                     <Button
                       disabled={batchLoading}
                       onClick={handleBatchDirectMatchScores}
-                      className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-secondary-foreground font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg"
+                      className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-white font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg"
                     >
                       {batchLoading ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Sparkles className="h-4 w-4 text-secondary-foreground" />
+                        <Sparkles className="h-4 w-4 text-white" />
                       )}
                       Save Entered Goals, Update Table Once & Notify Users
                     </Button>
@@ -5363,7 +5363,7 @@ export default function AdminClient({
               onClick={() => setInquiriesSubTab("HISTORY")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                 inquiriesSubTab === "HISTORY"
-                  ? "bg-primary text-secondary-foreground font-black shadow-lg"
+                  ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >

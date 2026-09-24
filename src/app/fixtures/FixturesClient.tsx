@@ -312,7 +312,7 @@ export default function FixturesClient({
                     onClick={() => setStatusFilter(st.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
                       isSelected
-                        ? "bg-primary text-secondary-foreground font-black shadow-md"
+                        ? "bg-primary text-white font-black shadow-md"
                         : "text-muted-foreground hover:text-white bg-card border border-border"
                     }`}
                   >

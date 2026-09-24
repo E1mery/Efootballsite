@@ -1370,7 +1370,7 @@ export default function DashboardClient({
               onClick={() => setActiveTab("CALENDAR")}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                 activeTab === "CALENDAR"
-                  ? "bg-primary text-secondary-foreground font-black shadow-lg"
+                  ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-card"
               }`}
             >
@@ -1492,7 +1492,7 @@ export default function DashboardClient({
               onClick={() => setStandingsCategory("DIVISIONS")}
               className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 standingsCategory === "DIVISIONS"
-                  ? "bg-primary text-secondary-foreground font-black shadow-lg"
+                  ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-muted/60"
               }`}
             >
@@ -2225,7 +2225,7 @@ export default function DashboardClient({
                   variant="default"
                   size="sm"
                   onClick={() => setActiveTab("CALENDAR")}
-                  className="bg-primary hover:bg-primary text-secondary-foreground font-black text-xs gap-2 h-11"
+                  className="bg-primary hover:bg-primary text-white font-black text-xs gap-2 h-11"
                 >
                   <Calendar className="h-4 w-4" />
                   View Season Calendar ({allPlayerMatches.length} Matches)
@@ -2258,7 +2258,7 @@ export default function DashboardClient({
                     variant="default"
                     size="sm"
                     onClick={() => setActiveTab("CALENDAR")}
-                    className="bg-primary hover:bg-primary text-secondary-foreground font-black text-xs gap-2"
+                    className="bg-primary hover:bg-primary text-white font-black text-xs gap-2"
                   >
                     <Calendar className="h-4 w-4" />
                     Open Match Calendar ({allPlayerMatches.length} Fixtures)
@@ -2294,7 +2294,7 @@ export default function DashboardClient({
                       onClick={() => setSelectedMotdDiv(div)}
                       className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
                         isSelected
-                          ? "bg-primary text-secondary-foreground font-black shadow-md"
+                          ? "bg-primary text-white font-black shadow-md"
                           : "text-muted-foreground hover:text-white"
                       }`}
                     >
