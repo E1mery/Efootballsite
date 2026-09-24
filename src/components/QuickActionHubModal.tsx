@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import {
@@ -352,12 +352,12 @@ export default function QuickActionHubModal({
                     </div>
                   </div>
 
-                  <div className="shrink-0 self-end sm:self-center pt-2 sm:pt-0">
+                  <div className="shrink-0 w-full sm:w-auto self-stretch sm:self-center pt-2 sm:pt-0">
                     <Button
                       size="sm"
                       disabled={item.disabled}
                       onClick={item.action}
-                      className={`text-xs font-bold gap-1 w-32 justify-between ${
+                      className={`text-xs font-bold gap-1 w-full sm:w-36 justify-between ${
                         item.disabled
                           ? "bg-muted text-muted-foreground"
                           : "bg-muted hover:bg-secondary hover:text-secondary-foreground text-white transition-all shadow-sm"

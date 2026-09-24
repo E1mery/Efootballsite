@@ -2,23 +2,26 @@
 
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
+
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 select-none",
+  "relative overflow-hidden group/btn inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50 select-none touch-manipulation [&_svg]:transition-transform [&_svg]:duration-200 group-hover/btn:[&_svg]:scale-110 group-hover/btn:[&_svg]:translate-x-0.5",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90",
+        default:
+          "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/25 hover:bg-primary/90",
         yellow:
-          "bg-secondary text-secondary-foreground font-bold shadow-lg hover:bg-secondary/90",
+          "bg-secondary text-secondary-foreground font-bold shadow-md hover:shadow-lg hover:shadow-secondary/25 hover:bg-secondary/90",
         green:
-          "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/25 hover:bg-primary/90",
         outline:
-          "border border-border bg-card/60 text-foreground hover:border-primary/50 hover:bg-muted/80 hover:text-foreground",
-        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
+          "border border-border bg-card/60 text-foreground hover:border-primary/50 hover:bg-muted/80 hover:text-foreground hover:shadow-md hover:shadow-primary/10",
+        ghost:
+          "text-muted-foreground hover:bg-muted hover:text-foreground",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground shadow-md hover:shadow-lg hover:shadow-destructive/25 hover:bg-destructive/90",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -42,18 +45,98 @@ export interface ButtonProps
   whileTap?: any;
 }
 
+interface Ripple {
+  id: number;
+  x: number;
+  y: number;
+  targetScale: number;
+}
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, disabled, whileHover, whileTap, asChild, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      disabled,
+      whileHover,
+      whileTap,
+      asChild,
+      children,
+      onPointerDown,
+      ...props
+    },
+    ref
+  ) => {
+    const shouldReduceMotion = useReducedMotion();
+    const [ripples, setRipples] = React.useState<Ripple[]>([]);
+
+    const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (!disabled && !shouldReduceMotion) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const targetScale = (Math.max(rect.width, rect.height) / 16) * 2;
+        const id = Date.now() + Math.random();
+        setRipples((prev) => [...prev.slice(-2), { id, x, y, targetScale }]);
+        setTimeout(() => {
+          setRipples((prev) => prev.filter((r) => r.id !== id));
+        }, 400);
+      }
+      onPointerDown?.(e);
+    };
+
+    const defaultHover = shouldReduceMotion
+      ? undefined
+      : {
+          scale: 1.03,
+          y: -2.5,
+        };
+
+    const defaultTap = shouldReduceMotion
+      ? undefined
+      : {
+          scale: 0.97,
+          y: 0,
+        };
+
     return (
       <motion.button
         ref={ref}
         className={cn(buttonVariants({ variant, size, className }))}
         disabled={disabled}
-        whileHover={disabled ? undefined : whileHover ?? { scale: 1.02, y: -0.5 }}
-        whileTap={disabled ? undefined : whileTap ?? { scale: 0.96, y: 0.5 }}
-        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+        whileHover={disabled ? undefined : whileHover ?? defaultHover}
+        whileTap={disabled ? undefined : whileTap ?? defaultTap}
+        transition={{
+          type: "spring",
+          stiffness: 450,
+          damping: 24,
+          mass: 0.5,
+        }}
+        onPointerDown={handlePointerDown}
         {...(props as any)}
-      />
+      >
+        {/* Subtle highlight sheen sweep across the button on hover */}
+        {!disabled && !shouldReduceMotion && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -translate-x-full -skew-x-12 bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 ease-out group-hover/btn:translate-x-full"
+          />
+        )}
+
+        {/* Tactile click ripple radiating from click coordinate without inline styles */}
+        {ripples.map((ripple) => (
+          <motion.span
+            key={ripple.id}
+            className="pointer-events-none absolute -top-4 -left-4 h-8 w-8 rounded-full bg-white/30"
+            initial={{ x: ripple.x, y: ripple.y, scale: 0, opacity: 0.35 }}
+            animate={{ scale: ripple.targetScale, opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          />
+        ))}
+
+        {children}
+      </motion.button>
     );
   }
 );

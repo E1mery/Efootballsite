@@ -4425,19 +4425,22 @@ export default function DashboardClient({
       </footer>
 
       {/* ========================================================================= */}
-      {/* FLOATING QUICK ACTIONS BUTTON (Compact Circle Shape) */}
+      {/* FLOATING QUICK ACTIONS BUTTON (Responsive Mobile/Tablet/Desktop Shape) */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
+      <div className="fixed bottom-5 right-4 z-40 sm:bottom-6 sm:right-6">
         <button
           onClick={() => setShowActionHub(true)}
-          className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-secondary via-secondary to-secondary text-secondary-foreground shadow-lg hover:scale-110 active:scale-95 transition-all group ring-2 ring-secondary/80 focus:outline-none"
-          title="Quick Actions & Help"
-          aria-label="Quick Actions & Help"
+          className="relative flex items-center justify-center h-12 w-12 sm:h-11 sm:w-auto sm:px-4 sm:gap-2 rounded-full bg-secondary text-secondary-foreground shadow-xl shadow-secondary/20 hover:shadow-2xl hover:shadow-secondary/30 hover:scale-105 active:scale-95 transition-all group ring-2 ring-secondary/80 focus:outline-none focus:ring-4 focus:ring-secondary/40 touch-manipulation"
+          title="Quick Actions & Help Hub"
+          aria-label="Quick Actions & Help Hub"
         >
-          <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-secondary-foreground fill-current group-hover:scale-110 transition-transform duration-150" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+          <Zap className="h-5 w-5 sm:h-4.5 sm:w-4.5 text-secondary-foreground fill-current group-hover:scale-110 group-hover:rotate-12 transition-transform duration-200" />
+          <span className="hidden sm:inline font-black text-xs uppercase tracking-wider">
+            Quick Actions
+          </span>
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary border border-border"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary border-2 border-background"></span>
           </span>
         </button>
       </div>
