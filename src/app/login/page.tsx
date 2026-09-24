@@ -406,7 +406,6 @@ function LoginForm() {
 
                         <Button
                           type="button"
-                          variant="yellow"
                           onClick={handleCheckStatus}
                           disabled={forgotLoading}
                           className="w-full font-black text-secondary-foreground gap-2 h-11"
@@ -419,7 +418,6 @@ function LoginForm() {
                       <div className="space-y-2 pt-1">
                         <Button
                           type="button"
-                          variant="yellow"
                           onClick={() => handleRequestReset()}
                           disabled={forgotLoading}
                           className="w-full font-black text-secondary-foreground h-11"
