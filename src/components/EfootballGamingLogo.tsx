@@ -1,3 +1,4 @@
+/* eslint-disable shadcn/no-arbitrary-values, shadcn/no-raw-colors -- custom gaming crest needs brand hexes and arbitrary micro-sizing */
 import React from "react";
 
 interface EfootballGamingLogoProps {

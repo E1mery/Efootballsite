@@ -6,8 +6,6 @@ import Link from "next/link";
 import {
   Trophy,
   Globe,
-  Award,
-  Gamepad2,
   Shield,
   Flame,
   CheckCircle,
@@ -22,10 +20,10 @@ import {
   Clock,
   Play,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { Badge } from "@/components/ui/badge";
 
 export default function ContinentalClient({
   leagueConfig: initialLeagueConfig,
@@ -242,7 +240,7 @@ export default function ContinentalClient({
   return (
     <div className="space-y-8">
       {/* Navigation Switcher: UCL vs EUROPA */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth w-full sm:w-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => {
@@ -252,13 +250,13 @@ export default function ContinentalClient({
             }}
             className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
               selectedCompetition === "UCL"
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                : "text-slate-400 hover:text-white hover:bg-slate-900"
+                ? "bg-primary text-white shadow-lg"
+                : "text-muted-foreground hover:text-white hover:bg-card"
             }`}
           >
-            <Trophy className="h-4 w-4 text-yellow-400" />
+            <Trophy className="h-4 w-4 text-secondary" />
             <span>eFootball Champions League (UCL)</span>
-            {!isUclStarted && <Lock className="h-3.5 w-3.5 text-slate-400" />}
+            {!isUclStarted && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
           </button>
 
           <button
@@ -269,62 +267,50 @@ export default function ContinentalClient({
             }}
             className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
               selectedCompetition === "EUROPA"
-                ? "bg-amber-600 text-white shadow-lg shadow-amber-600/30"
-                : "text-slate-400 hover:text-white hover:bg-slate-900"
+                ? "bg-secondary text-white shadow-lg"
+                : "text-muted-foreground hover:text-white hover:bg-card"
             }`}
           >
-            <Globe className="h-4 w-4 text-amber-300" />
+            <Globe className="h-4 w-4 text-secondary" />
             <span>eFootball Europa League (UEL)</span>
-            {!isEuropaStarted && <Lock className="h-3.5 w-3.5 text-slate-400" />}
+            {!isEuropaStarted && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
           </button>
         </div>
 
         {/* Qualification Status for Current Player */}
-        {currentPlayer && (
-          <div className="text-xs">
-            <span className="text-slate-400">Your Status: </span>
-            {isPlayerUclQualified ? (
-              <Badge variant="live">UCL Qualified ({currentPlayer.division})</Badge>
-            ) : isPlayerEuropaQualified ? (
-              <Badge variant="yellow">Europa Qualified ({currentPlayer.division})</Badge>
-            ) : (
-              <Badge variant="secondary">Division Standby</Badge>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Division Regular Season Status Notice */}
       {!isDivisionSeasonFinished && (
-        <div className="rounded-2xl border border-sky-500/30 bg-sky-950/20 p-4 text-xs text-sky-300 flex items-center justify-between gap-3">
+        <div className="rounded-2xl border border-primary/30 bg-primary/20 p-4 text-xs text-primary flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-sky-400 shrink-0" />
+            <Calendar className="h-4 w-4 text-primary shrink-0" />
             <span>
               <strong>Regular Division Season Active:</strong> UCL and Europa continental cups unlock upon the conclusion of Division 1, 2, and 3 season matches.
             </span>
           </div>
-          <Badge variant="secondary" className="font-mono text-[10px] shrink-0">
+          <Badge variant="secondary" className="font-mono text-xs shrink-0">
             Division Season in Play
           </Badge>
         </div>
       )}
 
       {/* Tournament Stage Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-2 border-b border-border pb-2 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         {(!isCurrentDrawDone || isAdmin) && (
           <button
             onClick={() => setActiveTab("DRAWS")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap h-10 ${
               activeTab === "DRAWS"
                 ? selectedCompetition === "UCL"
-                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
-                  : "bg-amber-600/20 text-amber-300 border border-amber-500/40"
-                : "text-slate-400 hover:text-white"
+                  ? "bg-primary/20 text-primary border border-primary/40"
+                  : "bg-secondary/20 text-secondary border border-secondary/40"
+                : "text-muted-foreground hover:text-white"
             }`}
           >
             <Vote className="h-3.5 w-3.5" />
             <span>Interactive Group Draws</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300">
+            <span className="text-xs font-mono px-1.5 py-0.2 rounded-full bg-muted text-foreground">
               {currentSlots.length}/16
             </span>
           </button>
@@ -332,18 +318,18 @@ export default function ContinentalClient({
 
         <button
           onClick={() => setActiveTab("GROUPS")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap h-10 ${
             activeTab === "GROUPS"
               ? selectedCompetition === "UCL"
-                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
-                : "bg-amber-600/20 text-amber-300 border border-amber-500/40"
-              : "text-slate-400 hover:text-white"
+                ? "bg-primary/20 text-primary border border-primary/40"
+                : "bg-secondary/20 text-secondary border border-secondary/40"
+              : "text-muted-foreground hover:text-white"
           }`}
         >
           <Calendar className="h-3.5 w-3.5" />
           <span>Group Stage (2-Leg Matches)</span>
           {groupMatches.length > 0 && (
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-emerald-400">
+            <span className="text-xs font-mono px-1.5 py-0.2 rounded-full bg-muted text-primary">
               {groupMatches.filter((m) => m.status === "FINISHED").length}/{groupMatches.length}
             </span>
           )}
@@ -351,12 +337,12 @@ export default function ContinentalClient({
 
         <button
           onClick={() => setActiveTab("KNOCKOUT")}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[38px] ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap h-10 ${
             activeTab === "KNOCKOUT"
               ? selectedCompetition === "UCL"
-                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
-                : "bg-amber-600/20 text-amber-300 border border-amber-500/40"
-              : "text-slate-400 hover:text-white"
+                ? "bg-primary/20 text-primary border border-primary/40"
+                : "bg-secondary/20 text-secondary border border-secondary/40"
+              : "text-muted-foreground hover:text-white"
           }`}
         >
           <Trophy className="h-3.5 w-3.5" />
@@ -366,15 +352,15 @@ export default function ContinentalClient({
         {pollData?.active && (
           <button
             onClick={() => setActiveTab("TROPHY_POLL")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all animate-pulse shrink-0 whitespace-nowrap min-h-[38px] ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all animate-pulse shrink-0 whitespace-nowrap h-10 ${
               activeTab === "TROPHY_POLL"
-                ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50"
-                : "text-yellow-400 hover:bg-yellow-500/10"
+                ? "bg-secondary/20 text-secondary border border-secondary/50"
+                : "text-secondary hover:bg-secondary/10"
             }`}
           >
-            <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+            <Sparkles className="h-3.5 w-3.5 text-secondary" />
             <span>Grand Final Trophy Poll</span>
-            <span className="text-[10px] font-mono px-1.5 rounded-full bg-yellow-400 text-slate-950 font-black">
+            <span className="text-xs font-mono px-1.5 rounded-full bg-secondary text-secondary-foreground font-black">
               LIVE
             </span>
           </button>
@@ -382,15 +368,15 @@ export default function ContinentalClient({
       </div>
 
       {voteError && (
-        <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-destructive/40 border border-destructive/30 text-destructive text-xs flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
           <span>{voteError}</span>
         </div>
       )}
 
       {voteSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-primary/40 border border-primary/30 text-primary text-xs flex items-center gap-3">
+          <CheckCircle className="h-5 w-5 text-primary shrink-0" />
           <span>{voteSuccess}</span>
         </div>
       )}
@@ -402,8 +388,8 @@ export default function ContinentalClient({
         <div className="space-y-8">
           {/* Scheduled Future Draw Countdown (if not yet due and not unlocked and not admin) */}
           {scheduledDrawTime && !drawCountdown.isDue && !isStarted && !isAdmin ? (
-            <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950/60 via-slate-950 to-slate-950 p-8 sm:p-12 text-center space-y-6 shadow-2xl backdrop-blur-xl">
-              <div className="inline-flex p-4 rounded-2xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-400">
+            <div className="rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/60 via-background to-background p-8 sm:p-12 text-center space-y-6 shadow-2xl backdrop-blur-xl">
+              <div className="inline-flex p-4 rounded-2xl bg-primary/15 border border-primary/40 text-primary">
                 <Clock className="h-10 w-10 animate-pulse" />
               </div>
 
@@ -414,7 +400,7 @@ export default function ContinentalClient({
                 <h2 className="text-3xl sm:text-4xl font-black uppercase text-white tracking-tight">
                   eFootball {selectedCompetition} Group Draws Broadcast
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
+                <p className="text-xs sm:text-sm text-foreground max-w-xl mx-auto">
                   Scheduled by League Commissioner for{" "}
                   <strong className="text-white">
                     {new Date(scheduledDrawTime).toLocaleDateString()} at{" "}
@@ -426,48 +412,45 @@ export default function ContinentalClient({
 
               {/* Countdown Digits */}
               <div className="grid grid-cols-4 gap-3 max-w-md mx-auto pt-2">
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="p-3 rounded-2xl bg-card/90 border border-border">
                   <span className="text-2xl sm:text-3xl font-black text-white font-mono block">
                     {String(drawCountdown.days).padStart(2, "0")}
                   </span>
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Days</span>
+                  <span className="text-xs uppercase font-bold text-muted-foreground">Days</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="p-3 rounded-2xl bg-card/90 border border-border">
                   <span className="text-2xl sm:text-3xl font-black text-white font-mono block">
                     {String(drawCountdown.hours).padStart(2, "0")}
                   </span>
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Hours</span>
+                  <span className="text-xs uppercase font-bold text-muted-foreground">Hours</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="p-3 rounded-2xl bg-card/90 border border-border">
                   <span className="text-2xl sm:text-3xl font-black text-white font-mono block">
                     {String(drawCountdown.minutes).padStart(2, "0")}
                   </span>
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Minutes</span>
+                  <span className="text-xs uppercase font-bold text-muted-foreground">Minutes</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
-                  <span className="text-2xl sm:text-3xl font-black text-indigo-400 font-mono block animate-pulse">
+                <div className="p-3 rounded-2xl bg-card/90 border border-border">
+                  <span className="text-2xl sm:text-3xl font-black text-primary font-mono block animate-pulse">
                     {String(drawCountdown.seconds).padStart(2, "0")}
                   </span>
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Seconds</span>
+                  <span className="text-xs uppercase font-bold text-muted-foreground">Seconds</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 max-w-lg mx-auto text-xs text-slate-400">
+              <div className="p-3 rounded-xl bg-card/60 border border-border/80 max-w-lg mx-auto text-xs text-muted-foreground">
                 ⚡ <strong>UEFA-style Division Protection:</strong> The animated draw system will automatically ensure no group has more than 2 athletes from the same league!
               </div>
             </div>
           ) : !isStarted && !drawCountdown.isDue && !isAdmin ? (
-            <div className="rounded-3xl border border-indigo-500/20 bg-slate-950/90 p-10 text-center space-y-4 shadow-2xl">
-              <div className="inline-flex p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+            <div className="rounded-3xl border border-primary/20 bg-background/90 p-10 text-center space-y-4 shadow-2xl">
+              <div className="inline-flex p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary">
                 <Lock className="h-10 w-10" />
               </div>
-              <Badge variant="destructive" className="font-mono text-xs uppercase">
-                TOURNAMENT LOCKED PENDING COMMISSIONER LAUNCH
-              </Badge>
               <h2 className="text-2xl sm:text-3xl font-black uppercase text-white">
                 eFootball {selectedCompetition} Group Draws
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto">
                 Official group draws will be unlocked and launched by the League Administrator after regular season division fixtures conclude.
               </p>
             </div>
@@ -492,12 +475,12 @@ export default function ContinentalClient({
 
           {/* Qualified Roster List (Grouped by Pots with Club Crests) */}
           <div className="space-y-4 pt-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-400" />
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-primary" />
                 <span>16 Officially Qualified {selectedCompetition} Athletes</span>
               </h3>
-              <span className="text-xs text-slate-400 font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {selectedCompetition === "UCL"
                   ? "8 from Div 1 (Premier League) • 4 from Div 2 (La Liga) • 4 from Div 3 (Serie A)"
                   : "4 from Div 1 (Premier League) • 6 from Div 2 (La Liga) • 6 from Div 3 (Serie A)"}
@@ -510,21 +493,21 @@ export default function ContinentalClient({
                 return (
                   <div
                     key={s.id}
-                    className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-2 transition-all hover:border-indigo-500/40"
+                    className="rounded-2xl border border-border bg-background/80 p-4 space-y-2 transition-all hover:border-primary/40"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-black text-indigo-400">#{idx + 1}</span>
-                      <Badge variant="secondary" className="text-[10px]">
+                      <span className="text-xs font-mono font-black text-primary">#{idx + 1}</span>
+                      <Badge variant="secondary" className="text-xs">
                         {s.seedLabel}
                       </Badge>
                     </div>
 
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-white/95 p-1 border border-slate-700/80 shrink-0 aspect-square shadow-md flex items-center justify-center overflow-hidden">
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-card p-1 border border-border shrink-0 aspect-square shadow-md flex items-center justify-center overflow-hidden">
                         <img
                           src={avatarUrl}
                           alt={s.player.gamerTag}
-                          className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                          className="h-full w-full object-contain"
                           loading="lazy"
                           onError={(e: any) => {
                             e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player.gamerTag || "player")}`;
@@ -536,16 +519,16 @@ export default function ContinentalClient({
                           {s.player.gamerTag}
                         </h4>
                         {s.player.realTeam ? (
-                          <span className="text-xs font-bold text-amber-400 truncate block">
+                          <span className="text-xs font-bold text-secondary truncate block">
                             {s.player.realTeam}
                           </span>
                         ) : (
-                          <p className="text-[11px] text-slate-400 truncate">{s.player.fullName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{s.player.fullName}</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-500">
+                    <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                       <Badge
                         variant={
                           s.player.division === "Division 1"
@@ -554,11 +537,11 @@ export default function ContinentalClient({
                             ? "yellow"
                             : "live"
                         }
-                        className="text-[9px] px-1 py-0"
+                        className="text-xs px-1 py-0"
                       >
                         {s.player.division}
                       </Badge>
-                      <span className="font-bold text-yellow-400">{s.points} Pts</span>
+                      <span className="font-bold text-secondary">{s.points} Pts</span>
                     </div>
                   </div>
                 );
@@ -572,26 +555,26 @@ export default function ContinentalClient({
       {/* TAB 2: GROUP STAGE (STANDINGS & 2-LEGGED FIXTURES) */}
       {/* ===================================================================== */}
       {activeTab === "GROUPS" && (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8">
           {/* Directed banner for completed draw */}
           {isCurrentDrawDone && (
-            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 flex items-center gap-3 shadow-lg">
-              <Sparkles className="h-5 w-5 text-emerald-400 shrink-0" />
+            <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4 flex items-center gap-3 shadow-lg">
+              <Sparkles className="h-5 w-5 text-primary shrink-0" />
               <div className="text-xs">
-                <span className="font-bold text-emerald-300 uppercase mr-1.5">
+                <span className="font-bold text-primary uppercase mr-1.5">
                   Official Draw Concluded:
                 </span>
-                <span className="text-slate-300">
+                <span className="text-foreground">
                   All 16 athletes have been officially drafted into Groups A, B, C, and D. Review your group rivals below while the League Commissioner prepares the 2-legged group matchdays!
                 </span>
               </div>
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="rounded-2xl border border-border bg-background/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div>
               <span className="font-bold text-white block">Group Stage Format: 2-Legged Simultaneous Matches</span>
-              <span className="text-slate-400">
+              <span className="text-muted-foreground">
                 Each fixture consists of Home and Away legs played in the same session. Players upload 2 screenshot proofs and enter aggregate goals. Top 2 in each group advance to Quarter-Finals.
               </span>
             </div>
@@ -606,25 +589,24 @@ export default function ContinentalClient({
               const grpStandings = currentStandings.filter((s) => s.division.includes(grp));
               const theme =
                 grp === "Group A"
-                  ? { border: "border-cyan-500/40", shadow: "shadow-cyan-500/10", dot: "bg-cyan-400", title: "text-cyan-400" }
+                  ? { border: "border-primary/40", dot: "bg-primary", title: "text-primary" }
                   : grp === "Group B"
-                  ? { border: "border-emerald-500/40", shadow: "shadow-emerald-500/10", dot: "bg-emerald-400", title: "text-emerald-400" }
+                  ? { border: "border-secondary/40", dot: "bg-secondary", title: "text-secondary" }
                   : grp === "Group C"
-                  ? { border: "border-amber-500/40", shadow: "shadow-amber-500/10", dot: "bg-amber-400", title: "text-amber-400" }
-                  : { border: "border-purple-500/40", shadow: "shadow-purple-500/10", dot: "bg-purple-400", title: "text-purple-400" };
+                  ? { border: "border-primary/40", dot: "bg-primary", title: "text-primary" }
+                  : { border: "border-secondary/40", dot: "bg-secondary", title: "text-secondary" };
 
               return (
                 <div
                   key={grp}
-                  className={`rounded-2xl border ${theme.border} bg-slate-950/90 p-5 space-y-3 shadow-xl ${theme.shadow} backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-500`}
-                  style={{ animationDelay: `${gIdx * 150}ms` }}
+                  className={`rounded-2xl border ${theme.border} bg-background/90 p-5 space-y-3 shadow-xl backdrop-blur-xl`}
                 >
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${theme.dot} animate-pulse`} />
                       <span className={`font-black uppercase text-sm ${theme.title}`}>{grp} Standings</span>
                     </div>
-                    <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/40 bg-emerald-950/20 font-mono">
+                    <Badge variant="outline" className="text-xs text-primary border-primary/40 bg-primary/10 font-mono">
                       Top 2 → QF
                     </Badge>
                   </div>
@@ -632,7 +614,7 @@ export default function ContinentalClient({
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="text-[10px] uppercase text-slate-500 border-b border-slate-800/60">
+                        <tr className="text-xs uppercase text-muted-foreground border-b border-border/60">
                           <th className="py-2">Pos</th>
                           <th className="py-2">Athlete</th>
                           <th className="py-2 text-center">P</th>
@@ -643,10 +625,10 @@ export default function ContinentalClient({
                           <th className="py-2 text-right">Pts</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/40">
+                      <tbody className="divide-y divide-border/40">
                         {grpStandings.length === 0 ? (
                           <tr>
-                            <td colSpan={8} className="py-4 text-center text-slate-500">
+                            <td colSpan={8} className="py-4 text-center text-muted-foreground">
                               No matches recorded yet
                             </td>
                           </tr>
@@ -654,12 +636,12 @@ export default function ContinentalClient({
                           grpStandings.map((s, idx) => (
                             <tr
                               key={s.id}
-                              className={`transition-colors ${idx < 2 ? "bg-emerald-950/10 font-bold" : ""}`}
+                              className={`transition-colors ${idx < 2 ? "bg-primary/10 font-bold" : ""}`}
                             >
                               <td className="py-2 font-mono">
                                 <span
-                                  className={`inline-block w-5 h-5 rounded-full text-center text-[10px] leading-5 ${
-                                    idx < 2 ? "bg-emerald-500/20 text-emerald-300 font-bold" : "text-slate-500"
+                                  className={`inline-block w-5 h-5 rounded-full text-center text-xs leading-5 ${
+                                    idx < 2 ? "bg-primary/20 text-primary font-bold" : "text-muted-foreground"
                                   }`}
                                 >
                                   {idx + 1}
@@ -667,11 +649,11 @@ export default function ContinentalClient({
                               </td>
                               <td className="py-2.5 text-white">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="h-6 w-6 sm:h-7 sm:h-7 rounded-md bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                                  <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden">
                                     <img
                                       src={resolvePlayerAvatar(s.player)}
                                       alt={s.player.realTeam || s.player.gamerTag}
-                                      className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                                      className="h-full w-full object-contain"
                                       loading="lazy"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
@@ -682,7 +664,7 @@ export default function ContinentalClient({
                                     <div className="flex items-center gap-1.5 truncate">
                                       <span className="font-bold truncate text-xs">{s.player.gamerTag}</span>
                                       {s.player.realTeam && (
-                                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-amber-400 font-bold border border-amber-500/20 hidden sm:inline-block">
+                                        <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold border border-primary/20 hidden sm:inline-block">
                                           {findTeam(s.player.realTeam)?.shortName || s.player.realTeam}
                                         </span>
                                       )}
@@ -690,14 +672,14 @@ export default function ContinentalClient({
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-2 text-center font-mono text-slate-300">{s.played}</td>
-                              <td className="py-2 text-center font-mono text-slate-300">{s.won}</td>
-                              <td className="py-2 text-center font-mono text-slate-300">{s.drawn}</td>
-                              <td className="py-2 text-center font-mono text-slate-300">{s.lost}</td>
-                              <td className="py-2 text-center font-mono text-slate-300">
+                              <td className="py-2 text-center font-mono text-foreground">{s.played}</td>
+                              <td className="py-2 text-center font-mono text-foreground">{s.won}</td>
+                              <td className="py-2 text-center font-mono text-foreground">{s.drawn}</td>
+                              <td className="py-2 text-center font-mono text-foreground">{s.lost}</td>
+                              <td className="py-2 text-center font-mono text-foreground">
                                 {s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
                               </td>
-                              <td className="py-2 text-right font-mono font-black text-yellow-400">{s.points}</td>
+                              <td className="py-2 text-right font-mono font-black text-secondary">{s.points}</td>
                             </tr>
                           ))
                         )}
@@ -712,12 +694,12 @@ export default function ContinentalClient({
           {/* Group Fixtures List */}
           <div className="space-y-4">
             <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-sky-400" />
+              <Calendar className="h-4 w-4 text-primary" />
               <span>Group Stage Fixtures (2-Legged Simultaneous Matches)</span>
             </h3>
 
             {groupMatches.length === 0 ? (
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-8 text-center text-xs text-slate-400">
+              <div className="rounded-2xl border border-border bg-card/40 p-8 text-center text-xs text-muted-foreground">
                 Group stage fixtures have not yet been generated by the commissioner. Complete the group draws first.
               </div>
             ) : (
@@ -731,15 +713,15 @@ export default function ContinentalClient({
                   return (
                     <div
                       key={m.id}
-                      className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-3 hover:border-slate-700 transition-all"
+                      className="rounded-2xl border border-border bg-background/80 p-4 space-y-3 hover:border-border transition-all"
                     >
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/60 pb-2">
-                        <span className="font-bold text-indigo-400">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/60 pb-2">
+                        <span className="font-bold text-primary">
                           {m.groupName || "Group Stage"} • {m.round}
                         </span>
                         <Badge
                           variant={isFinished ? "secondary" : "destructive"}
-                          className="text-[9px] px-1.5 py-0"
+                          className="text-xs px-1.5 py-0"
                         >
                           {isFinished ? "FINISHED" : "SCHEDULED"}
                         </Badge>
@@ -747,11 +729,11 @@ export default function ContinentalClient({
 
                       <div className="grid grid-cols-3 items-center text-center gap-2">
                         <div className="flex items-center gap-2 sm:gap-2.5 text-left min-w-0">
-                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -762,34 +744,34 @@ export default function ContinentalClient({
                             <div className="flex items-center gap-1 flex-wrap">
                               <span className="font-bold text-white block text-xs sm:text-sm truncate">{m.homePlayer.gamerTag}</span>
                               {m.homePlayer.realTeam && (
-                                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-sky-400 font-bold truncate">
+                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold truncate">
                                   {findTeam(m.homePlayer.realTeam)?.shortName || m.homePlayer.realTeam}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-500 block truncate">{m.homePlayer.division}</span>
+                            <span className="text-xs text-muted-foreground block truncate">{m.homePlayer.division}</span>
                           </div>
                         </div>
 
                         <div className="space-y-1">
                           {isFinished ? (
                             <div>
-                              <span className="text-base sm:text-lg font-black text-yellow-400 font-mono">
+                              <span className="text-base sm:text-lg font-black text-secondary font-mono">
                                 {m.homeScore} - {m.awayScore}
                               </span>
                               {hasLeg2 && (
-                                <span className="text-[10px] text-slate-400 block font-mono">
+                                <span className="text-xs text-muted-foreground block font-mono">
                                   Leg 2: {m.leg2HomeScore} - {m.leg2AwayScore}
                                 </span>
                               )}
                               {aggHome !== null && aggAway !== null && (
-                                <span className="text-[10px] font-bold text-emerald-400 block font-mono">
+                                <span className="text-xs font-bold text-primary block font-mono">
                                   Agg: {aggHome} - {aggAway}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-xs font-mono text-slate-500">2-Leg Match</span>
+                            <span className="text-xs font-mono text-muted-foreground">2-Leg Match</span>
                           )}
                         </div>
 
@@ -798,18 +780,18 @@ export default function ContinentalClient({
                             <div className="flex items-center justify-end gap-1 flex-wrap">
                               <span className="font-bold text-white block text-xs sm:text-sm truncate">{m.awayPlayer.gamerTag}</span>
                               {m.awayPlayer.realTeam && (
-                                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-emerald-400 font-bold truncate">
+                                <span className="text-xs font-mono px-1 py-0.2 rounded bg-muted text-primary font-bold truncate">
                                   {findTeam(m.awayPlayer.realTeam)?.shortName || m.awayPlayer.realTeam}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-500 block truncate">{m.awayPlayer.division}</span>
+                            <span className="text-xs text-muted-foreground block truncate">{m.awayPlayer.division}</span>
                           </div>
-                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -820,14 +802,14 @@ export default function ContinentalClient({
                       </div>
 
                       {m.screenshotUrl && (
-                        <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">Proofs:</span>
+                        <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Proofs:</span>
                           <div className="flex gap-2">
                             <a
                               href={m.screenshotUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-sky-400 hover:underline"
+                              className="text-primary hover:underline"
                             >
                               Leg 1 Proof
                             </a>
@@ -836,7 +818,7 @@ export default function ContinentalClient({
                                 href={m.leg2ScreenshotUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-sky-400 hover:underline"
+                                className="text-primary hover:underline"
                               >
                                 • Leg 2 Proof
                               </a>
@@ -858,30 +840,30 @@ export default function ContinentalClient({
       {/* ===================================================================== */}
       {activeTab === "KNOCKOUT" && (
         <div className="space-y-8">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 text-xs text-slate-300 space-y-1">
+          <div className="rounded-2xl border border-border bg-background/80 p-4 text-xs text-foreground space-y-1">
             <span className="font-bold text-white block">Knockout Stage Progression:</span>
-            <p className="text-slate-400">
+            <p className="text-muted-foreground">
               • <strong>Quarter-Finals & Semi-Finals:</strong> 2 legs played simultaneously. Aggregate scores decide who advances.
             </p>
-            <p className="text-slate-400">
+            <p className="text-muted-foreground">
               • <strong>Grand Final:</strong> Single-match showdown (1 leg). Winner lifts the {selectedCompetition} Trophy!
             </p>
           </div>
 
           {/* Quarter Finals */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center justify-between border-b border-border pb-2">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Shield className="h-4 w-4 text-indigo-400" />
+                <Shield className="h-4 w-4 text-primary" />
                 <span>Quarter-Finals (2 Legs at Once • Aggregate Decider)</span>
               </h3>
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-xs">
                 8 Players
               </Badge>
             </div>
 
             {qfMatches.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4">Quarter-Finals will be generated once group stage concludes.</p>
+              <p className="text-xs text-muted-foreground py-4">Quarter-Finals will be generated once group stage concludes.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {qfMatches.map((m) => {
@@ -890,18 +872,18 @@ export default function ContinentalClient({
                   const aggAway = m.aggregateAwayScore ?? (isFinished ? (m.awayScore || 0) + (m.leg2AwayScore || 0) : null);
 
                   return (
-                    <div key={m.id} className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-2">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="font-bold text-indigo-300">{m.round}</span>
+                    <div key={m.id} className="rounded-xl border border-border bg-background/80 p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-bold text-primary">{m.round}</span>
                         <span>{isFinished ? "FINISHED" : "SCHEDULED"}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -911,19 +893,19 @@ export default function ContinentalClient({
                           <span className="truncate">{m.homePlayer.gamerTag}</span>
                         </div>
                         {isFinished ? (
-                          <span className="font-mono text-yellow-400 shrink-0 text-xs sm:text-sm">
+                          <span className="font-mono text-secondary shrink-0 text-xs sm:text-sm">
                             Agg: {aggHome} - {aggAway}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-500 shrink-0">vs</span>
+                          <span className="text-xs text-muted-foreground shrink-0">vs</span>
                         )}
                         <div className="flex items-center gap-2 min-w-0 justify-end">
                           <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -941,18 +923,18 @@ export default function ContinentalClient({
 
           {/* Semi-Finals */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center justify-between border-b border-border pb-2">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Flame className="h-4 w-4 text-amber-400" />
-                <span>Semi-Finals (2-Leg Matches)</span>
+                <Flame className="h-4 w-4 text-secondary" />
+                <span>Semi-Finals (2 Legs at Once • Aggregate Decider)</span>
               </h3>
-              <Badge variant="outline" className="text-[10px] text-amber-300 border-amber-500/30">
+              <Badge variant="yellow" className="text-xs">
                 4 Players
               </Badge>
             </div>
 
             {sfMatches.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4">Semi-Finals will be generated once Quarter-Finals conclude.</p>
+              <p className="text-xs text-muted-foreground py-4">Semi-Finals will be generated once Quarter-Finals conclude.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sfMatches.map((m) => {
@@ -961,18 +943,18 @@ export default function ContinentalClient({
                   const aggAway = m.aggregateAwayScore ?? (isFinished ? (m.awayScore || 0) + (m.leg2AwayScore || 0) : null);
 
                   return (
-                    <div key={m.id} className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-2">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="font-bold text-amber-300">{m.round}</span>
+                    <div key={m.id} className="rounded-xl border border-border bg-background/80 p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-bold text-secondary">{m.round}</span>
                         <span>{isFinished ? "FINISHED" : "SCHEDULED"}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.homePlayer)}
                               alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
@@ -982,19 +964,19 @@ export default function ContinentalClient({
                           <span className="truncate">{m.homePlayer.gamerTag}</span>
                         </div>
                         {isFinished ? (
-                          <span className="font-mono text-yellow-400 shrink-0 text-xs sm:text-sm">
+                          <span className="font-mono text-secondary shrink-0 text-xs sm:text-sm">
                             Agg: {aggHome} - {aggAway}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-500 shrink-0">vs</span>
+                          <span className="text-xs text-muted-foreground shrink-0">vs</span>
                         )}
                         <div className="flex items-center gap-2 min-w-0 justify-end">
                           <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
                             <img
                               src={resolvePlayerAvatar(m.awayPlayer)}
                               alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
@@ -1012,31 +994,31 @@ export default function ContinentalClient({
 
           {/* Grand Final */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center justify-between border-b border-border pb-2">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-yellow-400" />
+                <Trophy className="h-4 w-4 text-secondary" />
                 <span>The Grand Final (Single Match Showdown • 1 Leg Only)</span>
               </h3>
-              <Badge variant="live" className="text-[10px]">
+              <Badge variant="live" className="text-xs">
                 CHAMPIONSHIP MATCH
               </Badge>
             </div>
 
             {!finalMatch ? (
-              <p className="text-xs text-slate-500 py-4">Grand Final will be unlocked once Semi-Finals conclude.</p>
+              <p className="text-xs text-muted-foreground py-4">Grand Final will be unlocked once Semi-Finals conclude.</p>
             ) : (
-              <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-b from-yellow-950/20 via-slate-950 to-slate-950 p-6 sm:p-8 text-center space-y-6 shadow-2xl">
+              <div className="rounded-3xl border border-secondary/40 bg-gradient-to-b from-secondary/20 via-background to-background p-6 sm:p-8 text-center space-y-6 shadow-2xl">
                 <Badge variant="yellow" className="font-black tracking-widest text-xs uppercase px-3 py-1">
                   OFFICIAL GRAND FINAL
                 </Badge>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-6">
                   <div className="space-y-2 text-center sm:text-right">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-white/95 border-2 border-slate-600/80 p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card border border-border p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
                       <img
                         src={resolvePlayerAvatar(finalMatch.homePlayer)}
                         alt={finalMatch.homePlayer.realTeam || finalMatch.homePlayer.gamerTag}
-                        className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
+                        className="h-full w-full object-contain"
                         loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.homePlayer?.gamerTag || "player")}`;
@@ -1044,34 +1026,34 @@ export default function ContinentalClient({
                       />
                     </div>
                     <h4 className="text-xl font-black text-white">{finalMatch.homePlayer.gamerTag}</h4>
-                    <p className="text-xs text-slate-400">{finalMatch.homePlayer.fullName}</p>
+                    <p className="text-xs text-muted-foreground">{finalMatch.homePlayer.fullName}</p>
                     {finalMatch.homePlayer.realTeam && (
-                      <span className="text-xs font-bold text-sky-400 block">{finalMatch.homePlayer.realTeam}</span>
+                      <span className="text-xs font-bold text-primary block">{finalMatch.homePlayer.realTeam}</span>
                     )}
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-xs">
                       {finalMatch.homePlayer.division}
                     </Badge>
                   </div>
 
                   <div className="space-y-2">
-                    <Trophy className="h-12 w-12 text-yellow-400 mx-auto animate-bounce" />
+                    <Trophy className="h-12 w-12 text-secondary mx-auto animate-bounce" />
                     {finalMatch.status === "FINISHED" ? (
-                      <span className="text-3xl font-black text-yellow-400 font-mono">
+                      <span className="text-3xl font-black text-secondary font-mono">
                         {finalMatch.homeScore} - {finalMatch.awayScore}
                       </span>
                     ) : (
-                      <span className="text-sm font-bold text-slate-400 uppercase tracking-widest block">
+                      <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest block">
                         Single Match Final
                       </span>
                     )}
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-white/95 border-2 border-slate-600/80 p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card border border-border p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
                       <img
                         src={resolvePlayerAvatar(finalMatch.awayPlayer)}
                         alt={finalMatch.awayPlayer.realTeam || finalMatch.awayPlayer.gamerTag}
-                        className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
+                        className="h-full w-full object-contain"
                         loading="lazy"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.awayPlayer?.gamerTag || "player")}`;
@@ -1079,21 +1061,21 @@ export default function ContinentalClient({
                       />
                     </div>
                     <h4 className="text-xl font-black text-white">{finalMatch.awayPlayer.gamerTag}</h4>
-                    <p className="text-xs text-slate-400">{finalMatch.awayPlayer.fullName}</p>
+                    <p className="text-xs text-muted-foreground">{finalMatch.awayPlayer.fullName}</p>
                     {finalMatch.awayPlayer.realTeam && (
-                      <span className="text-xs font-bold text-amber-400 block">{finalMatch.awayPlayer.realTeam}</span>
+                      <span className="text-xs font-bold text-secondary block">{finalMatch.awayPlayer.realTeam}</span>
                     )}
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-xs">
                       {finalMatch.awayPlayer.division}
                     </Badge>
                   </div>
                 </div>
 
                 {/* Trophy Poll button link */}
-                <div className="pt-4 border-t border-slate-800">
+                <div className="pt-4 border-t border-border">
                   <Button
                     onClick={() => setActiveTab("TROPHY_POLL")}
-                    className="bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider"
+                    className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider"
                   >
                     🏆 Vote in the Grand Final Trophy Prediction Poll
                   </Button>
@@ -1110,40 +1092,40 @@ export default function ContinentalClient({
       {activeTab === "TROPHY_POLL" && (
         <div className="space-y-6">
           {!pollData?.active ? (
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-8 text-center space-y-3">
-              <Trophy className="h-10 w-10 text-slate-600 mx-auto" />
+            <div className="rounded-3xl border border-border bg-background/80 p-8 text-center space-y-3">
+              <Trophy className="h-10 w-10 text-muted-foreground mx-auto" />
               <h3 className="text-lg font-bold text-white">Trophy Prediction Poll Unavailable</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 The Trophy Prediction Poll activates automatically when the two Grand Finalists are decided following the Semi-Finals. All players across the league (including reserve pool) will be invited to vote.
               </p>
             </div>
           ) : (
-            <div className="rounded-3xl border border-yellow-500/40 bg-gradient-to-r from-yellow-950/30 via-slate-950 to-indigo-950/30 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="rounded-3xl border border-secondary/40 bg-gradient-to-r from-secondary/30 via-background to-primary/30 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles className="h-5 w-5 text-yellow-400" />
-                    <span className="text-xs font-black uppercase tracking-widest text-yellow-400">
+                    <Sparkles className="h-5 w-5 text-secondary" />
+                    <span className="text-xs font-black uppercase tracking-widest text-secondary">
                       League-Wide Championship Poll
                     </span>
                   </div>
                   <h2 className="text-2xl font-black uppercase text-white">
                     Who Will Lift the {selectedCompetition} Trophy?
                   </h2>
-                  <p className="text-xs text-slate-300 mt-1">
+                  <p className="text-xs text-foreground mt-1">
                     Open to all players in the league, including the reserve pool. Cast your vote for the ultimate champion!
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs text-slate-400 block">Total Predictions Cast</span>
-                  <span className="text-2xl font-black text-yellow-400 font-mono">{pollData.totalVotes}</span>
+                  <span className="text-xs text-muted-foreground block">Total Predictions Cast</span>
+                  <span className="text-2xl font-black text-secondary font-mono">{pollData.totalVotes}</span>
                 </div>
               </div>
 
               {pollMsg && (
-                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+                <div className="p-3 rounded-xl bg-primary/40 border border-primary/30 text-primary text-xs flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
                   <span>{pollMsg}</span>
                 </div>
               )}
@@ -1154,21 +1136,21 @@ export default function ContinentalClient({
                 <div
                   className={`rounded-2xl border p-6 space-y-4 text-center transition-all ${
                     pollData.userVotedWinnerId === pollData.finalist1.id
-                      ? "border-yellow-400 bg-yellow-950/20 shadow-lg shadow-yellow-500/20"
-                      : "border-slate-800 bg-slate-900/60"
+                      ? "border-secondary bg-secondary/20 shadow-lg"
+                      : "border-border bg-card/60"
                   }`}
                 >
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-xs">
                     Finalist 1 • {pollData.finalist1.division}
                   </Badge>
                   <h3 className="text-2xl font-black text-white">{pollData.finalist1.gamerTag}</h3>
-                  <p className="text-xs text-slate-400">{pollData.finalist1.fullName}</p>
+                  <p className="text-xs text-muted-foreground">{pollData.finalist1.fullName}</p>
 
                   <div className="pt-2">
-                    <span className="text-4xl font-black text-yellow-400 font-mono">
+                    <span className="text-4xl font-black text-secondary font-mono">
                       {pollData.finalist1.percentage}%
                     </span>
-                    <span className="text-xs text-slate-400 block mt-1 font-mono">
+                    <span className="text-xs text-muted-foreground block mt-1 font-mono">
                       {pollData.finalist1.votes} votes
                     </span>
                   </div>
@@ -1178,8 +1160,8 @@ export default function ContinentalClient({
                     disabled={castingVote}
                     className={`w-full text-xs font-bold uppercase tracking-wider ${
                       pollData.userVotedWinnerId === pollData.finalist1.id
-                        ? "bg-yellow-500 text-slate-950 font-black"
-                        : "bg-slate-800 hover:bg-yellow-500 hover:text-slate-950 text-white"
+                        ? "bg-secondary text-secondary-foreground font-black"
+                        : "bg-muted hover:bg-secondary hover:text-secondary-foreground text-white"
                     }`}
                   >
                     {pollData.userVotedWinnerId === pollData.finalist1.id
@@ -1192,21 +1174,21 @@ export default function ContinentalClient({
                 <div
                   className={`rounded-2xl border p-6 space-y-4 text-center transition-all ${
                     pollData.userVotedWinnerId === pollData.finalist2.id
-                      ? "border-yellow-400 bg-yellow-950/20 shadow-lg shadow-yellow-500/20"
-                      : "border-slate-800 bg-slate-900/60"
+                      ? "border-secondary bg-secondary/20 shadow-lg"
+                      : "border-border bg-card/60"
                   }`}
                 >
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-xs">
                     Finalist 2 • {pollData.finalist2.division}
                   </Badge>
                   <h3 className="text-2xl font-black text-white">{pollData.finalist2.gamerTag}</h3>
-                  <p className="text-xs text-slate-400">{pollData.finalist2.fullName}</p>
+                  <p className="text-xs text-muted-foreground">{pollData.finalist2.fullName}</p>
 
                   <div className="pt-2">
-                    <span className="text-4xl font-black text-yellow-400 font-mono">
+                    <span className="text-4xl font-black text-secondary font-mono">
                       {pollData.finalist2.percentage}%
                     </span>
-                    <span className="text-xs text-slate-400 block mt-1 font-mono">
+                    <span className="text-xs text-muted-foreground block mt-1 font-mono">
                       {pollData.finalist2.votes} votes
                     </span>
                   </div>
@@ -1216,8 +1198,8 @@ export default function ContinentalClient({
                     disabled={castingVote}
                     className={`w-full text-xs font-bold uppercase tracking-wider ${
                       pollData.userVotedWinnerId === pollData.finalist2.id
-                        ? "bg-yellow-500 text-slate-950 font-black"
-                        : "bg-slate-800 hover:bg-yellow-500 hover:text-slate-950 text-white"
+                        ? "bg-secondary text-secondary-foreground font-black"
+                        : "bg-muted hover:bg-secondary hover:text-secondary-foreground text-white"
                     }`}
                   >
                     {pollData.userVotedWinnerId === pollData.finalist2.id

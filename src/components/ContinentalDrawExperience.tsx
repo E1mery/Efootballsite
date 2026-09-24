@@ -57,20 +57,16 @@ export default function ContinentalDrawExperience({
   const isUcl = competition === "UCL";
   const themeColors = isUcl
     ? {
-        primary: "indigo",
-        accent: "sky",
-        bgGrad: "from-slate-950 via-indigo-950/70 to-slate-950",
-        border: "border-indigo-500/40",
-        glow: "shadow-indigo-500/20",
-        badge: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
+        bgGrad: "from-background via-primary/70 to-background",
+        border: "border-primary/40",
+        glow: "",
+        badge: "bg-primary/20 text-primary border-primary/40",
       }
     : {
-        primary: "amber",
-        accent: "orange",
-        bgGrad: "from-slate-950 via-amber-950/70 to-slate-950",
-        border: "border-amber-500/40",
-        glow: "shadow-amber-500/20",
-        badge: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+        bgGrad: "from-background via-secondary/70 to-background",
+        border: "border-secondary/40",
+        glow: "",
+        badge: "bg-secondary/20 text-secondary border-secondary/40",
       };
 
   // Group allocations state
@@ -352,13 +348,13 @@ export default function ContinentalDrawExperience({
   if (safeQualified.length === 0 && (existingSlots || []).length === 0) {
     return (
       <div className={`relative rounded-3xl border ${themeColors.border} bg-gradient-to-b ${themeColors.bgGrad} p-8 text-center space-y-4 text-white shadow-2xl`}>
-        <Trophy className="h-12 w-12 text-indigo-400 mx-auto" />
+        <Trophy className="h-12 w-12 text-primary mx-auto" />
         <h3 className="text-xl font-black uppercase">Draw Roster Initializing</h3>
-        <p className="text-xs text-slate-400 max-w-md mx-auto">
+        <p className="text-xs text-muted-foreground max-w-md mx-auto">
           The qualified athletes for this continental tournament have not been selected or published yet. Please check back once regular season play concludes.
         </p>
         {onClose && (
-          <Button onClick={onClose} className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl">
+          <Button onClick={onClose} className="bg-muted hover:bg-accent text-white text-xs font-bold px-4 py-2 rounded-xl">
             Close
           </Button>
         )}
@@ -369,30 +365,30 @@ export default function ContinentalDrawExperience({
   return (
     <div className={`relative rounded-3xl border ${themeColors.border} bg-gradient-to-b ${themeColors.bgGrad} p-4 sm:p-8 backdrop-blur-2xl shadow-2xl text-white space-y-6 overflow-hidden`}>
       {/* Decorative Background Glows */}
-      <div className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-indigo-600/15 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-amber-600/15 blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-secondary/15 blur-3xl pointer-events-none" />
 
       {/* Broadcast Header */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <Badge className={`${themeColors.badge} font-black text-[10px] tracking-wider uppercase`}>
+            <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-ping" />
+            <Badge className={`${themeColors.badge} font-black text-xs tracking-wider uppercase`}>
               Official Live Draw Broadcast
             </Badge>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-muted-foreground font-mono">
               Progress: {totalDrawn}/16 Athletes
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight flex items-center gap-2.5">
             {isUcl ? (
-              <Trophy className="h-7 w-7 text-indigo-400 animate-pulse" />
+              <Trophy className="h-7 w-7 text-primary animate-pulse" />
             ) : (
-              <Globe className="h-7 w-7 text-amber-400 animate-pulse" />
+              <Globe className="h-7 w-7 text-secondary animate-pulse" />
             )}
             <span>eFootball {competition} Group Stage Draws</span>
           </h2>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-foreground">
             <strong>Association Protection Constraint:</strong> No more than 2 players from the same division can be drawn into the same group.
           </p>
         </div>
@@ -406,18 +402,18 @@ export default function ContinentalDrawExperience({
               const nextMuted = drawAudio.toggleMute();
               setIsMuted(nextMuted);
             }}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1.5 text-xs font-mono shadow-inner"
+            className="p-2 rounded-xl bg-card border border-border text-foreground hover:text-white hover:bg-muted transition-all flex items-center gap-1.5 text-xs font-mono shadow-inner"
             title={isMuted ? "Unmute Sound Effects" : "Mute Sound Effects"}
           >
             {isMuted ? (
               <>
-                <VolumeX className="h-4 w-4 text-rose-400" />
-                <span className="text-[10px] text-rose-300 font-bold">Sound Muted</span>
+                <VolumeX className="h-4 w-4 text-destructive" />
+                <span className="text-xs text-destructive font-bold">Sound Muted</span>
               </>
             ) : (
               <>
-                <Volume2 className="h-4 w-4 text-emerald-400 animate-pulse" />
-                <span className="text-[10px] text-emerald-300 font-bold">Sound ON</span>
+                <Volume2 className="h-4 w-4 text-primary animate-pulse" />
+                <span className="text-xs text-primary font-bold">Sound ON</span>
               </>
             )}
           </button>
@@ -432,8 +428,8 @@ export default function ContinentalDrawExperience({
                   size="sm"
                   className={`font-black text-xs shadow-lg ${
                     isUcl
-                      ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30"
-                      : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30"
+                      ? "bg-primary hover:bg-primary text-white"
+                      : "bg-secondary hover:bg-secondary text-white"
                   }`}
                 >
                   <Play className="h-3.5 w-3.5 mr-1" />
@@ -445,7 +441,7 @@ export default function ContinentalDrawExperience({
                   disabled={remainingPool.length === 0}
                   variant="outline"
                   size="sm"
-                  className="text-xs font-bold border-slate-700 bg-slate-900/80 hover:bg-slate-800"
+                  className="text-xs font-bold border-border bg-card/80 hover:bg-muted"
                 >
                   {isAutoPlaying ? "Pause Broadcast" : "Auto Broadcast"}
                 </Button>
@@ -454,14 +450,14 @@ export default function ContinentalDrawExperience({
                   onClick={handleInstantComplete}
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-slate-400 hover:text-white"
+                  className="text-xs text-muted-foreground hover:text-white"
                   title="Fast forward all remaining picks"
                 >
                   <FastForward className="h-3.5 w-3.5 mr-1" /> Skip to End
                 </Button>
               </>
             ) : (
-              <Badge variant="secondary" className="text-xs font-mono py-1 px-3 border border-slate-700">
+              <Badge variant="secondary" className="text-xs font-mono py-1 px-3 border border-border">
                 Official Draw Controlled by Commissioner
               </Badge>
             )
@@ -478,8 +474,8 @@ export default function ContinentalDrawExperience({
                   size="sm"
                   className={`font-black text-xs ${
                     commitSuccess
-                      ? "bg-emerald-600 text-white"
-                      : "bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 hover:brightness-110 shadow-lg shadow-yellow-500/20"
+                      ? "bg-primary text-white"
+                      : "bg-gradient-to-r from-secondary to-secondary text-secondary-foreground hover:brightness-110 shadow-lg"
                   }`}
                 >
                   <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -498,7 +494,7 @@ export default function ContinentalDrawExperience({
               onClick={onClose}
               variant="ghost"
               size="sm"
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-muted-foreground hover:text-white"
             >
               Exit
             </Button>
@@ -509,20 +505,20 @@ export default function ContinentalDrawExperience({
       {/* Main Center Stage: Spinning Pod & Drawing Reveal */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
         {/* Left Pot Summary */}
-        <div className="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <span className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
-              <Shield className="h-3.5 w-3.5 text-indigo-400" />
+        <div className="lg:col-span-3 rounded-2xl border border-border bg-card/60 p-4 space-y-3 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <span className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+              <Shield className="h-3.5 w-3.5 text-primary" />
               Remaining Pot Pool
             </span>
-            <Badge variant="secondary" className="font-mono text-[10px]">
+            <Badge variant="secondary" className="font-mono text-xs">
               {remainingPool.length} Left
             </Badge>
           </div>
 
-          <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
             {remainingPool.length === 0 ? (
-              <p className="text-center py-8 text-xs text-emerald-400 font-bold">
+              <p className="text-center py-8 text-xs text-primary font-bold">
                 ✓ All 16 Athletes Drawn!
               </p>
             ) : (
@@ -531,21 +527,21 @@ export default function ContinentalDrawExperience({
                 return (
                   <div
                     key={athlete.id}
-                    className="flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs"
+                    className="flex items-center justify-between p-2 rounded-xl bg-background/70 border border-border/80 text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="h-6 w-6 rounded-full bg-white/95 p-0.5 border border-slate-700 shrink-0 aspect-square flex items-center justify-center overflow-hidden shadow-sm">
+                      <div className="h-6 w-6 rounded-full bg-card p-0.5 border border-border shrink-0 aspect-square flex items-center justify-center overflow-hidden">
                         <img
                           src={avatarUrl}
                           alt={athlete.gamerTag}
-                          className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                          className="h-full w-full object-contain"
                           loading="lazy"
                           onError={(e: any) => {
                             e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
                           }}
                         />
                       </div>
-                      <span className="font-bold text-white truncate max-w-[120px]">
+                      <span className="font-bold text-white truncate">
                         {athlete.gamerTag}
                       </span>
                     </div>
@@ -557,7 +553,7 @@ export default function ContinentalDrawExperience({
                           ? "yellow"
                           : "live"
                       }
-                      className="text-[9px] px-1 py-0 shrink-0"
+                      className="text-xs px-1 py-0 shrink-0"
                     >
                       {athlete.division.replace("Division ", "D")}
                     </Badge>
@@ -569,23 +565,23 @@ export default function ContinentalDrawExperience({
         </div>
 
         {/* Center: Animated Spinning Drum & Revealer */}
-        <div className="lg:col-span-6 relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950/40 via-slate-950 to-slate-950 shadow-2xl overflow-hidden min-h-[260px]">
+        <div className="lg:col-span-6 relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/40 via-background to-background shadow-2xl overflow-hidden">
           {/* Neon Star Glow Center */}
-          <div className="absolute inset-0 bg-radial from-indigo-600/10 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-radial from-primary/10 via-transparent to-transparent pointer-events-none" />
 
           {isSpinning ? (
-            <div className="text-center space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="text-center space-y-4 animate-fade-in animate-zoom-in duration-200">
               {/* Spinning 3D Spheres Animation */}
               <div className="relative mx-auto h-24 w-24 sm:h-28 sm:w-28 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-4 border-dashed border-indigo-500 animate-spin" />
-                <div className="absolute inset-2 rounded-full border-2 border-t-amber-400 border-r-transparent border-b-sky-400 border-l-transparent animate-spin duration-700" />
-                <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-indigo-600 via-sky-400 to-indigo-900 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+                <div className="absolute inset-0 rounded-full border-4 border-dashed border-primary animate-spin" />
+                <div className="absolute inset-2 rounded-full border-2 border-t-secondary border-r-transparent border-b-primary border-l-transparent animate-spin duration-700" />
+                <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-primary via-primary to-primary flex items-center justify-center shadow-lg">
                   <Sparkles className="h-7 w-7 text-white animate-pulse" />
                 </div>
               </div>
 
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block animate-pulse">
+                <span className="text-xs font-black uppercase tracking-widest text-primary block animate-pulse">
                   Selecting Capsule...
                 </span>
                 <span className="text-2xl sm:text-3xl font-black text-white font-mono tracking-wider drop-shadow-md">
@@ -594,36 +590,36 @@ export default function ContinentalDrawExperience({
               </div>
             </div>
           ) : currentDrawnAthlete ? (
-            <div className="text-center space-y-3 animate-in zoom-in-95 duration-300">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-black uppercase tracking-wider">
-                <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+            <div className="text-center space-y-3 animate-zoom-in duration-300">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-black uppercase tracking-wider">
+                <Sparkles className="h-3.5 w-3.5 text-secondary" />
                 Drawn Capsule
               </div>
 
               {/* Athlete Card Reveal */}
-              <div className="flex flex-col items-center p-4 rounded-2xl bg-slate-900/90 border-2 border-yellow-500/60 shadow-xl shadow-yellow-500/10 min-w-[240px]">
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-card/90 border-2 border-secondary/60 shadow-xl w-60">
                 <div className="relative mb-2">
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-white/95 p-2 border-2 border-slate-700 shrink-0 aspect-square shadow-xl flex items-center justify-center overflow-hidden">
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card p-2 border-2 border-border shrink-0 aspect-square shadow-xl flex items-center justify-center overflow-hidden">
                     <img
                       src={resolvePlayerAvatar(currentDrawnAthlete)}
                       alt={currentDrawnAthlete.gamerTag}
-                      className="h-full w-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
+                      className="h-full w-full object-contain"
                       loading="lazy"
                       onError={(e: any) => {
                         e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentDrawnAthlete.gamerTag || "player")}`;
                       }}
                     />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-yellow-400 text-slate-950 text-[10px] font-black font-mono">
+                  <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-black font-mono">
                     {currentDrawnAthlete.overallRating || 85}
                   </div>
                 </div>
 
                 <h3 className="text-xl font-black text-white">{currentDrawnAthlete.gamerTag}</h3>
-                <p className="text-xs text-slate-400">{currentDrawnAthlete.fullName}</p>
+                <p className="text-xs text-muted-foreground">{currentDrawnAthlete.fullName}</p>
 
                 {currentDrawnAthlete.realTeam && (
-                  <span className="text-xs font-bold text-amber-400 mt-1">
+                  <span className="text-xs font-bold text-secondary mt-1">
                     {currentDrawnAthlete.realTeam}
                   </span>
                 )}
@@ -636,7 +632,7 @@ export default function ContinentalDrawExperience({
                       ? "yellow"
                       : "live"
                   }
-                  className="text-[10px] mt-2"
+                  className="text-xs mt-2"
                 >
                   {currentDrawnAthlete.division}
                 </Badge>
@@ -644,25 +640,25 @@ export default function ContinentalDrawExperience({
 
               {/* Destination Tag */}
               {targetGroup ? (
-                <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 text-xs font-black animate-bounce flex items-center justify-center gap-1.5">
-                  <CheckCircle className="h-4 w-4 text-emerald-400" />
+                <div className="p-2.5 rounded-xl bg-primary/40 border border-primary/50 text-primary text-xs font-black animate-bounce flex items-center justify-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Assigned to {targetGroup}!</span>
                 </div>
               ) : blockedGroups.length > 0 ? (
-                <div className="text-[11px] text-rose-300 bg-rose-950/40 border border-rose-500/30 p-2 rounded-xl">
+                <div className="text-xs text-destructive bg-destructive/40 border border-destructive/30 p-2 rounded-xl">
                   Division Cap Active: {blockedGroups.join(", ")} already at max limit.
                 </div>
               ) : null}
             </div>
           ) : (
             <div className="text-center space-y-3 py-6">
-              <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400">
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto text-primary">
                 <Trophy className="h-8 w-8" />
               </div>
               <h4 className="text-lg font-black uppercase text-white">
                 {isCompleted ? "Draw Successfully Completed" : "Ready for Draw"}
               </h4>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 {isCompleted
                   ? "All 16 athletes are officially assigned to Groups A-D with strict division separation."
                   : "Click 'Spin & Draw Next' or 'Auto Broadcast' to start drawing qualified players into groups."}
@@ -672,21 +668,21 @@ export default function ContinentalDrawExperience({
         </div>
 
         {/* Right: Quick Rules & Stats */}
-        <div className="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 backdrop-blur-md">
-          <span className="text-xs font-black uppercase text-slate-300 block border-b border-slate-800 pb-2">
+        <div className="lg:col-span-3 rounded-2xl border border-border bg-card/60 p-4 space-y-3 backdrop-blur-md">
+          <span className="text-xs font-black uppercase text-foreground block border-b border-border pb-2">
             Draw Regulations
           </span>
-          <div className="space-y-2 text-xs text-slate-300">
-            <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800/80">
-              <strong className="text-amber-400 block mb-0.5">Max 2 per Division</strong>
+          <div className="space-y-2 text-xs text-foreground">
+            <div className="p-2 rounded-xl bg-background/80 border border-border/80">
+              <strong className="text-secondary block mb-0.5">Max 2 per Division</strong>
               No group may contain 3 or more athletes from the same league.
             </div>
-            <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800/80">
-              <strong className="text-sky-400 block mb-0.5">Simultaneous 2-Legs</strong>
+            <div className="p-2 rounded-xl bg-background/80 border border-border/80">
+              <strong className="text-primary block mb-0.5">Simultaneous 2-Legs</strong>
               Group matches are played in 2-legged home & away ties with aggregate scores.
             </div>
-            <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800/80">
-              <strong className="text-emerald-400 block mb-0.5">Top 2 Advance</strong>
+            <div className="p-2 rounded-xl bg-background/80 border border-border/80">
+              <strong className="text-primary block mb-0.5">Top 2 Advance</strong>
               Top 2 athletes from each of the 4 groups qualify for the Quarter-Finals.
             </div>
           </div>
@@ -705,35 +701,35 @@ export default function ContinentalDrawExperience({
               key={groupName}
               className={`rounded-2xl border p-4 space-y-3 transition-all duration-300 ${
                 isTargeted
-                  ? "border-emerald-400 bg-emerald-950/30 ring-2 ring-emerald-500/50 scale-102 shadow-xl shadow-emerald-500/20"
+                  ? "border-primary bg-primary/30 ring-2 ring-primary/50 scale-102 shadow-xl"
                   : isBlocked
-                  ? "border-rose-500/30 bg-rose-950/20 opacity-70"
-                  : "border-slate-800 bg-slate-900/70 hover:border-slate-700"
+                  ? "border-destructive/30 bg-destructive/20 opacity-70"
+                  : "border-border bg-card/70 hover:border-border"
               }`}
             >
               {/* Group Header */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                <span className="text-sm font-black uppercase text-indigo-300 flex items-center gap-1.5">
-                  <Shield className="h-4 w-4 text-indigo-400" />
+              <div className="flex items-center justify-between border-b border-border/80 pb-2">
+                <span className="text-sm font-black uppercase text-primary flex items-center gap-1.5">
+                  <Shield className="h-4 w-4 text-primary" />
                   {groupName}
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-400">
+                <span className="text-xs font-mono font-bold text-muted-foreground">
                   {members.length}/4 Slots
                 </span>
               </div>
 
               {/* Slot Cards */}
-              <div className="space-y-2 min-h-[170px]">
+              <div className="space-y-2">
                 {[0, 1, 2, 3].map((slotIdx) => {
                   const athlete = members[slotIdx];
                   if (!athlete) {
                     return (
                       <div
                         key={slotIdx}
-                        className={`h-11 rounded-xl border border-dashed flex items-center justify-center text-[11px] font-bold ${
+                        className={`h-11 rounded-xl border border-dashed flex items-center justify-center text-xs font-bold ${
                           isTargeted && members.length === slotIdx
-                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-300 animate-pulse"
-                            : "border-slate-800/80 text-slate-600 bg-slate-950/40"
+                            ? "border-primary bg-primary/10 text-primary animate-pulse"
+                            : "border-border/80 text-muted-foreground bg-background/40"
                         }`}
                       >
                         {isTargeted && members.length === slotIdx
@@ -747,14 +743,14 @@ export default function ContinentalDrawExperience({
                   return (
                     <div
                       key={athlete.id}
-                      className="flex items-center justify-between rounded-xl bg-slate-950/80 p-2 text-xs border border-slate-800 hover:border-slate-700 transition-colors"
+                      className="flex items-center justify-between rounded-xl bg-background/80 p-2 text-xs border border-border hover:border-border transition-colors"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="h-6 w-6 sm:h-7 sm:h-7 rounded-full bg-white/95 p-0.5 border border-slate-700 shadow-sm shrink-0 aspect-square flex items-center justify-center overflow-hidden">
+                        <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-card p-0.5 border border-border shrink-0 aspect-square flex items-center justify-center overflow-hidden">
                           <img
                             src={avatarUrl}
                             alt={athlete.gamerTag}
-                            className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                            className="h-full w-full object-contain"
                             loading="lazy"
                             onError={(e: any) => {
                               e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
@@ -766,7 +762,7 @@ export default function ContinentalDrawExperience({
                             {athlete.gamerTag}
                           </span>
                           {athlete.realTeam && (
-                            <span className="text-[9px] text-amber-400 truncate block">
+                            <span className="text-xs text-secondary truncate block">
                               {athlete.realTeam}
                             </span>
                           )}
@@ -781,7 +777,7 @@ export default function ContinentalDrawExperience({
                             ? "yellow"
                             : "live"
                         }
-                        className="text-[9px] px-1 py-0 shrink-0"
+                        className="text-xs px-1 py-0 shrink-0"
                       >
                         {athlete.division.replace("Division ", "D")}
                       </Badge>
@@ -791,7 +787,7 @@ export default function ContinentalDrawExperience({
               </div>
 
               {/* Group Division Status */}
-              <div className="pt-1 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <div className="pt-1 flex items-center justify-between text-xs text-muted-foreground font-mono">
                 <span>D1: {members.filter((m) => m.division === "Division 1").length}/2</span>
                 <span>D2: {members.filter((m) => m.division === "Division 2").length}/2</span>
                 <span>D3: {members.filter((m) => m.division === "Division 3").length}/2</span>

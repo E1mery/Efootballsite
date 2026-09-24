@@ -67,26 +67,26 @@ export default function MatchCard({ match }: MatchProps) {
     <div
       className={`esports-card relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 transition-all ${
         isMotd
-          ? "border-yellow-500/60 bg-gradient-to-br from-slate-900 via-slate-950 to-yellow-950/20 shadow-lg shadow-yellow-500/10"
+          ? "border-secondary/60 bg-gradient-to-br from-card via-background to-secondary/20 shadow-lg"
           : isLive
-          ? "border-red-500/50 bg-slate-900/90 shadow-lg shadow-red-500/10"
+          ? "border-destructive/50 bg-card/90 shadow-lg"
           : isForfeit
-          ? "border-red-500/30 bg-red-950/10 hover:border-red-500/50"
-          : "border-slate-800 bg-slate-900/60 hover:border-slate-700"
+          ? "border-destructive/30 bg-destructive/10 hover:border-destructive/50"
+          : "border-border bg-card/60 hover:border-border"
       }`}
     >
       {/* Top Bar */}
-      <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-2.5 mb-3 gap-2 text-xs">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-slate-400">
-          <Smartphone className="h-3.5 w-3.5 text-sky-400 shrink-0" />
-          <Badge variant="outline" className="text-[10px] font-mono px-2 py-0 border-slate-700">
+      <div className="flex flex-wrap items-center justify-between border-b border-border/80 pb-2.5 mb-3 gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-muted-foreground">
+          <Smartphone className="h-3.5 w-3.5 text-primary shrink-0" />
+          <Badge variant="outline" className="text-xs font-mono px-2 py-0 border-border">
             {match.division || "eFootball"}
           </Badge>
-          <Badge variant="yellow" className="text-[10px] font-mono px-2 py-0">
+          <Badge variant="yellow" className="text-xs font-mono px-2 py-0">
             {match.round}
           </Badge>
           {isTwoLegged && (
-            <span className="text-indigo-400 text-[10px] font-bold hidden xs:inline">
+            <span className="text-primary text-xs font-bold hidden xs:inline">
               2-Legs
             </span>
           )}
@@ -94,30 +94,30 @@ export default function MatchCard({ match }: MatchProps) {
 
         <div className="flex items-center gap-1.5 shrink-0">
           {isMotd && (
-            <Badge variant="yellow" className="text-[9px] sm:text-[10px] font-black animate-pulse">
+            <Badge variant="yellow" className="text-xs sm:text-xs font-black animate-pulse">
               🌟 MOTD
             </Badge>
           )}
           {isLive && (
-            <Badge variant="live" className="gap-1 px-2 py-0.5 text-[10px] sm:text-[11px]">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
+            <Badge variant="live" className="gap-1 px-2 py-0.5 text-xs sm:text-xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-ping" />
               LIVE
             </Badge>
           )}
           {isFinished && (
-            <Badge variant="secondary" className="text-[10px] text-slate-300 bg-slate-800/90 font-bold">
+            <Badge variant="secondary" className="text-xs text-foreground bg-muted/90 font-bold">
               COMPLETED
             </Badge>
           )}
           {isForfeit && (
-            <Badge variant="destructive" className="text-[10px] gap-1 font-bold">
+            <Badge variant="destructive" className="text-xs gap-1 font-bold">
               <ShieldAlert className="h-3 w-3" />
               FORFEIT
             </Badge>
           )}
           {!isLive && !isFinished && !isForfeit && (
-            <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium font-mono">
-              <Calendar className="h-3 w-3 text-yellow-400" />
+            <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium font-mono">
+              <Calendar className="h-3 w-3 text-secondary" />
               <span>{formattedDate}</span>
             </div>
           )}
@@ -131,7 +131,7 @@ export default function MatchCard({ match }: MatchProps) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-end gap-1.5 flex-wrap">
               {match.homePlayer?.realTeam && (
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-bold border border-sky-500/20">
+                <span className="text-xs font-mono px-1.5 py-0.2 rounded bg-muted text-primary font-bold border border-primary/20">
                   {findTeam(match.homePlayer.realTeam)?.shortName || match.homePlayer.realTeam}
                 </span>
               )}
@@ -139,21 +139,21 @@ export default function MatchCard({ match }: MatchProps) {
                 {match.homePlayer?.gamerTag}
               </h4>
             </div>
-            <span className="text-[10px] sm:text-[11px] text-slate-400 block truncate">
+            <span className="text-xs sm:text-xs text-muted-foreground block truncate">
               {match.homePlayer?.fullName}
             </span>
             {match.homePlayer?.realTeam && (
-              <span className="text-[9px] text-slate-500 block truncate font-medium">
+              <span className="text-xs text-muted-foreground block truncate font-medium">
                 {match.homePlayer.realTeam}
               </span>
             )}
           </div>
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-white/95 border border-slate-700/80 p-1 font-black text-xs sm:text-sm text-slate-900 shadow-md overflow-hidden">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-border p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
             {match.homePlayer ? (
               <img
                 src={resolvePlayerAvatar(match.homePlayer)}
                 alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
-                className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                className="h-full w-full object-contain filter drop-shadow-sm"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
@@ -168,17 +168,17 @@ export default function MatchCard({ match }: MatchProps) {
         {/* Center Score / VS Box */}
         <div className="shrink-0 flex flex-col items-center justify-center px-1">
           {isLive || isFinished || isForfeit ? (
-            <div className="flex items-center gap-1 rounded-xl bg-slate-950 border border-slate-800 px-2 sm:px-3 py-1 font-mono text-xs sm:text-base md:text-lg font-black text-white shadow-inner">
-              <span className={match.homeScore! > match.awayScore! ? "text-yellow-400" : "text-white"}>
+            <div className="flex items-center gap-1 rounded-xl bg-background border border-border px-2 sm:px-3.5 py-1 font-mono text-xs sm:text-base md:text-lg font-black text-white shadow-inner">
+              <span className={match.homeScore! > match.awayScore! ? "text-secondary" : "text-white"}>
                 {match.homeScore ?? 0}
               </span>
-              <span className="text-slate-600">:</span>
-              <span className={match.awayScore! > match.homeScore! ? "text-yellow-400" : "text-white"}>
+              <span className="text-muted-foreground">:</span>
+              <span className={match.awayScore! > match.homeScore! ? "text-secondary" : "text-white"}>
                 {match.awayScore ?? 0}
               </span>
             </div>
           ) : (
-            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-slate-800/90 border border-slate-700 text-[10px] sm:text-xs font-black text-slate-400">
+            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-muted/90 border border-border text-xs sm:text-xs font-black text-muted-foreground">
               VS
             </div>
           )}
@@ -186,12 +186,12 @@ export default function MatchCard({ match }: MatchProps) {
 
         {/* Away Player */}
         <div className="flex-1 min-w-0 flex items-center justify-start gap-2 sm:gap-3 text-left">
-          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-white/95 border border-slate-700/80 p-1 font-black text-xs sm:text-sm text-slate-900 shadow-md overflow-hidden">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-border p-1 font-black text-xs sm:text-sm text-white shadow-md overflow-hidden">
             {match.awayPlayer ? (
               <img
                 src={resolvePlayerAvatar(match.awayPlayer)}
                 alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
-                className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                className="h-full w-full object-contain filter drop-shadow-sm"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
@@ -207,16 +207,16 @@ export default function MatchCard({ match }: MatchProps) {
                 {match.awayPlayer?.gamerTag}
               </h4>
               {match.awayPlayer?.realTeam && (
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-bold border border-emerald-500/20">
+                <span className="text-xs font-mono px-1.5 py-0.2 rounded bg-muted text-primary font-bold border border-primary/20">
                   {findTeam(match.awayPlayer.realTeam)?.shortName || match.awayPlayer.realTeam}
                 </span>
               )}
             </div>
-            <span className="text-[10px] sm:text-[11px] text-slate-400 block truncate">
+            <span className="text-xs sm:text-xs text-muted-foreground block truncate">
               {match.awayPlayer?.fullName}
             </span>
             {match.awayPlayer?.realTeam && (
-              <span className="text-[9px] text-slate-500 block truncate font-medium">
+              <span className="text-xs text-muted-foreground block truncate font-medium">
                 {match.awayPlayer.realTeam}
               </span>
             )}
@@ -226,11 +226,11 @@ export default function MatchCard({ match }: MatchProps) {
 
       {/* Aggregate Score for 2-Legged Tournaments */}
       {isTwoLegged && match.aggregateHomeScore !== null && match.aggregateHomeScore !== undefined && (
-        <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-center text-[10px] sm:text-[11px]">
-          <span className="font-mono font-black text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 rounded-lg text-center break-words max-w-full inline-block leading-relaxed">
+        <div className="mt-2.5 pt-2 border-t border-border/60 flex items-center justify-center text-xs sm:text-xs">
+          <span className="font-mono font-black text-secondary bg-secondary/40 border border-secondary/30 px-2.5 py-1 rounded-lg text-center break-words max-w-full inline-block leading-relaxed">
             Aggregate: {match.homePlayer?.gamerTag} {match.aggregateHomeScore} - {match.aggregateAwayScore} {match.awayPlayer?.gamerTag}
             {match.leg2HomeScore !== null && match.leg2HomeScore !== undefined && (
-              <span className="text-slate-400 ml-1.5 font-normal block xs:inline">
+              <span className="text-muted-foreground ml-1.5 font-normal block xs:inline">
                 (Leg 1: {match.homeScore}-{match.awayScore}, Leg 2: {match.leg2HomeScore}-{match.leg2AwayScore})
               </span>
             )}
@@ -239,13 +239,13 @@ export default function MatchCard({ match }: MatchProps) {
       )}
 
       {/* Match Footer */}
-      <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="mt-3 pt-2.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs">
         {match.notes ? (
-          <p className="text-slate-400 italic text-[10px] sm:text-[11px] truncate max-w-[200px] sm:max-w-xs">
+          <p className="text-muted-foreground italic text-xs sm:text-xs truncate w-52 sm:max-w-xs">
             &quot;{match.notes}&quot;
           </p>
         ) : (
-          <span className="text-[10px] text-slate-500 font-mono">10 Mins • {match.platform}</span>
+          <span className="text-xs text-muted-foreground font-mono">10 Mins • {match.platform}</span>
         )}
 
         <div className="flex items-center gap-2 ml-auto">
@@ -254,7 +254,7 @@ export default function MatchCard({ match }: MatchProps) {
               href={approvedSub.screenshotUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-400 hover:text-sky-300 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg transition"
+              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary bg-card border border-border px-2.5 py-1 rounded-lg transition"
             >
               <Eye className="h-3 w-3" />
               <span>Score Proof</span>
@@ -266,7 +266,7 @@ export default function MatchCard({ match }: MatchProps) {
               href={match.streamUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-300 ml-auto"
+              className="inline-flex items-center gap-1 text-xs font-bold text-destructive hover:text-destructive ml-auto"
             >
               <Tv className="h-3.5 w-3.5" />
               <span>Stream</span>

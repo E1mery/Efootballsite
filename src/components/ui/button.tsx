@@ -3,22 +3,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rwanda-blue disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-95",
   {
     variants: {
       variant: {
-        default:
-          "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/25 hover:from-sky-400 hover:to-blue-500 hover:shadow-sky-500/40",
+        default: "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90",
         yellow:
-          "bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-bold shadow-lg shadow-yellow-500/25 hover:from-amber-300 hover:to-yellow-400 hover:shadow-yellow-500/40",
+          "bg-secondary text-secondary-foreground font-bold shadow-lg hover:bg-secondary/90",
         green:
-          "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-400 hover:to-teal-500 hover:shadow-emerald-500/40",
+          "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90",
         outline:
-          "border border-slate-700 bg-slate-900/60 text-slate-200 hover:border-sky-500/50 hover:bg-slate-800/80 hover:text-white",
-        ghost:
-          "text-slate-300 hover:bg-slate-800/60 hover:text-white",
+          "border border-border bg-card/60 text-foreground hover:border-primary/50 hover:bg-muted/80 hover:text-foreground",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         destructive:
-          "bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/25",
+          "bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -37,17 +37,17 @@ export default async function PlayersPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">
       {/* Header */}
-      <div className="border-b border-slate-800 pb-6">
+      <div className="border-b border-border pb-6">
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="yellow">EFRL MOBILE STATS</Badge>
-          <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
+          <span className="text-xs font-bold text-primary uppercase tracking-widest">
             eFootball Mobile Leaderboards 2026
           </span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black uppercase text-white tracking-tight">
           Player Leaderboards & Stats
         </h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Tracking the top mobile goalscorers, playmaker assist leaders, and elite mobile athletes across Rwanda.
         </p>
       </div>
@@ -55,14 +55,14 @@ export default async function PlayersPage() {
       {/* Golden Boot Showcase */}
       <section className="space-y-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/20 text-secondary border border-secondary/30">
             <Award className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-xl font-extrabold uppercase text-white tracking-wide">
               Golden Boot Leaderboard
             </h2>
-            <p className="text-xs text-slate-400">Most goals scored in eFootball Mobile Season 2026</p>
+            <p className="text-xs text-muted-foreground">Most goals scored in eFootball Mobile Season 2026</p>
           </div>
         </div>
 
@@ -76,14 +76,14 @@ export default async function PlayersPage() {
       {/* Playmaker Assist Leaders */}
       <section className="space-y-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/30">
             <Zap className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-xl font-extrabold uppercase text-white tracking-wide">
               Playmaker of the Season
             </h2>
-            <p className="text-xs text-slate-400">Most assists recorded on eFootball Mobile</p>
+            <p className="text-xs text-muted-foreground">Most assists recorded on eFootball Mobile</p>
           </div>
         </div>
 
@@ -91,24 +91,24 @@ export default async function PlayersPage() {
           {topAssists.map((player, idx) => (
             <div
               key={player.id}
-              className="esports-card rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3"
+              className="esports-card rounded-2xl border border-border bg-card/60 p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-400">#{idx + 1} Playmaker</span>
-                <span className="text-sm font-black text-white px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-500/30">{player.assists} Ast</span>
+                <span className="text-xs font-bold text-primary">#{idx + 1} Playmaker</span>
+                <span className="text-sm font-black text-white px-2 py-0.5 rounded-lg bg-primary/20 border border-primary/30">{player.assists} Ast</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 shrink-0 aspect-square rounded-xl bg-white/95 border border-slate-700/80 p-1 overflow-hidden flex items-center justify-center shadow-md">
+                <div className="h-11 w-11 shrink-0 aspect-square rounded-xl bg-card border border-border p-1 overflow-hidden flex items-center justify-center">
                   <img
                     src={resolvePlayerAvatar(player)}
                     alt={player.gamerTag}
-                    className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                    className="h-full w-full object-contain"
                     loading="lazy"
                   />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-extrabold text-white truncate">{player.gamerTag}</h4>
-                  <p className="text-xs text-slate-400 truncate">{player.division}</p>
+                  <p className="text-xs text-muted-foreground truncate">{player.division}</p>
                 </div>
               </div>
             </div>
@@ -117,14 +117,14 @@ export default async function PlayersPage() {
       </section>
 
       {/* Full Player Roster Table */}
-      <section className="space-y-4 pt-4 border-t border-slate-800">
+      <section className="space-y-4 pt-4 border-t border-border">
         <h2 className="text-lg font-bold uppercase text-white tracking-wide">
           All Registered eFootball Mobile Athletes ({allPlayers.length})
         </h2>
 
-        <div className="overflow-x-auto no-scrollbar scroll-smooth rounded-xl border border-slate-800 bg-slate-900/50">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/80 uppercase font-bold text-[11px] text-slate-400 border-b border-slate-800">
+        <div className="overflow-x-auto no-scrollbar scroll-smooth rounded-xl border border-border bg-card/50">
+          <table className="w-full text-left text-xs text-foreground">
+            <thead className="bg-background/80 uppercase font-bold text-xs text-muted-foreground border-b border-border">
               <tr className="whitespace-nowrap">
                 <th className="p-3.5">Athlete</th>
                 <th className="p-3.5">Full Name</th>
@@ -137,41 +137,41 @@ export default async function PlayersPage() {
                 <th className="p-3.5 text-center">MVP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-border/60">
               {allPlayers.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-800/40 transition-colors whitespace-nowrap">
+                <tr key={p.id} className="hover:bg-muted/40 transition-colors whitespace-nowrap">
                   <td className="p-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 aspect-square rounded-lg bg-white/95 border border-slate-700/80 p-0.5 flex items-center justify-center overflow-hidden shadow-sm">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 aspect-square rounded-lg bg-card border border-border p-0.5 flex items-center justify-center overflow-hidden">
                         <img
                           src={resolvePlayerAvatar(p)}
                           alt={p.realTeam || p.gamerTag}
-                          className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                          className="h-full w-full object-contain"
                           loading="lazy"
                         />
                       </div>
                       <div>
                         <span className="font-bold text-white block">{p.gamerTag}</span>
                         {p.realTeam && (
-                          <span className="text-[10px] text-amber-400 font-medium block">
+                          <span className="text-xs text-secondary font-medium block">
                             {findTeam(p.realTeam)?.shortName || p.realTeam}
                           </span>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="p-3.5 text-slate-400">{p.fullName}</td>
-                  <td className="p-3.5 font-mono text-slate-500">{p.efootballId}</td>
-                  <td className="p-3.5 font-semibold text-yellow-400">{p.division}</td>
-                  <td className="p-3.5 font-mono text-emerald-400">{p.whatsapp}</td>
+                  <td className="p-3.5 text-muted-foreground">{p.fullName}</td>
+                  <td className="p-3.5 font-mono text-muted-foreground">{p.efootballId}</td>
+                  <td className="p-3.5 font-semibold text-secondary">{p.division}</td>
+                  <td className="p-3.5 font-mono text-primary">{p.whatsapp}</td>
                   <td className="p-3.5 text-center">
-                    <span className="inline-block px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-bold">
+                    <span className="inline-block px-2 py-0.5 rounded bg-secondary/20 text-secondary font-bold">
                       {p.overallRating}
                     </span>
                   </td>
-                  <td className="p-3.5 text-center font-bold text-yellow-400">{p.goals}</td>
-                  <td className="p-3.5 text-center font-bold text-sky-400">{p.assists}</td>
-                  <td className="p-3.5 text-center font-bold text-emerald-400">{p.mvpAwards}</td>
+                  <td className="p-3.5 text-center font-bold text-secondary">{p.goals}</td>
+                  <td className="p-3.5 text-center font-bold text-primary">{p.assists}</td>
+                  <td className="p-3.5 text-center font-bold text-primary">{p.mvpAwards}</td>
                 </tr>
               ))}
             </tbody>

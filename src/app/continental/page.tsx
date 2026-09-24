@@ -196,17 +196,13 @@ export default async function ContinentalCupsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Header */}
-      <div className="border-b border-slate-800 pb-6">
+      <div className="border-b border-border pb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Badge variant="yellow">POST-SEASON ESPORTS TOURNAMENTS</Badge>
-          <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
-            Continental Video Game Cups
-          </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black uppercase text-white tracking-tight">
           eFootball UCL & Europa Leagues
         </h1>
-        <p className="mt-2 text-sm sm:text-base text-slate-300 max-w-3xl">
+        <p className="mt-2 text-sm sm:text-base text-foreground max-w-3xl">
           The ultimate competitive climax of the Rwandan eFootball season. Played exclusively after the conclusion of Division 1, 2, and 3 league stages.
         </p>
       </div>

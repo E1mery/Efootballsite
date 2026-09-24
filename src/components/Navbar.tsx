@@ -107,9 +107,9 @@ export default function Navbar() {
       ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#060913]/95 backdrop-blur-xl transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-xl transition-all">
       {/* Sleek Cyan / Gold Esports Accent Line */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-amber-400 opacity-80" />
+      <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-primary to-secondary opacity-80" />
 
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         {/* Gaming Brand Logo, Season Pill & Admin Badge */}
@@ -117,12 +117,12 @@ export default function Navbar() {
           <Link href={isAdminPortal ? "/admin" : (session?.authenticated ? "/dashboard" : "/")} className="flex items-center gap-3 group">
             <EfootballGamingLogo size="md" showText={true} />
           </Link>
-          <div className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 text-amber-300 font-mono text-[10px] sm:text-xs font-black shadow-inner tracking-wide">
-            <Trophy className="h-3 w-3 text-amber-400 shrink-0" />
+          <div className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-secondary/40 bg-secondary/10 text-secondary font-mono text-xs sm:text-xs font-black shadow-inner tracking-wide">
+            <Trophy className="h-3 w-3 text-secondary shrink-0" />
             <span>{currentSeason}</span>
           </div>
           {isAdminPortal && (
-            <Badge variant="destructive" className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 hidden sm:inline-flex font-bold">
+            <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex font-bold">
               COMMISSIONER OFFICE
             </Badge>
           )}
@@ -140,11 +140,11 @@ export default function Navbar() {
                   href={link.href}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive
-                      ? "bg-cyan-500/10 text-cyan-400 shadow-inner border border-cyan-500/30"
-                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                      ? "bg-primary/10 text-primary shadow-inner border border-primary/30"
+                      : "text-foreground hover:text-white hover:bg-muted/60"
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-cyan-400" : "text-slate-400"}`} />
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                   <span>{link.name}</span>
                 </Link>
               );
@@ -157,21 +157,21 @@ export default function Navbar() {
           {isAdminPortal ? (
             /* Inside Admin Portal: Clean Header without any public portal links */
             <div className="flex items-center gap-2">
-              <Badge variant="destructive" className="font-mono text-xs tracking-wider uppercase px-3 py-1 font-bold shadow-md shadow-red-600/20">
+              <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-3 py-1 font-bold shadow-md">
                 COMMISSIONER CONSOLE
               </Badge>
             </div>
           ) : session?.authenticated ? (
             session.user?.role === "ADMIN" ? (
               <Link href="/admin">
-                <Button variant="destructive" size="sm" className="font-black text-xs gap-1.5 shadow-md shadow-red-600/20">
+                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md">
                   <ShieldAlert className="h-3.5 w-3.5" />
                   <span>Admin Office</span>
                 </Button>
               </Link>
             ) : (
               <Link href="/dashboard">
-                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md shadow-yellow-500/20">
+                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md">
                   <User className="h-3.5 w-3.5" />
                   <span>{session.player?.gamerTag || "Player Dashboard"}</span>
                 </Button>
@@ -180,13 +180,13 @@ export default function Navbar() {
           ) : (
             <>
               <Link href="/login">
-                <Button variant="outline" size="sm" className="font-bold text-xs gap-1.5 border-slate-700 text-slate-200 hover:text-white">
+                <Button variant="outline" size="sm" className="font-bold text-xs gap-1.5 border-border text-foreground hover:text-white">
                   <LogIn className="h-3.5 w-3.5" />
                   <span>Log In</span>
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="yellow" size="sm" className="font-black text-xs text-slate-950 shadow-md shadow-yellow-500/20">
+                <Button size="sm">
                   <span>Register</span>
                 </Button>
               </Link>
@@ -201,11 +201,11 @@ export default function Navbar() {
               <Link href={session.user?.role === "ADMIN" ? "/admin" : "/dashboard"}>
                 <Button
                   size="sm"
-                  variant={session.user?.role === "ADMIN" ? "destructive" : "yellow"}
-                  className="h-8 px-2.5 text-[11px] font-black"
+                  variant={session.user?.role === "ADMIN" ? "yellow" : "yellow"}
+                  className="h-8 px-2.5 text-xs font-black"
                 >
                   <User className="h-3.5 w-3.5 mr-1" />
-                  <span className="max-w-[75px] truncate">
+                  <span className="w-20 truncate">
                     {session.player?.gamerTag || (session.user?.role === "ADMIN" ? "Admin" : "Portal")}
                   </span>
                 </Button>
@@ -215,7 +215,7 @@ export default function Navbar() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2.5 text-[11px] font-bold border-slate-700 text-slate-200"
+                  className="h-8 px-2.5 text-xs font-bold border-border text-foreground"
                 >
                   <LogIn className="h-3 w-3 mr-1" />
                   <span>Log In</span>
@@ -224,7 +224,7 @@ export default function Navbar() {
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 min-h-[40px] min-w-[40px]"
+              className="inline-flex items-center justify-center p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-muted h-10 w-10"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -235,7 +235,7 @@ export default function Navbar() {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && !isInsidePortal && (
-        <div className="lg:hidden border-b border-slate-800 bg-[#060913]/98 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2">
+        <div className="lg:hidden border-b border-border bg-background/98 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2">
             <>
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
@@ -245,30 +245,30 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all min-h-[44px] ${
+                    className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all h-11 ${
                       isActive
-                        ? "bg-slate-800/80 text-cyan-400 border border-cyan-500/30"
-                        : "text-slate-300 hover:bg-slate-900"
+                        ? "bg-muted/80 text-primary border border-primary/30"
+                        : "text-foreground hover:bg-card"
                     }`}
                   >
-                    <Icon className="h-4 w-4 text-cyan-400" />
+                    <Icon className="h-4 w-4 text-primary" />
                     <span>{link.name}</span>
                   </Link>
                 );
               })}
 
-              <div className="pt-3 border-t border-slate-800/80 space-y-2">
+              <div className="pt-3 border-t border-border/80 space-y-2">
 
                 {session?.authenticated ? (
                   session.user?.role === "ADMIN" ? (
                     <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="destructive" className="w-full text-xs font-black min-h-[44px]">
+                      <Button variant="yellow" className="w-full text-xs font-black h-11">
                         Open Admin Office
                       </Button>
                     </Link>
                   ) : (
                     <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="yellow" className="w-full text-xs font-black min-h-[44px]">
+                      <Button variant="yellow" className="w-full text-xs font-black h-11">
                         My Player Dashboard ({session.player?.gamerTag || "Profile"})
                       </Button>
                     </Link>
@@ -276,12 +276,12 @@ export default function Navbar() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full text-xs font-bold min-h-[44px]">
+                      <Button variant="outline" className="w-full text-xs font-bold h-11">
                         Log In
                       </Button>
                     </Link>
                     <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="yellow" className="w-full text-xs font-black min-h-[44px]">
+                      <Button  className="w-full text-xs font-black h-11">
                         Register
                       </Button>
                     </Link>

@@ -180,49 +180,46 @@ export default function FixturesClient({
       )}
 
       {/* Hero Header & Quick Stats */}
-      <div className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 p-5 sm:p-7 backdrop-blur-xl shadow-2xl relative overflow-hidden space-y-5">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="rounded-3xl border border-border bg-gradient-to-b from-card via-background to-background p-5 sm:p-7 backdrop-blur-xl shadow-2xl relative overflow-hidden space-y-5">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge variant="yellow" className="font-mono text-[10px] font-black">
+              <Badge className="font-mono text-xs font-black">
                 EFRL 2026 FIXTURES
-              </Badge>
-              <Badge variant="outline" className="text-[10px] text-sky-400 border-sky-500/30">
-                Official Season Match Calendar
               </Badge>
               <button
                 type="button"
                 onClick={handleJumpToCurrentMatchday}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-500/30 transition cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-bold hover:bg-primary/30 transition cursor-pointer"
                 title="Click to filter by current matchday"
               >
-                <Flame className="h-3 w-3 text-cyan-400 animate-pulse" />
+                <Flame className="h-3 w-3 text-primary animate-pulse" />
                 <span>Current: {currentMatchdayName}</span>
               </button>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight">
               Official Tournament Match Center
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
               Real-time schedule, results, walkover records, and screenshot verifications across 3 Domestic Divisions, eFootball Champions League, and Europa League.
             </p>
           </div>
 
           {/* Quick Stats Pill Grid */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3 text-center min-w-[80px]">
-              <span className="text-[9px] font-black uppercase text-slate-400 block">Total</span>
+            <div className="rounded-2xl border border-border bg-card/60 p-3 text-center w-20">
+              <span className="text-xs font-black uppercase text-muted-foreground block">Total</span>
               <span className="text-base sm:text-xl font-black text-white font-mono">{initialMatches.length}</span>
             </div>
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-center min-w-[80px]">
-              <span className="text-[9px] font-black uppercase text-emerald-400 block">Finished</span>
-              <span className="text-base sm:text-xl font-black text-emerald-400 font-mono">{totalCompleted}</span>
+            <div className="rounded-2xl border border-primary/30 bg-primary/20 p-3 text-center w-20">
+              <span className="text-xs font-black uppercase text-primary block">Finished</span>
+              <span className="text-base sm:text-xl font-black text-primary font-mono">{totalCompleted}</span>
             </div>
-            <div className="rounded-2xl border border-yellow-500/30 bg-yellow-950/20 p-3 text-center min-w-[80px]">
-              <span className="text-[9px] font-black uppercase text-yellow-400 block">Upcoming</span>
-              <span className="text-base sm:text-xl font-black text-yellow-400 font-mono">{totalUpcoming}</span>
+            <div className="rounded-2xl border border-secondary/30 bg-secondary/20 p-3 text-center w-20">
+              <span className="text-xs font-black uppercase text-secondary block">Upcoming</span>
+              <span className="text-base sm:text-xl font-black text-secondary font-mono">{totalUpcoming}</span>
             </div>
           </div>
         </div>
@@ -249,10 +246,10 @@ export default function FixturesClient({
                     key={div.id}
                     type="button"
                     onClick={() => setDivisionFilter(div.id)}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 min-h-[38px] ${
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                       isSelected
-                        ? "bg-sky-500 text-white shadow-lg shadow-sky-500/30 font-black"
-                        : "text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800 hover:border-slate-700"
+                        ? "bg-primary text-white shadow-lg font-black"
+                        : "text-muted-foreground hover:text-white bg-card/60 border border-border hover:border-border"
                     }`}
                   >
                     {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -270,9 +267,9 @@ export default function FixturesClient({
                 onClick={() =>
                   setSortOrder(sortOrder === "CHRONOLOGICAL" ? "LATEST" : "CHRONOLOGICAL")
                 }
-                className="text-xs font-bold border-slate-800 text-slate-300 hover:text-white gap-1.5 h-9"
+                className="text-xs font-bold border-border text-foreground hover:text-white gap-1.5 h-9"
               >
-                <ArrowUpDown className="h-3.5 w-3.5 text-cyan-400" />
+                <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
                 <span>{sortOrder === "CHRONOLOGICAL" ? "Round 1 First" : "Latest First"}</span>
               </Button>
             </div>
@@ -286,7 +283,7 @@ export default function FixturesClient({
                 <select
                   value={roundFilter}
                   onChange={(e) => setRoundFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-slate-800 bg-slate-900/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="ALL">All Matchday Rounds ({distinctRounds.length})</option>
                   {distinctRounds.map((roundName) => (
@@ -295,7 +292,7 @@ export default function FixturesClient({
                     </option>
                   ))}
                 </select>
-                <Filter className="h-3.5 w-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Filter className="h-3.5 w-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -315,8 +312,8 @@ export default function FixturesClient({
                     onClick={() => setStatusFilter(st.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
                       isSelected
-                        ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20"
-                        : "text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
+                        ? "bg-primary text-white font-black shadow-md"
+                        : "text-muted-foreground hover:text-white bg-card border border-border"
                     }`}
                   >
                     {st.label}
@@ -327,19 +324,19 @@ export default function FixturesClient({
 
             {/* Realtime Player Search Input */}
             <div className="md:col-span-3 relative">
-              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search athlete tag, name, ID..."
-                className="w-full rounded-xl border border-slate-800 bg-slate-900 py-2 pl-9 pr-8 text-xs text-white placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-8 text-xs text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold p-1"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -349,29 +346,29 @@ export default function FixturesClient({
 
           {/* Active Filter Indicator & Reset Button */}
           {hasActiveFilters && (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/60 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-xs">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-slate-400 font-medium">Active Filters:</span>
+                <span className="text-muted-foreground font-medium">Active Filters:</span>
                 {divisionFilter !== "ALL" && (
-                  <Badge variant="yellow" className="text-[10px] gap-1 font-bold">
+                  <Badge variant="yellow" className="text-xs gap-1 font-bold">
                     <span>{divisionFilter}</span>
-                    <button onClick={() => setDivisionFilter("ALL")} className="hover:text-slate-950 ml-1">×</button>
+                    <button onClick={() => setDivisionFilter("ALL")} className="hover:text-secondary-foreground ml-1">×</button>
                   </Badge>
                 )}
                 {roundFilter !== "ALL" && (
-                  <Badge variant="outline" className="text-[10px] gap-1 text-cyan-300 border-cyan-500/40">
+                  <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/40">
                     <span>{roundFilter}</span>
                     <button onClick={() => setRoundFilter("ALL")} className="hover:text-white ml-1">×</button>
                   </Badge>
                 )}
                 {statusFilter !== "ALL" && (
-                  <Badge variant="secondary" className="text-[10px] gap-1 text-white">
+                  <Badge variant="secondary" className="text-xs gap-1 text-white">
                     <span>{statusFilter}</span>
                     <button onClick={() => setStatusFilter("ALL")} className="hover:text-white ml-1">×</button>
                   </Badge>
                 )}
                 {searchQuery.trim() && (
-                  <Badge variant="outline" className="text-[10px] gap-1 text-emerald-400 border-emerald-500/40">
+                  <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/40">
                     <span>&quot;{searchQuery.trim()}&quot;</span>
                     <button onClick={() => setSearchQuery("")} className="hover:text-white ml-1">×</button>
                   </Badge>
@@ -381,7 +378,7 @@ export default function FixturesClient({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="text-xs font-bold text-amber-400 hover:text-amber-300 transition"
+                className="text-xs font-bold text-secondary hover:text-secondary transition"
               >
                 Clear All Filters
               </button>
@@ -391,26 +388,26 @@ export default function FixturesClient({
       </div>
 
       {/* Filter Results Counter */}
-      <div className="flex items-center justify-between px-1 text-xs text-slate-400">
+      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <span>
             Showing <strong className="text-white font-mono text-sm">{filteredMatches.length}</strong> of {initialMatches.length} fixtures
           </span>
           {divisionFilter !== "ALL" && (
-            <span className="text-sky-400 font-semibold">• {divisionFilter}</span>
+            <span className="text-primary font-semibold">• {divisionFilter}</span>
           )}
           {roundFilter !== "ALL" && (
-            <span className="text-yellow-400 font-semibold">• {roundFilter}</span>
+            <span className="text-secondary font-semibold">• {roundFilter}</span>
           )}
         </div>
       </div>
 
       {/* Matches Grid */}
       {filteredMatches.length === 0 ? (
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-12 text-center space-y-4">
-          <Gamepad2 className="h-12 w-12 text-slate-600 mx-auto" />
+        <div className="rounded-3xl border border-border bg-background/70 p-12 text-center space-y-4">
+          <Gamepad2 className="h-12 w-12 text-muted-foreground mx-auto" />
           <h3 className="text-lg font-black uppercase text-white">No Generated Fixtures Found</h3>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
             {initialMatches.length === 0
               ? "The League Commissioner has not yet generated official fixtures for this season. Please check back after registration closes."
               : "No fixtures match your current filter selections. Try selecting another round or clearing your search query."}
