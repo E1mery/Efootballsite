@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   title: "Efootball Rwanda League (EFRL) | Official Esports Championship",
   description:
     "The official portal of the Efootball Rwanda League. Live scores, standings, team rosters, top scorers, and national esports tournament registration.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   keywords: [
     "eFootball Rwanda",
     "Rwanda Esports",
