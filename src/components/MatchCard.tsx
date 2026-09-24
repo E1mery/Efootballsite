@@ -153,7 +153,7 @@ export default function MatchCard({ match }: MatchProps) {
               <img
                 src={resolvePlayerAvatar(match.homePlayer)}
                 alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
-                className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                className="h-full w-full object-contain filter drop-shadow-sm"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
@@ -191,7 +191,7 @@ export default function MatchCard({ match }: MatchProps) {
               <img
                 src={resolvePlayerAvatar(match.awayPlayer)}
                 alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
-                className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                className="h-full w-full object-contain filter drop-shadow-sm"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;

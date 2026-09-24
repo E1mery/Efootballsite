@@ -117,8 +117,8 @@ export default function Navbar() {
           <Link href={isAdminPortal ? "/admin" : (session?.authenticated ? "/dashboard" : "/")} className="flex items-center gap-3 group">
             <EfootballGamingLogo size="md" showText={true} />
           </Link>
-          <div className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 text-amber-300 font-mono text-[10px] sm:text-xs font-black shadow-inner tracking-wide">
-            <Trophy className="h-3 w-3 text-amber-400 shrink-0" />
+          <div className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-secondary/40 bg-secondary/10 text-secondary font-mono text-xs sm:text-xs font-black shadow-inner tracking-wide">
+            <Trophy className="h-3 w-3 text-secondary shrink-0" />
             <span>{currentSeason}</span>
           </div>
           {isAdminPortal && (

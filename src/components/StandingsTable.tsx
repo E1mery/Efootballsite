@@ -149,7 +149,7 @@ export default function StandingsTable({
                             <img
                               src={avatarUrl}
                               alt={row.player.realTeam || row.player.gamerTag}
-                              className="h-full w-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                              className="h-full w-full object-contain filter drop-shadow-sm"
                               loading="lazy"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
