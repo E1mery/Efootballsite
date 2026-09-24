@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findTeam } from "@/lib/teams";
+import { recalculateStandings } from "@/lib/recalculateStandings";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -105,9 +106,46 @@ export async function POST(req: Request) {
       // If division was changed without supplying a new club, clear club if it belonged to the old division
       if (player.realTeam) {
         const currentTeam = findTeam(player.realTeam);
-        if (currentTeam && currentTeam.division !== division) {
+        if (currentTeam && (division === "RESERVE" || currentTeam.division !== division)) {
           updateData.realTeam = null;
           updateData.avatar = null;
+        }
+      }
+
+      // Handle standings and status transitions
+      if (division === "RESERVE") {
+        updateData.status = "RESERVED";
+        await prisma.standing.deleteMany({ where: { playerId } }).catch(() => {});
+        const ongoingTournament = await prisma.tournament.findFirst({ where: { status: "ONGOING" } });
+        if (ongoingTournament) {
+          await recalculateStandings(ongoingTournament.id, player.division).catch(() => {});
+        }
+      } else {
+        if (player.status === "RESERVED") {
+          updateData.status = "ACTIVE";
+        }
+        const ongoingTournament = await prisma.tournament.findFirst({ where: { status: "ONGOING" } });
+        if (ongoingTournament) {
+          const existingStanding = await prisma.standing.findFirst({
+            where: { playerId, tournamentId: ongoingTournament.id },
+          });
+          if (existingStanding) {
+            await prisma.standing.update({
+              where: { id: existingStanding.id },
+              data: { division: division },
+            });
+            await recalculateStandings(ongoingTournament.id, player.division).catch(() => {});
+            await recalculateStandings(ongoingTournament.id, division).catch(() => {});
+          } else {
+            await prisma.standing.create({
+              data: {
+                tournamentId: ongoingTournament.id,
+                division: division,
+                playerId: player.id,
+              },
+            }).catch(() => {});
+            await recalculateStandings(ongoingTournament.id, division).catch(() => {});
+          }
         }
       }
     } else if (avatar !== undefined) {

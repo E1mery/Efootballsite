@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Globe, ArrowUp, ArrowDown, AlertTriangle, ShieldAlert, Smartphone, MessageSquare } from "lucide-react";
@@ -43,6 +45,8 @@ export default function StandingsTable({
   divisionName = "Division 1",
   compact = false,
 }: StandingsTableProps) {
+  const validStandings = (standings || []).filter((row) => Boolean(row && row.player));
+
   return (
     <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
       <Table className="w-full">
@@ -72,38 +76,44 @@ export default function StandingsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {standings.map((row) => {
-            const forms = row.form ? row.form.split(",") : ["D"];
-            const rank = row.rank;
-            const missed = row.consecutiveMissed || 0;
-            const isDisqualified = row.isDisqualified || missed >= 3;
+          {validStandings.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={compact ? 8 : 12} className="text-center py-10 text-slate-500 italic text-xs">
+                No active athlete standings available for {divisionName} yet.
+              </TableCell>
+            </TableRow>
+          ) : validStandings.map((row, idx) => {
+              const forms = row.form ? row.form.split(",") : ["D"];
+              const rank = row.rank ?? (idx + 1);
+              const missed = row.consecutiveMissed || 0;
+              const isDisqualified = row.isDisqualified || missed >= 3;
 
-            // Qualification & Relegation flags:
-            let isUcl = false;
-            let isEuropa = false;
-            let isPromotion = false;
-            let isRelegation = false;
+              // Qualification & Relegation flags:
+              let isUcl = false;
+              let isEuropa = false;
+              let isPromotion = false;
+              let isRelegation = false;
 
-            const totalRows = standings.length;
-            const isBottomThree = totalRows >= 4 && rank > totalRows - 3;
+              const totalRows = validStandings.length;
+              const isBottomThree = totalRows >= 4 && rank > totalRows - 3;
 
-            if (divisionName === "Division 1") {
-              if (rank <= 8) isUcl = true;
-              else if (rank <= 12) isEuropa = true;
-              if (isBottomThree) isRelegation = true;
-            } else if (divisionName === "Division 2") {
-              if (rank <= 3) isPromotion = true;
-              if (rank <= 4) isUcl = true;
-              else if (rank <= 10) isEuropa = true;
-              if (isBottomThree) isRelegation = true;
-            } else if (divisionName === "Division 3") {
-              if (rank <= 3) isPromotion = true;
-              if (rank <= 4) isUcl = true;
-              else if (rank <= 10) isEuropa = true;
-              // Division 3 is lowest domestic tier
-            }
+              if (divisionName === "Division 1") {
+                if (rank <= 8) isUcl = true;
+                else if (rank <= 12) isEuropa = true;
+                if (isBottomThree) isRelegation = true;
+              } else if (divisionName === "Division 2") {
+                if (rank <= 3) isPromotion = true;
+                if (rank <= 4) isUcl = true;
+                else if (rank <= 10) isEuropa = true;
+                if (isBottomThree) isRelegation = true;
+              } else if (divisionName === "Division 3") {
+                if (rank <= 3) isPromotion = true;
+                if (rank <= 4) isUcl = true;
+                else if (rank <= 10) isEuropa = true;
+                // Division 3 is lowest domestic tier
+              }
 
-            const cleanWa = row.player.whatsapp?.replace(/[^0-9]/g, "") || "";
+              const cleanWa = row.player?.whatsapp?.replace(/[^0-9]/g, "") || "";
 
             return (
               <TableRow
@@ -140,40 +150,46 @@ export default function StandingsTable({
                 {/* Mobile Athlete Identity */}
                 <TableCell>
                   {(() => {
-                    const avatarUrl = resolvePlayerAvatar(row.player);
-                    const teamObj = row.player.realTeam ? findTeam(row.player.realTeam) : null;
+                    const player = row.player;
+                    const avatarUrl = resolvePlayerAvatar(player);
+                    const teamObj = player?.realTeam ? findTeam(player.realTeam) : null;
+                    const gamerTag = player?.gamerTag || "Unknown";
+                    const fullName = player?.fullName || "Esports Athlete";
+                    const efootballId = player?.efootballId || "N/A";
+                    const realTeam = player?.realTeam || "";
+
                     return (
                       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                         <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-border p-0.5 shadow-sm overflow-hidden">
                           {avatarUrl ? (
                             <img
                               src={avatarUrl}
-                              alt={row.player.realTeam || row.player.gamerTag}
+                              alt={realTeam || gamerTag}
                               className="h-full w-full object-contain filter drop-shadow-sm"
                               loading="lazy"
                               onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(gamerTag)}`;
                               }}
                             />
                           ) : (
                             <span className="font-black text-xs text-primary">
-                              {row.player.gamerTag.slice(0, 2).toUpperCase()}
+                              {(gamerTag.slice(0, 2) || "PL").toUpperCase()}
                             </span>
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                             <span className="font-bold text-white text-xs sm:text-sm tracking-wide group-hover:text-primary transition-colors truncate">
-                              {row.player.gamerTag}
+                              {gamerTag}
                             </span>
 
-                            {row.player.realTeam && (
+                            {realTeam && (
                               <Badge
                                 variant="outline"
                                 className="text-xs py-0 px-1.5 font-bold border-primary/40 text-primary bg-primary/20"
-                                title={`Official Representation: ${row.player.realTeam}`}
+                                title={`Official Representation: ${realTeam}`}
                               >
-                                {teamObj?.shortName || row.player.realTeam}
+                                {teamObj?.shortName || realTeam}
                               </Badge>
                             )}
 
@@ -191,10 +207,10 @@ export default function StandingsTable({
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{row.player.fullName}</span>
+                            <span>{fullName}</span>
                             <span>•</span>
                             <span className="font-mono text-muted-foreground text-xs">
-                              {row.player.efootballId}
+                              {efootballId}
                             </span>
                           </div>
                         </div>
@@ -213,7 +229,7 @@ export default function StandingsTable({
                       className="inline-flex items-center gap-1 text-primary hover:text-primary font-mono text-xs"
                     >
                       <MessageSquare className="h-3 w-3" />
-                      <span>{row.player.whatsapp}</span>
+                      <span>{row.player?.whatsapp || "N/A"}</span>
                     </a>
                   </TableCell>
                 )}

@@ -153,6 +153,11 @@ export default function AdminClient({
   const [selectedClubName, setSelectedClubName] = useState<string>("");
   const [updatingClub, setUpdatingClub] = useState(false);
 
+  // Division Assignment / Edit State
+  const [editingDivisionPlayer, setEditingDivisionPlayer] = useState<any | null>(null);
+  const [selectedTargetDivision, setSelectedTargetDivision] = useState<string>("Division 1");
+  const [updatingDivision, setUpdatingDivision] = useState(false);
+
   // All Matches filter state
   const [allMatchesFilterRound, setAllMatchesFilterRound] = useState<string>("ALL");
   const [allMatchesFilterDiv, setAllMatchesFilterDiv] = useState<string>("ALL");
@@ -1163,6 +1168,31 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setUpdatingClub(false);
+    }
+  };
+
+  // Update Athlete Division Placement
+  const handleUpdatePlayerDivision = async (playerId: string, targetDivision: string) => {
+    if (!targetDivision) return;
+    setUpdatingDivision(true);
+    try {
+      const res = await fetch("/api/admin/update-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          division: targetDivision,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed to update player division (${res.status})`);
+      alert(data.message || `Successfully moved athlete to ${targetDivision}!`);
+      setEditingDivisionPlayer(null);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUpdatingDivision(false);
     }
   };
 
@@ -5264,18 +5294,31 @@ export default function AdminClient({
                         <td className="px-4 py-3 font-mono text-muted-foreground">{p.efootballId}</td>
                         <td className="px-4 py-3 font-mono text-primary">{p.whatsapp}</td>
                         <td className="px-4 py-3">
-                          <Badge
-                            variant={
-                              p.division === "Division 1"
-                                ? "secondary"
-                                : p.division === "Division 2"
-                                ? "yellow"
-                                : "live"
-                            }
-                            className="text-xs"
-                          >
-                            {p.division}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              variant={
+                                p.division === "Division 1"
+                                  ? "secondary"
+                                  : p.division === "Division 2"
+                                  ? "yellow"
+                                  : "live"
+                              }
+                              className="text-xs"
+                            >
+                              {p.division}
+                            </Badge>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingDivisionPlayer(p);
+                                setSelectedTargetDivision(p.division);
+                              }}
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                              title="Change Division"
+                            >
+                              <Layers className="h-3 w-3" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-bold">
                           <span className={p.consecutiveMissed >= 3 ? "text-destructive font-black animate-pulse" : p.consecutiveMissed >= 2 ? "text-destructive" : "text-muted-foreground"}>
@@ -5298,6 +5341,19 @@ export default function AdminClient({
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingDivisionPlayer(p);
+                                setSelectedTargetDivision(p.division);
+                              }}
+                              className="h-7 px-2 text-[11px] font-bold border-purple-500/40 text-purple-400 hover:bg-purple-950/50 hover:text-purple-300"
+                              title="Change Athlete Division"
+                            >
+                              <Layers className="h-3 w-3 mr-1" />
+                              Division
+                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -6926,6 +6982,158 @@ export default function AdminClient({
                   {updatingClub ? "Saving..." : "Save Club Assignment"}
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE ATHLETE DIVISION MODAL */}
+      {editingDivisionPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-lg rounded-3xl border border-slate-700 bg-slate-950 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-purple-400" />
+                  Change Athlete Division
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Transferring <strong className="text-white">@{editingDivisionPlayer.gamerTag}</strong> ({editingDivisionPlayer.fullName})
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingDivisionPlayer(null)}
+                className="text-slate-400 hover:text-white text-sm p-1.5 rounded-lg hover:bg-slate-900"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+              <span className="text-slate-400">Current Placement:</span>
+              <Badge
+                variant={
+                  editingDivisionPlayer.division === "Division 1"
+                    ? "secondary"
+                    : editingDivisionPlayer.division === "Division 2"
+                    ? "yellow"
+                    : editingDivisionPlayer.division === "Division 3"
+                    ? "live"
+                    : "outline"
+                }
+                className="font-bold text-xs"
+              >
+                {editingDivisionPlayer.division}
+              </Badge>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                Select Destination Division
+              </label>
+              <div className="grid grid-cols-1 gap-2.5">
+                {[
+                  {
+                    id: "Division 1",
+                    name: "Division 1",
+                    league: "Premier League (England)",
+                    desc: "20 Premier League clubs. Top division with eFootball UCL spots.",
+                    color: "border-sky-500/40 hover:border-sky-400 bg-sky-950/20 text-sky-300",
+                    activeRing: "ring-2 ring-sky-500 bg-sky-950/40",
+                  },
+                  {
+                    id: "Division 2",
+                    name: "Division 2",
+                    league: "La Liga (Spain)",
+                    desc: "20 La Liga clubs. Promotion to Div 1 and Europa League spots.",
+                    color: "border-amber-500/40 hover:border-amber-400 bg-amber-950/20 text-amber-300",
+                    activeRing: "ring-2 ring-amber-500 bg-amber-950/40",
+                  },
+                  {
+                    id: "Division 3",
+                    name: "Division 3",
+                    league: "Serie A (Italy)",
+                    desc: "20 Serie A clubs. Promotion to Div 2 and Europa League spots.",
+                    color: "border-emerald-500/40 hover:border-emerald-400 bg-emerald-950/20 text-emerald-300",
+                    activeRing: "ring-2 ring-emerald-500 bg-emerald-950/40",
+                  },
+                  {
+                    id: "RESERVE",
+                    name: "Reserve Standby Pool",
+                    league: "Standby Bench",
+                    desc: "Move athlete to the reserve waiting list for substitutions.",
+                    color: "border-slate-600 hover:border-slate-500 bg-slate-900/40 text-slate-300",
+                    activeRing: "ring-2 ring-slate-400 bg-slate-800/60",
+                  },
+                ].map((divOption) => {
+                  const isSelected = selectedTargetDivision === divOption.id;
+                  const isCurrent = editingDivisionPlayer.division === divOption.id;
+
+                  return (
+                    <button
+                      key={divOption.id}
+                      type="button"
+                      onClick={() => setSelectedTargetDivision(divOption.id)}
+                      className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                        isSelected ? divOption.activeRing : divOption.color
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-white">{divOption.name}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/40 text-slate-300">
+                            {divOption.league}
+                          </span>
+                          {isCurrent && (
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              (Current)
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400">{divOption.desc}</p>
+                      </div>
+                      <div
+                        className={`h-5 w-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                          isSelected
+                            ? "border-sky-400 bg-sky-500 text-slate-950"
+                            : "border-slate-600 bg-slate-900"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {editingDivisionPlayer.realTeam && selectedTargetDivision !== editingDivisionPlayer.division && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-950/30 p-3 text-xs text-amber-300 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                <span>
+                  Notice: <strong>@{editingDivisionPlayer.gamerTag}</strong> currently represents <strong>{editingDivisionPlayer.realTeam}</strong>. If moved to {selectedTargetDivision}, any incompatible club will be cleared so they can pick a valid team from the new league.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingDivisionPlayer(null)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleUpdatePlayerDivision(editingDivisionPlayer.id, selectedTargetDivision)}
+                disabled={updatingDivision || selectedTargetDivision === editingDivisionPlayer.division}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs gap-1.5"
+              >
+                <Layers className={`h-3.5 w-3.5 ${updatingDivision ? "animate-spin" : ""}`} />
+                {updatingDivision ? "Transferring..." : "Confirm Division Change"}
+              </Button>
             </div>
           </div>
         </div>
