@@ -2,17 +2,15 @@ import { prisma } from "@/lib/prisma";
 import StandingsTable from "@/components/StandingsTable";
 import { Trophy, ShieldCheck, Flame, Info, AlertTriangle, ArrowDown, ArrowUp, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
 export default async function StandingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ division?: string }>;
+  searchParams?: Promise<{ division?: string }>;
 }) {
-  await redirectAdminToPortal();
-  const params = await searchParams;
+  const params = (searchParams ? await searchParams : {}) || {};
   const currentDivision = params.division || "Division 1";
 
   // Fetch standings for selected division with player profile and team
@@ -30,7 +28,8 @@ export default async function StandingsPage({
       }),
       prisma.leagueConfig.findUnique({ where: { id: "default" } }),
     ]);
-    standings = st;
+    // Defensively ensure only records with populated player relations are included
+    standings = (st || []).filter((s: any) => s && s.player);
     leagueConfig = cfg;
   } catch (error) {
     console.error("Standings fetch error:", error);
@@ -38,10 +37,10 @@ export default async function StandingsPage({
 
   const bothLeaguesUnlocked = Boolean(leagueConfig?.uclStarted && leagueConfig?.europaStarted);
 
-  const totalGoals = standings.reduce((acc, curr) => acc + (curr.goalsFor || 0), 0);
+  const totalGoals = standings.reduce((acc, curr) => acc + (curr?.goalsFor || 0), 0);
   const bestPlayer = standings[0];
   const flaggedPlayers = standings.filter(
-    (s) => (s.consecutiveMissed || 0) >= 3 || s.isDisqualified
+    (s) => Boolean(s && s.player && ((s.consecutiveMissed || 0) >= 3 || s.isDisqualified))
   );
 
   return (
@@ -143,7 +142,7 @@ export default async function StandingsPage({
             <p className="text-slate-300">
               Player{" "}
               <strong className="text-white">
-                {flaggedPlayers.map((f) => f.player.gamerTag).join(", ")}
+                {flaggedPlayers.map((f) => f.player?.gamerTag || "Athlete").join(", ")}
               </strong>{" "}
               has been disqualified for missing 3 consecutive scheduled matches without administrative waiver. The slot is subject to replacement by the League Administrator.
             </p>
