@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { uploadBase64ToR2 } from "@/lib/r2";
+import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 
 export async function POST(req: Request) {
   try {
@@ -93,12 +94,28 @@ export async function POST(req: Request) {
       );
     }
 
+    // Run automated cycle check to ensure database records reflect recent deadline rollovers
+    await checkAndAutoAdvanceDailyCycle();
+
     const isReplacementMatch = Boolean(match.notes?.includes("REPLACEMENT_BACKLOG"));
     const isReopenedByAdmin = Boolean(
-      match.allowLateSubmission ||
-        match.notes?.includes("ADMIN_REOPENED") ||
-        isReplacementMatch
+      match.allowLateSubmission || match.notes?.includes("ADMIN_REOPENED")
     );
+
+    // STRICT DEADLINE REACHED ENFORCEMENT:
+    // When the deadline is reached, players cannot submit match results or claim forfeit.
+    const now = new Date();
+    const isPastDeadline = Boolean(match.deadlineDate && now >= new Date(match.deadlineDate));
+    if (isPastDeadline && !isReopenedByAdmin) {
+      return NextResponse.json(
+        {
+          error: isReplacementMatch
+            ? "Deadline Reached: The 48-hour completion window for this replacement fixture has elapsed. Result submissions are strictly closed."
+            : "Deadline Reached: The 24-hour match deadline (12:00 AM cutoff) for this fixture has elapsed. You are no longer able to submit match results for this match.",
+        },
+        { status: 400 }
+      );
+    }
 
     // STRICT 1 MATCH PER DAY (24HRS):
     // Division fixtures for future matchdays cannot be submitted before their 24-hr cycle begins at 12:00 AM midnight
@@ -111,6 +128,15 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error: `1 Match Per Day Rule: ${match.round} is not active yet. Next round fixtures drop after today's 24-hour deadline at 12:00 AM Midnight.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (isDivisionMatch && matchRoundNum < currentMatchday && !isReopenedByAdmin) {
+      return NextResponse.json(
+        {
+          error: `Deadline Reached: The round deadline for ${match.round} has elapsed. Result submissions are closed.`,
         },
         { status: 400 }
       );
@@ -161,19 +187,6 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error: `A forfeit claim has already been lodged by @${claimant}. The upload window is closed for both players while under league arbitration.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Check if deadline has passed, allowing submissions if admin approved late entry, reopened, or 48-hr replacement window is active
-    const isPastDeadline = new Date() > new Date(match.deadlineDate);
-    if (isPastDeadline && !isReopenedByAdmin) {
-      return NextResponse.json(
-        {
-          error: isReplacementMatch
-            ? "The 48-hour completion window for this replacement fixture has expired."
-            : "The 24-hour match window for this fixture has expired (12:00 AM cutoff). Please contact the League Admin to request a deadline extension.",
         },
         { status: 400 }
       );

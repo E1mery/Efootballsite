@@ -1098,10 +1098,17 @@ export default function DashboardClient({
      activeMatch.notes?.includes("REOPEN"))
   );
 
+  // STRICT DEADLINE REACHED CHECK:
+  // When the deadline is reached, players cannot submit results or claim forfeit
+  const isDeadlineExpired = Boolean(
+    timeLeft.isExpired ||
+    (activeMatch?.deadlineDate && new Date(activeMatch.deadlineDate).getTime() <= Date.now())
+  );
+
   // Check if active match options are locked
   const isMatchLocked = Boolean(
     activeMatch &&
-    (timeLeft.isExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
+    (isDeadlineExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
     !isAdminPermissionGranted
   );
 
@@ -1247,6 +1254,20 @@ export default function DashboardClient({
       return;
     }
 
+    const isTargetDeadlineExpired = Boolean(
+      targetMatch.deadlineDate &&
+      new Date(targetMatch.deadlineDate).getTime() <= Date.now() &&
+      !targetMatch.allowLateSubmission &&
+      !targetMatch.notes?.includes("ADMIN_REOPENED") &&
+      !isAdminPermissionGranted
+    );
+
+    if (isTargetDeadlineExpired) {
+      alert("Deadline Reached: The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer submit match results.");
+      setSubmittingResult(false);
+      return;
+    }
+
     const isTwoLegged =
       targetMatch?.stage === "GROUP" ||
       targetMatch?.stage === "QUARTER_FINAL" ||
@@ -1305,6 +1326,20 @@ export default function DashboardClient({
     const targetMatch = actionMatch || activeMatch;
     if (!targetMatch) {
       alert("No match selected for forfeit claim.");
+      setSubmittingForfeit(false);
+      return;
+    }
+
+    const isForfeitDeadlineExpired = Boolean(
+      targetMatch.deadlineDate &&
+      new Date(targetMatch.deadlineDate).getTime() <= Date.now() &&
+      !targetMatch.allowLateSubmission &&
+      !targetMatch.notes?.includes("ADMIN_REOPENED") &&
+      !isAdminPermissionGranted
+    );
+
+    if (isForfeitDeadlineExpired) {
+      alert("Deadline Reached: The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer claim forfeit for this match.");
       setSubmittingForfeit(false);
       return;
     }
@@ -2650,15 +2685,15 @@ export default function DashboardClient({
                       </span>
                     </div>
                   </div>
-                ) : isMatchLocked ? (
-                  <div className="w-full sm:w-auto p-3.5 rounded-2xl bg-destructive/40 border border-destructive/40 text-xs text-destructive flex items-center gap-3">
+                ) : isMatchLocked || (isDeadlineExpired && !isAdminPermissionGranted) ? (
+                  <div className="w-full sm:w-auto p-4 rounded-2xl bg-destructive/20 border border-destructive/40 text-xs text-destructive flex items-center gap-3">
                     <Lock className="h-5 w-5 text-destructive shrink-0" />
                     <div>
                       <span className="font-black uppercase tracking-wider text-destructive block">
-                        Fixture Expired & Locked
+                        Deadline Reached • Submissions & Claims Closed
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Previous match options are closed per 24-hr midnight rule unless reopened by the Admin Office.
+                        The 24-hour match deadline (12:00 AM cutoff) for this fixture has elapsed. Score submissions and forfeit claims are closed.
                       </span>
                     </div>
                   </div>
@@ -2667,8 +2702,12 @@ export default function DashboardClient({
                     <Button
                       variant="yellow"
                       size="lg"
-                      disabled={timeLeft.isExpired && !activeMatch?.allowLateSubmission}
+                      disabled={isDeadlineExpired && !isAdminPermissionGranted}
                       onClick={() => {
+                        if (isDeadlineExpired && !isAdminPermissionGranted) {
+                          alert("Deadline Reached: The deadline for this fixture has elapsed.");
+                          return;
+                        }
                         setActionMatch(activeMatch);
                         setShowResultModal(true);
                       }}
@@ -2681,8 +2720,12 @@ export default function DashboardClient({
                     <Button
                       variant="outline"
                       size="lg"
-                      disabled={timeLeft.isExpired && !activeMatch?.allowLateSubmission}
+                      disabled={isDeadlineExpired && !isAdminPermissionGranted}
                       onClick={() => {
+                        if (isDeadlineExpired && !isAdminPermissionGranted) {
+                          alert("Deadline Reached: The deadline for this fixture has elapsed.");
+                          return;
+                        }
                         setActionMatch(activeMatch);
                         setShowForfeitModal(true);
                       }}
@@ -3408,6 +3451,9 @@ export default function DashboardClient({
                 const isDivisionMatch = m.division?.startsWith("Division");
                 const currentMatchdayNum = leagueConfig?.currentMatchday || 1;
                 const isFutureDivisionMatch = isDivisionMatch && matchRoundNum > currentMatchdayNum;
+                const isMatchPastDeadline = Boolean(
+                  m.deadlineDate && new Date(m.deadlineDate).getTime() <= Date.now()
+                );
 
                 return (
                   <div
@@ -3438,9 +3484,15 @@ export default function DashboardClient({
 
                       {/* Status Badges */}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {isCurrentActive && (
+                        {isCurrentActive && !isMatchPastDeadline && (
                           <Badge variant="live" className="text-xs animate-pulse">
                             ⚡ ACTIVE 24-HR FIXTURE
+                          </Badge>
+                        )}
+                        {isMatchPastDeadline && !isFinished && !isForfeit && !isPending && !isForfeitPending && (
+                          <Badge variant="destructive" className="text-xs font-bold gap-1">
+                            <Lock className="h-3 w-3" />
+                            DEADLINE EXPIRED
                           </Badge>
                         )}
                         {isFinished && (
@@ -3463,13 +3515,13 @@ export default function DashboardClient({
                             FORFEIT ARBITRATION
                           </Badge>
                         )}
-                        {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && !isForfeitPending && (
+                        {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && !isForfeitPending && !isMatchPastDeadline && (
                           <Badge variant="outline" className="text-xs text-muted-foreground border-border gap-1">
                             <Lock className="h-3 w-3 text-secondary" />
                             LOCKED (1 MATCH/DAY)
                           </Badge>
                         )}
-                        {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && !isFutureDivisionMatch && (
+                        {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && !isFutureDivisionMatch && !isMatchPastDeadline && (
                           <Badge variant="secondary" className="text-xs text-muted-foreground">
                             UPCOMING
                           </Badge>
@@ -3608,7 +3660,7 @@ export default function DashboardClient({
                         )}
                       </div>
 
-                      {isCurrentActive && !isFinished && !isForfeit && (
+                      {isCurrentActive && !isFinished && !isForfeit && !isMatchPastDeadline && (
                         <Button
                           variant="yellow"
                           size="sm"
@@ -3618,6 +3670,12 @@ export default function DashboardClient({
                           <Clock className="h-3 w-3" />
                           <span>Play Now</span>
                         </Button>
+                      )}
+                      {isCurrentActive && !isFinished && !isForfeit && isMatchPastDeadline && (
+                        <div className="flex items-center gap-1.5 text-xs text-destructive py-1 px-2.5 rounded-lg bg-destructive/10 border border-destructive/30 font-bold">
+                          <Lock className="h-3 w-3" />
+                          <span>Deadline Passed (Closed)</span>
+                        </div>
                       )}
                       {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1 px-2.5 rounded-lg bg-card border border-border">
@@ -4046,6 +4104,14 @@ export default function DashboardClient({
             ? modalMatch?.awayPlayer?.gamerTag
             : modalMatch?.homePlayer?.gamerTag || "Opponent");
 
+        const isModalDeadlineExpired = Boolean(
+          modalMatch?.deadlineDate &&
+          new Date(modalMatch.deadlineDate).getTime() <= Date.now() &&
+          !modalMatch.allowLateSubmission &&
+          !modalMatch.notes?.includes("ADMIN_REOPENED") &&
+          !isAdminPermissionGranted
+        );
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="relative w-full max-w-lg max-h-screen overflow-y-auto rounded-3xl border border-border bg-background p-5 sm:p-8 shadow-2xl space-y-5">
@@ -4081,7 +4147,22 @@ export default function DashboardClient({
                 </div>
               )}
 
-              {modalHasSubmittedResult ? (
+              {isModalDeadlineExpired ? (
+                <div className="p-6 rounded-2xl bg-destructive/20 border border-destructive/40 text-center space-y-4">
+                  <Lock className="h-10 w-10 text-destructive mx-auto" />
+                  <div>
+                    <h4 className="text-sm font-black text-destructive uppercase tracking-wider">
+                      Deadline Reached — Submissions Closed
+                    </h4>
+                    <p className="text-xs text-foreground mt-1">
+                      The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer submit match results or claim forfeit for this match.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { setShowResultModal(false); setActionMatch(null); }} className="text-xs">
+                    Close Window
+                  </Button>
+                </div>
+              ) : modalHasSubmittedResult ? (
                 <div className="p-6 rounded-2xl bg-secondary/30 border border-secondary/40 text-center space-y-4">
                   <Lock className="h-10 w-10 text-secondary mx-auto" />
                   <div>
@@ -4386,6 +4467,14 @@ export default function DashboardClient({
             ? modalMatch?.awayPlayer?.gamerTag
             : modalMatch?.homePlayer?.gamerTag || "Opponent");
 
+        const isModalForfeitDeadlineExpired = Boolean(
+          modalMatch?.deadlineDate &&
+          new Date(modalMatch.deadlineDate).getTime() <= Date.now() &&
+          !modalMatch.allowLateSubmission &&
+          !modalMatch.notes?.includes("ADMIN_REOPENED") &&
+          !isAdminPermissionGranted
+        );
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="relative w-full max-w-lg max-h-screen overflow-y-auto rounded-3xl border border-destructive/40 bg-background p-5 sm:p-8 shadow-2xl space-y-5">
@@ -4421,7 +4510,22 @@ export default function DashboardClient({
                 </div>
               )}
 
-              {modalHasSubmittedResult ? (
+              {isModalForfeitDeadlineExpired ? (
+                <div className="p-6 rounded-2xl bg-destructive/20 border border-destructive/40 text-center space-y-4">
+                  <Lock className="h-10 w-10 text-destructive mx-auto" />
+                  <div>
+                    <h4 className="text-sm font-black text-destructive uppercase tracking-wider">
+                      Deadline Reached — Claims Closed
+                    </h4>
+                    <p className="text-xs text-foreground mt-1">
+                      The deadline for this fixture has elapsed (12:00 AM cutoff). Forfeit walkover claims can no longer be filed for this match.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { setShowForfeitModal(false); setActionMatch(null); }} className="text-xs">
+                    Close Window
+                  </Button>
+                </div>
+              ) : modalHasSubmittedResult ? (
                 <div className="p-6 rounded-2xl bg-secondary/30 border border-secondary/40 text-center space-y-4">
                   <Lock className="h-10 w-10 text-secondary mx-auto" />
                   <div>
@@ -4645,10 +4749,18 @@ export default function DashboardClient({
             }
           }}
           onOpenSubmitResult={() => {
+            if (isDeadlineExpired && !isAdminPermissionGranted) {
+              alert("Deadline Reached: The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer submit match results.");
+              return;
+            }
             setActionMatch(activeMatch);
             setShowResultModal(true);
           }}
           onOpenForfeitClaim={() => {
+            if (isDeadlineExpired && !isAdminPermissionGranted) {
+              alert("Deadline Reached: The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer claim forfeit.");
+              return;
+            }
             setActionMatch(activeMatch);
             setShowForfeitModal(true);
           }}
@@ -4658,6 +4770,7 @@ export default function DashboardClient({
           hasActiveMatch={Boolean(activeMatch)}
           opponent={opponent}
           isReserved={isReserved}
+          isDeadlineExpired={isDeadlineExpired && !isAdminPermissionGranted}
         />
       )}
       {/* ========================================================================= */}

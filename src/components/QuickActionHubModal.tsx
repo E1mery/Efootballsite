@@ -34,6 +34,7 @@ interface QuickActionHubModalProps {
   hasActiveMatch?: boolean;
   opponent?: any;
   isReserved?: boolean;
+  isDeadlineExpired?: boolean;
 }
 
 export default function QuickActionHubModal({
@@ -46,6 +47,7 @@ export default function QuickActionHubModal({
   hasActiveMatch = false,
   opponent,
   isReserved = false,
+  isDeadlineExpired = false,
 }: QuickActionHubModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<"ALL" | "MATCH" | "TABLES" | "SUPPORT">("ALL");
@@ -62,13 +64,19 @@ export default function QuickActionHubModal({
       id: "submit-score",
       category: "MATCH",
       title: "Submit Match Score & Screenshot",
-      description: "Finished your eFootball match? Submit your goals and screenshot proof before midnight.",
+      description: isDeadlineExpired
+        ? "Deadline for this match has expired. Result submissions are closed."
+        : "Finished your eFootball match? Submit your goals and screenshot proof before midnight.",
       icon: Upload,
-      iconColor: "text-primary",
-      iconBg: "bg-primary/20 border-primary/30",
-      badge: "ACTIVE MATCH",
-      disabled: !hasActiveMatch || isReserved,
-      actionText: hasActiveMatch ? "Open Score Submission" : "No Active Match Today",
+      iconColor: isDeadlineExpired ? "text-muted-foreground" : "text-primary",
+      iconBg: isDeadlineExpired ? "bg-muted border-border" : "bg-primary/20 border-primary/30",
+      badge: isDeadlineExpired ? "EXPIRED" : "ACTIVE MATCH",
+      disabled: !hasActiveMatch || isReserved || isDeadlineExpired,
+      actionText: isDeadlineExpired
+        ? "Deadline Reached (Closed)"
+        : hasActiveMatch
+        ? "Open Score Submission"
+        : "No Active Match Today",
       action: () => {
         onClose();
         if (onOpenSubmitResult) {
@@ -82,13 +90,19 @@ export default function QuickActionHubModal({
       id: "claim-forfeit",
       category: "MATCH",
       title: "Claim Forfeit (Opponent Unresponsive)",
-      description: "Opponent not answering on WhatsApp or refusing to play? Upload chat proof to claim a 3-0 win.",
+      description: isDeadlineExpired
+        ? "Deadline for this match has expired. Forfeit claims are closed."
+        : "Opponent not answering on WhatsApp or refusing to play? Upload chat proof to claim a 3-0 win.",
       icon: ShieldAlert,
-      iconColor: "text-destructive",
-      iconBg: "bg-destructive/20 border-destructive/30",
-      badge: "DISPUTE",
-      disabled: !hasActiveMatch || isReserved,
-      actionText: hasActiveMatch ? "File Forfeit Claim" : "No Active Match",
+      iconColor: isDeadlineExpired ? "text-muted-foreground" : "text-destructive",
+      iconBg: isDeadlineExpired ? "bg-muted border-border" : "bg-destructive/20 border-destructive/30",
+      badge: isDeadlineExpired ? "EXPIRED" : "DISPUTE",
+      disabled: !hasActiveMatch || isReserved || isDeadlineExpired,
+      actionText: isDeadlineExpired
+        ? "Deadline Reached (Closed)"
+        : hasActiveMatch
+        ? "File Forfeit Claim"
+        : "No Active Match",
       action: () => {
         onClose();
         if (onOpenForfeitClaim) {
