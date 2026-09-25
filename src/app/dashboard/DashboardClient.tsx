@@ -411,6 +411,10 @@ export default function DashboardClient({
   europaSlots = [],
   uclQualified = [],
   europaQualified = [],
+  continentalStatus = null,
+  continentalStanding = null,
+  hasStartedContinental = false,
+  isDivisionsMatchEnded = false,
   initialReview = null,
   isRestDayToday = false,
   isWaitingForSub = false,
@@ -441,6 +445,10 @@ export default function DashboardClient({
   europaSlots?: any[];
   uclQualified?: any[];
   europaQualified?: any[];
+  continentalStatus?: any;
+  continentalStanding?: any;
+  hasStartedContinental?: boolean;
+  isDivisionsMatchEnded?: boolean;
   initialReview?: any;
   isRestDayToday?: boolean;
   isWaitingForSub?: boolean;
@@ -1444,6 +1452,21 @@ export default function DashboardClient({
               <Badge variant={isReserved ? "outline" : "yellow"} className="text-xs sm:text-xs">
                 {isReserved ? "RESERVE POOL" : currentPlayer.division}
               </Badge>
+              {continentalStatus?.status === "QUALIFIED_UCL" && (
+                <Badge variant="default" className="text-xs sm:text-xs uppercase font-bold bg-primary/20 border-primary/40 text-primary">
+                  Qualified for UCL
+                </Badge>
+              )}
+              {continentalStatus?.status === "QUALIFIED_EUROPA" && (
+                <Badge variant="secondary" className="text-xs sm:text-xs uppercase font-bold bg-secondary/20 border-secondary/40 text-secondary">
+                  Qualified for Europa
+                </Badge>
+              )}
+              {continentalStatus?.isEliminated && (
+                <Badge variant="destructive" className="text-xs sm:text-xs uppercase font-bold">
+                  Eliminated
+                </Badge>
+              )}
               <Badge variant="default" className="text-xs sm:text-xs uppercase font-mono">
                 {currentPlayer.platform}
               </Badge>
@@ -1798,6 +1821,80 @@ export default function DashboardClient({
       {/* TAB 1: OVERVIEW & ACTIVE 24-HOUR MATCH */}
       {!isReserved && activeTab === "OVERVIEW" && (
         <div className="space-y-8">
+          {/* CONTINENTAL QUALIFICATION & ELIMINATION STATUS BANNER */}
+          {continentalStatus && continentalStatus.title && (
+            <div
+              className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-lg ${
+                continentalStatus.isEliminated
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : continentalStatus.status === "QUALIFIED_UCL"
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-secondary/40 bg-secondary/10 text-secondary"
+              }`}
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div
+                  className={`p-3 rounded-xl border shrink-0 ${
+                    continentalStatus.isEliminated
+                      ? "bg-destructive/20 border-destructive/40 text-destructive"
+                      : continentalStatus.status === "QUALIFIED_UCL"
+                      ? "bg-primary/20 border-primary/40 text-primary"
+                      : "bg-secondary/20 border-secondary/40 text-secondary"
+                  }`}
+                >
+                  {continentalStatus.isEliminated ? (
+                    <XCircle className="h-6 w-6 shrink-0" />
+                  ) : continentalStatus.status === "QUALIFIED_UCL" ? (
+                    <Star className="h-6 w-6 shrink-0" />
+                  ) : (
+                    <Flame className="h-6 w-6 shrink-0" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-wide text-white">
+                      {continentalStatus.title}
+                    </h3>
+                    <Badge
+                      variant={
+                        continentalStatus.isEliminated
+                          ? "destructive"
+                          : continentalStatus.status === "QUALIFIED_UCL"
+                          ? "default"
+                          : "yellow"
+                      }
+                      className="text-xs uppercase font-black"
+                    >
+                      {continentalStatus.isEliminated
+                        ? "ELIMINATED"
+                        : continentalStatus.status === "QUALIFIED_UCL"
+                        ? "UCL QUALIFIED"
+                        : "EUROPA QUALIFIED"}
+                    </Badge>
+                  </div>
+                  {continentalStatus.subtitle && (
+                    <p className="text-xs text-foreground mt-0.5 leading-relaxed">
+                      {continentalStatus.subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {continentalStatus.status !== "ELIMINATED" && (
+                <Link href="/continental" className="shrink-0">
+                  <Button
+                    variant={continentalStatus.status === "QUALIFIED_UCL" ? "default" : "yellow"}
+                    size="sm"
+                    className="font-bold text-xs gap-1.5 w-full sm:w-auto"
+                  >
+                    <span>Continental Hub</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* CONTINENTAL DRAWS BROADCAST & SCHEDULE BANNER */}
           {bothLeaguesUnlocked && Boolean(leagueConfig?.uclDrawTime || leagueConfig?.uclStarted || leagueConfig?.europaDrawTime || leagueConfig?.europaStarted) && (
             <div className={`grid grid-cols-1 ${
@@ -2773,31 +2870,75 @@ export default function DashboardClient({
           </div>
 
 
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase block">Matches Played</span>
-              <span className="text-2xl font-black text-white">{standing?.played ?? 0}</span>
-            </div>
-            <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase block">Wins</span>
-              <span className="text-2xl font-black text-primary">{standing?.won ?? 0}</span>
-            </div>
-            <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase block">Points</span>
-              <span className="text-2xl font-black text-secondary">{standing?.points ?? 0}</span>
-            </div>
-            <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-              <span className="text-xs font-bold text-muted-foreground uppercase block">Missed Matches</span>
-              <span
-                className={`text-2xl font-black ${
-                  player.consecutiveMissed > 0 ? "text-destructive" : "text-foreground"
-                }`}
-              >
-                {player.consecutiveMissed} / 3 Max
-              </span>
-            </div>
-          </div>
+          {/* Quick Stats Grid with Win Rate */}
+          {(() => {
+            const effectiveStatsStanding = (hasStartedContinental && continentalStanding) ? continentalStanding : standing;
+            const played = effectiveStatsStanding?.played ?? 0;
+            const won = effectiveStatsStanding?.won ?? 0;
+            const points = effectiveStatsStanding?.points ?? 0;
+            const winRate = played > 0 ? Math.round((won / played) * 100) : 0;
+
+            return (
+              <div className="space-y-3">
+                {/* Standings Performance Indicator */}
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                  <span className="font-bold uppercase tracking-wider text-white">
+                    {hasStartedContinental && continentalStanding
+                      ? `${continentalStanding.division || "Continental"} Standings Stats`
+                      : `${player.division} Standings Stats`}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {continentalStatus?.title && (
+                      <span
+                        className={`text-xs font-bold uppercase font-mono px-2 py-0.5 rounded-full border ${
+                          continentalStatus.isEliminated
+                            ? "bg-destructive/20 border-destructive/40 text-destructive"
+                            : continentalStatus.status === "QUALIFIED_UCL"
+                            ? "bg-primary/20 border-primary/40 text-primary"
+                            : "bg-secondary/20 border-secondary/40 text-secondary"
+                        }`}
+                      >
+                        {continentalStatus.title}
+                      </span>
+                    )}
+                    <span className="font-mono text-xs text-muted-foreground hidden sm:inline">
+                      Table-Based Performance
+                    </span>
+                  </div>
+                </div>
+
+                {/* 5-Card Quick Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Matches Played</span>
+                    <span className="text-2xl font-black text-white">{played}</span>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Wins</span>
+                    <span className="text-2xl font-black text-primary">{won}</span>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Points</span>
+                    <span className="text-2xl font-black text-secondary">{points}</span>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Win Rate</span>
+                    <span className="text-2xl font-black text-secondary">{winRate}%</span>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center col-span-2 sm:col-span-1">
+                    <span className="text-xs font-bold text-muted-foreground uppercase block">Missed Matches</span>
+                    <span
+                      className={`text-2xl font-black ${
+                        player.consecutiveMissed > 0 ? "text-destructive" : "text-foreground"
+                      }`}
+                    >
+                      {player.consecutiveMissed} / 3 Max
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

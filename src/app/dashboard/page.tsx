@@ -370,6 +370,216 @@ export default async function DashboardPage() {
     ...div3Standings.slice(4, 10),
   ];
 
+  // -------------------------------------------------------------------------
+  // Continental Qualification & Advanced Round Elimination Logic
+  // -------------------------------------------------------------------------
+  const inUclSlots = (uclSlots || []).some((s: any) => s.playerId === player.id);
+  const inEuropaSlots = (europaSlots || []).some((s: any) => s.playerId === player.id);
+  const isUclQualified = (uclQualified || []).some((s: any) => s.playerId === player.id || s.player?.id === player.id);
+  const isEuropaQualified = (europaQualified || []).some((s: any) => s.playerId === player.id || s.player?.id === player.id);
+
+  // Check if player's domestic division has concluded
+  const unplayedDivisionMatchesCount = await prisma.match.count({
+    where: {
+      division: player.division,
+      status: { in: ["SCHEDULED", "LIVE"] },
+    },
+  });
+  const totalDivisionMatchesCount = await prisma.match.count({
+    where: { division: player.division },
+  });
+  const isDivisionsMatchEnded =
+    (totalDivisionMatchesCount > 0 && unplayedDivisionMatchesCount === 0) ||
+    Boolean(leagueConfig.uclStarted || leagueConfig.europaStarted);
+
+  // Check finished continental matches for this player
+  const playerContinentalMatches = allPlayerMatchesRaw.filter(
+    (m: any) => m.division === "UCL" || m.division === "EUROPA"
+  );
+
+  let continentalElimination: {
+    isEliminated: boolean;
+    competition: string;
+    stage: string;
+    reason: string;
+  } | null = null;
+
+  // 1. Check Grand Final loss
+  const finalMatch = playerContinentalMatches.find(
+    (m: any) => m.stage === "FINAL" && (m.status === "FINISHED" || m.status === "FORFEIT")
+  );
+  if (finalMatch) {
+    const isHome = finalMatch.homePlayerId === player.id;
+    const homeAgg = finalMatch.aggregateHomeScore ?? finalMatch.homeScore ?? 0;
+    const awayAgg = finalMatch.aggregateAwayScore ?? finalMatch.awayScore ?? 0;
+    const myScore = isHome ? homeAgg : awayAgg;
+    const oppScore = isHome ? awayAgg : homeAgg;
+    if (myScore < oppScore) {
+      continentalElimination = {
+        isEliminated: true,
+        competition: finalMatch.division === "EUROPA" ? "Europa League" : "UCL",
+        stage: "Grand Final",
+        reason: "Runner-up in Grand Final",
+      };
+    }
+  }
+
+  // 2. Check Semi-Final loss
+  if (!continentalElimination) {
+    const sfMatch = playerContinentalMatches.find(
+      (m: any) => m.stage === "SEMI_FINAL" && (m.status === "FINISHED" || m.status === "FORFEIT")
+    );
+    if (sfMatch) {
+      const isHome = sfMatch.homePlayerId === player.id;
+      const homeAgg = sfMatch.aggregateHomeScore ?? ((sfMatch.homeScore || 0) + (sfMatch.leg2AwayScore || 0));
+      const awayAgg = sfMatch.aggregateAwayScore ?? ((sfMatch.awayScore || 0) + (sfMatch.leg2HomeScore || 0));
+      const myScore = isHome ? homeAgg : awayAgg;
+      const oppScore = isHome ? awayAgg : homeAgg;
+      if (myScore < oppScore) {
+        continentalElimination = {
+          isEliminated: true,
+          competition: sfMatch.division === "EUROPA" ? "Europa League" : "UCL",
+          stage: "Semi-Finals",
+          reason: "Lost on aggregate in Semi-Finals",
+        };
+      }
+    }
+  }
+
+  // 3. Check Quarter-Final loss
+  if (!continentalElimination) {
+    const qfMatch = playerContinentalMatches.find(
+      (m: any) => m.stage === "QUARTER_FINAL" && (m.status === "FINISHED" || m.status === "FORFEIT")
+    );
+    if (qfMatch) {
+      const isHome = qfMatch.homePlayerId === player.id;
+      const homeAgg = qfMatch.aggregateHomeScore ?? ((qfMatch.homeScore || 0) + (qfMatch.leg2AwayScore || 0));
+      const awayAgg = qfMatch.aggregateAwayScore ?? ((qfMatch.awayScore || 0) + (qfMatch.leg2HomeScore || 0));
+      const myScore = isHome ? homeAgg : awayAgg;
+      const oppScore = isHome ? awayAgg : homeAgg;
+      if (myScore < oppScore) {
+        continentalElimination = {
+          isEliminated: true,
+          competition: qfMatch.division === "EUROPA" ? "Europa League" : "UCL",
+          stage: "Quarter-Finals",
+          reason: "Lost on aggregate in Quarter-Finals",
+        };
+      }
+    }
+  }
+
+  // 4. Check Group Stage elimination (if all group matches in player's group are finished & ranked > 2)
+  if (!continentalElimination) {
+    const slot = [...uclSlots, ...europaSlots].find((s: any) => s.playerId === player.id);
+    if (slot) {
+      const comp = slot.competition;
+      const groupName = slot.groupName;
+      const groupMatches = await prisma.match.findMany({
+        where: { division: comp, stage: "GROUP", groupName },
+      });
+      const allGroupMatchesFinished =
+        groupMatches.length >= 6 &&
+        groupMatches.every((m: any) => m.status === "FINISHED" || m.status === "FORFEIT");
+
+      if (allGroupMatchesFinished) {
+        const standingsList = comp === "EUROPA" ? europaGroupStandings : uclGroupStandings;
+        const myGroupStandings = standingsList
+          .filter((s: any) => s.division?.includes(groupName))
+          .sort((a: any, b: any) => (b.points - a.points) || (b.goalDifference - a.goalDifference) || (b.goalsFor - a.goalsFor));
+        const myRank = myGroupStandings.findIndex((s: any) => s.playerId === player.id) + 1;
+        if (myRank > 2) {
+          continentalElimination = {
+            isEliminated: true,
+            competition: comp === "EUROPA" ? "Europa League" : "UCL",
+            stage: "Group Stage",
+            reason: `Finished #${myRank} in ${groupName} (Only top 2 advanced)`,
+          };
+        }
+      }
+    }
+  }
+
+  // If eliminated in UCL or Europa, ensure notification exists in player's announcements inbox
+  if (continentalElimination && continentalElimination.isEliminated) {
+    const elimTitle = `⚠️ Elimination Notice: ${continentalElimination.competition} (${continentalElimination.stage})`;
+    const alreadyNotified = announcements.some(
+      (a: any) => a.title.includes("Elimination") && a.title.includes(continentalElimination!.stage)
+    );
+    if (!alreadyNotified) {
+      const elimAnn = await prisma.announcement.create({
+        data: {
+          title: elimTitle,
+          content: `Hello ${player.gamerTag}, your tournament campaign in the ${continentalElimination.competition} has ended. You have been eliminated in the ${continentalElimination.stage} (${continentalElimination.reason}). Thank you for competing with skill and determination!`,
+          type: "INDIVIDUAL",
+          targetPlayerId: player.id,
+          isPinned: true,
+        },
+      });
+      announcements = [elimAnn, ...announcements];
+    }
+  }
+
+  // Determine overall status object
+  let continentalStatus: {
+    status: "QUALIFIED_UCL" | "QUALIFIED_EUROPA" | "ELIMINATED" | "IN_PROGRESS";
+    title: string;
+    subtitle?: string;
+    stage?: string;
+    competition?: string;
+    isEliminated: boolean;
+  } = {
+    status: "IN_PROGRESS",
+    title: "",
+    isEliminated: false,
+  };
+
+  if (continentalElimination && continentalElimination.isEliminated) {
+    continentalStatus = {
+      status: "ELIMINATED",
+      title: "You are eliminated",
+      subtitle: `Eliminated from ${continentalElimination.competition} (${continentalElimination.stage}) • ${continentalElimination.reason}`,
+      stage: continentalElimination.stage,
+      competition: continentalElimination.competition,
+      isEliminated: true,
+    };
+  } else if (inUclSlots || isUclQualified) {
+    continentalStatus = {
+      status: "QUALIFIED_UCL",
+      title: "Qualified for UCL",
+      subtitle: "eFootball Champions League (UCL) Qualified Contender",
+      competition: "UCL",
+      isEliminated: false,
+    };
+  } else if (inEuropaSlots || isEuropaQualified) {
+    continentalStatus = {
+      status: "QUALIFIED_EUROPA",
+      title: "Qualified for Europa League",
+      subtitle: "eFootball Europa League Qualified Contender",
+      competition: "Europa League",
+      isEliminated: false,
+    };
+  } else if (isDivisionsMatchEnded) {
+    continentalStatus = {
+      status: "ELIMINATED",
+      title: "You are eliminated",
+      subtitle: `Eliminated from continental qualification (did not meet qualification cutoff in ${player.division})`,
+      competition: "Continental Cups",
+      isEliminated: true,
+    };
+  }
+
+  // Active standing for Quick Stats:
+  // When divisions match ends and player is in UCL or Europa, use their continental standing
+  const playerContinentalStanding =
+    uclGroupStandings.find((s: any) => s.playerId === player.id) ||
+    europaGroupStandings.find((s: any) => s.playerId === player.id) ||
+    null;
+
+  const activeStandingForStats =
+    (hasStartedContinental || isDivisionsMatchEnded) && playerContinentalStanding
+      ? playerContinentalStanding
+      : currentStanding;
+
   // Opponent Intelligence for Today's 24-Hr Match Day
   let opponentStanding: any = null;
   let opponentPreviousMatches: any[] = [];
@@ -446,7 +656,7 @@ export default async function DashboardPage() {
         allPlayerMatches={allPlayerMatches}
         announcements={announcements}
         recentMatches={recentMatches}
-        standing={currentStanding}
+        standing={activeStandingForStats || currentStanding}
         leagueConfig={leagueConfig}
         divisionalMotd={divisionalMotd}
         uclGroupMotds={uclGroupMotds}
@@ -460,6 +670,10 @@ export default async function DashboardPage() {
         europaSlots={europaSlots}
         uclQualified={uclQualified}
         europaQualified={europaQualified}
+        continentalStatus={continentalStatus}
+        continentalStanding={playerContinentalStanding}
+        hasStartedContinental={hasStartedContinental}
+        isDivisionsMatchEnded={isDivisionsMatchEnded}
         initialReview={myReview}
         isRestDayToday={isRestDayToday}
         isWaitingForSub={isWaitingForSub}

@@ -106,6 +106,27 @@ export async function POST(req: Request) {
           matchSummary,
         });
 
+        // If knockout match, automatically notify the eliminated athlete
+        const isKnockout = ["QUARTER_FINAL", "SEMI_FINAL", "FINAL"].includes(updatedMatch.stage);
+        if (isKnockout) {
+          const homeTotal = officialAggHome ?? officialHomeScore;
+          const awayTotal = officialAggAway ?? officialAwayScore;
+          const eliminatedPlayerId = homeTotal < awayTotal ? updatedMatch.homePlayerId : awayTotal < homeTotal ? updatedMatch.awayPlayerId : null;
+          if (eliminatedPlayerId) {
+            const stageLabel = updatedMatch.stage === "QUARTER_FINAL" ? "Quarter-Finals" : updatedMatch.stage === "SEMI_FINAL" ? "Semi-Finals" : "Grand Final";
+            const compLabel = updatedMatch.division === "EUROPA" ? "Europa League" : "UCL";
+            await prisma.announcement.create({
+              data: {
+                title: `⚠️ Tournament Elimination Notice: ${compLabel} (${stageLabel})`,
+                content: `Your campaign in the ${compLabel} has concluded. You have been eliminated in the ${stageLabel} following match verification. Thank you for your exceptional effort and sportsmanship!`,
+                type: "INDIVIDUAL",
+                targetPlayerId: eliminatedPlayerId,
+                isPinned: true,
+              },
+            }).catch(() => {});
+          }
+        }
+
         return NextResponse.json({
           success: true,
           message: `Match scores (Official: ${officialHomeScore} - ${officialAwayScore}${officialAggHome !== null ? `, Agg: ${officialAggHome} - ${officialAggAway}` : ""}) officially verified and saved.`,

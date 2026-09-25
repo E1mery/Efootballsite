@@ -152,6 +152,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         onBlur={handleBlur}
         {...(props as any)}
       >
+        {/* Continuous skeleton shimmer animation across all buttons */}
+        {!disabled && !shouldReduceMotion && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-sweep"
+          />
+        )}
+
         {/* Subtle highlight sheen sweep across the button on hover */}
         {!disabled && !shouldReduceMotion && (
           <span
