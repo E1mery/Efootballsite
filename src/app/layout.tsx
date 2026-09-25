@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import PageTransitionProvider from "@/components/PageTransitionProvider";
 import { Analytics } from "@vercel/analytics/next";
 
 export const viewport: Viewport = {
@@ -49,7 +50,9 @@ export default function RootLayout({
         <div className="fixed inset-0 pointer-events-none -z-10 bg-hero-glow" />
         
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <PageTransitionProvider>{children}</PageTransitionProvider>
+        </main>
         <Footer />
         <Analytics />
       </body>

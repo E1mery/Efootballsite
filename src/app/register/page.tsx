@@ -365,6 +365,8 @@ export default function RegisterPage() {
                 size="lg"
                 className="w-full font-black text-secondary-foreground shadow-xl"
                 disabled={loading}
+                rollingText={!loading}
+                duplicateText="Claim Your Athlete Spot!"
               >
                 {loading
                   ? "Submitting Profile..."

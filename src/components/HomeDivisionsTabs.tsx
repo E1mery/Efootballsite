@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import StandingsTable from "@/components/StandingsTable";
+import { LoaderSkeleton, StandingsTableSkeleton } from "@/components/ui/loader-skeleton";
 import { Trophy, Shield, Award, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -19,6 +20,16 @@ export default function HomeDivisionsTabs({
   defaultDivision = "Division 1",
 }: HomeDivisionsTabsProps) {
   const [activeDivision, setActiveDivision] = useState<"Division 1" | "Division 2" | "Division 3">(defaultDivision);
+  const [isMorphing, setIsMorphing] = useState(false);
+
+  const handleTabChange = (div: "Division 1" | "Division 2" | "Division 3") => {
+    if (div === activeDivision) return;
+    setIsMorphing(true);
+    setActiveDivision(div);
+    setTimeout(() => {
+      setIsMorphing(false);
+    }, 220);
+  };
 
   const divisionData = {
     "Division 1": {
@@ -56,7 +67,7 @@ export default function HomeDivisionsTabs({
             <button
               key={div}
               type="button"
-              onClick={() => setActiveDivision(div)}
+              onClick={() => handleTabChange(div)}
               className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 isActive
                   ? "bg-primary text-white font-black shadow-lg"
@@ -91,13 +102,18 @@ export default function HomeDivisionsTabs({
         </Link>
       </div>
 
-      {/* Standings Table */}
+      {/* Standings Table with Shimmer Skeleton Morph */}
       <div className="rounded-2xl border border-border bg-background/80 overflow-hidden shadow-2xl backdrop-blur-md">
-        <StandingsTable
-          standings={current.standings}
-          divisionName={activeDivision}
-          compact={false}
-        />
+        <LoaderSkeleton
+          loading={isMorphing}
+          skeleton={<StandingsTableSkeleton rows={8} />}
+        >
+          <StandingsTable
+            standings={current.standings}
+            divisionName={activeDivision}
+            compact={false}
+          />
+        </LoaderSkeleton>
       </div>
     </div>
   );

@@ -43,6 +43,8 @@ export interface ButtonProps
   asChild?: boolean;
   whileHover?: any;
   whileTap?: any;
+  rollingText?: boolean;
+  duplicateText?: string;
 }
 
 interface Ripple {
@@ -61,15 +63,25 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       whileHover,
       whileTap,
-      asChild,
+      rollingText = false,
+      duplicateText,
       children,
       onPointerDown,
+      onFocus,
+      onBlur,
+      onMouseEnter,
+      onMouseLeave,
       ...props
     },
     ref
   ) => {
     const shouldReduceMotion = useReducedMotion();
     const [ripples, setRipples] = React.useState<Ripple[]>([]);
+    const [isFocused, setIsFocused] = React.useState(false);
+    const [isHovered, setIsHovered] = React.useState(false);
+
+    const isRollingActive =
+      rollingText && !disabled && !shouldReduceMotion && (isHovered || isFocused);
 
     const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
       if (!disabled && !shouldReduceMotion) {
@@ -84,6 +96,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         }, 400);
       }
       onPointerDown?.(e);
+    };
+
+    const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+      setIsHovered(true);
+      onMouseEnter?.(e);
+    };
+
+    const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+      setIsHovered(false);
+      onMouseLeave?.(e);
+    };
+
+    const handleFocus = (e: React.FocusEvent<HTMLButtonElement>) => {
+      setIsFocused(true);
+      onFocus?.(e);
+    };
+
+    const handleBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
+      setIsFocused(false);
+      onBlur?.(e);
     };
 
     const defaultHover = shouldReduceMotion
@@ -114,6 +146,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           mass: 0.5,
         }}
         onPointerDown={handlePointerDown}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         {...(props as any)}
       >
         {/* Subtle highlight sheen sweep across the button on hover */}
@@ -135,7 +171,44 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           />
         ))}
 
-        {children}
+        {rollingText && typeof children === "string" ? (
+          <span
+            className="relative inline-flex flex-col overflow-hidden py-0.5"
+            aria-hidden="true"
+          >
+            <motion.span
+              animate={
+                isRollingActive
+                  ? { y: "-100%", opacity: 0 }
+                  : { y: "0%", opacity: 1 }
+              }
+              transition={{
+                duration: 0.28,
+                ease: [0.33, 1, 0.68, 1] as const,
+              }}
+              className="inline-block"
+            >
+              {children}
+            </motion.span>
+            <motion.span
+              initial={{ y: "100%", opacity: 0 }}
+              animate={
+                isRollingActive
+                  ? { y: "0%", opacity: 1 }
+                  : { y: "100%", opacity: 0 }
+              }
+              transition={{
+                duration: 0.28,
+                ease: [0.33, 1, 0.68, 1] as const,
+              }}
+              className="absolute inset-0 inline-flex items-center justify-center"
+            >
+              {duplicateText || children}
+            </motion.span>
+          </span>
+        ) : (
+          children
+        )}
       </motion.button>
     );
   }

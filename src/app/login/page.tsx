@@ -315,6 +315,8 @@ function LoginForm() {
               size="lg"
               className="w-full font-black text-secondary-foreground shadow-lg"
               disabled={loading}
+              rollingText={!loading}
+              duplicateText={isAdminRequired ? "Authenticate as Admin" : "Enter Athlete Portal"}
             >
               {loading ? "Verifying..." : isAdminRequired ? "Authenticate as Admin" : "Sign In"}
             </Button>
