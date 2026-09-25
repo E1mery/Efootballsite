@@ -9,12 +9,9 @@ import {
   Clock,
   CheckCircle2,
   Crown,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ButtonRollingText } from "@/components/ui/button-rolling-text";
-import HomeMotionExperience from "@/components/HomeMotionExperience";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
@@ -146,44 +143,6 @@ export default async function HomePage({
           <p className="text-sm sm:text-base text-foreground max-w-2xl mx-auto leading-relaxed">
             The official national digital football championship. Athletes compete across <strong>Division 1, 2, and 3</strong> in daily <strong>24-hour matchday cycles</strong>.
           </p>
-
-          {/* HERO CALL-TO-ACTION BUTTONS with ROLLING TEXT */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link href="/register">
-              <ButtonRollingText
-                variant="yellow"
-                size="lg"
-                stagger
-                text="Join Season 2026"
-                duplicateText="Claim Athlete Spot!"
-                icon={<UserPlus className="h-5 w-5" />}
-                iconPosition="right"
-                className="shadow-lg shadow-secondary/25"
-              />
-            </Link>
-            <Link href="/login">
-              <ButtonRollingText
-                variant="outline"
-                size="lg"
-                text="Player Match Portal"
-                duplicateText="Submit Today's Score"
-                icon={<LogIn className="h-5 w-5" />}
-                iconPosition="right"
-              />
-            </Link>
-            <Link href="/motion-demo">
-              <ButtonRollingText
-                variant="default"
-                size="lg"
-                stagger
-                text="Motion Showcase"
-                duplicateText="Curtains & Shimmers"
-                icon={<Sparkles className="h-5 w-5" />}
-                iconPosition="right"
-                className="border border-primary/40 shadow-lg shadow-primary/25"
-              />
-            </Link>
-          </div>
         </div>
 
         {/* MAIN USER ACTIONS HUB (What users can do) */}
@@ -246,9 +205,6 @@ export default async function HomePage({
           </Link>
         </div>
       </section>
-
-      {/* INTERACTIVE MOTION SHOWCASE SECTION */}
-      <HomeMotionExperience />
 
       {/* SOCIAL MEDIA & EXTERNAL RESOURCES SECTION */}
       <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
