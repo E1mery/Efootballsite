@@ -136,6 +136,7 @@ export default function AdminClient({
 
   // New admin operations state
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
+  const [updatingDivision, setUpdatingDivision] = useState<string | null>(null);
   const [resettingTournament, setResettingTournament] = useState(false);
   const [resettingTeams, setResettingTeams] = useState(false);
   const [auditingTeams, setAuditingTeams] = useState(false);
@@ -156,7 +157,7 @@ export default function AdminClient({
   // Division Assignment / Edit State
   const [editingDivisionPlayer, setEditingDivisionPlayer] = useState<any | null>(null);
   const [selectedTargetDivision, setSelectedTargetDivision] = useState<string>("Division 1");
-  const [updatingDivision, setUpdatingDivision] = useState(false);
+  const [updatingPlayerDivision, setUpdatingPlayerDivision] = useState(false);
 
   // All Matches filter state
   const [allMatchesFilterRound, setAllMatchesFilterRound] = useState<string>("ALL");
@@ -646,6 +647,17 @@ export default function AdminClient({
     }
   };
 
+  // Full Portal Refresh State
+  const [isRefreshingPortal, setIsRefreshingPortal] = useState(false);
+
+  const handleRefreshPortal = () => {
+    setIsRefreshingPortal(true);
+    router.refresh();
+    setTimeout(() => {
+      setIsRefreshingPortal(false);
+    }, 800);
+  };
+
   // Fixed Kickoff date for schedule generator (Midnight 12:00 AM)
   const [leagueStartDate, setLeagueStartDate] = useState<string>(() => {
     const d = new Date();
@@ -653,12 +665,12 @@ export default function AdminClient({
     return d.toISOString().split("T")[0];
   });
 
-  // Generate Scheduled Round Robin Matches
+  // Set & Confirm Scheduled Round Robin Matches
   const handleGenerateSchedule = async (division: string) => {
     const confirmMsg =
       division === "ALL"
-        ? `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, starting on ${leagueStartDate} at 12:00 AM midnight) for ALL divisions?`
-        : `Generate single-leg round-robin fixtures (1 leg only, 1 match per pairing, starting on ${leagueStartDate} at 12:00 AM midnight) for ${division}?`;
+        ? `Set and confirm the official schedule for ALL divisions starting on ${leagueStartDate} at 12:00 AM midnight?\n\nThe system will lock the schedule and automatically drop the first fixtures on ${leagueStartDate} at 12:00 AM.`
+        : `Set and confirm the official schedule for ${division} starting on ${leagueStartDate} at 12:00 AM midnight?\n\nThe system will lock the schedule and automatically drop the first fixtures on ${leagueStartDate} at 12:00 AM.`;
     if (!confirm(confirmMsg)) return;
 
     setActionLoading(true);
@@ -669,7 +681,7 @@ export default function AdminClient({
         body: JSON.stringify({ division, startDate: leagueStartDate }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate schedule");
+      if (!res.ok) throw new Error(data.error || "Failed to confirm schedule");
       alert(data.message);
       router.refresh();
     } catch (err: any) {
@@ -790,16 +802,24 @@ export default function AdminClient({
 
   // Recalculate Standings Table (Batch One-Click Update)
   const handleRecalculateStandings = async (division: string = "ALL") => {
+    const label =
+      division === "ALL"
+        ? "all divisions and continental tables"
+        : division === "UCL"
+        ? "UCL Group Stage tables"
+        : division === "EUROPA"
+        ? "Europa League Group Stage tables"
+        : `${division} table`;
+
     if (
       !confirm(
-        `Recalculate and update the official standings table for ${
-          division === "ALL" ? "all divisions" : division
-        } based on all approved finished matches?`
+        `Recalculate and update the official standings table for ${label} based on all approved finished matches?`
       )
     ) {
       return;
     }
 
+    setUpdatingDivision(division);
     setRecalculatingStandings(true);
     try {
       const res = await fetch("/api/admin/recalculate-standings", {
@@ -815,6 +835,7 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setRecalculatingStandings(false);
+      setUpdatingDivision(null);
     }
   };
 
@@ -1174,7 +1195,7 @@ export default function AdminClient({
   // Update Athlete Division Placement
   const handleUpdatePlayerDivision = async (playerId: string, targetDivision: string) => {
     if (!targetDivision) return;
-    setUpdatingDivision(true);
+    setUpdatingPlayerDivision(true);
     try {
       const res = await fetch("/api/admin/update-player", {
         method: "POST",
@@ -1192,7 +1213,7 @@ export default function AdminClient({
     } catch (err: any) {
       alert(err.message);
     } finally {
-      setUpdatingDivision(false);
+      setUpdatingPlayerDivision(false);
     }
   };
 
@@ -1612,7 +1633,13 @@ export default function AdminClient({
   };
 
   // Helper for standings table rendering
-  const renderStandingsTable = (title: string, standings: any[], badgeColor: string, maxLimit: number = 20) => {
+  const renderStandingsTable = (
+    title: string,
+    standings: any[],
+    badgeColor: string,
+    maxLimit: number = 20,
+    divisionName?: string
+  ) => {
     return (
       <div className="rounded-3xl border border-border bg-background/90 overflow-hidden shadow-xl">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/40">
@@ -1620,9 +1647,22 @@ export default function AdminClient({
             <span className={`h-3 w-3 rounded-full ${badgeColor}`} />
             <h3 className="text-lg font-black uppercase text-white tracking-wide">{title}</h3>
           </div>
-          <span className="text-xs font-mono text-muted-foreground">
-            {standings.length} Registered Competitors (Max {maxLimit})
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-mono text-muted-foreground">
+              {standings.length} Registered Competitors (Max {maxLimit})
+            </span>
+            {divisionName && (
+              <Button
+                size="sm"
+                onClick={() => handleRecalculateStandings(divisionName)}
+                disabled={recalculatingStandings}
+                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider gap-1.5 shadow-md py-1.5 px-3 h-auto"
+              >
+                <RefreshCw className={`h-3 w-3 ${updatingDivision === divisionName ? "animate-spin" : ""}`} />
+                <span>{updatingDivision === divisionName ? "Updating..." : `Update ${divisionName} Table`}</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto no-scrollbar scroll-smooth">
@@ -1795,6 +1835,18 @@ export default function AdminClient({
         </div>
 
         <div className="flex items-center gap-3">
+          <Button
+            onClick={handleRefreshPortal}
+            disabled={isRefreshingPortal}
+            variant="outline"
+            size="sm"
+            className="font-black uppercase tracking-wider text-xs gap-1.5 border-primary/50 text-white hover:bg-primary/20 shadow-md"
+            title="Refresh the whole portal to view updated scores, standings, and submissions"
+          >
+            <RefreshCw className={`h-4 w-4 text-primary ${isRefreshingPortal ? "animate-spin" : ""}`} />
+            <span>{isRefreshingPortal ? "Refreshing..." : "Refresh Portal"}</span>
+          </Button>
+
           <Button
             onClick={handleLogout}
             variant="destructive"
@@ -2281,16 +2333,16 @@ export default function AdminClient({
             </form>
           </div>
 
-          {/* Operation 2: Round Robin Schedule Generator */}
+          {/* Operation 2: Official Match Scheduling & 12:00 AM Fixture Drop */}
           <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-secondary" />
-                  <span>Division Round-Robin Schedule Generator (One-Way 1 Match per Pairing)</span>
+                  <span>Official Division Match Scheduling & Fixture Dropout Center (12:00 AM Drop)</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Generates paired single round-robin matches (one-way 1 match only per pairing, home only) for registered players once registration has closed.
+                  Set the official league kickoff date and confirm the schedule. On the confirmed kickoff date at 12:00 AM midnight, the system officially drops the first round fixtures for all active players.
                 </p>
               </div>
 
@@ -2312,9 +2364,10 @@ export default function AdminClient({
                   onClick={() => handleGenerateSchedule("ALL")}
                   disabled={actionLoading || leagueConfig.registrationOpen}
                   variant="yellow"
-                  className="font-bold text-xs uppercase tracking-wider text-secondary-foreground"
+                  className="font-black text-xs uppercase tracking-wider text-secondary-foreground gap-1.5 shadow-lg"
                 >
-                  Generate All Divisions Schedule
+                  <Calendar className="h-4 w-4" />
+                  <span>(Set) Confirm All Divisions Schedule (Drop at 12:00 AM)</span>
                 </Button>
 
                 <Button
@@ -2355,7 +2408,7 @@ export default function AdminClient({
               <div className="rounded-xl border border-secondary/30 bg-secondary/30 p-3 text-xs text-secondary flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-secondary" />
                 <span>
-                  Please click <strong>&quot;End / Close Registration&quot;</strong> above first before generating the official tournament schedule.
+                  Please click <strong>&quot;End / Close Registration&quot;</strong> above first before setting and confirming the official tournament schedule.
                 </span>
               </div>
             )}
@@ -2370,7 +2423,7 @@ export default function AdminClient({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {div1Standings.length % 2 === 0 && div1Standings.length >= 2
-                    ? `1 leg only: 10 matches/day, each player plays ${div1Standings.length - 1} matches with 0 intervals.`
+                    ? `1 leg only: 10 matches/day, each player plays ${div1Standings.length - 1} matches with 0 intervals. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players (e.g. 20) so all players play every round with no intervals.`}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -2379,9 +2432,9 @@ export default function AdminClient({
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 1")}
                     disabled={actionLoading || leagueConfig.registrationOpen}
-                    className="w-full text-xs font-bold"
+                    className="w-full text-xs font-bold border-primary/50 text-white hover:bg-primary/20"
                   >
-                    Generate
+                    (Set) Confirm Schedule
                   </Button>
                   <Button
                     size="sm"
@@ -2404,7 +2457,7 @@ export default function AdminClient({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {div2Standings.length % 2 === 0 && div2Standings.length >= 2
-                    ? `1 leg only: all players play every round, each plays ${div2Standings.length - 1} matches.`
+                    ? `1 leg only: all players play every round, each plays ${div2Standings.length - 1} matches. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -2413,9 +2466,9 @@ export default function AdminClient({
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 2")}
                     disabled={actionLoading || leagueConfig.registrationOpen}
-                    className="w-full text-xs font-bold"
+                    className="w-full text-xs font-bold border-secondary/50 text-white hover:bg-secondary/20"
                   >
-                    Generate
+                    (Set) Confirm Schedule
                   </Button>
                   <Button
                     size="sm"
@@ -2438,7 +2491,7 @@ export default function AdminClient({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {div3Standings.length % 2 === 0 && div3Standings.length >= 2
-                    ? `1 leg only: all players play every round, each plays ${div3Standings.length - 1} matches.`
+                    ? `1 leg only: all players play every round, each plays ${div3Standings.length - 1} matches. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -2447,9 +2500,9 @@ export default function AdminClient({
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 3")}
                     disabled={actionLoading || leagueConfig.registrationOpen}
-                    className="w-full text-xs font-bold"
+                    className="w-full text-xs font-bold border-primary/50 text-white hover:bg-primary/20"
                   >
-                    Generate
+                    (Set) Confirm Schedule
                   </Button>
                   <Button
                     size="sm"
@@ -3292,24 +3345,79 @@ export default function AdminClient({
       {activeTab === "TABLES" && (
         <div className="space-y-6">
           {/* Master Standings Update & Recalculate Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/40 via-background to-background shadow-xl">
-            <div>
-              <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-primary" />
-                <span>One-Click Standings Synchronization</span>
-              </h3>
-              <p className="text-xs text-foreground mt-1">
-                Recalculates points, wins, draws, losses, goals, and rankings across all division tables simultaneously from all approved finished matches.
-              </p>
+          <div className="p-5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/30 via-card/90 to-background shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
+              <div>
+                <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-secondary" />
+                  <span>Official Standings & Tables Update Center</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Update rankings, points, goal differences, and form records from approved finished matches with instant real-time synchronization.
+                </p>
+              </div>
+              <Button
+                onClick={() => handleRecalculateStandings("ALL")}
+                disabled={recalculatingStandings}
+                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-4 py-2 shadow-lg shrink-0 gap-1.5"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${updatingDivision === "ALL" ? "animate-spin" : ""}`} />
+                <span>{updatingDivision === "ALL" ? "Updating All..." : "⚡ Update All Tables"}</span>
+              </Button>
             </div>
-            <Button
-              onClick={() => handleRecalculateStandings("ALL")}
-              disabled={recalculatingStandings}
-              className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 shadow-lg shrink-0"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${recalculatingStandings ? "animate-spin" : ""}`} />
-              {recalculatingStandings ? "Updating Tables..." : "⚡ Update League Table Standings"}
-            </Button>
+
+            {/* Dedicated Action Buttons for Each Table */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+              <Button
+                onClick={() => handleRecalculateStandings("Division 1")}
+                disabled={recalculatingStandings}
+                variant="outline"
+                className="justify-center border-primary/50 hover:bg-primary/20 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-3 h-auto gap-1.5"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 text-primary ${updatingDivision === "Division 1" ? "animate-spin" : ""}`} />
+                <span>Update Div 1 Table</span>
+              </Button>
+
+              <Button
+                onClick={() => handleRecalculateStandings("Division 2")}
+                disabled={recalculatingStandings}
+                variant="outline"
+                className="justify-center border-secondary/50 hover:bg-secondary/20 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-3 h-auto gap-1.5"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 text-secondary ${updatingDivision === "Division 2" ? "animate-spin" : ""}`} />
+                <span>Update Div 2 Table</span>
+              </Button>
+
+              <Button
+                onClick={() => handleRecalculateStandings("Division 3")}
+                disabled={recalculatingStandings}
+                variant="outline"
+                className="justify-center border-border hover:bg-muted text-white font-bold text-xs uppercase tracking-wider py-2.5 px-3 h-auto gap-1.5"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${updatingDivision === "Division 3" ? "animate-spin" : ""}`} />
+                <span>Update Div 3 Table</span>
+              </Button>
+
+              <Button
+                onClick={() => handleRecalculateStandings("UCL")}
+                disabled={recalculatingStandings}
+                variant="outline"
+                className="justify-center border-primary/60 hover:bg-primary/20 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-3 h-auto gap-1.5"
+              >
+                <Trophy className={`h-3.5 w-3.5 text-secondary ${updatingDivision === "UCL" ? "animate-spin" : ""}`} />
+                <span>Update UCL (Group Table)</span>
+              </Button>
+
+              <Button
+                onClick={() => handleRecalculateStandings("EUROPA")}
+                disabled={recalculatingStandings}
+                variant="outline"
+                className="justify-center border-secondary/60 hover:bg-secondary/20 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-3 h-auto gap-1.5"
+              >
+                <Globe className={`h-3.5 w-3.5 text-secondary ${updatingDivision === "EUROPA" ? "animate-spin" : ""}`} />
+                <span>Update Europa (Group Table)</span>
+              </Button>
+            </div>
           </div>
 
           {/* Relegations & Promotions Commissioner Trigger Bar */}
@@ -3416,13 +3524,13 @@ export default function AdminClient({
           </div>
 
           {/* Division 1 Table */}
-          {tableSubTab === "DIV1" && renderStandingsTable("Division 1 Premiership Standings", div1Standings, "bg-primary", div1Max)}
+          {tableSubTab === "DIV1" && renderStandingsTable("Division 1 Premiership Standings", div1Standings, "bg-primary", div1Max, "Division 1")}
 
           {/* Division 2 Table */}
-          {tableSubTab === "DIV2" && renderStandingsTable("Division 2 Championship Standings", div2Standings, "bg-secondary", div2Max)}
+          {tableSubTab === "DIV2" && renderStandingsTable("Division 2 Championship Standings", div2Standings, "bg-secondary", div2Max, "Division 2")}
 
           {/* Division 3 Table */}
-          {tableSubTab === "DIV3" && renderStandingsTable("Division 3 Academy Standings", div3Standings, "bg-primary", div3Max)}
+          {tableSubTab === "DIV3" && renderStandingsTable("Division 3 Academy Standings", div3Standings, "bg-primary", div3Max, "Division 3")}
 
           {/* UCL Tables */}
           {tableSubTab === "UCL" && (
@@ -3457,15 +3565,26 @@ export default function AdminClient({
                       </p>
                     </div>
 
-                    <Button
-                      onClick={() => handleAutoDraw("UCL")}
-                      disabled={actionLoading}
-                      variant="outline"
-                      className="text-xs font-bold gap-1.5"
-                    >
-                      <Shuffle className="h-3.5 w-3.5" />
-                      <span>Conduct Seeded Draw</span>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        onClick={() => handleRecalculateStandings("UCL")}
+                        disabled={recalculatingStandings}
+                        className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider gap-1.5 shadow-md py-2 px-3.5 h-auto"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${updatingDivision === "UCL" ? "animate-spin" : ""}`} />
+                        <span>{updatingDivision === "UCL" ? "Updating..." : "Update UCL Tables (Group Table)"}</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleAutoDraw("UCL")}
+                        disabled={actionLoading}
+                        variant="outline"
+                        className="text-xs font-bold gap-1.5"
+                      >
+                        <Shuffle className="h-3.5 w-3.5" />
+                        <span>Conduct Seeded Draw</span>
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3572,15 +3691,26 @@ export default function AdminClient({
                       </p>
                     </div>
 
-                    <Button
-                      onClick={() => handleAutoDraw("EUROPA")}
-                      disabled={actionLoading}
-                      variant="outline"
-                      className="text-xs font-bold gap-1.5"
-                    >
-                      <Shuffle className="h-3.5 w-3.5" />
-                      <span>Conduct Seeded Draw</span>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        onClick={() => handleRecalculateStandings("EUROPA")}
+                        disabled={recalculatingStandings}
+                        className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider gap-1.5 shadow-md py-2 px-3.5 h-auto"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${updatingDivision === "EUROPA" ? "animate-spin" : ""}`} />
+                        <span>{updatingDivision === "EUROPA" ? "Updating..." : "Update Europa League Tables (Group Table)"}</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleAutoDraw("EUROPA")}
+                        disabled={actionLoading}
+                        variant="outline"
+                        className="text-xs font-bold gap-1.5"
+                      >
+                        <Shuffle className="h-3.5 w-3.5" />
+                        <span>Conduct Seeded Draw</span>
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4399,7 +4529,7 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "RESULTS_QUEUE" && (
         <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-border pb-4 gap-4">
             <div>
               <h3 className="text-lg font-black uppercase text-white tracking-wide">
                 Match Results & Standings Update Hub
@@ -4410,52 +4540,99 @@ export default function AdminClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                onClick={() => handleRecalculateStandings("ALL")}
-                disabled={recalculatingStandings}
-                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-4 py-2 shadow-lg"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${recalculatingStandings ? "animate-spin" : ""}`} />
-                {recalculatingStandings ? "Updating Tables..." : "⚡ Update League Table Standings"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => handleRecalculateStandings("ALL")}
+                  disabled={recalculatingStandings}
+                  className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-3.5 py-2 shadow-lg gap-1.5"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${updatingDivision === "ALL" ? "animate-spin" : ""}`} />
+                  <span>{updatingDivision === "ALL" ? "Updating All..." : "⚡ Update All Tables"}</span>
+                </Button>
+                <Button
+                  onClick={() => handleRecalculateStandings("Division 1")}
+                  disabled={recalculatingStandings}
+                  variant="outline"
+                  className="border-primary/50 text-white hover:bg-primary/20 font-bold text-xs uppercase px-2.5 py-1.5 h-auto gap-1"
+                >
+                  <RefreshCw className={`h-3 w-3 text-primary ${updatingDivision === "Division 1" ? "animate-spin" : ""}`} />
+                  <span>{updatingDivision === "Division 1" ? "Updating..." : "Div 1 Table"}</span>
+                </Button>
+                <Button
+                  onClick={() => handleRecalculateStandings("Division 2")}
+                  disabled={recalculatingStandings}
+                  variant="outline"
+                  className="border-secondary/50 text-white hover:bg-secondary/20 font-bold text-xs uppercase px-2.5 py-1.5 h-auto gap-1"
+                >
+                  <RefreshCw className={`h-3 w-3 text-secondary ${updatingDivision === "Division 2" ? "animate-spin" : ""}`} />
+                  <span>{updatingDivision === "Division 2" ? "Updating..." : "Div 2 Table"}</span>
+                </Button>
+                <Button
+                  onClick={() => handleRecalculateStandings("Division 3")}
+                  disabled={recalculatingStandings}
+                  variant="outline"
+                  className="border-border text-white hover:bg-muted font-bold text-xs uppercase px-2.5 py-1.5 h-auto gap-1"
+                >
+                  <RefreshCw className={`h-3 w-3 text-muted-foreground ${updatingDivision === "Division 3" ? "animate-spin" : ""}`} />
+                  <span>{updatingDivision === "Division 3" ? "Updating..." : "Div 3 Table"}</span>
+                </Button>
+                <Button
+                  onClick={() => handleRecalculateStandings("UCL")}
+                  disabled={recalculatingStandings}
+                  variant="outline"
+                  className="border-primary/60 text-white hover:bg-primary/20 font-bold text-xs uppercase px-2.5 py-1.5 h-auto gap-1"
+                >
+                  <Trophy className={`h-3 w-3 text-secondary ${updatingDivision === "UCL" ? "animate-spin" : ""}`} />
+                  <span>{updatingDivision === "UCL" ? "Updating..." : "UCL Tables"}</span>
+                </Button>
+                <Button
+                  onClick={() => handleRecalculateStandings("EUROPA")}
+                  disabled={recalculatingStandings}
+                  variant="outline"
+                  className="border-secondary/60 text-white hover:bg-secondary/20 font-bold text-xs uppercase px-2.5 py-1.5 h-auto gap-1"
+                >
+                  <Globe className={`h-3 w-3 text-secondary ${updatingDivision === "EUROPA" ? "animate-spin" : ""}`} />
+                  <span>{updatingDivision === "EUROPA" ? "Updating..." : "Europa Tables"}</span>
+                </Button>
+              </div>
 
               {/* Sub-tab Switcher */}
               <div className="flex items-center gap-2 bg-card/90 p-1 rounded-xl border border-border self-start md:self-auto">
-              <button
-                type="button"
-                onClick={() => setScoreQueueSubTab("SUBMISSIONS")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-                  scoreQueueSubTab === "SUBMISSIONS"
-                    ? "bg-primary text-white shadow-md"
-                    : "text-muted-foreground hover:text-white"
-                }`}
-              >
-                <span>Proof Screenshots</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
+                <button
+                  type="button"
+                  onClick={() => setScoreQueueSubTab("SUBMISSIONS")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
                     scoreQueueSubTab === "SUBMISSIONS"
-                      ? "bg-background text-primary"
-                      : "bg-muted text-foreground"
+                      ? "bg-primary text-white shadow-md"
+                      : "text-muted-foreground hover:text-white"
                   }`}
                 >
-                  {pendingSubmissions.length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setScoreQueueSubTab("DIRECT_ENTRY")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-                  scoreQueueSubTab === "DIRECT_ENTRY"
-                    ? "bg-primary text-white shadow-md"
-                    : "text-muted-foreground hover:text-white"
-                }`}
-              >
-                <span>Direct Matchday Scoring</span>
-                <Badge variant="live" className="text-xs px-1 py-0">BATCH</Badge>
-              </button>
+                  <span>Proof Screenshots</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
+                      scoreQueueSubTab === "SUBMISSIONS"
+                        ? "bg-background text-primary"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {pendingSubmissions.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScoreQueueSubTab("DIRECT_ENTRY")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    scoreQueueSubTab === "DIRECT_ENTRY"
+                      ? "bg-primary text-white shadow-md"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
+                >
+                  <span>Direct Matchday Scoring</span>
+                  <Badge variant="live" className="text-xs px-1 py-0">BATCH</Badge>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
           {/* SUB-TAB 1: PENDING PROOF SCREENSHOTS */}
           {scoreQueueSubTab === "SUBMISSIONS" && (
@@ -7128,11 +7305,11 @@ export default function AdminClient({
               <Button
                 type="button"
                 onClick={() => handleUpdatePlayerDivision(editingDivisionPlayer.id, selectedTargetDivision)}
-                disabled={updatingDivision || selectedTargetDivision === editingDivisionPlayer.division}
+                disabled={updatingPlayerDivision || selectedTargetDivision === editingDivisionPlayer.division}
                 className="bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs gap-1.5"
               >
-                <Layers className={`h-3.5 w-3.5 ${updatingDivision ? "animate-spin" : ""}`} />
-                {updatingDivision ? "Transferring..." : "Confirm Division Change"}
+                <Layers className={`h-3.5 w-3.5 ${updatingPlayerDivision ? "animate-spin" : ""}`} />
+                {updatingPlayerDivision ? "Transferring..." : "Confirm Division Change"}
               </Button>
             </div>
           </div>

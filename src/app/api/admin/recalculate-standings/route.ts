@@ -51,10 +51,15 @@ export async function POST(req: Request) {
     }
 
     // Recalculate UCL
-    if (division === "ALL" || division === "UCL") {
-      const uclTournament = await prisma.tournament.findFirst({ where: { type: "UCL" } });
+    if (division === "ALL" || division === "UCL" || division.startsWith("UCL")) {
+      const uclTournament = await prisma.tournament.findFirst({
+        where: { OR: [{ type: "UCL" }, { name: { contains: "UCL" } }] },
+      });
       if (uclTournament) {
-        for (const grp of groups) {
+        const targetGroups = division.includes("Group")
+          ? [division.replace("UCL ", "").trim()]
+          : groups;
+        for (const grp of targetGroups) {
           const grpKey = `UCL ${grp}`;
           await recalculateStandings(uclTournament.id, grpKey);
           await notifyStandingsUpdate({
@@ -69,10 +74,15 @@ export async function POST(req: Request) {
     }
 
     // Recalculate EUROPA
-    if (division === "ALL" || division === "EUROPA") {
-      const europaTournament = await prisma.tournament.findFirst({ where: { type: "EUROPA" } });
+    if (division === "ALL" || division === "EUROPA" || division.startsWith("EUROPA")) {
+      const europaTournament = await prisma.tournament.findFirst({
+        where: { OR: [{ type: "EUROPA" }, { name: { contains: "EUROPA" } }] },
+      });
       if (europaTournament) {
-        for (const grp of groups) {
+        const targetGroups = division.includes("Group")
+          ? [division.replace("EUROPA ", "").trim()]
+          : groups;
+        for (const grp of targetGroups) {
           const grpKey = `EUROPA ${grp}`;
           await recalculateStandings(europaTournament.id, grpKey);
           await notifyStandingsUpdate({

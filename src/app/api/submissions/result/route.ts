@@ -117,6 +117,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // STRICT FIXTURE DROP TIME ENFORCEMENT:
+    // When the schedule is set by Admin, first fixtures and future matchdays only drop at 12:00 AM on their kickoff date.
+    if (match.matchDate && now < new Date(match.matchDate) && !isReopenedByAdmin) {
+      const dropDateFormatted = new Date(match.matchDate).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      return NextResponse.json(
+        {
+          error: `Fixture Not Dropped Yet: This match is scheduled to drop on ${dropDateFormatted} at 12:00 AM (Midnight). Result submissions unlock once the fixture officially drops.`,
+        },
+        { status: 400 }
+      );
+    }
+
     // STRICT 1 MATCH PER DAY (24HRS):
     // Division fixtures for future matchdays cannot be submitted before their 24-hr cycle begins at 12:00 AM midnight
     const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });

@@ -36,6 +36,7 @@ import {
   Globe,
   Play,
   XCircle,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -577,6 +578,17 @@ export default function DashboardClient({
   const [currentPlayer, setCurrentPlayer] = useState(player);
   const [currentUser, setCurrentUser] = useState(user);
 
+  // Full Portal Refresh State
+  const [isRefreshingPortal, setIsRefreshingPortal] = useState(false);
+
+  const handleRefreshPortal = () => {
+    setIsRefreshingPortal(true);
+    router.refresh();
+    setTimeout(() => {
+      setIsRefreshingPortal(false);
+    }, 800);
+  };
+
   // Player's active division MOTD
   const myDivMotd = player?.division ? (divisionalMotd || {})[player.division] : null;
 
@@ -1098,6 +1110,44 @@ export default function DashboardClient({
      activeMatch.notes?.includes("REOPEN"))
   );
 
+  // Check if match drop time is in the future (i.e. scheduled kickoff date at 12:00 AM hasn't arrived yet)
+  const isAwaitingDrop = Boolean(
+    activeMatch?.matchDate &&
+    new Date(activeMatch.matchDate).getTime() > Date.now() &&
+    !isAdminPermissionGranted
+  );
+
+  const [dropCountdown, setDropCountdown] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    isDue: boolean;
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: false });
+
+  useEffect(() => {
+    if (!activeMatch?.matchDate) return;
+    const calculateDropTime = () => {
+      try {
+        const dropTime = new Date(activeMatch.matchDate).getTime();
+        const now = Date.now();
+        const diff = dropTime - now;
+        if (diff <= 0) {
+          setDropCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
+        } else {
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setDropCountdown({ days, hours, minutes, seconds, isDue: false });
+        }
+      } catch (e) {}
+    };
+    calculateDropTime();
+    const interval = setInterval(calculateDropTime, 1000);
+    return () => clearInterval(interval);
+  }, [activeMatch?.matchDate]);
+
   // STRICT DEADLINE REACHED CHECK:
   // When the deadline is reached, players cannot submit results or claim forfeit
   const isDeadlineExpired = Boolean(
@@ -1108,7 +1158,7 @@ export default function DashboardClient({
   // Check if active match options are locked
   const isMatchLocked = Boolean(
     activeMatch &&
-    (isDeadlineExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
+    (isAwaitingDrop || isDeadlineExpired || activeMatch.status === "FORFEIT" || activeMatch.status === "FINISHED") &&
     !isAdminPermissionGranted
   );
 
@@ -1525,10 +1575,23 @@ export default function DashboardClient({
               {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-xs">
-            <LogOut className="h-4 w-4 text-muted-foreground" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshPortal}
+              disabled={isRefreshingPortal}
+              className="gap-1.5 text-xs font-bold border-primary/40 text-primary hover:bg-primary/20 shadow-sm"
+              title="Refresh the portal to see updated match results, standings, and announcements"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingPortal ? "animate-spin" : ""}`} />
+              <span>{isRefreshingPortal ? "Refreshing..." : "Refresh Portal"}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-xs">
+              <LogOut className="h-4 w-4 text-muted-foreground" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -2206,7 +2269,11 @@ export default function DashboardClient({
                 <div>
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Badge variant="yellow">{activeMatch.round}</Badge>
-                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") ? (
+                    {isAwaitingDrop ? (
+                      <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-primary/20 border-primary/40 text-primary animate-pulse">
+                        ⏳ DROPS ON {new Date(activeMatch.matchDate).toLocaleDateString()} AT 12:00 AM
+                      </Badge>
+                    ) : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") ? (
                       <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-secondary/20 border-secondary/40 text-secondary">
                         ⚡ REPLACEMENT MATCH • 48-HR WINDOW
                       </Badge>
@@ -2230,7 +2297,9 @@ export default function DashboardClient({
                     )}
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black text-white uppercase">
-                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                    {isAwaitingDrop
+                      ? `First Fixture Drops on ${new Date(activeMatch.matchDate).toLocaleDateString()} at 12:00 AM`
+                      : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
                       ? "Priority Replacement Match"
                       : isWaitingForSub
                       ? "Fixture On Hold (Awaiting Sub)"
@@ -2242,7 +2311,9 @@ export default function DashboardClient({
 
                 {/* Countdown Clock */}
                 <div className={`rounded-2xl border p-3 sm:px-5 text-right ${
-                  activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                  isAwaitingDrop
+                    ? "border-primary/50 bg-primary/10"
+                    : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
                     ? "border-secondary/40 bg-secondary/10"
                     : isWaitingForSub
                     ? "border-secondary/30 bg-background/80"
@@ -2250,7 +2321,9 @@ export default function DashboardClient({
                 }`}>
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest block flex items-center gap-1.5 justify-end">
                     <Clock className="h-3 w-3 text-secondary" />
-                    {activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
+                    {isAwaitingDrop
+                      ? "Drops In (12:00 AM Midnight)"
+                      : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
                       ? "Time Remaining (48-Hour Deadline)"
                       : isWaitingForSub
                       ? "Match On Hold (Awaiting Sub)"
@@ -2258,7 +2331,16 @@ export default function DashboardClient({
                       ? "Next Round Drops At 12:00 AM Midnight"
                       : "Time Remaining (12:00 AM Reset)"}
                   </span>
-                  {isWaitingForSub ? (
+                  {isAwaitingDrop ? (
+                    <div className="font-mono text-xl sm:text-2xl font-black text-primary flex items-center gap-1 justify-end">
+                      {dropCountdown.days > 0 && <span>{dropCountdown.days}d </span>}
+                      <span>{String(dropCountdown.hours).padStart(2, "0")}h</span>
+                      <span>:</span>
+                      <span>{String(dropCountdown.minutes).padStart(2, "0")}m</span>
+                      <span>:</span>
+                      <span>{String(dropCountdown.seconds).padStart(2, "0")}s</span>
+                    </div>
+                  ) : isWaitingForSub ? (
                     <span className="text-xs sm:text-sm font-black text-secondary animate-pulse">
                       Pending Admin Replacement
                     </span>
@@ -2446,6 +2528,37 @@ export default function DashboardClient({
                   </div>
                 </div>
               </div>
+
+              {/* SCHEDULE CONFIRMED DROP NOTICE */}
+              {isAwaitingDrop && (
+                <div className="mt-6 p-5 rounded-2xl border border-primary/50 bg-primary/20 flex items-start gap-3.5 text-primary shadow-xl">
+                  <div className="h-9 w-9 rounded-xl bg-primary/20 text-primary border border-primary/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <Calendar className="h-5 w-5 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-primary text-primary-foreground">
+                        🗓️ OFFICIAL SCHEDULE CONFIRMED
+                      </Badge>
+                      <span className="text-xs font-mono font-bold text-white">
+                        Drops on {new Date(activeMatch.matchDate).toLocaleDateString()} at 12:00 AM Midnight
+                      </span>
+                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">
+                      The League Commissioner has officially confirmed the schedule. The first round fixtures will drop on{" "}
+                      <strong className="text-white">
+                        {new Date(activeMatch.matchDate).toLocaleDateString(undefined, {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </strong>{" "}
+                      at <strong className="text-white">12:00 AM (Midnight)</strong>. Coordinate with your opponent on WhatsApp. Match submissions unlock once the fixture officially drops.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* AUTOMATED 1-HOUR DEADLINE WARNING BANNER FOR UNPLAYED MATCHES */}
               {isOneHourWarning && (
@@ -2682,6 +2795,18 @@ export default function DashboardClient({
                         {isMyClaim
                           ? "You filed a forfeit walkover claim. Submissions are closed for both athletes."
                           : `@${claimantGamerTag} filed a forfeit claim against you. Submissions are closed pending arbitration.`}
+                      </span>
+                    </div>
+                  </div>
+                ) : isAwaitingDrop ? (
+                  <div className="w-full sm:w-auto p-4 rounded-2xl bg-primary/20 border border-primary/40 text-xs text-primary flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-primary shrink-0 animate-pulse" />
+                    <div>
+                      <span className="font-black uppercase tracking-wider text-primary block">
+                        Fixture Drops on {new Date(activeMatch.matchDate).toLocaleDateString()} at 12:00 AM Midnight
+                      </span>
+                      <span className="text-xs text-foreground">
+                        The schedule is confirmed by the Commissioner. Score submissions and forfeit claims will unlock once the fixture officially drops.
                       </span>
                     </div>
                   </div>

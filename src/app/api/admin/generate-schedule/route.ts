@@ -271,8 +271,8 @@ export async function POST(req: Request) {
       });
       await prisma.announcement.create({
         data: {
-          title: `📅 Official Season Schedule LIVE (12:00 AM Daily Dropouts)`,
-          content: `The official round-robin fixtures have been scheduled to drop starting on ${formattedStartDate} at 12:00 AM (Midnight). Each matchday drops strictly at 12:00 AM and lasts for 24 hours. Check your season match calendar now!`,
+          title: `📅 Official Season Schedule Confirmed (First Fixtures Drop on ${formattedStartDate} at 12:00 AM)`,
+          content: `The official round-robin schedule has been confirmed by the Commissioner. The first fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight). Each matchday drops strictly at 12:00 AM and lasts for 24 hours. Check your season match calendar now!`,
           type: "BROADCAST",
           isPinned: true,
         },
@@ -281,7 +281,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully scheduled ${totalMatchesGenerated} division matches starting on ${baseKickoffDate.toLocaleDateString()} at 12:00 AM (24-hour daily dropouts).`,
+      message: `Successfully set and confirmed schedule for ${totalMatchesGenerated} division matches starting on ${baseKickoffDate.toLocaleDateString()} at 12:00 AM. The first round fixtures will drop on ${baseKickoffDate.toLocaleDateString()} at 12:00 AM midnight.`,
       summary,
     });
   } catch (err: any) {
