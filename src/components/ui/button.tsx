@@ -63,7 +63,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       whileHover,
       whileTap,
-      rollingText = false,
+      rollingText,
       duplicateText,
       children,
       onPointerDown,
@@ -80,8 +80,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const [isFocused, setIsFocused] = React.useState(false);
     const [isHovered, setIsHovered] = React.useState(false);
 
+    const isIconOnly = size === "icon";
+    const enableRolling = (rollingText !== undefined ? rollingText : true) && !isIconOnly;
     const isRollingActive =
-      rollingText && !disabled && !shouldReduceMotion && (isHovered || isFocused);
+      enableRolling && !disabled && !shouldReduceMotion && (isHovered || isFocused);
 
     const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
       if (!disabled && !shouldReduceMotion) {
@@ -179,11 +181,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           />
         ))}
 
-        {rollingText && typeof children === "string" ? (
-          <span
-            className="relative inline-flex flex-col overflow-hidden py-0.5"
-            aria-hidden="true"
-          >
+        {enableRolling && !shouldReduceMotion ? (
+          <span className="relative inline-flex flex-col items-center justify-center overflow-hidden py-0.5">
             <motion.span
               animate={
                 isRollingActive
@@ -194,11 +193,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 duration: 0.28,
                 ease: [0.33, 1, 0.68, 1] as const,
               }}
-              className="inline-block"
+              className="inline-flex items-center justify-center gap-2"
             >
               {children}
             </motion.span>
             <motion.span
+              aria-hidden="true"
               initial={{ y: "100%", opacity: 0 }}
               animate={
                 isRollingActive
@@ -209,7 +209,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 duration: 0.28,
                 ease: [0.33, 1, 0.68, 1] as const,
               }}
-              className="absolute inset-0 inline-flex items-center justify-center"
+              className="absolute inset-0 inline-flex items-center justify-center gap-2 pointer-events-none"
             >
               {duplicateText || children}
             </motion.span>

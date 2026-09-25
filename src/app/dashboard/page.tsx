@@ -371,26 +371,89 @@ export default async function DashboardPage() {
   ];
 
   // -------------------------------------------------------------------------
-  // Continental Qualification & Advanced Round Elimination Logic
+  // Mathematical Qualification & Continental Advanced Round Elimination System
   // -------------------------------------------------------------------------
   const inUclSlots = (uclSlots || []).some((s: any) => s.playerId === player.id);
   const inEuropaSlots = (europaSlots || []).some((s: any) => s.playerId === player.id);
-  const isUclQualified = (uclQualified || []).some((s: any) => s.playerId === player.id || s.player?.id === player.id);
-  const isEuropaQualified = (europaQualified || []).some((s: any) => s.playerId === player.id || s.player?.id === player.id);
 
-  // Check if player's domestic division has concluded
-  const unplayedDivisionMatchesCount = await prisma.match.count({
+  // Standings and cutoffs for player's division
+  const divStandings =
+    player.division === "Division 1"
+      ? div1Standings
+      : player.division === "Division 2"
+      ? div2Standings
+      : div3Standings;
+
+  const uclCutoff = player.division === "Division 1" ? 8 : 4;
+  const europaCutoff = player.division === "Division 1" ? 12 : 10;
+
+  // Unplayed matches in this division
+  const unplayedDivisionMatches = await prisma.match.findMany({
     where: {
       division: player.division,
       status: { in: ["SCHEDULED", "LIVE"] },
     },
+    select: { homePlayerId: true, awayPlayerId: true },
   });
+
   const totalDivisionMatchesCount = await prisma.match.count({
     where: { division: player.division },
   });
   const isDivisionsMatchEnded =
-    (totalDivisionMatchesCount > 0 && unplayedDivisionMatchesCount === 0) ||
+    (totalDivisionMatchesCount > 0 && unplayedDivisionMatches.length === 0) ||
     Boolean(leagueConfig.uclStarted || leagueConfig.europaStarted);
+
+  // Map remaining unplayed matches per player
+  const remainingMatchesPerPlayer: Record<string, number> = {};
+  for (const st of divStandings) {
+    remainingMatchesPerPlayer[st.playerId] = 0;
+  }
+  for (const m of unplayedDivisionMatches) {
+    if (remainingMatchesPerPlayer[m.homePlayerId] !== undefined) {
+      remainingMatchesPerPlayer[m.homePlayerId]++;
+    }
+    if (remainingMatchesPerPlayer[m.awayPlayerId] !== undefined) {
+      remainingMatchesPerPlayer[m.awayPlayerId]++;
+    }
+  }
+
+  // Current player standing and points
+  const myStanding = divStandings.find((s: any) => s.playerId === player.id) || currentStanding;
+  const myCurrentPoints = myStanding?.points ?? 0;
+  const myRemainingMatches = remainingMatchesPerPlayer[player.id] ?? 0;
+
+  // MATHEMATICAL QUALIFICATION CHECK:
+  // "validated if the player will be qualified at all cost (even if he can lose the rest of matches)"
+  // Worst-case for player: loses all remaining matches (final points = myCurrentPoints)
+  // Best-case for other players: win all remaining matches (maxPoints = points + remaining * 3)
+  const otherPlayersMax = divStandings
+    .filter((s: any) => s.playerId !== player.id)
+    .map((s: any) => ({
+      playerId: s.playerId,
+      maxPossiblePoints: (s.points || 0) + ((remainingMatchesPerPlayer[s.playerId] || 0) * 3),
+    }));
+
+  const countCanSurpassMe = otherPlayersMax.filter(
+    (p: any) => p.maxPossiblePoints >= myCurrentPoints
+  ).length;
+
+  // Mathematically guaranteed for UCL at all costs (worst-case finish is <= uclCutoff):
+  const isGuaranteedUcl = Boolean(myStanding && countCanSurpassMe < uclCutoff);
+
+  // Mathematically guaranteed for Europa League at all costs:
+  const isGuaranteedEuropa = Boolean(myStanding && !isGuaranteedUcl && countCanSurpassMe < europaCutoff);
+
+  // Mathematical elimination check:
+  // Best-case for player: wins all remaining matches
+  const myMaxPossiblePoints = myCurrentPoints + (myRemainingMatches * 3);
+  const countAlreadyAheadOfMe = divStandings.filter(
+    (s: any) => s.playerId !== player.id && (s.points || 0) > myMaxPossiblePoints
+  ).length;
+
+  const isGuaranteedEliminatedFromDiv = Boolean(
+    myStanding &&
+    (countAlreadyAheadOfMe >= europaCutoff || (isDivisionsMatchEnded && !isGuaranteedUcl && !isGuaranteedEuropa))
+  );
 
   // Check finished continental matches for this player
   const playerContinentalMatches = allPlayerMatchesRaw.filter(
@@ -542,27 +605,33 @@ export default async function DashboardPage() {
       competition: continentalElimination.competition,
       isEliminated: true,
     };
-  } else if (inUclSlots || isUclQualified) {
+  } else if (inUclSlots || isGuaranteedUcl) {
     continentalStatus = {
       status: "QUALIFIED_UCL",
       title: "Qualified for UCL",
-      subtitle: "eFootball Champions League (UCL) Qualified Contender",
+      subtitle: isDivisionsMatchEnded
+        ? "Officially Qualified for eFootball Champions League (UCL)"
+        : "Mathematically Qualified for UCL (Guaranteed at all costs)",
       competition: "UCL",
       isEliminated: false,
     };
-  } else if (inEuropaSlots || isEuropaQualified) {
+  } else if (inEuropaSlots || isGuaranteedEuropa) {
     continentalStatus = {
       status: "QUALIFIED_EUROPA",
       title: "Qualified for Europa League",
-      subtitle: "eFootball Europa League Qualified Contender",
+      subtitle: isDivisionsMatchEnded
+        ? "Officially Qualified for eFootball Europa League"
+        : "Mathematically Qualified for Europa League (Guaranteed at all costs)",
       competition: "Europa League",
       isEliminated: false,
     };
-  } else if (isDivisionsMatchEnded) {
+  } else if (isGuaranteedEliminatedFromDiv) {
     continentalStatus = {
       status: "ELIMINATED",
       title: "You are eliminated",
-      subtitle: `Eliminated from continental qualification (did not meet qualification cutoff in ${player.division})`,
+      subtitle: isDivisionsMatchEnded
+        ? `Eliminated from continental qualification (did not meet qualification cutoff in ${player.division})`
+        : `Mathematically eliminated from continental qualification in ${player.division}`,
       competition: "Continental Cups",
       isEliminated: true,
     };

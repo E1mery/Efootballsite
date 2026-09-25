@@ -1452,17 +1452,17 @@ export default function DashboardClient({
               <Badge variant={isReserved ? "outline" : "yellow"} className="text-xs sm:text-xs">
                 {isReserved ? "RESERVE POOL" : currentPlayer.division}
               </Badge>
-              {continentalStatus?.status === "QUALIFIED_UCL" && (
+              {continentalStatus?.title && continentalStatus?.status === "QUALIFIED_UCL" && (
                 <Badge variant="default" className="text-xs sm:text-xs uppercase font-bold bg-primary/20 border-primary/40 text-primary">
                   Qualified for UCL
                 </Badge>
               )}
-              {continentalStatus?.status === "QUALIFIED_EUROPA" && (
+              {continentalStatus?.title && continentalStatus?.status === "QUALIFIED_EUROPA" && (
                 <Badge variant="secondary" className="text-xs sm:text-xs uppercase font-bold bg-secondary/20 border-secondary/40 text-secondary">
                   Qualified for Europa
                 </Badge>
               )}
-              {continentalStatus?.isEliminated && (
+              {continentalStatus?.title && continentalStatus?.isEliminated && (
                 <Badge variant="destructive" className="text-xs sm:text-xs uppercase font-bold">
                   Eliminated
                 </Badge>
