@@ -552,22 +552,23 @@ export default function DashboardClient({
       return replacementBacklogMatches[0];
     }
 
+    const currentRound = `Matchday ${leagueConfig?.currentMatchday || 1}`;
+    // STRICT 1 MATCH PER DAY (24HRS) FOR DIVISION LEAGUE:
+    // Prioritize today's current round match (whether scheduled, live, pending, or finished).
+    // The player must complete this match and wait for the 24-hr deadline at 12:00 AM midnight before the next round drops.
+    const currentRoundMatch = allPlayerMatches.find((m: any) => m.round === currentRound);
+    if (currentRoundMatch) return currentRoundMatch;
+
     if (initialActiveMatch) return initialActiveMatch;
     if (!allPlayerMatches || allPlayerMatches.length === 0) return null;
 
-    const currentRound = `Matchday ${leagueConfig?.currentMatchday || 1}`;
-    const currentRoundMatch = allPlayerMatches.find(
-      (m: any) => m.round === currentRound && (m.status === "SCHEDULED" || m.status === "LIVE")
+    // Continental fallback: scheduled or live match in UCL / EUROPA
+    const continentalMatch = allPlayerMatches.find(
+      (m: any) =>
+        (m.division === "UCL" || m.division === "EUROPA") &&
+        (m.status === "SCHEDULED" || m.status === "LIVE")
     );
-    if (currentRoundMatch) return currentRoundMatch;
-
-    const nextUnplayed = allPlayerMatches.find(
-      (m: any) => m.status === "SCHEDULED" || m.status === "LIVE"
-    );
-    if (nextUnplayed) return nextUnplayed;
-
-    const anyCurrentRound = allPlayerMatches.find((m: any) => m.round === currentRound);
-    if (anyCurrentRound) return anyCurrentRound;
+    if (continentalMatch) return continentalMatch;
 
     return allPlayerMatches[0] || null;
   }, [isReserved, isRestDayToday, isSuspended, selectedBacklogMatchId, replacementBacklogMatches, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
@@ -2178,6 +2179,10 @@ export default function DashboardClient({
                       <Badge variant="outline" className="border-secondary/40 text-secondary font-black text-xs uppercase animate-pulse">
                         ⏳ WAITING FOR SUB
                       </Badge>
+                    ) : hasSubmittedResult || activeMatch?.status === "FINISHED" ? (
+                      <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-secondary/20 border-secondary/40 text-secondary">
+                        ✓ MATCH COMPLETE • 1 MATCH PER DAY
+                      </Badge>
                     ) : (
                       <Badge variant="live" className="text-xs uppercase">
                         24-HR WINDOW ACTIVE
@@ -2194,6 +2199,8 @@ export default function DashboardClient({
                       ? "Priority Replacement Match"
                       : isWaitingForSub
                       ? "Fixture On Hold (Awaiting Sub)"
+                      : hasSubmittedResult || activeMatch?.status === "FINISHED"
+                      ? "Today's Match Result Submitted"
                       : "Today's Official League Match"}
                   </h2>
                 </div>
@@ -2212,6 +2219,8 @@ export default function DashboardClient({
                       ? "Time Remaining (48-Hour Deadline)"
                       : isWaitingForSub
                       ? "Match On Hold (Awaiting Sub)"
+                      : hasSubmittedResult || activeMatch?.status === "FINISHED"
+                      ? "Next Round Drops At 12:00 AM Midnight"
                       : "Time Remaining (12:00 AM Reset)"}
                   </span>
                   {isWaitingForSub ? (
@@ -2618,12 +2627,12 @@ export default function DashboardClient({
                     <Lock className="h-5 w-5 text-secondary shrink-0" />
                     <div>
                       <span className="font-black uppercase tracking-wider text-white block">
-                        Uploading Closed for Both Athletes
+                        Match Completed • Next Round Drops After 24-Hr Deadline
                       </span>
                       <span className="text-xs text-foreground">
                         {isMySubmission
-                          ? "You uploaded the match score and proof. Uploading is closed for both you and your opponent."
-                          : `@${submitterGamerTag} uploaded the match score and proof. Uploading is closed for both players while awaiting admin approval.`}
+                          ? "You uploaded the match score and proof. Under the 1 match per day rule, next round fixtures drop at 12:00 AM Midnight after today's 24-hr deadline."
+                          : `@${submitterGamerTag} uploaded the match score and proof. Under the 1 match per day rule, next round fixtures drop at 12:00 AM Midnight after today's 24-hr deadline.`}
                       </span>
                     </div>
                   </div>
@@ -3395,6 +3404,10 @@ export default function DashboardClient({
                 const hasSubOrForfeit = Boolean(sub || forfeit);
                 const isPending = sub?.status === "PENDING";
                 const isForfeitPending = forfeit?.status === "PENDING";
+                const matchRoundNum = parseInt(m.round?.match(/\d+/)?.[0] || "0", 10);
+                const isDivisionMatch = m.division?.startsWith("Division");
+                const currentMatchdayNum = leagueConfig?.currentMatchday || 1;
+                const isFutureDivisionMatch = isDivisionMatch && matchRoundNum > currentMatchdayNum;
 
                 return (
                   <div
@@ -3450,7 +3463,13 @@ export default function DashboardClient({
                             FORFEIT ARBITRATION
                           </Badge>
                         )}
-                        {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && (
+                        {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && !isForfeitPending && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground border-border gap-1">
+                            <Lock className="h-3 w-3 text-secondary" />
+                            LOCKED (1 MATCH/DAY)
+                          </Badge>
+                        )}
+                        {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && !isFutureDivisionMatch && (
                           <Badge variant="secondary" className="text-xs text-muted-foreground">
                             UPCOMING
                           </Badge>
@@ -3599,6 +3618,12 @@ export default function DashboardClient({
                           <Clock className="h-3 w-3" />
                           <span>Play Now</span>
                         </Button>
+                      )}
+                      {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1 px-2.5 rounded-lg bg-card border border-border">
+                          <Lock className="h-3 w-3 text-secondary" />
+                          <span>Drops at 12:00 AM (1 Match/Day)</span>
+                        </div>
                       )}
                     </div>
                   </div>

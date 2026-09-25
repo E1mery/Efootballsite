@@ -100,6 +100,22 @@ export async function POST(req: Request) {
         isReplacementMatch
     );
 
+    // STRICT 1 MATCH PER DAY (24HRS):
+    // Division fixtures for future matchdays cannot be submitted before their 24-hr cycle begins at 12:00 AM midnight
+    const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+    const currentMatchday = config?.currentMatchday || 1;
+    const matchRoundNum = parseInt(match.round?.match(/\d+/)?.[0] || "0", 10);
+    const isDivisionMatch = match.division?.startsWith("Division");
+
+    if (isDivisionMatch && matchRoundNum > currentMatchday && !isReopenedByAdmin) {
+      return NextResponse.json(
+        {
+          error: `1 Match Per Day Rule: ${match.round} is not active yet. Next round fixtures drop after today's 24-hour deadline at 12:00 AM Midnight.`,
+        },
+        { status: 400 }
+      );
+    }
+
     // BLOCK SUBMISSION IF OPPONENT REACHED 3 MISSED MATCHES AND MATCH IS WAITING FOR SUB
     const opponent = match.homePlayerId === user.player.id ? match.awayPlayer : match.homePlayer;
     const isWaitingSub = Boolean(

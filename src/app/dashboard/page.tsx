@@ -147,32 +147,10 @@ export default async function DashboardPage() {
       }
     }
 
-    // 1. Scheduled or Live match in current league round
-    if (!activeMatch) {
-      activeMatch = await prisma.match.findFirst({
-        where: {
-          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-          round: currentRoundName,
-          status: { in: ["SCHEDULED", "LIVE"] },
-        },
-        include: matchInclude,
-        orderBy: { matchDate: "asc" },
-      });
-    }
-
-    // 2. Earliest scheduled or live match for this player across all stages (Divisions, UCL, Europa)
-    if (!activeMatch) {
-      activeMatch = await prisma.match.findFirst({
-        where: {
-          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-          status: { in: ["SCHEDULED", "LIVE"] },
-        },
-        include: matchInclude,
-        orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
-      });
-    }
-
-    // 3. Match in current round that was played/pending/finished (so user sees their result and status)
+    // 1. STRICT 1 MATCH PER DAY (24HRS) FOR DIVISION LEAGUE:
+    // If player has a match in the current active matchday (whether scheduled, live, pending submission, or finished),
+    // THAT MATCH is strictly their single fixture for today!
+    // The system MUST wait for the 24-hour deadline (12:00 AM midnight) before dropping the next round.
     if (!activeMatch) {
       activeMatch = await prisma.match.findFirst({
         where: {
@@ -184,7 +162,20 @@ export default async function DashboardPage() {
       });
     }
 
-    // 4. Most recent match of this player
+    // 2. Continental fallback: if player has a scheduled or live match in continental cups (UCL, Europa)
+    if (!activeMatch) {
+      activeMatch = await prisma.match.findFirst({
+        where: {
+          OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
+          division: { in: ["UCL", "EUROPA"] },
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        include: matchInclude,
+        orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],
+      });
+    }
+
+    // 3. Fallback: Most recent finished or forfeit match (only if season has concluded and no active rounds exist)
     if (!activeMatch) {
       activeMatch = await prisma.match.findFirst({
         where: {
