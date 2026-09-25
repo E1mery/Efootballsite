@@ -2,11 +2,85 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { PageCurtains, type CurtainEffect } from "@/components/ui/page-curtains";
-import { Sparkles, SlidersHorizontal, ChevronUp, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { PageCurtains } from "@/components/ui/page-curtains";
 
-const EFFECTS: CurtainEffect[] = ["doors", "wipe", "fade", "iris"];
+interface PageMeta {
+  title: string;
+  subtitle: string;
+}
+
+/**
+ * Resolves user-friendly destination page titles and subtitles based on target route pathname.
+ */
+function getPageInfo(pathname: string): PageMeta {
+  if (!pathname || pathname === "/") {
+    return {
+      title: "Home",
+      subtitle: "eFootball Rwanda League Official Championship",
+    };
+  }
+  if (pathname.startsWith("/standings")) {
+    return {
+      title: "Standings & Tables",
+      subtitle: "Division 1, Division 2 & Division 3",
+    };
+  }
+  if (pathname.startsWith("/fixtures")) {
+    return {
+      title: "Fixtures & Results",
+      subtitle: "Daily 24-Hour Matchday Schedule",
+    };
+  }
+  if (pathname.startsWith("/continental")) {
+    return {
+      title: "UCL & Europa Draws",
+      subtitle: "Post-Season Continental Championship",
+    };
+  }
+  if (pathname.startsWith("/players")) {
+    return {
+      title: "Athlete Profiles",
+      subtitle: "National League Registered Athletes",
+    };
+  }
+  if (pathname.startsWith("/login")) {
+    return {
+      title: "Athlete Portal",
+      subtitle: "Match Coordination & Score Submission",
+    };
+  }
+  if (pathname.startsWith("/register")) {
+    return {
+      title: "Season Registration",
+      subtitle: "Official League Athlete Onboarding",
+    };
+  }
+  if (pathname.startsWith("/dashboard")) {
+    return {
+      title: "Athlete Dashboard",
+      subtitle: "Active Matchday Hub & Opponent Chat",
+    };
+  }
+  if (pathname.startsWith("/admin/login")) {
+    return {
+      title: "Admin Portal",
+      subtitle: "League Commissioner Office Authentication",
+    };
+  }
+  if (pathname.startsWith("/admin")) {
+    return {
+      title: "Commissioner Office",
+      subtitle: "League Governance & Verification",
+    };
+  }
+
+  // Fallback for custom or dynamic routes
+  const clean = pathname.replace(/^\//, "").split("/")[0].replace(/-/g, " ");
+  return {
+    title: clean.charAt(0).toUpperCase() + clean.slice(1),
+    subtitle: "eFootball Rwanda League",
+  };
+}
 
 export default function PageTransitionProvider({
   children,
@@ -14,102 +88,57 @@ export default function PageTransitionProvider({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [effect, setEffect] = React.useState<CurtainEffect>("doors");
   const [isTransitioning, setIsTransitioning] = React.useState(false);
-  const [isPanelOpen, setIsPanelOpen] = React.useState(false);
-  const prevPathnameRef = React.useRef(pathname);
+  const [currentPageInfo, setCurrentPageInfo] = React.useState<PageMeta>(() =>
+    getPageInfo(pathname)
+  );
 
-  // Load saved transition preference from localStorage if available
+  // Pre-trigger wipe curtain upon clicking internal links to capture destination immediately
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem("efrl_curtain_effect") as CurtainEffect | null;
-      if (saved && EFFECTS.includes(saved)) {
-        setEffect(saved);
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement)?.closest("a");
+      if (!target) return;
+      const href = target.getAttribute("href");
+      if (
+        href &&
+        href.startsWith("/") &&
+        !href.startsWith("#") &&
+        !href.startsWith("//") &&
+        target.target !== "_blank"
+      ) {
+        const nextUrl = href.split("?")[0].split("#")[0];
+        if (nextUrl !== pathname) {
+          const info = getPageInfo(nextUrl);
+          setCurrentPageInfo(info);
+          setIsTransitioning(true);
+        }
       }
-    } catch {
-      // ignore storage access errors
-    }
-  }, []);
+    };
 
-  // Listen to route changes
-  React.useEffect(() => {
-    if (prevPathnameRef.current !== pathname) {
-      prevPathnameRef.current = pathname;
-      setIsTransitioning(true);
-    }
+    document.addEventListener("click", handleDocumentClick, { capture: true });
+    return () => {
+      document.removeEventListener("click", handleDocumentClick, {
+        capture: true,
+      });
+    };
   }, [pathname]);
 
-  const handleSelectEffect = (newEffect: CurtainEffect) => {
-    setEffect(newEffect);
-    try {
-      localStorage.setItem("efrl_curtain_effect", newEffect);
-    } catch {
-      // ignore
-    }
-    // Preview selected transition
+  // Route change listener ensuring destination info updates
+  React.useEffect(() => {
+    const info = getPageInfo(pathname);
+    setCurrentPageInfo(info);
     setIsTransitioning(true);
-  };
+  }, [pathname]);
 
   return (
-    <>
-      <PageCurtains
-        effect={effect}
-        isTransitioning={isTransitioning}
-        onRevealed={() => setIsTransitioning(false)}
-      >
-        {children}
-      </PageCurtains>
-
-      {/* Discrete Curated Transition Selector Pill */}
-      <aside
-        aria-label="Page transition controls"
-        className="fixed bottom-4 right-4 z-40 hidden sm:flex flex-col items-end gap-1.5"
-      >
-        {isPanelOpen && (
-          <div className="rounded-2xl border border-border bg-card/95 p-3 backdrop-blur-xl shadow-2xl space-y-2 animate-fade-in w-56">
-            <div className="flex items-center justify-between pb-1.5 border-b border-border/80">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Transition Curtain
-              </span>
-              <span className="text-xs font-mono font-bold text-primary uppercase">
-                {effect}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {EFFECTS.map((eff) => (
-                <button
-                  key={eff}
-                  type="button"
-                  onClick={() => handleSelectEffect(eff)}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1.5 text-xs font-bold capitalize transition-colors duration-150 text-center",
-                    effect === eff
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-background/60 text-muted-foreground hover:text-foreground hover:bg-muted/80"
-                  )}
-                >
-                  {eff}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setIsPanelOpen((prev) => !prev)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-lg backdrop-blur-md hover:border-primary/50 transition-colors"
-          title="Curated Page Transition Style"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-secondary" />
-          <span className="font-mono uppercase text-xs">Curtains: {effect}</span>
-          {isPanelOpen ? (
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-          ) : (
-            <ChevronUp className="h-3 w-3 text-muted-foreground" />
-          )}
-        </button>
-      </aside>
-    </>
+    <PageCurtains
+      effect="wipe"
+      isTransitioning={isTransitioning}
+      pageTitle={currentPageInfo.title}
+      pageSubtitle={currentPageInfo.subtitle}
+      onRevealed={() => setIsTransitioning(false)}
+    >
+      {children}
+    </PageCurtains>
   );
 }

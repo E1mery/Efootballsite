@@ -3,12 +3,15 @@
 import * as React from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Trophy, Compass } from "lucide-react";
 
-export type CurtainEffect = "doors" | "wipe" | "fade" | "iris";
+export type CurtainEffect = "wipe";
 
 export interface PageCurtainsProps {
   effect?: CurtainEffect;
   isTransitioning: boolean;
+  pageTitle?: string;
+  pageSubtitle?: string;
   onCovered?: () => void;
   onRevealed?: () => void;
   className?: string;
@@ -17,11 +20,13 @@ export interface PageCurtainsProps {
 
 /**
  * PageCurtains
- * Curated page-transition curtain system swapping between fade, wipe, doors, and iris curtain effects.
+ * Wipe-only page transition curtain with smooth hold delay and destination page title in yellow.
+ * Uses exact website background color (bg-background) and theme yellow (text-secondary).
  */
 export function PageCurtains({
-  effect = "doors",
   isTransitioning,
+  pageTitle = "Loading",
+  pageSubtitle,
   onCovered,
   onRevealed,
   className,
@@ -31,12 +36,16 @@ export function PageCurtains({
 
   React.useEffect(() => {
     if (isTransitioning) {
+      // Cover phase reached at ~0.35s
       const coverTimer = setTimeout(() => {
         onCovered?.();
-      }, 250);
+      }, 350);
+
+      // Reveal phase finishes at ~1.15s (allows ~0.45s smooth hold delay)
       const revealTimer = setTimeout(() => {
         onRevealed?.();
-      }, 550);
+      }, 1150);
+
       return () => {
         clearTimeout(coverTimer);
         clearTimeout(revealTimer);
@@ -58,89 +67,70 @@ export function PageCurtains({
             aria-hidden="true"
             className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
           >
-            {/* FADE EFFECT */}
-            {effect === "fade" && (
+            {/* WIPE CURTAIN with website background color */}
+            <motion.div
+              key="curtain-wipe"
+              initial={{ x: "-100%" }}
+              animate={{ x: ["-100%", "0%", "0%", "100%"] }}
+              transition={{
+                duration: 1.15,
+                times: [0, 0.32, 0.68, 1],
+                ease: [0.76, 0, 0.24, 1] as const,
+              }}
+              className="absolute inset-0 bg-background border-l-2 border-r-2 border-secondary/50 shadow-2xl flex flex-col items-center justify-center p-6"
+            >
+              {/* Subtle ambient brand glow behind center content */}
+              <div className="absolute inset-0 bg-hero-glow pointer-events-none opacity-80" />
+
+              {/* Destination Page Showcase during hold delay */}
               <motion.div
-                key="curtain-fade"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 1, 0] }}
+                initial={{ opacity: 0, scale: 0.94, y: 10 }}
+                animate={{
+                  opacity: [0, 1, 1, 0],
+                  scale: [0.94, 1, 1, 0.97],
+                  y: [10, 0, 0, -6],
+                }}
                 transition={{
-                  duration: 0.55,
-                  times: [0, 0.45, 0.55, 1],
+                  duration: 1.15,
+                  times: [0.12, 0.32, 0.68, 0.88],
                   ease: "easeInOut",
                 }}
-                className="absolute inset-0 bg-background flex items-center justify-center"
+                className="relative z-10 flex flex-col items-center justify-center gap-3 text-center max-w-lg px-4"
               >
-                <div className="h-40 w-40 rounded-full bg-primary/20 blur-3xl animate-efootball-pulse" />
+                {/* Mini Crest & Category Badge */}
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-card/80 backdrop-blur-md shadow-md">
+                  <Compass className="h-3.5 w-3.5 text-secondary animate-spin" />
+                  <span className="font-mono text-xs uppercase font-bold tracking-widest text-muted-foreground">
+                    Opening Page
+                  </span>
+                </div>
+
+                {/* DESTINATION PAGE NAME IN YELLOW */}
+                <h2 className="text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-secondary drop-shadow-md">
+                  {pageTitle}
+                </h2>
+
+                {/* Optional League Subtitle */}
+                {pageSubtitle && (
+                  <p className="text-xs sm:text-sm font-semibold tracking-wide text-muted-foreground max-w-md">
+                    {pageSubtitle}
+                  </p>
+                )}
+
+                {/* Smooth Progress Bar Indicator */}
+                <div className="w-48 h-1 rounded-full bg-muted/60 overflow-hidden mt-2">
+                  <motion.div
+                    className="h-full bg-secondary rounded-full"
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{
+                      duration: 0.9,
+                      ease: [0.65, 0, 0.35, 1] as const,
+                    }}
+                  />
+                </div>
               </motion.div>
-            )}
-
-            {/* WIPE EFFECT */}
-            {effect === "wipe" && (
-              <motion.div
-                key="curtain-wipe"
-                initial={{ x: "-100%" }}
-                animate={{ x: ["-100%", "0%", "0%", "100%"] }}
-                transition={{
-                  duration: 0.55,
-                  times: [0, 0.45, 0.55, 1],
-                  ease: [0.76, 0, 0.24, 1] as const,
-                }}
-                className="absolute inset-0 border-r-2 border-secondary bg-primary shadow-2xl flex items-center justify-center"
-              >
-                <div className="h-1 w-24 rounded-full bg-secondary" />
-              </motion.div>
-            )}
-
-            {/* DOORS EFFECT */}
-            {effect === "doors" && (
-              <div key="curtain-doors" className="absolute inset-0 flex">
-                {/* Left Door */}
-                <motion.div
-                  initial={{ x: "-100%" }}
-                  animate={{ x: ["-100%", "0%", "0%", "-100%"] }}
-                  transition={{
-                    duration: 0.55,
-                    times: [0, 0.45, 0.55, 1],
-                    ease: [0.77, 0, 0.175, 1] as const,
-                  }}
-                  className="h-full w-1/2 border-r border-border bg-card flex items-center justify-end pr-6 shadow-2xl"
-                >
-                  <div className="h-20 w-1 rounded-full bg-primary" />
-                </motion.div>
-
-                {/* Right Door */}
-                <motion.div
-                  initial={{ x: "100%" }}
-                  animate={{ x: ["100%", "0%", "0%", "100%"] }}
-                  transition={{
-                    duration: 0.55,
-                    times: [0, 0.45, 0.55, 1],
-                    ease: [0.77, 0, 0.175, 1] as const,
-                  }}
-                  className="h-full w-1/2 border-l border-border bg-card flex items-center justify-start pl-6 shadow-2xl"
-                >
-                  <div className="h-20 w-1 rounded-full bg-secondary" />
-                </motion.div>
-              </div>
-            )}
-
-            {/* IRIS CURTAIN EFFECT */}
-            {effect === "iris" && (
-              <motion.div
-                key="curtain-iris"
-                initial={{ scale: 0, opacity: 0.9 }}
-                animate={{ scale: [0, 5, 5, 0], opacity: [0.9, 1, 1, 0] }}
-                transition={{
-                  duration: 0.55,
-                  times: [0, 0.45, 0.55, 1],
-                  ease: [0.65, 0, 0.35, 1] as const,
-                }}
-                className="h-96 w-96 rounded-full bg-background border-4 border-primary shadow-2xl flex items-center justify-center"
-              >
-                <div className="h-64 w-64 rounded-full border-2 border-secondary/60 bg-card/40 blur-sm" />
-              </motion.div>
-            )}
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -150,29 +140,20 @@ export function PageCurtains({
 
 /**
  * useCurtains
- * Hook to manage curtain transition states and cycle/select effects.
+ * Hook to manage wipe curtain transition states.
  */
-export function useCurtains(initialEffect: CurtainEffect = "doors") {
-  const [effect, setEffect] = React.useState<CurtainEffect>(initialEffect);
+export function useCurtains() {
   const [isTransitioning, setIsTransitioning] = React.useState(false);
 
-  const startTransition = React.useCallback(
-    (customEffect?: CurtainEffect) => {
-      if (customEffect) {
-        setEffect(customEffect);
-      }
-      setIsTransitioning(true);
-    },
-    []
-  );
+  const startTransition = React.useCallback(() => {
+    setIsTransitioning(true);
+  }, []);
 
   const finishTransition = React.useCallback(() => {
     setIsTransitioning(false);
   }, []);
 
   return {
-    effect,
-    setEffect,
     isTransitioning,
     startTransition,
     finishTransition,
