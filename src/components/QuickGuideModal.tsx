@@ -91,11 +91,11 @@ export default function QuickGuideModal({
       iconColor: "text-primary",
       iconBg: "bg-primary/20 border-primary/30",
       title: "24-Hour Match Windows & Midnight Cutoffs",
-      subtitle: "Every match fixture expires automatically at 12:00 AM",
+      subtitle: "Every match fixture expires automatically at 12:00 AM CAT (Rwandan Time)",
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-foreground leading-relaxed">
           <p>
-            The league runs on an automated daily cycle. Each scheduled fixture has a strict <strong className="text-primary">24-hour match window</strong> that expires at midnight (12:00 AM).
+            The league runs on an automated daily cycle based on Central Africa Time (CAT / Rwandan Time, UTC+2). Each scheduled fixture has a strict <strong className="text-primary">24-hour match window</strong> that expires at midnight (12:00 AM CAT).
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div className="rounded-xl bg-card border border-border p-3 space-y-1">

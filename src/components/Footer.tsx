@@ -18,8 +18,10 @@ export default function Footer() {
             <span className="font-bold text-foreground">eFootball Rwanda League (EFRL) Admin Office</span>
             <span className="text-muted-foreground">•</span>
             <span className="font-mono text-muted-foreground">Commissioner Workspace</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="font-mono text-secondary">CAT (UTC+2)</span>
           </div>
-          <p className="text-muted-foreground">Authorized administrative personnel only. Session protected.</p>
+          <p className="text-muted-foreground">Official Platform Time: Central Africa Time (Kigali, UTC+2). Session protected.</p>
         </div>
       </footer>
     );

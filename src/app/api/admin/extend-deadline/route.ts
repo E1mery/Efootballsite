@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { formatRwandanDateTime } from "@/lib/rwandanTime";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -47,13 +48,13 @@ export async function POST(req: Request) {
         extendedDeadlineDate: newDeadline,
         deadlineDate: newDeadline,
         status: match.status === "FORFEIT" ? match.status : "SCHEDULED",
-        notes: customNotes || `Deadline extended by Admin Office until ${newDeadline.toLocaleString()}. Late result upload granted.`,
+        notes: customNotes || `Deadline extended by Admin Office until ${formatRwandanDateTime(newDeadline)} (CAT). Late result upload granted.`,
       },
     });
 
     // Notify both athletes
     const notifyTitle = `⏰ Match Deadline Extended: ${match.round}`;
-    const notifyContent = `The League Commissioner has extended the result upload deadline for your match (${match.homePlayer.gamerTag} vs ${match.awayPlayer.gamerTag}) until ${newDeadline.toLocaleDateString()} ${newDeadline.toLocaleTimeString()}. You can now upload your match results and screenshot proof.`;
+    const notifyContent = `The League Commissioner has extended the result upload deadline for your match (${match.homePlayer.gamerTag} vs ${match.awayPlayer.gamerTag}) until ${formatRwandanDateTime(newDeadline)} (CAT / Rwandan Time). You can now upload your match results and screenshot proof.`;
 
     await prisma.announcement.createMany({
       data: [

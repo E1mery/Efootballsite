@@ -240,8 +240,8 @@ export async function POST(req: Request) {
 
       await prisma.announcement.create({
         data: {
-          title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Midnight Window)`,
-          content: `The system has automatically dropped all ${nextRoundName} fixtures. Contact your opponent via WhatsApp immediately. Submissions and proof upload buttons will remain active until 12:00 AM cutoff.`,
+          title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Window, CAT / Rwandan Time)`,
+          content: `The system has automatically dropped all ${nextRoundName} fixtures. Contact your opponent via WhatsApp immediately. Submissions and proof upload buttons will remain active until 12:00 AM (Midnight, CAT / Rwandan Time) cutoff.`,
           type: "BROADCAST",
           isPinned: true,
         },

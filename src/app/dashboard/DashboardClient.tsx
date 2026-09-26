@@ -646,6 +646,7 @@ export default function DashboardClient({
     try {
       const d = new Date(seasonKickoffDate);
       return d.toLocaleDateString("en-US", {
+        timeZone: "Africa/Kigali",
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -2178,7 +2179,7 @@ export default function DashboardClient({
                       </span>
                       <span className="font-bold text-white font-mono text-xs">
                         {leagueConfig?.uclDrawTime
-                          ? `${new Date(leagueConfig.uclDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                          ? `${new Date(leagueConfig.uclDrawTime).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at ${new Date(leagueConfig.uclDrawTime).toLocaleTimeString("en-US", { timeZone: "Africa/Kigali", hour: "2-digit", minute: "2-digit" })} (CAT)`
                           : "Awaiting Schedule"}
                       </span>
                     </div>
@@ -2289,7 +2290,7 @@ export default function DashboardClient({
                       </span>
                       <span className="font-bold text-white font-mono text-xs">
                         {leagueConfig?.europaDrawTime
-                          ? `${new Date(leagueConfig.europaDrawTime).toLocaleDateString()} at ${new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                          ? `${new Date(leagueConfig.europaDrawTime).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at ${new Date(leagueConfig.europaDrawTime).toLocaleTimeString("en-US", { timeZone: "Africa/Kigali", hour: "2-digit", minute: "2-digit" })} (CAT)`
                           : "Awaiting Schedule"}
                       </span>
                     </div>
@@ -2396,7 +2397,7 @@ export default function DashboardClient({
                     <Badge variant="yellow">{activeMatch.round}</Badge>
                     {isAwaitingDrop ? (
                       <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-primary/20 border-primary/40 text-primary animate-pulse">
-                        ⏳ DROPS ON {new Date(activeMatch.matchDate).toLocaleDateString()} AT 12:00 AM
+                        ⏳ DROPS ON {new Date(activeMatch.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} AT 12:00 AM (CAT)
                       </Badge>
                     ) : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG") ? (
                       <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-secondary/20 border-secondary/40 text-secondary">
@@ -2423,7 +2424,7 @@ export default function DashboardClient({
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black text-white uppercase">
                     {isAwaitingDrop
-                      ? `First Fixture Drops on ${new Date(activeMatch.matchDate).toLocaleDateString()} at 12:00 AM`
+                      ? `First Fixture Drops on ${new Date(activeMatch.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at 12:00 AM (CAT)`
                       : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
                       ? "Priority Replacement Match"
                       : isWaitingForSub
@@ -2666,20 +2667,21 @@ export default function DashboardClient({
                         🗓️ OFFICIAL SCHEDULE CONFIRMED
                       </Badge>
                       <span className="text-xs font-mono font-bold text-white">
-                        Drops on {new Date(activeMatch.matchDate).toLocaleDateString()} at 12:00 AM Midnight
+                        Drops on {new Date(activeMatch.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at 12:00 AM Midnight (CAT)
                       </span>
                     </div>
                     <p className="text-xs text-foreground leading-relaxed">
-                      The League Commissioner has officially confirmed the schedule. The first round fixtures will drop on{" "}
+                       The League Commissioner has officially confirmed the schedule. The first round fixtures will drop on{" "}
                       <strong className="text-white">
-                        {new Date(activeMatch.matchDate).toLocaleDateString(undefined, {
+                        {new Date(activeMatch.matchDate).toLocaleDateString("en-US", {
+                          timeZone: "Africa/Kigali",
                           weekday: "long",
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                         })}
                       </strong>{" "}
-                      at <strong className="text-white">12:00 AM (Midnight)</strong>. Coordinate with your opponent on WhatsApp. Match submissions unlock once the fixture officially drops.
+                      at <strong className="text-white">12:00 AM (Midnight, CAT / Rwandan Time)</strong>. Coordinate with your opponent on WhatsApp. Match submissions unlock once the fixture officially drops.
                     </p>
                   </div>
                 </div>
@@ -2928,7 +2930,7 @@ export default function DashboardClient({
                     <Clock className="h-5 w-5 text-primary shrink-0 animate-pulse" />
                     <div>
                       <span className="font-black uppercase tracking-wider text-primary block">
-                        Fixture Drops on {new Date(activeMatch.matchDate).toLocaleDateString()} at 12:00 AM Midnight
+                        Fixture Drops on {new Date(activeMatch.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at 12:00 AM Midnight (CAT)
                       </span>
                       <span className="text-xs text-foreground">
                         The schedule is confirmed by the Commissioner. Score submissions and forfeit claims will unlock once the fixture officially drops.
@@ -3472,7 +3474,7 @@ export default function DashboardClient({
 
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-mono text-muted-foreground">
-                              {new Date(ann.createdAt).toLocaleDateString()}
+                              {new Date(ann.createdAt).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })}
                             </span>
                             {!isRead && (
                               <Button
@@ -3623,7 +3625,7 @@ export default function DashboardClient({
                             </Badge>
                           </div>
                           <span className="text-xs font-mono text-muted-foreground">
-                            Sent: {new Date(msg.createdAt).toLocaleString()}
+                            Sent: {new Date(msg.createdAt).toLocaleString("en-US", { timeZone: "Africa/Kigali" })} (CAT)
                           </span>
                         </div>
 
@@ -3646,7 +3648,7 @@ export default function DashboardClient({
                               </div>
                               {msg.repliedAt && (
                                 <span className="text-xs font-mono text-primary/80">
-                                  {new Date(msg.repliedAt).toLocaleString()}
+                                  {new Date(msg.repliedAt).toLocaleString("en-US", { timeZone: "Africa/Kigali" })} (CAT)
                                 </span>
                               )}
                             </div>
@@ -3902,7 +3904,7 @@ export default function DashboardClient({
                           </Badge>
                         </div>
                         <span className="text-xs font-mono text-muted-foreground">
-                          {new Date(m.matchDate).toLocaleDateString([], { month: "short", day: "numeric" })}
+                          {new Date(m.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali", month: "short", day: "numeric" })}
                         </span>
                       </div>
 

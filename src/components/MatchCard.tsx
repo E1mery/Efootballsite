@@ -55,10 +55,12 @@ export default function MatchCard({ match }: MatchProps) {
 
   const dateObj = new Date(match.matchDate);
   const formattedTime = dateObj.toLocaleTimeString("en-US", {
+    timeZone: "Africa/Kigali",
     hour: "2-digit",
     minute: "2-digit",
   });
   const formattedDate = dateObj.toLocaleDateString("en-US", {
+    timeZone: "Africa/Kigali",
     month: "short",
     day: "numeric",
   });

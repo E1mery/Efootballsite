@@ -391,7 +391,7 @@ export default async function HomePage({
 
                 <div className="pt-3 border-t border-border/80 flex items-center justify-between text-xs text-muted-foreground font-mono">
                   <span>Honored</span>
-                  <span>{new Date(entry.createdAt).toLocaleDateString()}</span>
+                  <span>{new Date(entry.createdAt).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })}</span>
                 </div>
               </div>
             ))}

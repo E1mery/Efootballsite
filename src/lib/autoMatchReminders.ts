@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatRwandanTime } from "@/lib/rwandanTime";
 
 export interface ReminderResult {
   checkedCount: number;
@@ -57,10 +58,7 @@ export async function checkAndSendOneHourMatchReminders(): Promise<ReminderResul
         continue;
       }
 
-      const deadlineStr = new Date(match.deadlineDate).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const deadlineStr = `${formatRwandanTime(match.deadlineDate)} (CAT / Rwandan Time)`;
 
       const uniqueMarker = `[REMINDER-1HR-${match.id}]`;
 

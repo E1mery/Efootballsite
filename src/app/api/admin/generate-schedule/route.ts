@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { createRwandanMidnight, formatRwandanDate } from "@/lib/rwandanTime";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -105,20 +106,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Anchor League Starting Date strictly to 12:00 AM (00:00:00 midnight)
-    let baseKickoffDate: Date;
-    if (startDate) {
-      const parts = String(startDate).split("T")[0].split("-").map(Number);
-      if (parts.length === 3) {
-        baseKickoffDate = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
-      } else {
-        baseKickoffDate = new Date(startDate);
-        baseKickoffDate.setHours(0, 0, 0, 0);
-      }
-    } else {
-      baseKickoffDate = new Date();
-      baseKickoffDate.setHours(0, 0, 0, 0);
-    }
+    // Anchor League Starting Date strictly to 12:00 AM (00:00:00 midnight) in Rwanda (Africa/Kigali, CAT, UTC+2)
+    const baseKickoffDate = createRwandanMidnight(startDate);
 
     const divisionsToProcess =
       division === "ALL"
@@ -248,7 +237,7 @@ export async function POST(req: Request) {
 
     // Create league broadcast announcement and player announcements ONLY if matches were generated
     if (totalMatchesGenerated > 0) {
-      const formattedStartDate = baseKickoffDate.toLocaleDateString("en-US", {
+      const formattedStartDate = formatRwandanDate(baseKickoffDate, {
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -258,8 +247,8 @@ export async function POST(req: Request) {
       // 1. Broadcast announcement for the entire league
       await prisma.announcement.create({
         data: {
-          title: `📢 Official League Schedule Confirmed: First Fixtures Drop on ${formattedStartDate} at 12:00 AM (Midnight)`,
-          content: `The official division league schedule has been set and confirmed by the Commissioner. The first round fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight). All match pairings remain strictly sealed until kickoff time. Each matchday will drop daily at 12:00 AM and last for 24 hours. Prepare your squad!`,
+          title: `📢 Official League Schedule Confirmed: First Fixtures Drop on ${formattedStartDate} at 12:00 AM (CAT / Rwandan Time)`,
+          content: `The official division league schedule has been set and confirmed by the Commissioner. The first round fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight, CAT / Rwandan Time). All match pairings remain strictly sealed until kickoff time. Each matchday will drop daily at 12:00 AM CAT and last for 24 hours. Prepare your squad!`,
           type: "BROADCAST",
           isPinned: true,
         },
@@ -277,8 +266,8 @@ export async function POST(req: Request) {
       for (const p of scheduledPlayers) {
         await prisma.announcement.create({
           data: {
-            title: `🗓️ ${p.division} League Kickoff Confirmed: First Fixtures Drop on ${formattedStartDate} at 12:00 AM`,
-            content: `Hello ${p.gamerTag}! Your ${p.division} season schedule has been officially set. Your first fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight). Fixtures and match pairings remain strictly sealed until kickoff time, when they will be automatically revealed on your dashboard.`,
+            title: `🗓️ ${p.division} League Kickoff Confirmed: First Fixtures Drop on ${formattedStartDate} at 12:00 AM CAT`,
+            content: `Hello ${p.gamerTag}! Your ${p.division} season schedule has been officially set. Your first fixtures will drop on ${formattedStartDate} at 12:00 AM Midnight (CAT / Rwandan Time). Fixtures and match pairings remain strictly sealed until kickoff time, when they will be automatically revealed on your dashboard.`,
             type: "INDIVIDUAL",
             targetPlayerId: p.id,
             isPinned: true,
@@ -287,9 +276,10 @@ export async function POST(req: Request) {
       }
     }
 
+    const kickoffDisplay = formatRwandanDate(baseKickoffDate);
     return NextResponse.json({
       success: true,
-      message: `Successfully set and confirmed schedule for ${totalMatchesGenerated} division matches starting on ${baseKickoffDate.toLocaleDateString()} at 12:00 AM. The first round fixtures will drop on ${baseKickoffDate.toLocaleDateString()} at 12:00 AM midnight.`,
+      message: `Successfully set and confirmed schedule for ${totalMatchesGenerated} division matches starting on ${kickoffDisplay} at 12:00 AM (CAT / Rwandan Time). The first round fixtures will drop on ${kickoffDisplay} at 12:00 AM midnight (CAT).`,
       summary,
     });
   } catch (err: any) {

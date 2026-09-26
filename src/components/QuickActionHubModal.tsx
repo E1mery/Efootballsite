@@ -66,7 +66,7 @@ export default function QuickActionHubModal({
       title: "Submit Match Score & Screenshot",
       description: isDeadlineExpired
         ? "Deadline for this match has expired. Result submissions are closed."
-        : "Finished your eFootball match? Submit your goals and screenshot proof before midnight.",
+        : "Finished your eFootball match? Submit your goals and screenshot proof before 12:00 AM midnight (CAT).",
       icon: Upload,
       iconColor: isDeadlineExpired ? "text-muted-foreground" : "text-primary",
       iconBg: isDeadlineExpired ? "bg-muted border-border" : "bg-primary/20 border-primary/30",

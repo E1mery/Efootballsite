@@ -54,13 +54,31 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
+import {
+  getTomorrowInRwandaString,
+  formatRwandanDate,
+  formatRwandanTime,
+  formatRwandanDateTime,
+  RWANDA_TIMEZONE,
+} from "@/lib/rwandanTime";
 
 function toLocalDatetimeInput(dateInput: Date | string | null | undefined): string {
   if (!dateInput) return "";
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: RWANDA_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(d);
+  const getPart = (type: string) => parts.find((p) => p.type === type)?.value || "";
+  const hour = getPart("hour") === "24" ? "00" : getPart("hour");
+  return `${getPart("year")}-${getPart("month")}-${getPart("day")}T${hour}:${getPart("minute")}`;
 }
 
 export default function AdminClient({
@@ -658,19 +676,17 @@ export default function AdminClient({
     }, 800);
   };
 
-  // Fixed Kickoff date for schedule generator (Midnight 12:00 AM)
+  // Fixed Kickoff date for schedule generator (Midnight 12:00 AM CAT / Rwandan Time)
   const [leagueStartDate, setLeagueStartDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split("T")[0];
+    return getTomorrowInRwandaString();
   });
 
   // Set & Confirm Scheduled Round Robin Matches
   const handleGenerateSchedule = async (division: string) => {
     const confirmMsg =
       division === "ALL"
-        ? `Set and confirm the official schedule for ALL divisions starting on ${leagueStartDate} at 12:00 AM midnight?\n\nThe system will lock the schedule and automatically drop the first fixtures on ${leagueStartDate} at 12:00 AM.`
-        : `Set and confirm the official schedule for ${division} starting on ${leagueStartDate} at 12:00 AM midnight?\n\nThe system will lock the schedule and automatically drop the first fixtures on ${leagueStartDate} at 12:00 AM.`;
+        ? `Set and confirm the official schedule for ALL divisions starting on ${leagueStartDate} at 12:00 AM (CAT / Rwandan Time)?\n\nThe system will lock the schedule and automatically drop the first fixtures on ${leagueStartDate} at 12:00 AM Midnight (CAT).`
+        : `Set and confirm the official schedule for ${division} starting on ${leagueStartDate} at 12:00 AM (CAT / Rwandan Time)?\n\nThe system will lock the schedule and automatically drop the first fixtures on ${leagueStartDate} at 12:00 AM Midnight (CAT).`;
     if (!confirm(confirmMsg)) return;
 
     setActionLoading(true);
@@ -990,7 +1006,7 @@ export default function AdminClient({
     }
   };
 
-  // Schedule Continental Draw Event (Preserving exact local time)
+  // Schedule Continental Draw Event (Preserving exact Rwandan time)
   const handleScheduleDraw = async (competition: "UCL" | "EUROPA", drawTime: string) => {
     if (!drawTime) {
       alert("Please choose a valid date and time for the draw event.");
@@ -998,7 +1014,10 @@ export default function AdminClient({
     }
     setActionLoading(true);
     try {
-      const isoDrawTime = new Date(drawTime).toISOString();
+      // Anchor datetime-local input to Africa/Kigali (+02:00)
+      const isoDrawTime = drawTime.includes("T") && !drawTime.includes("+") && !drawTime.includes("Z")
+        ? new Date(`${drawTime}:00+02:00`).toISOString()
+        : new Date(drawTime).toISOString();
       const res = await fetch("/api/admin/continental/schedule-draw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2339,16 +2358,16 @@ export default function AdminClient({
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-secondary" />
-                  <span>Official Division Match Scheduling & Fixture Dropout Center (12:00 AM Drop)</span>
+                  <span>Official Division Match Scheduling & Fixture Dropout Center (12:00 AM CAT Drop)</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Set the official league kickoff date and confirm the schedule. On the confirmed kickoff date at 12:00 AM midnight, the system officially drops the first round fixtures for all active players.
+                  Set the official league kickoff date and confirm the schedule. On the confirmed kickoff date at 12:00 AM midnight (CAT / Rwandan Time), the system officially drops the first round fixtures for all active players.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 bg-card border border-border p-1.5 rounded-xl">
-                  <span className="text-xs font-bold text-muted-foreground pl-1.5">Kickoff Date:</span>
+                  <span className="text-xs font-bold text-muted-foreground pl-1.5">Kickoff Date (CAT):</span>
                   <input
                     type="date"
                     value={leagueStartDate}
@@ -2356,7 +2375,7 @@ export default function AdminClient({
                     className="bg-background border border-border rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:border-secondary focus:outline-none"
                   />
                   <Badge variant="outline" className="text-xs font-mono border-secondary/40 text-secondary bg-secondary/10">
-                    Dropout: 12:00 AM Midnight
+                    Dropout: 12:00 AM Midnight (CAT)
                   </Badge>
                 </div>
 
@@ -2367,7 +2386,7 @@ export default function AdminClient({
                   className="font-black text-xs uppercase tracking-wider text-secondary-foreground gap-1.5 shadow-lg"
                 >
                   <Calendar className="h-4 w-4" />
-                  <span>(Set) Confirm All Divisions Schedule (Drop at 12:00 AM)</span>
+                  <span>(Set) Confirm All Divisions Schedule (Drop at 12:00 AM CAT)</span>
                 </Button>
 
                 <Button
@@ -2524,14 +2543,19 @@ export default function AdminClient({
               <div>
                 <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
-                  <span>12:00 AM Midnight Matchday Fixture Advance Cycle</span>
+                  <span>12:00 AM Midnight (CAT / Rwandan Time) Matchday Fixture Advance Cycle</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  At 12:00 AM midnight, the system automatically drops next fixtures and marks expired unplayed matches (enforcing 3 missed matches disqualifications). You can also manually advance the cycle here.
+                  At 12:00 AM midnight Rwandan Time (CAT, UTC+2), the system automatically drops next fixtures and marks expired unplayed matches (enforcing 3 missed matches disqualifications). You can also manually advance the cycle here.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-secondary/40 bg-secondary/15 text-secondary text-xs font-mono font-bold">
+                  <Globe className="h-3.5 w-3.5 text-secondary" />
+                  <span>Timezone: CAT (UTC+2)</span>
+                </div>
+
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/20 text-primary text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <span>Automated 1-Hr System Reminders Active</span>
@@ -3103,7 +3127,7 @@ export default function AdminClient({
                         {/* Registered On */}
                         <div className="flex items-center justify-between text-muted-foreground text-xs pt-1 border-t border-border/80">
                           <span>Registered:</span>
-                          <span>{new Date(p.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                          <span>{formatRwandanDateTime(p.createdAt)} (CAT)</span>
                         </div>
                       </div>
 
@@ -4146,7 +4170,7 @@ export default function AdminClient({
                         {/* Deadline & Admin Controls */}
                         <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
                           <span className="text-xs font-mono text-muted-foreground">
-                            Deadline: {new Date(m.deadlineDate).toLocaleDateString()}
+                            Deadline: {formatRwandanDate(m.deadlineDate)}
                           </span>
 
                           <div className="flex items-center gap-2">
@@ -4238,11 +4262,11 @@ export default function AdminClient({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-wider text-primary flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-primary" />
-                      UCL Draw Date & Time
+                      UCL Draw Date & Time (CAT)
                     </span>
                     {leagueConfig.uclDrawTime && (
                       <Badge variant="secondary" className="text-xs font-mono">
-                        {new Date(leagueConfig.uclDrawTime).toLocaleDateString()} {new Date(leagueConfig.uclDrawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatRwandanDateTime(leagueConfig.uclDrawTime)} (CAT)
                       </Badge>
                     )}
                   </div>
@@ -4392,11 +4416,11 @@ export default function AdminClient({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-wider text-secondary flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-secondary" />
-                      Europa Draw Date & Time
+                      Europa Draw Date & Time (CAT)
                     </span>
                     {leagueConfig.europaDrawTime && (
                       <Badge variant="secondary" className="text-xs font-mono">
-                        {new Date(leagueConfig.europaDrawTime).toLocaleDateString()} {new Date(leagueConfig.europaDrawTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatRwandanDateTime(leagueConfig.europaDrawTime)} (CAT)
                       </Badge>
                     )}
                   </div>
@@ -5364,7 +5388,7 @@ export default function AdminClient({
                   </div>
                   <p className="text-xs text-muted-foreground">{ann.content}</p>
                   <span className="text-xs text-muted-foreground font-mono block">
-                    {new Date(ann.createdAt).toLocaleString()}
+                    {formatRwandanDateTime(ann.createdAt)} (CAT)
                   </span>
                 </div>
               ))}
@@ -5739,7 +5763,7 @@ export default function AdminClient({
 
                     <div className="pt-3 border-t border-border/80 flex items-center justify-between text-xs">
                       <span className="text-muted-foreground font-mono">
-                        {new Date(entry.createdAt).toLocaleDateString()}
+                        {formatRwandanDate(entry.createdAt)}
                       </span>
                       <Button
                         size="sm"
@@ -5953,7 +5977,7 @@ export default function AdminClient({
 
                         <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
                           <span className="text-xs font-mono text-muted-foreground">
-                            Received: {new Date(msg.createdAt).toLocaleString()}
+                            Received: {formatRwandanDateTime(msg.createdAt)} (CAT)
                           </span>
 
                           {isReplied && (
@@ -5999,7 +6023,7 @@ export default function AdminClient({
                               </Badge>
                               {msg.repliedAt && (
                                 <span className="text-xs font-mono text-primary/70">
-                                  {new Date(msg.repliedAt).toLocaleString()}
+                                  {formatRwandanDateTime(msg.repliedAt)} (CAT)
                                 </span>
                               )}
                             </div>
@@ -6231,7 +6255,7 @@ export default function AdminClient({
                     const isFinished = match.status === "FINISHED";
                     const isForfeit = match.status === "FORFEIT";
                     const isLateAllowed = match.allowLateSubmission;
-                    const cleanDeadline = new Date(match.deadlineDate).toLocaleString();
+                    const cleanDeadline = `${formatRwandanDateTime(match.deadlineDate)} (CAT)`;
 
                     return (
                       <div
@@ -6508,7 +6532,7 @@ export default function AdminClient({
 
                   <div className="pt-2 border-t border-border text-right">
                     <span className="text-xs font-mono text-muted-foreground">
-                      {new Date(rev.createdAt).toLocaleDateString()} {new Date(rev.createdAt).toLocaleTimeString()}
+                      {formatRwandanDateTime(rev.createdAt)} (CAT)
                     </span>
                   </div>
                 </div>
@@ -6726,7 +6750,7 @@ export default function AdminClient({
                       <div className="flex items-center justify-between text-muted-foreground text-xs pt-1 border-t border-border">
                         <span>Requested At:</span>
                         <span className="font-mono text-foreground">
-                          {new Date(req.createdAt).toLocaleDateString()} {new Date(req.createdAt).toLocaleTimeString()}
+                          {formatRwandanDateTime(req.createdAt)} (CAT)
                         </span>
                       </div>
 
@@ -6734,7 +6758,7 @@ export default function AdminClient({
                         <div className="flex items-center justify-between text-primary/80 text-xs">
                           <span>Approved At:</span>
                           <span className="font-mono">
-                            {new Date(req.approvedAt).toLocaleDateString()} {new Date(req.approvedAt).toLocaleTimeString()}
+                            {formatRwandanDateTime(req.approvedAt)} (CAT)
                           </span>
                         </div>
                       )}
@@ -6743,7 +6767,7 @@ export default function AdminClient({
                         <div className="flex items-center justify-between text-primary/80 text-xs">
                           <span>Password Reset At:</span>
                           <span className="font-mono">
-                            {new Date(req.completedAt).toLocaleDateString()} {new Date(req.completedAt).toLocaleTimeString()}
+                            {formatRwandanDateTime(req.completedAt)} (CAT)
                           </span>
                         </div>
                       )}

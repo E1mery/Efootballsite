@@ -178,8 +178,8 @@ export async function checkAndAutoAdvanceDailyCycle(): Promise<{
       // Post broadcast announcement
       await prisma.announcement.create({
         data: {
-          title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Midnight Window)`,
-          content: `The system has automatically dropped all ${nextRoundName} fixtures. All previous match submissions are now closed. Contact your opponent on WhatsApp and play before 12:00 AM midnight.`,
+          title: `⚡ ${nextRoundName} Fixtures are LIVE! (24-Hour Window, CAT / Rwandan Time)`,
+          content: `The system has automatically dropped all ${nextRoundName} fixtures. All previous match submissions are now closed. Contact your opponent on WhatsApp and play before 12:00 AM midnight (CAT / Rwandan Time).`,
           type: "BROADCAST",
           isPinned: true,
         },

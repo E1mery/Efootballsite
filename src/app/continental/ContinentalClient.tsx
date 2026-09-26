@@ -403,8 +403,8 @@ export default function ContinentalClient({
                 <p className="text-xs sm:text-sm text-foreground max-w-xl mx-auto">
                   Scheduled by League Commissioner for{" "}
                   <strong className="text-white">
-                    {new Date(scheduledDrawTime).toLocaleDateString()} at{" "}
-                    {new Date(scheduledDrawTime).toLocaleTimeString()}
+                    {new Date(scheduledDrawTime).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at{" "}
+                    {new Date(scheduledDrawTime).toLocaleTimeString("en-US", { timeZone: "Africa/Kigali", hour: "2-digit", minute: "2-digit" })} (CAT)
                   </strong>
                   . The live animated spin draw will unlock when this timer reaches 00:00:00.
                 </p>

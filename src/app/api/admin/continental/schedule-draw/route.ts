@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { formatRwandanDateTime } from "@/lib/rwandanTime";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -55,10 +56,11 @@ export async function POST(req: Request) {
 
       // Broadcast announcement about scheduled draw
       if (dateVal) {
+        const drawDisplay = formatRwandanDateTime(dateVal);
         await prisma.announcement.create({
           data: {
             title: `🏆 ${competition} Official Draws Event Scheduled!`,
-            content: `The League Commissioner has officially scheduled the live draws event for the ${competition} on ${dateVal.toLocaleDateString()} at ${dateVal.toLocaleTimeString()}. All athletes can watch the live animated draw event on the Continental Cups page.`,
+            content: `The League Commissioner has officially scheduled the live draws event for the ${competition} on ${drawDisplay} (CAT / Rwandan Time). All athletes can watch the live animated draw event on the Continental Cups page.`,
             type: "BROADCAST",
             isPinned: true,
           },
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `${competition} Draw Event scheduled for ${dateVal ? dateVal.toLocaleString() : "TBD"}`,
+        message: `${competition} Draw Event scheduled for ${dateVal ? `${formatRwandanDateTime(dateVal)} (CAT)` : "TBD"}`,
         config,
       });
     }
