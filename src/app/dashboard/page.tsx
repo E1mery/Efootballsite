@@ -294,15 +294,13 @@ export default async function DashboardPage() {
   const hasStartedContinental =
     (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
 
-  // RULE: Sealed matches - Players must NOT see division matches before their official drop time (at set date 12:00 AM)
-  const matchesToDisplay = (hasStartedContinental ? continentalMatches : allPlayerMatchesRaw).filter((m) => {
-    // Continental matches have their own tournament schedule rules
-    if (m.division === "UCL" || m.division === "EUROPA") {
-      return true;
-    }
-    // Division matches only drop and become visible once now >= m.matchDate
-    return new Date(m.matchDate).getTime() <= now.getTime();
-  });
+  // RULE: Sealed matches - Before league kickoff (isSeasonAwaitingKickoff), division matches remain strictly sealed until kickoff date at 12:00 AM.
+  // After the league starts (!isSeasonAwaitingKickoff), players can see all their season fixtures (including future matchdays) in the Match Calendar.
+  const matchesToDisplay = isSeasonAwaitingKickoff
+    ? []
+    : hasStartedContinental
+    ? continentalMatches
+    : allPlayerMatchesRaw;
 
   // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
   allPlayerMatches = [...matchesToDisplay].sort((a, b) => {

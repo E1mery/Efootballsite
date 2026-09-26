@@ -59,9 +59,16 @@ export default async function FixturesPage({
     allStandings = results[3];
 
     const nowMs = Date.now();
+    const seasonKickoffDate = leagueConfig?.seasonStartDate ? new Date(leagueConfig.seasonStartDate) : null;
+    const isSeasonAwaitingKickoff = Boolean(seasonKickoffDate && nowMs < seasonKickoffDate.getTime());
+
     const visibleRawMatches = rawMatches.filter((m) => {
       if (m.division === "UCL" || m.division === "EUROPA") return true;
-      return new Date(m.matchDate).getTime() <= nowMs;
+      // Before season kickoff, division matches remain sealed
+      if (isSeasonAwaitingKickoff) {
+        return false;
+      }
+      return true;
     });
 
     // Natural sort: Matchday 1, Matchday 2, ... Matchday 19

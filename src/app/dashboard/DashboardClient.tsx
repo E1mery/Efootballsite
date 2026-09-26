@@ -3880,7 +3880,7 @@ export default function DashboardClient({
                 const matchRoundNum = parseInt(m.round?.match(/\d+/)?.[0] || "0", 10);
                 const isDivisionMatch = m.division?.startsWith("Division");
                 const currentMatchdayNum = leagueConfig?.currentMatchday || 1;
-                const isFutureDivisionMatch = isDivisionMatch && matchRoundNum > currentMatchdayNum;
+                const isFutureDivisionMatch = isDivisionMatch && !isFinished && !isForfeit && (matchRoundNum > currentMatchdayNum || new Date(m.matchDate).getTime() > Date.now());
                 const isMatchPastDeadline = Boolean(
                   m.deadlineDate && new Date(m.deadlineDate).getTime() <= Date.now()
                 );
@@ -4053,7 +4053,7 @@ export default function DashboardClient({
                     {/* Card Footer Actions */}
                     <div className="pt-2 border-t border-border/80 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {matchOpponent?.whatsapp && (
+                        {matchOpponent?.whatsapp && !isFutureDivisionMatch && (
                           <a
                             href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
                             target="_blank"
@@ -4107,10 +4107,11 @@ export default function DashboardClient({
                           <span>Deadline Passed (Closed)</span>
                         </div>
                       )}
+                      {/* For future fixtures: strictly NO action buttons (no Play Now, no WhatsApp, no submit). Shows lock indicator */}
                       {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1 px-2.5 rounded-lg bg-card border border-border">
                           <Lock className="h-3 w-3 text-secondary" />
-                          <span>Drops at 12:00 AM (1 Match/Day)</span>
+                          <span>Drops on {new Date(m.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali", month: "short", day: "numeric" })} at 12:00 AM</span>
                         </div>
                       )}
                     </div>
