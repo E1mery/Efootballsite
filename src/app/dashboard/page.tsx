@@ -344,21 +344,18 @@ export default async function DashboardPage() {
   });
 
   // Fetch all 3 division standings so reserve and active athletes can view all tables
-  const [div1Standings, div2Standings, div3Standings, uclTournament, europaTournament, uclSlots, europaSlots] = await Promise.all([
+  const [div1StandingsRaw, div2StandingsRaw, div3StandingsRaw, uclTournament, europaTournament, uclSlots, europaSlots] = await Promise.all([
     prisma.standing.findMany({
       where: { division: "Division 1" },
       include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
     prisma.standing.findMany({
       where: { division: "Division 2" },
       include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
     prisma.standing.findMany({
       where: { division: "Division 3" },
       include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
     prisma.tournament.findFirst({ where: { type: "UCL" } }),
     prisma.tournament.findFirst({ where: { type: "EUROPA" } }),
@@ -374,22 +371,39 @@ export default async function DashboardPage() {
     }),
   ]);
 
+  // Deterministic 5-level tiebreaker sorting function
+  const sortStandingsDeterministically = (list: any[]) => {
+    return [...(list || [])]
+      .filter((s) => Boolean(s && s.player && s.player.status !== "RESERVED"))
+      .sort((a, b) => {
+        if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
+        if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);
+        if ((b.goalsFor ?? 0) !== (a.goalsFor ?? 0)) return (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
+        if ((b.won ?? 0) !== (a.won ?? 0)) return (b.won ?? 0) - (a.won ?? 0);
+        return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
+      });
+  };
+
+  const div1Standings = sortStandingsDeterministically(div1StandingsRaw);
+  const div2Standings = sortStandingsDeterministically(div2StandingsRaw);
+  const div3Standings = sortStandingsDeterministically(div3StandingsRaw);
+
   let uclGroupStandings: any[] = [];
   if (uclTournament) {
-    uclGroupStandings = await prisma.standing.findMany({
+    const rawUclStandings = await prisma.standing.findMany({
       where: { tournamentId: uclTournament.id },
       include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     });
+    uclGroupStandings = sortStandingsDeterministically(rawUclStandings);
   }
 
   let europaGroupStandings: any[] = [];
   if (europaTournament) {
-    europaGroupStandings = await prisma.standing.findMany({
+    const rawEuropaStandings = await prisma.standing.findMany({
       where: { tournamentId: europaTournament.id },
       include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     });
+    europaGroupStandings = sortStandingsDeterministically(rawEuropaStandings);
   }
 
   // Compute Match of the Day for each division (all athletes including reserve can view & vote)
@@ -697,10 +711,15 @@ export default async function DashboardPage() {
     europaGroupStandings.find((s: any) => s.playerId === player.id) ||
     null;
 
+  const myRankIdx = divStandings.findIndex((s: any) => s.playerId === player.id);
+  const resolvedCurrentStanding = currentStanding
+    ? { ...currentStanding, rank: myRankIdx >= 0 ? myRankIdx + 1 : currentStanding.rank || 1 }
+    : null;
+
   const activeStandingForStats =
     (hasStartedContinental || isDivisionsMatchEnded) && playerContinentalStanding
       ? playerContinentalStanding
-      : currentStanding;
+      : resolvedCurrentStanding;
 
   // Opponent Intelligence for Today's 24-Hr Match Day
   let opponentStanding: any = null;
@@ -730,6 +749,12 @@ export default async function DashboardPage() {
         opponentStanding = await prisma.standing.findFirst({
           where: { playerId: oppId, division: player.division },
         });
+        if (opponentStanding) {
+          const oppRankIdx = divStandings.findIndex((s: any) => s.playerId === oppId);
+          if (oppRankIdx >= 0) {
+            opponentStanding = { ...opponentStanding, rank: oppRankIdx + 1 };
+          }
+        }
       }
 
       opponentPreviousMatches = await prisma.match.findMany({

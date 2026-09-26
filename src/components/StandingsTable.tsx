@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Globe, ArrowUp, ArrowDown, AlertTriangle, ShieldAlert, Smartphone, MessageSquare, Shield } from "lucide-react";
@@ -31,6 +32,7 @@ interface StandingRow {
     overallRating: number;
     avatar?: string | null;
     realTeam?: string | null;
+    status?: string | null;
   };
 }
 
@@ -45,7 +47,31 @@ export default function StandingsTable({
   divisionName = "Division 1",
   compact = false,
 }: StandingsTableProps) {
-  const validStandings = (standings || []).filter((row) => Boolean(row && row.player));
+  // Deterministic 5-level tiebreaker sorting: Points -> GD -> GF -> Won -> GamerTag
+  const sortedStandings = useMemo(() => {
+    return [...(standings || [])]
+      .filter((row) => Boolean(row && row.player && (row.player as any).status !== "RESERVED"))
+      .sort((a, b) => {
+        // 1. Points (descending)
+        if ((b.points ?? 0) !== (a.points ?? 0)) {
+          return (b.points ?? 0) - (a.points ?? 0);
+        }
+        // 2. Goal Difference (descending)
+        if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) {
+          return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);
+        }
+        // 3. Goals For (descending)
+        if ((b.goalsFor ?? 0) !== (a.goalsFor ?? 0)) {
+          return (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
+        }
+        // 4. Matches Won (descending)
+        if ((b.won ?? 0) !== (a.won ?? 0)) {
+          return (b.won ?? 0) - (a.won ?? 0);
+        }
+        // 5. Alphabetical GamerTag (ascending)
+        return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
+      });
+  }, [standings]);
 
   return (
     <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
@@ -76,19 +102,20 @@ export default function StandingsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {validStandings.length === 0 ? (
+          {sortedStandings.length === 0 ? (
             <TableRow>
               <TableCell colSpan={compact ? 8 : 12} className="text-center py-10 text-muted-foreground italic text-xs">
                 No active athlete standings available for {divisionName} yet.
               </TableCell>
             </TableRow>
-          ) : validStandings.map((row, idx) => {
+          ) : sortedStandings.map((row, idx) => {
               const forms = row.form ? row.form.split(",") : ["D"];
-              const rank = row.rank ?? (idx + 1);
+              // Rank is strictly determined by position in sorted standings table
+              const rank = idx + 1;
               const missed = row.consecutiveMissed || 0;
               const isDisqualified = Boolean(row.isDisqualified || missed >= 3);
 
-              const totalRows = validStandings.length;
+              const totalRows = sortedStandings.length;
               // Bottom 3 athletes face relegation in Division 1 & Division 2 (minimum 4 players required)
               const isBottomThree = totalRows >= 4 && rank > totalRows - 3;
 

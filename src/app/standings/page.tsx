@@ -22,13 +22,19 @@ export default async function StandingsPage(props: {
           include: {
             player: true,
           },
-          orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-          take: 20, // Strict 20 players cap per division
         }),
         prisma.leagueConfig.findUnique({ where: { id: "default" } }),
       ]);
-      // Defensively ensure only records with populated player relations are included
-      standings = (st || []).filter((s: any) => s && s.player);
+      // Defensively ensure only active (non-reserved) records with populated player relations are included and sorted deterministically
+      standings = (st || [])
+        .filter((s: any) => Boolean(s && s.player && s.player.status !== "RESERVED"))
+        .sort((a: any, b: any) => {
+          if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
+          if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);
+          if ((b.goalsFor ?? 0) !== (a.goalsFor ?? 0)) return (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
+          if ((b.won ?? 0) !== (a.won ?? 0)) return (b.won ?? 0) - (a.won ?? 0);
+          return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
+        });
       leagueConfig = cfg;
     } catch (error) {
       console.error("Standings fetch error:", error);
