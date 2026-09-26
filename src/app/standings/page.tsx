@@ -159,8 +159,8 @@ export default async function StandingsPage(props: {
           </div>
           <p className="text-xs text-foreground leading-relaxed">
             {currentDivision === "Division 1"
-              ? "Top 8 players qualify directly for the prestigious 16-player eFootball Champions League."
-              : "Top 4 players qualify for the prestigious 16-player eFootball Champions League."}
+              ? "Top 8 players qualify directly for the prestigious 16-player eFootball Champions League (1st is League Champion)."
+              : "Top 4 players qualify for the prestigious 16-player eFootball Champions League (Top 3 are also PROMOTED)."}
           </p>
         </div>
 
@@ -172,8 +172,8 @@ export default async function StandingsPage(props: {
           </div>
           <p className="text-xs text-foreground leading-relaxed">
             {currentDivision === "Division 1"
-              ? "Players placed 9th to 12th enter the Europa League knockout cup."
-              : "Players placed 5th to 10th enter the Europa League knockout cup."}
+              ? "Players placed 9th to 12th enter the Europa League group tournament."
+              : "Players placed 5th to 10th enter the Europa League group tournament."}
           </p>
         </div>
 
@@ -181,14 +181,14 @@ export default async function StandingsPage(props: {
         <div className="rounded-xl border border-destructive/30 bg-card/40 p-5 space-y-2">
           <div className="flex items-center gap-2 text-destructive font-bold text-sm">
             <ArrowDown className="h-4 w-4" />
-            <span>Relegation (Bottom 3)</span>
+            <span>Relegation & Promotion</span>
           </div>
           <p className="text-xs text-foreground leading-relaxed">
             {currentDivision === "Division 1"
-              ? "The bottom 3 players in Division 1 are officially relegated to Division 2 upon season finalization."
+              ? "Bottom 3 players are relegated to Division 2 upon season finalization. 13th placed players remain safe in Mid-Table."
               : currentDivision === "Division 2"
-              ? "The bottom 3 players in Division 2 are officially relegated to Division 3. (Top 3 are promoted to Division 1)."
-              : "Division 3 is the foundational Academy tier with no lower drop. (Top 3 are promoted to Division 2)."}
+              ? "Top 3 are PROMOTED to Division 1. Bottom 3 are relegated to Division 3. 11th-13th remain safe in Mid-Table."
+              : "Top 3 are PROMOTED to Division 2. Division 3 has no relegation (National Academy tier). 11th+ remain in Mid-Table."}
           </p>
         </div>
 

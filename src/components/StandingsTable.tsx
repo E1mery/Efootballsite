@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, Globe, ArrowUp, ArrowDown, AlertTriangle, ShieldAlert, Smartphone, MessageSquare } from "lucide-react";
+import { Trophy, Globe, ArrowUp, ArrowDown, AlertTriangle, ShieldAlert, Smartphone, MessageSquare, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
@@ -86,31 +86,61 @@ export default function StandingsTable({
               const forms = row.form ? row.form.split(",") : ["D"];
               const rank = row.rank ?? (idx + 1);
               const missed = row.consecutiveMissed || 0;
-              const isDisqualified = row.isDisqualified || missed >= 3;
-
-              // Qualification & Relegation flags:
-              let isUcl = false;
-              let isEuropa = false;
-              let isPromotion = false;
-              let isRelegation = false;
+              const isDisqualified = Boolean(row.isDisqualified || missed >= 3);
 
               const totalRows = validStandings.length;
+              // Bottom 3 athletes face relegation in Division 1 & Division 2 (minimum 4 players required)
               const isBottomThree = totalRows >= 4 && rank > totalRows - 3;
 
+              // Qualification, Promotion, Mid-Table & Relegation flags:
+              let isChampion = false;
+              let isPromotion = false;
+              let isUcl = false;
+              let isEuropa = false;
+              let isRelegation = false;
+              let isMidTable = false;
+
               if (divisionName === "Division 1") {
-                if (rank <= 8) isUcl = true;
-                else if (rank <= 12) isEuropa = true;
-                if (isBottomThree) isRelegation = true;
+                if (isBottomThree) {
+                  isRelegation = true;
+                } else if (rank === 1) {
+                  isChampion = true;
+                  isUcl = true;
+                } else if (rank <= 8) {
+                  isUcl = true;
+                } else if (rank <= 12) {
+                  isEuropa = true;
+                } else {
+                  isMidTable = true;
+                }
               } else if (divisionName === "Division 2") {
-                if (rank <= 3) isPromotion = true;
-                if (rank <= 4) isUcl = true;
-                else if (rank <= 10) isEuropa = true;
-                if (isBottomThree) isRelegation = true;
+                if (isBottomThree) {
+                  isRelegation = true;
+                } else if (rank <= 3) {
+                  isPromotion = true;
+                  isUcl = true; // Top 3 in Div 2 are promoted to Div 1 AND qualify for UCL
+                } else if (rank === 4) {
+                  isUcl = true; // 4th in Div 2 qualifies for UCL
+                } else if (rank <= 10) {
+                  isEuropa = true; // 5th to 10th qualify for Europa League
+                } else {
+                  isMidTable = true; // Mid-table safe from relegation
+                }
               } else if (divisionName === "Division 3") {
-                if (rank <= 3) isPromotion = true;
-                if (rank <= 4) isUcl = true;
-                else if (rank <= 10) isEuropa = true;
-                // Division 3 is lowest domestic tier
+                // Division 3 is the foundational Academy tier - NO relegation!
+                if (rank <= 3) {
+                  isPromotion = true;
+                  isUcl = true; // Top 3 in Div 3 are promoted to Div 2 AND qualify for UCL
+                } else if (rank === 4) {
+                  isUcl = true; // 4th in Div 3 qualifies for UCL
+                } else if (rank <= 10) {
+                  isEuropa = true; // 5th to 10th qualify for Europa League
+                } else {
+                  isMidTable = true; // National Academy Mid-Table
+                }
+              } else {
+                if (rank <= 2) isUcl = true;
+                else isMidTable = true;
               }
 
               const cleanWa = row.player?.whatsapp?.replace(/[^0-9]/g, "") || "";
@@ -122,9 +152,13 @@ export default function StandingsTable({
                   isDisqualified
                     ? "bg-destructive/20 hover:bg-destructive/30 opacity-75"
                     : isRelegation && !compact
-                    ? "bg-destructive/15 hover:bg-destructive/25"
+                    ? "bg-destructive/10 hover:bg-destructive/20"
+                    : (isPromotion || isChampion) && !compact
+                    ? "bg-primary/10 hover:bg-primary/20"
                     : isUcl && !compact
-                    ? "hover:bg-primary/20"
+                    ? "bg-primary/5 hover:bg-primary/15"
+                    : isEuropa && !compact
+                    ? "bg-secondary/5 hover:bg-secondary/15"
                     : "hover:bg-muted/60"
                 }`}
               >
@@ -133,13 +167,19 @@ export default function StandingsTable({
                   <div className="flex items-center justify-center gap-1">
                     <span
                       className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-black ${
-                        isUcl
-                          ? "bg-primary/20 text-primary border border-primary/30"
-                          : isPromotion
-                          ? "bg-primary/20 text-primary border border-primary/30"
-                          : isRelegation
+                        isDisqualified
                           ? "bg-destructive/20 text-destructive border border-destructive/30"
-                          : "text-muted-foreground"
+                          : isRelegation
+                          ? "bg-destructive/20 text-destructive border border-destructive/40"
+                          : isChampion
+                          ? "bg-primary/25 text-primary border border-primary/50 shadow-sm"
+                          : isPromotion
+                          ? "bg-primary/20 text-primary border border-primary/40 shadow-sm"
+                          : isUcl
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : isEuropa
+                          ? "bg-secondary/20 text-secondary border border-secondary/30"
+                          : "bg-muted/40 text-muted-foreground border border-border/60"
                       }`}
                     >
                       {rank}
@@ -293,32 +333,90 @@ export default function StandingsTable({
                 {!compact && (
                   <TableCell className="text-center hidden sm:table-cell">
                     {isDisqualified ? (
-                      <Badge variant="destructive" className="text-xs">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-destructive/20 text-destructive border border-destructive/30">
+                        <ShieldAlert className="h-3 w-3" />
                         Disqualified
-                      </Badge>
+                      </span>
+                    ) : divisionName === "Division 1" ? (
+                      isRelegation ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-destructive/20 text-destructive border border-destructive/30">
+                          <ArrowDown className="h-3 w-3" />
+                          Relegation (Div 2)
+                        </span>
+                      ) : isChampion ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/25 text-primary border border-primary/40 font-black">
+                          <Trophy className="h-3 w-3" />
+                          Champion • UCL
+                        </span>
+                      ) : isUcl ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/30">
+                          <Trophy className="h-3 w-3" />
+                          UCL League
+                        </span>
+                      ) : isEuropa ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30">
+                          <Globe className="h-3 w-3" />
+                          Europa League
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-muted/60 text-muted-foreground border border-border">
+                          <Shield className="h-3 w-3" />
+                          Mid-Table (Safe)
+                        </span>
+                      )
+                    ) : divisionName === "Division 2" ? (
+                      isRelegation ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-destructive/20 text-destructive border border-destructive/30">
+                          <ArrowDown className="h-3 w-3" />
+                          Relegation (Div 3)
+                        </span>
+                      ) : isPromotion ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/40">
+                          <ArrowUp className="h-3 w-3" />
+                          Promoted (Div 1) • UCL
+                        </span>
+                      ) : isUcl ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/30">
+                          <Trophy className="h-3 w-3" />
+                          UCL League
+                        </span>
+                      ) : isEuropa ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30">
+                          <Globe className="h-3 w-3" />
+                          Europa League
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-muted/60 text-muted-foreground border border-border">
+                          <Shield className="h-3 w-3" />
+                          Mid-Table (Safe)
+                        </span>
+                      )
+                    ) : divisionName === "Division 3" ? (
+                      isPromotion ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/40">
+                          <ArrowUp className="h-3 w-3" />
+                          Promoted (Div 2) • UCL
+                        </span>
+                      ) : isUcl ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/30">
+                          <Trophy className="h-3 w-3" />
+                          UCL League
+                        </span>
+                      ) : isEuropa ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30">
+                          <Globe className="h-3 w-3" />
+                          Europa League
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-muted/60 text-muted-foreground border border-border">
+                          <Shield className="h-3 w-3" />
+                          Mid-Table (Academy)
+                        </span>
+                      )
                     ) : isUcl ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/30">
                         <Trophy className="h-3 w-3" />
-                        UCL League
-                      </span>
-                    ) : isPromotion ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/20 text-primary border border-primary/30">
-                        <ArrowUp className="h-3 w-3" />
-                        Promoted
-                      </span>
-                    ) : isEuropa ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30">
-                        <Globe className="h-3 w-3" />
-                        Europa League
-                      </span>
-                    ) : isRelegation ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-destructive/20 text-destructive border border-destructive/30">
-                        <ArrowDown className="h-3 w-3" />
-                        {divisionName === "Division 1"
-                          ? "Relegation (Div 2)"
-                          : divisionName === "Division 2"
-                          ? "Relegation (Div 3)"
-                          : "Relegated"}
+                        Qualified
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground">Mid-Table</span>
@@ -330,6 +428,86 @@ export default function StandingsTable({
           })}
         </TableBody>
       </Table>
+
+      {/* Table Legend */}
+      {!compact && (
+        <div className="p-4 border-t border-border bg-card/40 flex flex-wrap items-center gap-x-6 gap-y-2.5 text-xs">
+          <span className="font-bold text-muted-foreground uppercase tracking-wider text-xs">
+            {divisionName} Table Legend:
+          </span>
+          {divisionName === "Division 1" ? (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-primary/25 border border-primary/40" />
+                <span className="text-foreground font-semibold">1st: Champion & UCL</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-primary/20 border border-primary/30" />
+                <span className="text-foreground">2nd - 8th: UCL League</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-secondary/20 border border-secondary/30" />
+                <span className="text-foreground">9th - 12th: Europa League</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-muted/60 border border-border" />
+                <span className="text-muted-foreground">Mid-Table (Safe)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/30" />
+                <span className="text-destructive font-semibold">Bottom 3: Relegation (Div 2)</span>
+              </div>
+            </>
+          ) : divisionName === "Division 2" ? (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-primary/20 border border-primary/40" />
+                <span className="text-foreground font-semibold">Top 3: PROMOTED to Div 1 & UCL</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-primary/20 border border-primary/30" />
+                <span className="text-foreground">4th: UCL League</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-secondary/20 border border-secondary/30" />
+                <span className="text-foreground">5th - 10th: Europa League</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-muted/60 border border-border" />
+                <span className="text-muted-foreground">Mid-Table (Safe)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-destructive/20 border border-destructive/30" />
+                <span className="text-destructive font-semibold">Bottom 3: Relegation (Div 3)</span>
+              </div>
+            </>
+          ) : divisionName === "Division 3" ? (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-primary/20 border border-primary/40" />
+                <span className="text-foreground font-semibold">Top 3: PROMOTED to Div 2 & UCL</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-primary/20 border border-primary/30" />
+                <span className="text-foreground">4th: UCL League</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-secondary/20 border border-secondary/30" />
+                <span className="text-foreground">5th - 10th: Europa League</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded bg-muted/60 border border-border" />
+                <span className="text-muted-foreground">Mid-Table (Academy • No Relegation)</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded bg-primary/20 border border-primary/30" />
+              <span className="text-foreground">Qualified Slots</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

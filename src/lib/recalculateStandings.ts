@@ -44,6 +44,7 @@ export async function recalculateStandings(tournamentId: string, division: strin
 
   const standings = await prisma.standing.findMany({
     where: standingsWhere,
+    include: { player: true },
   });
 
   const playerStats: Record<
@@ -60,6 +61,8 @@ export async function recalculateStandings(tournamentId: string, division: strin
     }
   > = {};
 
+  const playerTags: Record<string, string> = {};
+
   for (const s of standings) {
     playerStats[s.playerId] = {
       played: 0,
@@ -71,17 +74,36 @@ export async function recalculateStandings(tournamentId: string, division: strin
       points: 0,
       form: [],
     };
+    if (s.player) {
+      playerTags[s.playerId] = s.player.gamerTag || "";
+    }
   }
+
+  // Ensure all active players registered in this division have an initialized standing
+  if (!isGroup && division.startsWith("Division")) {
+    const activePlayers = await prisma.player.findMany({
+      where: { division, status: { in: ["ACTIVE", "WARNING"] } },
+      select: { id: true, gamerTag: true },
+    });
+    for (const p of activePlayers) {
+      if (!playerStats[p.id]) {
+        playerStats[p.id] = { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0, form: [] };
+        playerTags[p.id] = p.gamerTag;
+      }
+    }
+  }
+
+  const isDomesticDivision = !isGroup && division.startsWith("Division");
 
   for (const m of finishedMatches) {
     const hId = m.homePlayerId;
     const aId = m.awayPlayerId;
-    const hS = m.aggregateHomeScore !== null && m.aggregateHomeScore !== undefined
-      ? m.aggregateHomeScore
-      : (m.homeScore ?? 0);
-    const aS = m.aggregateAwayScore !== null && m.aggregateAwayScore !== undefined
-      ? m.aggregateAwayScore
-      : (m.awayScore ?? 0);
+    const hS = isDomesticDivision
+      ? (m.homeScore ?? 0)
+      : (m.aggregateHomeScore !== null && m.aggregateHomeScore !== undefined ? m.aggregateHomeScore : (m.homeScore ?? 0));
+    const aS = isDomesticDivision
+      ? (m.awayScore ?? 0)
+      : (m.aggregateAwayScore !== null && m.aggregateAwayScore !== undefined ? m.aggregateAwayScore : (m.awayScore ?? 0));
 
     if (!playerStats[hId]) {
       playerStats[hId] = { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0, form: [] };
@@ -124,9 +146,18 @@ export async function recalculateStandings(tournamentId: string, division: strin
     const sB = playerStats[b];
     const gdA = sA.goalsFor - sA.goalsAgainst;
     const gdB = sB.goalsFor - sB.goalsAgainst;
+    // 1. Points
     if (sB.points !== sA.points) return sB.points - sA.points;
+    // 2. Goal Difference
     if (gdB !== gdA) return gdB - gdA;
-    return sB.goalsFor - sA.goalsFor;
+    // 3. Goals For
+    if (sB.goalsFor !== sA.goalsFor) return sB.goalsFor - sA.goalsFor;
+    // 4. Most Wins
+    if (sB.won !== sA.won) return sB.won - sA.won;
+    // 5. Alphabetical by gamerTag
+    const tagA = playerTags[a] || "";
+    const tagB = playerTags[b] || "";
+    return tagA.localeCompare(tagB);
   });
 
   for (let i = 0; i < sortedPlayerIds.length; i++) {
