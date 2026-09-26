@@ -233,21 +233,6 @@ export async function POST(req: Request) {
           divMatchesCount++;
         }
 
-        // If division has an odd number of players, the remaining one gets a message telling him that the current day has no match to play
-        if (roundData.byePlayerId) {
-          const byePlayer = players.find((p) => p.id === roundData.byePlayerId);
-          if (byePlayer) {
-            await prisma.announcement.create({
-              data: {
-                title: `🗓️ ${roundName}: No Match Scheduled (Official Rest Day)`,
-                content: `Hello ${byePlayer.gamerTag}! You do not have a match to play for ${roundName}. Because ${divName} has an odd number of active players (${players.length} competitors), this round is your scheduled bye/rest day while other fixtures are played. Enjoy your rest day!`,
-                type: "INDIVIDUAL",
-                targetPlayerId: byePlayer.id,
-                isPinned: isMatchday1,
-              },
-            });
-          }
-        }
       }
 
       totalMatchesGenerated += divMatchesCount;
@@ -261,22 +246,45 @@ export async function POST(req: Request) {
       create: { id: "default", currentMatchday: 1, registrationOpen: false },
     });
 
-    // Create league broadcast announcement ONLY if matches were generated
+    // Create league broadcast announcement and player announcements ONLY if matches were generated
     if (totalMatchesGenerated > 0) {
       const formattedStartDate = baseKickoffDate.toLocaleDateString("en-US", {
-        weekday: "short",
+        weekday: "long",
         year: "numeric",
-        month: "short",
+        month: "long",
         day: "numeric",
       });
+
+      // 1. Broadcast announcement for the entire league
       await prisma.announcement.create({
         data: {
-          title: `📅 Official Season Schedule Confirmed (First Fixtures Drop on ${formattedStartDate} at 12:00 AM)`,
-          content: `The official round-robin schedule has been confirmed by the Commissioner. The first fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight). Each matchday drops strictly at 12:00 AM and lasts for 24 hours. Check your season match calendar now!`,
+          title: `📢 Official League Schedule Confirmed: First Fixtures Drop on ${formattedStartDate} at 12:00 AM (Midnight)`,
+          content: `The official division league schedule has been set and confirmed by the Commissioner. The first round fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight). All match pairings remain strictly sealed until kickoff time. Each matchday will drop daily at 12:00 AM and last for 24 hours. Prepare your squad!`,
           type: "BROADCAST",
           isPinned: true,
         },
       });
+
+      // 2. Direct individual pinned announcement to all active players in the scheduled divisions
+      const scheduledPlayers = await prisma.player.findMany({
+        where: {
+          division: { in: divisionsToProcess },
+          status: { in: ["ACTIVE", "WARNING"] },
+        },
+        select: { id: true, fullName: true, gamerTag: true, division: true },
+      });
+
+      for (const p of scheduledPlayers) {
+        await prisma.announcement.create({
+          data: {
+            title: `🗓️ ${p.division} League Kickoff Confirmed: First Fixtures Drop on ${formattedStartDate} at 12:00 AM`,
+            content: `Hello ${p.gamerTag}! Your ${p.division} season schedule has been officially set. Your first fixtures will drop on ${formattedStartDate} at 12:00 AM (Midnight). Fixtures and match pairings remain strictly sealed until kickoff time, when they will be automatically revealed on your dashboard.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: p.id,
+            isPinned: true,
+          },
+        });
+      }
     }
 
     return NextResponse.json({

@@ -72,20 +72,52 @@ export default async function DashboardPage() {
   const isSuspendedForMissed = Boolean((player?.consecutiveMissed || 0) >= 3 || player?.isDisqualified);
   const isParticipating = !isReserved && !isSuspendedForMissed && (player?.status === "ACTIVE" || player?.status === "WARNING");
 
+  const now = new Date();
+
+  // Check if division has an upcoming season schedule awaiting kickoff (first fixtures drop at set date 12:00 AM)
+  const hasPlayedAnyDivisionMatches = await prisma.match.findFirst({
+    where: {
+      division: player.division,
+      status: { in: ["FINISHED", "FORFEIT"] },
+    },
+    select: { id: true },
+  });
+
+  const firstDivisionMatch = await prisma.match.findFirst({
+    where: {
+      division: player.division,
+    },
+    orderBy: { matchDate: "asc" },
+    select: { matchDate: true },
+  });
+
+  const isSeasonAwaitingKickoff = Boolean(
+    !hasPlayedAnyDivisionMatches &&
+    firstDivisionMatch &&
+    now.getTime() < new Date(firstDivisionMatch.matchDate).getTime()
+  );
+  const seasonKickoffDate = firstDivisionMatch?.matchDate ? firstDivisionMatch.matchDate.toISOString() : null;
+
   let activeMatch = null;
   let allPlayerMatches: any[] = [];
   let isRestDayToday = false;
   let isWaitingForSub = false;
 
-  // Automatic deletion of announcements older than 24 hours
+  // Automatic deletion of announcements older than 24 hours (pinned announcements are preserved)
   await cleanupExpiredAnnouncements();
   const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // Fetch announcements for this player created within the last 24 hours
+  // Fetch announcements for this player: pinned announcements OR announcements within 24 hours
   let announcements = await prisma.announcement.findMany({
     where: {
-      OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
-      createdAt: { gte: cutoff24h },
+      AND: [
+        {
+          OR: [{ type: "BROADCAST" }, { targetPlayerId: player.id }],
+        },
+        {
+          OR: [{ isPinned: true }, { createdAt: { gte: cutoff24h } }],
+        },
+      ],
     },
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
     take: 30,
@@ -113,8 +145,9 @@ export default async function DashboardPage() {
     );
   }
 
-  // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool
-  if (isParticipating) {
+  // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool.
+  // When the season is awaiting kickoff, division matches remain strictly sealed until the drop date at 12:00 AM!
+  if (isParticipating && !isSeasonAwaitingKickoff) {
     // 0. PRIORITY BACKLOG REPLACEMENT MATCH: If player has an open 48-hr replacement match, they must begin with that!
     const priorityBacklogMatch = await prisma.match.findFirst({
       where: {
@@ -152,7 +185,7 @@ export default async function DashboardPage() {
     // THAT MATCH is strictly their single fixture for today!
     // The system MUST wait for the 24-hour deadline (12:00 AM midnight) before dropping the next round.
     if (!activeMatch) {
-      activeMatch = await prisma.match.findFirst({
+      const candidateRoundMatch = await prisma.match.findFirst({
         where: {
           OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
           round: currentRoundName,
@@ -160,6 +193,16 @@ export default async function DashboardPage() {
         include: matchInclude,
         orderBy: { matchDate: "desc" },
       });
+
+      if (candidateRoundMatch) {
+        const isDropped =
+          candidateRoundMatch.division === "UCL" ||
+          candidateRoundMatch.division === "EUROPA" ||
+          new Date(candidateRoundMatch.matchDate).getTime() <= now.getTime();
+        if (isDropped) {
+          activeMatch = candidateRoundMatch;
+        }
+      }
     }
 
     // 2. Continental fallback: if player has a scheduled or live match in continental cups (UCL, Europa)
@@ -177,20 +220,30 @@ export default async function DashboardPage() {
 
     // 3. Fallback: Most recent finished or forfeit match (only if season has concluded and no active rounds exist)
     if (!activeMatch) {
-      activeMatch = await prisma.match.findFirst({
+      const fallbackMatch = await prisma.match.findFirst({
         where: {
           OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
         },
         include: matchInclude,
         orderBy: { matchDate: "desc" },
       });
+      if (
+        fallbackMatch &&
+        (fallbackMatch.division === "UCL" ||
+          fallbackMatch.division === "EUROPA" ||
+          new Date(fallbackMatch.matchDate).getTime() <= now.getTime())
+      ) {
+        activeMatch = fallbackMatch;
+      }
     }
 
     // Check if the current round in player's division has matches, but this player is the remaining one (odd division rest day)
+    // Only check if the round's drop date/time has actually arrived
     const divisionMatchesThisRound = await prisma.match.count({
       where: {
         division: player.division,
         round: currentRoundName,
+        matchDate: { lte: now },
       },
     });
 
@@ -198,6 +251,7 @@ export default async function DashboardPage() {
       where: {
         division: player.division,
         round: currentRoundName,
+        matchDate: { lte: now },
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
       },
     });
@@ -240,7 +294,15 @@ export default async function DashboardPage() {
   const hasStartedContinental =
     (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
 
-  const matchesToDisplay = hasStartedContinental ? continentalMatches : allPlayerMatchesRaw;
+  // RULE: Sealed matches - Players must NOT see division matches before their official drop time (at set date 12:00 AM)
+  const matchesToDisplay = (hasStartedContinental ? continentalMatches : allPlayerMatchesRaw).filter((m) => {
+    // Continental matches have their own tournament schedule rules
+    if (m.division === "UCL" || m.division === "EUROPA") {
+      return true;
+    }
+    // Division matches only drop and become visible once now >= m.matchDate
+    return new Date(m.matchDate).getTime() <= now.getTime();
+  });
 
   // Sort matches naturally by numerical round index (e.g. Matchday 1 before Matchday 10) and matchDate
   allPlayerMatches = [...matchesToDisplay].sort((a, b) => {
@@ -741,6 +803,8 @@ export default async function DashboardPage() {
         currentRoundName={currentRoundName}
         opponentStanding={opponentStanding}
         opponentPreviousMatches={opponentPreviousMatches}
+        isSeasonAwaitingKickoff={isSeasonAwaitingKickoff}
+        seasonKickoffDate={seasonKickoffDate}
       />
     </div>
   );

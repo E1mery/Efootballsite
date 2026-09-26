@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Automatically deletes announcements older than 24 hours from creation.
@@ -11,11 +11,12 @@ export async function cleanupExpiredAnnouncements(): Promise<number> {
     const deleted = await prisma.announcement.deleteMany({
       where: {
         createdAt: { lt: cutoff24h },
+        isPinned: false,
       },
     });
 
     if (deleted.count > 0) {
-      console.log(`[cleanupExpiredAnnouncements] Automatically deleted ${deleted.count} expired announcements (older than 24h).`);
+      console.log(`[cleanupExpiredAnnouncements] Automatically deleted ${deleted.count} expired unpinned announcements (older than 24h).`);
     }
 
     return deleted.count;

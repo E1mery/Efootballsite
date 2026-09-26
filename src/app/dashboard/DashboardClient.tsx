@@ -37,6 +37,7 @@ import {
   Play,
   XCircle,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -425,6 +426,8 @@ export default function DashboardClient({
   opponentPreviousMatches = [],
   uclGroupMotds = {},
   europaGroupMotds = {},
+  isSeasonAwaitingKickoff = false,
+  seasonKickoffDate = null,
 }: {
   player: any;
   user: any;
@@ -457,6 +460,8 @@ export default function DashboardClient({
   currentRoundName?: string;
   opponentStanding?: any;
   opponentPreviousMatches?: any[];
+  isSeasonAwaitingKickoff?: boolean;
+  seasonKickoffDate?: string | null;
 }) {
   const router = useRouter();
 
@@ -542,7 +547,7 @@ export default function DashboardClient({
   // 7. Any match from current matchday
   // 8. Most recent fixture
   const activeMatch = useMemo(() => {
-    if (isReserved || isRestDayToday || isSuspended) return null;
+    if (isReserved || isRestDayToday || isSuspended || isSeasonAwaitingKickoff) return null;
 
     if (selectedBacklogMatchId) {
       const match = allPlayerMatches?.find((m: any) => m.id === selectedBacklogMatchId);
@@ -557,10 +562,20 @@ export default function DashboardClient({
     // STRICT 1 MATCH PER DAY (24HRS) FOR DIVISION LEAGUE:
     // Prioritize today's current round match (whether scheduled, live, pending, or finished).
     // The player must complete this match and wait for the 24-hr deadline at 12:00 AM midnight before the next round drops.
-    const currentRoundMatch = allPlayerMatches.find((m: any) => m.round === currentRound);
+    const currentRoundMatch = allPlayerMatches.find(
+      (m: any) =>
+        m.round === currentRound &&
+        (m.division === "UCL" || m.division === "EUROPA" || new Date(m.matchDate).getTime() <= Date.now())
+    );
     if (currentRoundMatch) return currentRoundMatch;
 
-    if (initialActiveMatch) return initialActiveMatch;
+    if (initialActiveMatch) {
+      const isDropped =
+        initialActiveMatch.division === "UCL" ||
+        initialActiveMatch.division === "EUROPA" ||
+        new Date(initialActiveMatch.matchDate).getTime() <= Date.now();
+      if (isDropped) return initialActiveMatch;
+    }
     if (!allPlayerMatches || allPlayerMatches.length === 0) return null;
 
     // Continental fallback: scheduled or live match in UCL / EUROPA
@@ -571,8 +586,14 @@ export default function DashboardClient({
     );
     if (continentalMatch) return continentalMatch;
 
-    return allPlayerMatches[0] || null;
-  }, [isReserved, isRestDayToday, isSuspended, selectedBacklogMatchId, replacementBacklogMatches, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
+    const firstDropped = allPlayerMatches.find(
+      (m: any) =>
+        m.division === "UCL" ||
+        m.division === "EUROPA" ||
+        new Date(m.matchDate).getTime() <= Date.now()
+    );
+    return firstDropped || null;
+  }, [isReserved, isRestDayToday, isSuspended, isSeasonAwaitingKickoff, selectedBacklogMatchId, replacementBacklogMatches, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
 
   // Dynamic user and player profile state
   const [currentPlayer, setCurrentPlayer] = useState(player);
@@ -589,6 +610,52 @@ export default function DashboardClient({
     }, 800);
   };
 
+  // Kickoff Countdown Ticker for season start (dropping at 12:00 AM midnight)
+  const [kickoffCountdown, setKickoffCountdown] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    isDue: boolean;
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: false });
+
+  useEffect(() => {
+    if (!seasonKickoffDate) return;
+    const updateCountdown = () => {
+      try {
+        const target = new Date(seasonKickoffDate).getTime();
+        const diff = target - Date.now();
+        if (diff <= 0) {
+          setKickoffCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isDue: true });
+        } else {
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setKickoffCountdown({ days, hours, minutes, seconds, isDue: false });
+        }
+      } catch (e) {}
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [seasonKickoffDate]);
+
+  const formattedSeasonKickoff = useMemo(() => {
+    if (!seasonKickoffDate) return "";
+    try {
+      const d = new Date(seasonKickoffDate);
+      return d.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return "";
+    }
+  }, [seasonKickoffDate]);
+
   // Player's active division MOTD
   const myDivMotd = player?.division ? (divisionalMotd || {})[player.division] : null;
 
@@ -599,10 +666,10 @@ export default function DashboardClient({
     return () => clearInterval(timer);
   }, []);
 
-  // Announcements strictly within 24 hours of publication
+  // Announcements strictly within 24 hours of publication OR pinned
   const activeAnnouncements = useMemo(() => {
     const cutoff24h = announcementNow - 24 * 60 * 60 * 1000;
-    return (announcements || []).filter((a) => a && new Date(a.createdAt).getTime() > cutoff24h);
+    return (announcements || []).filter((a) => a && (a.isPinned || new Date(a.createdAt).getTime() > cutoff24h));
   }, [announcements, announcementNow]);
 
   // Announcement read tracking (interactive from localStorage)
@@ -1608,6 +1675,56 @@ export default function DashboardClient({
         </div>
       )}
 
+      {/* Official Season Schedule Confirmed / Fixtures Sealed Announcement Banner */}
+      {isSeasonAwaitingKickoff && (
+        <div className="rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/30 via-background to-card p-5 sm:p-6 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 rounded-2xl bg-primary/20 text-primary border border-primary/40 shrink-0">
+                <Calendar className="h-6 w-6 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-primary text-primary-foreground">
+                    🗓️ OFFICIAL SCHEDULE CONFIRMED
+                  </Badge>
+                  <span className="text-xs font-mono font-bold text-primary">
+                    First Fixtures Drop on {formattedSeasonKickoff || "Kickoff Date"} at 12:00 AM Midnight
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black uppercase text-white">
+                  {currentPlayer.division} Fixtures Sealed Until Kickoff
+                </h3>
+                <p className="text-xs text-foreground/80 max-w-2xl leading-relaxed">
+                  The Commissioner has set and confirmed the official league schedule. All match pairings and opponents remain confidential until 12:00 AM midnight. Your first 24-hour fixture will automatically appear here once the clock strikes 12:00 AM!
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-primary/40 bg-background/90 p-3 sm:px-5 shrink-0 text-center md:text-right">
+              <span className="text-xs font-mono text-muted-foreground uppercase block font-semibold">
+                Kickoff Drop Countdown
+              </span>
+              {kickoffCountdown.isDue ? (
+                <span className="text-sm font-black text-primary animate-pulse">
+                  Drop Time Arrived! Refresh Portal
+                </span>
+              ) : (
+                <div className="flex items-center justify-center md:justify-end gap-2 font-mono font-black text-sm sm:text-base text-primary pt-0.5">
+                  {kickoffCountdown.days > 0 && <span>{kickoffCountdown.days}d</span>}
+                  <span>{String(kickoffCountdown.hours).padStart(2, "0")}h</span>
+                  <span>:</span>
+                  <span>{String(kickoffCountdown.minutes).padStart(2, "0")}m</span>
+                  <span>:</span>
+                  <span>{String(kickoffCountdown.seconds).padStart(2, "0")}s</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Tabs - Mobile Horizontally Scrollable */}
       <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         {!isReserved && (
@@ -1622,7 +1739,11 @@ export default function DashboardClient({
             >
               <Smartphone className="h-4 w-4" />
               <span>Today's 24-Hr Match</span>
-              {isRestDayToday ? (
+              {isSeasonAwaitingKickoff ? (
+                <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-xs font-bold text-primary border border-primary/40 animate-pulse">
+                  Drops 12 AM
+                </span>
+              ) : isRestDayToday ? (
                 <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-xs font-bold text-primary border border-primary/40">
                   Rest Day
                 </span>
@@ -1641,11 +1762,15 @@ export default function DashboardClient({
             >
               <Calendar className="h-4 w-4" />
               <span>Match Calendar</span>
-              {(allPlayerMatches || []).length > 0 && (
+              {isSeasonAwaitingKickoff ? (
+                <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-xs font-mono text-primary border border-primary/40">
+                  Sealed
+                </span>
+              ) : (allPlayerMatches || []).length > 0 ? (
                 <span className="px-1.5 py-0.5 rounded-full bg-muted text-xs font-mono text-primary">
                   {(allPlayerMatches || []).length}
                 </span>
-              )}
+              ) : null}
             </button>
           </>
         )}
@@ -2936,6 +3061,110 @@ export default function DashboardClient({
                 </Button>
               </div>
             </div>
+          ) : isSeasonAwaitingKickoff ? (
+            <div className="rounded-3xl border-2 border-primary/50 bg-gradient-to-b from-primary/30 via-background to-card p-6 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="inline-flex p-4 rounded-3xl bg-primary/20 border border-primary/40 text-primary shadow-lg">
+                <Lock className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <Badge variant="yellow" className="text-xs font-mono font-black uppercase tracking-wider px-3 py-1 bg-primary text-primary-foreground">
+                  SEASON KICKOFF PENDING • FIXTURES SEALED
+                </Badge>
+                <h3 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight">
+                  First Fixtures Drop on {formattedSeasonKickoff || "Kickoff Date"} at 12:00 AM
+                </h3>
+                <p className="text-xs sm:text-sm text-foreground/80 max-w-xl mx-auto leading-relaxed">
+                  The schedule for <span className="text-primary font-bold">{currentPlayer.division}</span> has been officially confirmed by the Commissioner. In accordance with league rules, all match pairings and opponent identities remain confidential and sealed until kickoff.
+                </p>
+              </div>
+
+              {/* Digital Countdown Box */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-card/80 border border-primary/30 max-w-md mx-auto shadow-xl space-y-2">
+                <span className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest block">
+                  Time Remaining Until Matchday 1 Drop
+                </span>
+                {kickoffCountdown.isDue ? (
+                  <div className="text-lg font-black text-primary animate-pulse py-2">
+                    Fixtures Dropping Now! Refresh to View Your Opponent
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 pt-2">
+                    <div className="p-2 sm:p-3 rounded-2xl bg-background/90 border border-border text-center">
+                      <span className="text-xl sm:text-2xl font-black font-mono text-primary block">
+                        {kickoffCountdown.days}
+                      </span>
+                      <span className="text-xs font-mono text-muted-foreground uppercase">Days</span>
+                    </div>
+                    <div className="p-2 sm:p-3 rounded-2xl bg-background/90 border border-border text-center">
+                      <span className="text-xl sm:text-2xl font-black font-mono text-primary block">
+                        {String(kickoffCountdown.hours).padStart(2, "0")}
+                      </span>
+                      <span className="text-xs font-mono text-muted-foreground uppercase">Hours</span>
+                    </div>
+                    <div className="p-2 sm:p-3 rounded-2xl bg-background/90 border border-border text-center">
+                      <span className="text-xl sm:text-2xl font-black font-mono text-primary block">
+                        {String(kickoffCountdown.minutes).padStart(2, "0")}
+                      </span>
+                      <span className="text-xs font-mono text-muted-foreground uppercase">Mins</span>
+                    </div>
+                    <div className="p-2 sm:p-3 rounded-2xl bg-background/90 border border-border text-center">
+                      <span className="text-xl sm:text-2xl font-black font-mono text-primary block">
+                        {String(kickoffCountdown.seconds).padStart(2, "0")}
+                      </span>
+                      <span className="text-xs font-mono text-muted-foreground uppercase">Secs</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* League Rules Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto text-left pt-2">
+                <div className="p-3.5 rounded-2xl bg-card/60 border border-border/80 flex items-start gap-2.5">
+                  <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold text-white block">Strict 24-Hr Window</span>
+                    <span className="text-muted-foreground">Each matchday runs strictly from 12:00 AM to midnight (24 hours).</span>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-card/60 border border-border/80 flex items-start gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold text-white block">1 Match Per Day</span>
+                    <span className="text-muted-foreground">Only 1 fixture per day is unlocked to ensure fair play and focus.</span>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-card/60 border border-border/80 flex items-start gap-2.5">
+                  <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold text-white block">Automatic Unlock</span>
+                    <span className="text-muted-foreground">Opponent contact and score submit controls appear at 12:00 AM.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleRefreshPortal}
+                  disabled={isRefreshingPortal}
+                  className="bg-primary hover:bg-primary text-white font-black text-xs gap-2 h-11 px-5 shadow-lg"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshingPortal ? "animate-spin" : ""}`} />
+                  {isRefreshingPortal ? "Checking For Drop..." : "Check Status / Refresh"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab("STANDINGS")}
+                  className="text-xs font-bold h-11 px-5"
+                >
+                  <Trophy className="h-4 w-4 mr-1.5" />
+                  View Division Tables
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="rounded-3xl border border-border bg-background/70 p-12 text-center space-y-4">
               <Smartphone className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -2982,7 +3211,16 @@ export default function DashboardClient({
               </Badge>
             </div>
 
-            {myDivMotd ? (
+            {isSeasonAwaitingKickoff ? (
+              <div className="rounded-2xl border border-primary/30 bg-primary/10 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-primary">
+                <div className="flex items-center gap-2.5">
+                  <Lock className="h-4 w-4 text-primary shrink-0" />
+                  <span>
+                    Match of the Day will be selected and revealed when first fixtures drop on {formattedSeasonKickoff || "Kickoff Date"} at 12:00 AM.
+                  </span>
+                </div>
+              </div>
+            ) : myDivMotd ? (
               <MatchOfTheDayCard match={myDivMotd} />
             ) : (
               <div className="rounded-2xl border border-border bg-background/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -3525,14 +3763,18 @@ export default function DashboardClient({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="yellow">SEASON CALENDAR</Badge>
-                <Badge variant="secondary">{allPlayerMatches.length} Total Matches</Badge>
+                <Badge variant={isSeasonAwaitingKickoff ? "outline" : "secondary"}>
+                  {isSeasonAwaitingKickoff ? "FIXTURES SEALED" : `${allPlayerMatches.length} Matches`}
+                </Badge>
               </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
                 <Calendar className="h-6 w-6 text-primary" />
                 <span>My Season Match Calendar</span>
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Complete timeline of all your league fixtures across all matchdays. Your active match is highlighted below with full score and screenshot submission controls.
+                {isSeasonAwaitingKickoff
+                  ? `Official ${currentPlayer.division} schedule confirmed. Fixtures drop daily at 12:00 AM midnight and remain sealed until the drop time.`
+                  : "Complete timeline of all your league fixtures across all matchdays. Your active match is highlighted below with full score and screenshot submission controls."}
               </p>
             </div>
           </div>
@@ -3551,7 +3793,64 @@ export default function DashboardClient({
             </div>
           )}
 
-          {(allPlayerMatches || []).length === 0 ? (
+          {isSeasonAwaitingKickoff ? (
+            <div className="rounded-3xl border-2 border-primary/50 bg-gradient-to-b from-primary/30 via-background to-card p-8 sm:p-12 text-center space-y-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="inline-flex p-4 rounded-3xl bg-primary/20 border border-primary/40 text-primary shadow-lg">
+                <Lock className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <Badge variant="yellow" className="text-xs font-mono font-black uppercase tracking-wider px-3 py-1 bg-primary text-primary-foreground">
+                  SEASON FIXTURES SEALED • KICKOFF SCHEDULED
+                </Badge>
+                <h3 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight">
+                  Match Calendar Unlocks on {formattedSeasonKickoff || "Kickoff Date"} at 12:00 AM (Midnight)
+                </h3>
+                <p className="text-xs sm:text-sm text-foreground/80 max-w-lg mx-auto leading-relaxed">
+                  The official schedule for <span className="text-primary font-bold">{currentPlayer.division}</span> has been confirmed. In accordance with league regulations, fixtures drop daily at 12:00 AM midnight. Opponents and match pairings remain completely sealed until kickoff time.
+                </p>
+              </div>
+
+              {/* Countdown Ticker */}
+              <div className="p-4 rounded-2xl bg-card/80 border border-primary/30 max-w-sm mx-auto shadow-md">
+                <span className="text-xs font-mono text-muted-foreground uppercase block font-semibold mb-1">
+                  Time Until First Fixtures Drop:
+                </span>
+                {kickoffCountdown.isDue ? (
+                  <span className="text-sm font-black text-primary animate-pulse">
+                    Drop Time Arrived! Refresh Portal
+                  </span>
+                ) : (
+                  <span className="font-mono font-black text-base sm:text-lg text-primary">
+                    {kickoffCountdown.days > 0 && `${kickoffCountdown.days}d `}
+                    {String(kickoffCountdown.hours).padStart(2, "0")}h : {String(kickoffCountdown.minutes).padStart(2, "0")}m : {String(kickoffCountdown.seconds).padStart(2, "0")}s
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleRefreshPortal}
+                  disabled={isRefreshingPortal}
+                  className="bg-primary hover:bg-primary text-white font-black text-xs gap-2 h-11 px-5"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshingPortal ? "animate-spin" : ""}`} />
+                  {isRefreshingPortal ? "Refreshing..." : "Refresh Portal"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab("STANDINGS")}
+                  className="text-xs font-bold h-11 px-5"
+                >
+                  <Trophy className="h-4 w-4 mr-1.5" />
+                  View Division Tables
+                </Button>
+              </div>
+            </div>
+          ) : (allPlayerMatches || []).length === 0 ? (
             <div className="rounded-3xl border border-border bg-background/60 p-12 text-center space-y-3">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto" />
               <h4 className="text-base font-bold text-white uppercase">No Matches Scheduled Yet</h4>

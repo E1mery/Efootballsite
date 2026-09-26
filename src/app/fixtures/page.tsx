@@ -58,8 +58,14 @@ export default async function FixturesPage({
     storedMotd = results[2];
     allStandings = results[3];
 
+    const nowMs = Date.now();
+    const visibleRawMatches = rawMatches.filter((m) => {
+      if (m.division === "UCL" || m.division === "EUROPA") return true;
+      return new Date(m.matchDate).getTime() <= nowMs;
+    });
+
     // Natural sort: Matchday 1, Matchday 2, ... Matchday 19
-    matches = [...rawMatches].sort((a, b) => {
+    matches = [...visibleRawMatches].sort((a, b) => {
       const getRoundNum = (s: string) => {
         const match = s?.match(/\d+/);
         return match ? parseInt(match[0], 10) : 999;
