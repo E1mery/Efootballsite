@@ -158,14 +158,14 @@ export async function POST(req: Request) {
             include: { player: true },
             orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
             skip: 4,
-            take: 6,
+            take: 4,
           }),
           prisma.standing.findMany({
             where: { division: "Division 3" },
             include: { player: true },
             orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
             skip: 4,
-            take: 6,
+            take: 4,
           }),
         ]);
 
@@ -184,14 +184,13 @@ export async function POST(req: Request) {
           }
         }
 
-        // 6 Div 2: 2 in Group A, 2 in Group B, 1 in Group C, 1 in Group D (never 3 per group)
-        const div2Distribution = ["Group A", "Group A", "Group B", "Group B", "Group C", "Group D"];
-        for (let i = 0; i < div2E.length; i++) {
-          if (div2E[i] && div2Distribution[i]) {
+        // 1 Div 2 in each group (Groups A, B, C, D)
+        for (let i = 0; i < 4; i++) {
+          if (div2E[i]) {
             await prisma.uclGroupSlot.create({
               data: {
                 competition: "EUROPA",
-                groupName: div2Distribution[i],
+                groupName: groups[i],
                 playerId: div2E[i].playerId,
                 playerDivision: "Division 2",
                 slotIndex: 2,
@@ -200,14 +199,13 @@ export async function POST(req: Request) {
           }
         }
 
-        // 6 Div 3: 1 in Group A, 1 in Group B, 2 in Group C, 2 in Group D (never 3 per group)
-        const div3Distribution = ["Group A", "Group B", "Group C", "Group C", "Group D", "Group D"];
-        for (let i = 0; i < div3E.length; i++) {
-          if (div3E[i] && div3Distribution[i]) {
+        // 1 Div 3 in each group (Groups A, B, C, D)
+        for (let i = 0; i < 4; i++) {
+          if (div3E[i]) {
             await prisma.uclGroupSlot.create({
               data: {
                 competition: "EUROPA",
-                groupName: div3Distribution[i],
+                groupName: groups[i],
                 playerId: div3E[i].playerId,
                 playerDivision: "Division 3",
                 slotIndex: 3,
@@ -257,25 +255,27 @@ export async function POST(req: Request) {
       include: { player: true },
     });
 
-    // Check capacity: max 4 per group
-    if (existingInGroup.length >= 4) {
+    // Check capacity: max 4 for UCL, max 3 for Europa
+    const maxCapacity = competition === "UCL" ? 4 : 3;
+    if (existingInGroup.length >= maxCapacity) {
       return NextResponse.json(
-        { error: `${groupName} is already full (4/4 players). Please pick an available group.` },
+        { error: `${groupName} is already full (${maxCapacity}/${maxCapacity} players). Please pick an available group.` },
         { status: 400 }
       );
     }
 
     // ENFORCE STRICT DIVISION SEPARATION:
-    // "the system must make sure no 3 players from the same division vote for the same group in ucl or Europa"
+    // In UCL: max 2 from same division. In Europa: max 1 from same division.
     const sameDivisionPlayers = existingInGroup.filter(
       (slot) => slot.playerDivision === votingPlayer.division
     );
 
-    if (sameDivisionPlayers.length >= 2) {
+    const maxSameDivision = competition === "UCL" ? 2 : 1;
+    if (sameDivisionPlayers.length >= maxSameDivision) {
       const existingNames = sameDivisionPlayers.map((s) => s.player?.gamerTag || "player").join(" and ");
       return NextResponse.json(
         {
-          error: `Group Allocation Rule: ${groupName} already contains 2 athletes from ${votingPlayer.division} (${existingNames}). League regulations strictly state that no 3 players from the same division can vote for or be in the same group!`,
+          error: `Group Allocation Rule: ${groupName} already contains ${sameDivisionPlayers.length} athlete(s) from ${votingPlayer.division} (${existingNames}). League regulations state maximum ${maxSameDivision} player(s) from the same division in this competition!`,
         },
         { status: 400 }
       );

@@ -102,14 +102,14 @@ export default async function ContinentalCupsPage() {
         include: { player: true },
         orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
         skip: 4,
-        take: 6,
+        take: 4,
       }),
       prisma.standing.findMany({
         where: { division: "Division 3" },
         include: { player: true },
         orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
         skip: 4,
-        take: 6,
+        take: 4,
       }),
     ]);
     div1Europa = resultsEuropa[0];

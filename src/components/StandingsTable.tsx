@@ -148,8 +148,8 @@ export default function StandingsTable({
                   isUcl = true; // Top 3 in Div 2 are promoted to Div 1 AND qualify for UCL
                 } else if (rank === 4) {
                   isUcl = true; // 4th in Div 2 qualifies for UCL
-                } else if (rank <= 10) {
-                  isEuropa = true; // 5th to 10th qualify for Europa League
+                } else if (rank <= 8) {
+                  isEuropa = true; // 5th to 8th qualify for Europa League
                 } else {
                   isMidTable = true; // Mid-table safe from relegation
                 }
@@ -160,8 +160,8 @@ export default function StandingsTable({
                   isUcl = true; // Top 3 in Div 3 are promoted to Div 2 AND qualify for UCL
                 } else if (rank === 4) {
                   isUcl = true; // 4th in Div 3 qualifies for UCL
-                } else if (rank <= 10) {
-                  isEuropa = true; // 5th to 10th qualify for Europa League
+                } else if (rank <= 8) {
+                  isEuropa = true; // 5th to 8th qualify for Europa League
                 } else {
                   isMidTable = true; // National Academy Mid-Table
                 }
@@ -497,7 +497,7 @@ export default function StandingsTable({
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded bg-secondary/20 border border-secondary/30" />
-                <span className="text-foreground">5th - 10th: Europa League</span>
+                <span className="text-foreground">5th - 8th: Europa League</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded bg-muted/60 border border-border" />
@@ -520,7 +520,7 @@ export default function StandingsTable({
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded bg-secondary/20 border border-secondary/30" />
-                <span className="text-foreground">5th - 10th: Europa League</span>
+                <span className="text-foreground">5th - 8th: Europa League</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded bg-muted/60 border border-border" />

@@ -83,7 +83,7 @@ export default function ContinentalClient({
   const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">("UCL");
 
   const isUclDrawDone = Boolean(leagueConfig.uclDrawCompleted || uclSlots.length >= 16);
-  const isEuropaDrawDone = Boolean(leagueConfig.europaDrawCompleted || europaSlots.length >= 16);
+  const isEuropaDrawDone = Boolean(leagueConfig.europaDrawCompleted || europaSlots.length >= 12);
   const isCurrentDrawDone = selectedCompetition === "UCL" ? isUclDrawDone : isEuropaDrawDone;
 
   const [activeTab, setActiveTab] = useState<"DRAWS" | "GROUPS" | "KNOCKOUT" | "TROPHY_POLL">(() => {
@@ -311,7 +311,7 @@ export default function ContinentalClient({
             <Vote className="h-3.5 w-3.5" />
             <span>Interactive Group Draws</span>
             <span className="text-xs font-mono px-1.5 py-0.2 rounded-full bg-muted text-foreground">
-              {currentSlots.length}/16
+              {currentSlots.length}/{selectedCompetition === "UCL" ? 16 : 12}
             </span>
           </button>
         )}
@@ -478,12 +478,12 @@ export default function ContinentalClient({
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                <span>16 Officially Qualified {selectedCompetition} Athletes</span>
+                <span>{selectedCompetition === "UCL" ? 16 : 12} Officially Qualified {selectedCompetition} Athletes</span>
               </h3>
               <span className="text-xs text-muted-foreground font-mono">
                 {selectedCompetition === "UCL"
-                  ? "8 from Div 1 (Premier League) • 4 from Div 2 (La Liga) • 4 from Div 3 (Serie A)"
-                  : "4 from Div 1 (Premier League) • 6 from Div 2 (La Liga) • 6 from Div 3 (Serie A)"}
+                  ? "8 from Div 1 • 4 from Div 2 • 4 from Div 3"
+                  : "4 from Div 1 • 4 from Div 2 • 4 from Div 3"}
               </span>
             </div>
 
@@ -565,7 +565,7 @@ export default function ContinentalClient({
                   Official Draw Concluded:
                 </span>
                 <span className="text-foreground">
-                  All 16 athletes have been officially drafted into Groups A, B, C, and D. Review your group rivals below while the League Commissioner prepares the 2-legged group matchdays!
+                  All {selectedCompetition === "UCL" ? 16 : 12} athletes have been officially drafted into Groups A, B, C, and D. Review your group rivals below while the League Commissioner prepares the 2-legged group matchdays!
                 </span>
               </div>
             </div>

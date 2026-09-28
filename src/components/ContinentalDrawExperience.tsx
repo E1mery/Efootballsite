@@ -74,8 +74,12 @@ export default function ContinentalDrawExperience({
 
   // Prepare draw order and pots
   // UCL: Pot 1 (Top 8 Div 1), Pot 2 (Top 4 Div 2), Pot 3 (Top 4 Div 3)
-  // Europa: Pot 1 (4 Div 1), Pot 2 (6 Div 2), Pot 3 (6 Div 3)
+  // Europa: Pot 1 (4 Div 1), Pot 2 (4 Div 2), Pot 3 (4 Div 3)
   const safeQualified = qualifiedAthletes || [];
+  const expectedSlots = isUcl ? 16 : 12;
+  const maxPerGroup = isUcl ? 4 : 3;
+  const maxSameDiv = isUcl ? 2 : 1;
+
   const div1Players = safeQualified.filter((a) => a.division === "Division 1");
   const div2Players = safeQualified.filter((a) => a.division === "Division 2");
   const div3Players = safeQualified.filter((a) => a.division === "Division 3");
@@ -105,7 +109,7 @@ export default function ContinentalDrawExperience({
 
   // Initialize pool
   useEffect(() => {
-    if ((existingSlots || []).length >= 16) {
+    if ((existingSlots || []).length >= expectedSlots) {
       // Reconstitute existing completed slots
       const initial: Record<string, DrawAthlete[]> = {
         "Group A": [],
@@ -170,12 +174,12 @@ export default function ContinentalDrawExperience({
 
     for (const g of GROUPS) {
       const inGrp = allocations[g] || [];
-      if (inGrp.length >= 4) {
+      if (inGrp.length >= maxPerGroup) {
         invalid.push(g);
         continue;
       }
       const sameDivCount = inGrp.filter((p) => p.division === athlete.division).length;
-      if (sameDivCount >= 2) {
+      if (sameDivCount >= maxSameDiv) {
         invalid.push(g);
         continue;
       }
@@ -184,7 +188,7 @@ export default function ContinentalDrawExperience({
 
     // Fallback if tight
     for (const g of GROUPS) {
-      if ((allocations[g] || []).length < 4) {
+      if ((allocations[g] || []).length < maxPerGroup) {
         return { validGroup: g, invalidGroups: invalid };
       }
     }
@@ -343,7 +347,7 @@ export default function ContinentalDrawExperience({
     }
   };
 
-  const totalDrawn = 16 - remainingPool.length;
+  const totalDrawn = expectedSlots - remainingPool.length;
 
   if (safeQualified.length === 0 && (existingSlots || []).length === 0) {
     return (
@@ -377,7 +381,7 @@ export default function ContinentalDrawExperience({
               Official Live Draw Broadcast
             </Badge>
             <span className="text-xs text-muted-foreground font-mono">
-              Progress: {totalDrawn}/16 Athletes
+              Progress: {totalDrawn}/{expectedSlots} Athletes
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight flex items-center gap-2.5">
@@ -519,7 +523,7 @@ export default function ContinentalDrawExperience({
           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
             {remainingPool.length === 0 ? (
               <p className="text-center py-8 text-xs text-primary font-bold">
-                ✓ All 16 Athletes Drawn!
+                ✓ All {expectedSlots} Athletes Drawn!
               </p>
             ) : (
               remainingPool.map((athlete) => {
@@ -660,7 +664,7 @@ export default function ContinentalDrawExperience({
               </h4>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 {isCompleted
-                  ? "All 16 athletes are officially assigned to Groups A-D with strict division separation."
+                  ? `All ${expectedSlots} athletes are officially assigned to Groups A-D with strict division separation.`
                   : "Click 'Spin & Draw Next' or 'Auto Broadcast' to start drawing qualified players into groups."}
               </p>
             </div>
@@ -674,8 +678,12 @@ export default function ContinentalDrawExperience({
           </span>
           <div className="space-y-2 text-xs text-foreground">
             <div className="p-2 rounded-xl bg-background/80 border border-border/80">
-              <strong className="text-secondary block mb-0.5">Max 2 per Division</strong>
-              No group may contain 3 or more athletes from the same league.
+              <strong className="text-secondary block mb-0.5">
+                {isUcl ? "Max 2 per Division" : "Strict 1 per Division"}
+              </strong>
+              {isUcl
+                ? "No group may contain 3 or more athletes from the same league."
+                : "Each group contains exactly 1 athlete from each of the 3 divisions."}
             </div>
             <div className="p-2 rounded-xl bg-background/80 border border-border/80">
               <strong className="text-primary block mb-0.5">Simultaneous 2-Legs</strong>
@@ -714,13 +722,13 @@ export default function ContinentalDrawExperience({
                   {groupName}
                 </span>
                 <span className="text-xs font-mono font-bold text-muted-foreground">
-                  {members.length}/4 Slots
+                  {members.length}/{maxPerGroup} Slots
                 </span>
               </div>
 
               {/* Slot Cards */}
               <div className="space-y-2">
-                {[0, 1, 2, 3].map((slotIdx) => {
+                {Array.from({ length: maxPerGroup }).map((_, slotIdx) => {
                   const athlete = members[slotIdx];
                   if (!athlete) {
                     return (

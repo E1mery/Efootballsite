@@ -47,26 +47,28 @@ export async function POST(req: Request) {
         orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
       });
 
-      if (slots.length < 16) {
+      const requiredSlots = competition === "UCL" ? 16 : 12;
+      if (slots.length < requiredSlots) {
         return NextResponse.json(
           {
-            error: `Cannot generate group fixtures yet. Only ${slots.length}/16 players have chosen or been drawn into groups. Please complete group draws first.`,
+            error: `Cannot generate group fixtures yet. Only ${slots.length}/${requiredSlots} players have chosen or been drawn into groups. Please complete group draws first.`,
           },
           { status: 400 }
         );
       }
 
-      // Check for division violation (no 3 players from same division in any group)
+      // Check for division violation (no 3 players from same division in UCL, max 1 in Europa)
+      const maxDivViolation = competition === "UCL" ? 3 : 2;
       const groups = ["Group A", "Group B", "Group C", "Group D"];
       for (const grp of groups) {
         const groupMembers = slots.filter((s) => s.groupName === grp);
         const divCounts: Record<string, number> = {};
         for (const m of groupMembers) {
           divCounts[m.playerDivision] = (divCounts[m.playerDivision] || 0) + 1;
-          if (divCounts[m.playerDivision] >= 3) {
+          if (divCounts[m.playerDivision] >= maxDivViolation) {
             return NextResponse.json(
               {
-                error: `Group Violation in ${grp}: Contains 3 or more athletes from ${m.playerDivision}. Regulations strictly prohibit 3 players from the same division in one group.`,
+                error: `Group Violation in ${grp}: Contains ${divCounts[m.playerDivision]} athletes from ${m.playerDivision}. Regulations strictly prohibit more than ${maxDivViolation - 1} athlete(s) from the same division in this group.`,
               },
               { status: 400 }
             );
@@ -112,17 +114,29 @@ export async function POST(req: Request) {
       }
 
       let matchCount = 0;
-      // In each group of 4 players: 3 Matchdays, 2 matches per matchday
+      // In each group:
+      // For 4 players (UCL): 3 Matchdays, 2 matches per matchday
+      // For 3 players (Europa): 3 Matchdays, 1 match per matchday (round-robin)
       // Played 2 legs at the same time
       for (const grp of groups) {
         const groupSlots = slots.filter((s) => s.groupName === grp);
         const [p1, p2, p3, p4] = groupSlots;
 
-        const roundPairings = [
-          { round: "Group Stage - Matchday 1", pairs: [[p1, p2], [p3, p4]] },
-          { round: "Group Stage - Matchday 2", pairs: [[p1, p3], [p2, p4]] },
-          { round: "Group Stage - Matchday 3", pairs: [[p1, p4], [p2, p3]] },
-        ];
+        let roundPairings: Array<{ round: string; pairs: Array<[any, any]> }> = [];
+
+        if (groupSlots.length >= 4 && p4) {
+          roundPairings = [
+            { round: "Group Stage - Matchday 1", pairs: [[p1, p2], [p3, p4]] },
+            { round: "Group Stage - Matchday 2", pairs: [[p1, p3], [p2, p4]] },
+            { round: "Group Stage - Matchday 3", pairs: [[p1, p4], [p2, p3]] },
+          ];
+        } else if (groupSlots.length >= 3) {
+          roundPairings = [
+            { round: "Group Stage - Matchday 1", pairs: [[p1, p2]] },
+            { round: "Group Stage - Matchday 2", pairs: [[p1, p3]] },
+            { round: "Group Stage - Matchday 3", pairs: [[p2, p3]] },
+          ];
+        }
 
         for (let rIdx = 0; rIdx < roundPairings.length; rIdx++) {
           const { round, pairs } = roundPairings[rIdx];

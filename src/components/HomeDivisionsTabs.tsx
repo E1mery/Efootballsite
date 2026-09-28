@@ -43,14 +43,14 @@ export default function HomeDivisionsTabs({
       name: "Division 2 (Championship)",
       badge: "TIER 2 CHAMPIONSHIP",
       color: "text-secondary border-secondary/30 bg-secondary/10",
-      description: "Championship Mobile Athletes. Top 3 PROMOTED to Division 1 & UCL, 4th to UCL, 5th-10th to Europa League, Mid-Table safe, Bottom 3 relegated to Division 3.",
+      description: "Championship Mobile Athletes. Top 3 PROMOTED to Division 1 & UCL, 4th to UCL, 5th-8th to Europa League, Mid-Table safe, Bottom 3 relegated to Division 3.",
       standings: div2Standings,
     },
     "Division 3": {
       name: "Division 3 (Academy)",
       badge: "TIER 3 ACADEMY",
       color: "text-primary border-primary/30 bg-primary/10",
-      description: "National Academy Mobile Athletes. Top 3 PROMOTED to Division 2 & UCL, 4th to UCL, 5th-10th to Europa League, Mid-Table Academy (no relegation).",
+      description: "National Academy Mobile Athletes. Top 3 PROMOTED to Division 2 & UCL, 4th to UCL, 5th-8th to Europa League, Mid-Table Academy (no relegation).",
       standings: div3Standings,
     },
   };

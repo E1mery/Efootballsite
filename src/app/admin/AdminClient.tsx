@@ -1142,7 +1142,7 @@ export default function AdminClient({
       avatar: s.player.avatar,
       overallRating: s.player.overallRating || 86,
     }));
-    const d2Next6 = (div2Standings || []).slice(4, 10).map((s: any) => ({
+    const d2Next4 = (div2Standings || []).slice(4, 8).map((s: any) => ({
       id: s.player.id,
       gamerTag: s.player.gamerTag,
       fullName: s.player.fullName,
@@ -1151,7 +1151,7 @@ export default function AdminClient({
       avatar: s.player.avatar,
       overallRating: s.player.overallRating || 83,
     }));
-    const d3Next6 = (div3Standings || []).slice(4, 10).map((s: any) => ({
+    const d3Next4 = (div3Standings || []).slice(4, 8).map((s: any) => ({
       id: s.player.id,
       gamerTag: s.player.gamerTag,
       fullName: s.player.fullName,
@@ -1160,7 +1160,7 @@ export default function AdminClient({
       avatar: s.player.avatar,
       overallRating: s.player.overallRating || 80,
     }));
-    return [...d1Next4, ...d2Next6, ...d3Next6];
+    return [...d1Next4, ...d2Next4, ...d3Next4];
   }, [div1Standings, div2Standings, div3Standings]);
 
   const handleCommitDrawFromModal = async (competition: "UCL" | "EUROPA", slots: any[]) => {
@@ -3711,7 +3711,7 @@ export default function AdminClient({
                         <span>eFootball Europa League (UEL) Group Stage</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Qualified: Div 1 ranks 9-12, Div 2 ranks 5-10, Div 3 ranks 5-10. Strict division separation enforced.
+                        Qualified: Div 1 ranks 9-12, Div 2 ranks 5-8, Div 3 ranks 5-8. Strict division separation enforced.
                       </p>
                     </div>
 
@@ -3747,7 +3747,7 @@ export default function AdminClient({
                         >
                           <div className="flex items-center justify-between border-b border-border pb-2">
                             <span className="text-sm font-black uppercase text-secondary">{grpName}</span>
-                            <span className="text-xs font-mono text-muted-foreground">{groupSlots.length}/4 Players</span>
+                            <span className="text-xs font-mono text-muted-foreground">{groupSlots.length}/3 Players</span>
                           </div>
 
                           <div className="space-y-2">
@@ -4402,7 +4402,7 @@ export default function AdminClient({
                   </Badge>
                 </div>
                 <p className="text-xs text-foreground">
-                  16 Total Players: <strong>Div 1 (ranks 9-12)</strong>, <strong>Div 2 (ranks 5-10)</strong>, <strong>Div 3 (ranks 5-10)</strong>.
+                  12 Total Players: <strong>Div 1 (ranks 9-12)</strong>, <strong>Div 2 (ranks 5-8)</strong>, <strong>Div 3 (ranks 5-8)</strong>.
                 </p>
 
                 {/* Schedule Draw Event Controls */}

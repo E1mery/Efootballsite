@@ -513,7 +513,7 @@ export default function DashboardClient({
               !prev?.europaStarted &&
               !data.config.europaDrawCompleted &&
               !hasAutoOpenedEuropaRef.current &&
-              ((europaQualified || []).length >= 16 || (europaSlots || []).length >= 16)
+              ((europaQualified || []).length >= 12 || (europaSlots || []).length >= 12)
             ) {
               hasAutoOpenedEuropaRef.current = true;
               setViewDrawModal("EUROPA");
@@ -967,7 +967,7 @@ export default function DashboardClient({
           leagueConfig?.europaStarted &&
           !leagueConfig?.europaDrawCompleted &&
           !hasAutoOpenedEuropaRef.current &&
-          (europaQualifiedAthletes.length >= 16 || (europaSlots || []).length >= 16)
+          (europaQualifiedAthletes.length >= 12 || (europaSlots || []).length >= 12)
         ) {
           hasAutoOpenedEuropaRef.current = true;
           setViewDrawModal("EUROPA");
@@ -1933,7 +1933,7 @@ export default function DashboardClient({
               <Flame className="h-4 w-4 text-secondary" />
               <span>eFootball Europa Groups</span>
               <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-secondary border border-secondary/30">
-                16 Players
+                12 Players
               </span>
             </button>
           </div>
@@ -2318,7 +2318,7 @@ export default function DashboardClient({
 
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xs text-muted-foreground">
-                      16 Qualified Athletes • Groups A-D
+                      12 Qualified Athletes • Groups A-D
                     </span>
                     {(() => {
                       const isEuropaLive = Boolean(leagueConfig?.europaStarted || europaDrawCountdown.isDue);
