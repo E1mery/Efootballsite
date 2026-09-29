@@ -133,17 +133,12 @@ export default function Footer() {
             <ul className="space-y-2 text-xs">
               <li>
                 <Link href="/login" className="hover:text-primary transition-colors">
-                  Player Login Portal
+                  Login Portal
                 </Link>
               </li>
               <li>
                 <Link href="/register" className="hover:text-primary transition-colors">
                   Season Registration
-                </Link>
-              </li>
-              <li>
-                <Link href="/admin" className="hover:text-primary transition-colors">
-                  Admin Office (Commissioner)
                 </Link>
               </li>
               <li>

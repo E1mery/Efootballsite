@@ -517,7 +517,7 @@ function LoginForm() {
           )}
 
           {/* Registration link */}
-          <div className="mt-6 text-center text-xs text-muted-foreground border-t border-border pt-5 space-y-2">
+          <div className="mt-6 text-center text-xs text-muted-foreground border-t border-border pt-5">
             <div>
               Don&apos;t have an eFootball Mobile account?{" "}
               <Link
@@ -525,15 +525,6 @@ function LoginForm() {
                 className="font-bold text-primary hover:text-primary underline underline-offset-2 ml-1"
               >
                 Create Account
-              </Link>
-            </div>
-            <div className="pt-2">
-              <Link
-                href="/admin/login"
-                className="text-xs font-mono text-primary hover:text-primary flex items-center justify-center gap-1 hover:underline"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Go to Dedicated League Admin Office →
               </Link>
             </div>
           </div>

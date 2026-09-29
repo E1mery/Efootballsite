@@ -120,7 +120,7 @@ export default async function HomePage({
                 </p>
               </div>
             </div>
-            <Link href={loggedOutType === "admin" ? "/admin/login" : "/login"}>
+            <Link href="/login">
               <Button variant="outline" size="sm" className="border-primary/40 text-primary text-xs font-bold">
                 Sign In Again
               </Button>

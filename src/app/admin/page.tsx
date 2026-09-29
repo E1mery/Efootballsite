@@ -13,7 +13,7 @@ export default async function AdminPage() {
   const sessionUserId = cookieStore.get("efrl_session")?.value;
 
   if (!sessionUserId) {
-    redirect("/admin/login");
+    redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
@@ -21,7 +21,7 @@ export default async function AdminPage() {
   });
 
   if (!user || user.role !== "ADMIN") {
-    redirect("/admin/login?error=admin_required");
+    redirect("/login");
   }
 
   // Automatically purge replied player messages and announcements older than 24 hours

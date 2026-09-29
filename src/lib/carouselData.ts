@@ -1,20 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { getRwandanDateString } from "@/lib/rwandanTime";
 import { evaluateMatchOfTheDay } from "@/lib/matchOfTheDay";
 import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
 
 export async function getCarouselSlides(): Promise<CarouselSlide[]> {
   try {
-    const todayStr = getRwandanDateString();
-    const startOfToday = new Date(`${todayStr}T00:00:00+02:00`);
-    const endOfToday = new Date(`${todayStr}T23:59:59.999+02:00`);
-
     const [
       leagueConfig,
       motdActiveMatch,
       motdRecentResults,
       allStandings,
-      todayMatches,
       hallOfFameEntries,
       maxPlayedStanding,
     ] = await Promise.all([
@@ -52,33 +46,6 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       }),
       prisma.standing.findMany({
         orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      }),
-      prisma.match.findMany({
-        where: {
-          OR: [
-            {
-              matchDate: {
-                gte: startOfToday,
-                lte: endOfToday,
-              },
-            },
-            {
-              deadlineDate: {
-                gte: startOfToday,
-                lte: endOfToday,
-              },
-            },
-            {
-              status: "LIVE",
-            },
-          ],
-        },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-          tournament: true,
-        },
-        orderBy: [{ matchDate: "asc" }],
       }),
       prisma.hallOfFame.findMany({
         orderBy: [{ season: "desc" }, { createdAt: "desc" }],
@@ -207,25 +174,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
     }
 
     // =========================================================================
-    // 5. TODAY'S CONFIRMED FIXTURES (Only when confirmed matches scheduled today)
-    // =========================================================================
-    if (todayMatches.length > 0) {
-      slides.push({
-        id: "today-fixtures-slide",
-        type: "TODAY_MATCHES",
-        badge: "CONFIRMED FIXTURES",
-        tabLabel: "Today's Matches",
-        title: `${todayMatches.length} Matches Scheduled Today in Rwanda`,
-        subtitle: "Confirmed 24-hr cycle match window (CAT / Rwandan Time)",
-        data: {
-          count: todayMatches.length,
-          matches: todayMatches,
-        },
-      });
-    }
-
-    // =========================================================================
-    // 6. SEASON REGISTRATION (Active season enrollment)
+    // 5. SEASON REGISTRATION (Active season enrollment)
     // =========================================================================
     if (leagueConfig.registrationOpen) {
       slides.push({

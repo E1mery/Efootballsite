@@ -104,7 +104,6 @@ export default function Navbar() {
         ...(bothLeaguesUnlocked
           ? [{ name: "UCL & Europa Draws", href: "/continental", icon: Globe }]
           : []),
-        { name: "Admin Office", href: "/admin", icon: ShieldAlert },
       ];
 
   return (

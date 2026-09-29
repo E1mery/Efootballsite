@@ -5,12 +5,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const role = request.cookies.get("efrl_role")?.value;
 
+  // Redirect /admin/login to standard login or admin console
+  if (pathname === "/admin/login") {
+    return NextResponse.redirect(new URL(role === "ADMIN" ? "/admin" : "/login", request.url));
+  }
+
   // If user has an active ADMIN role session
   if (role === "ADMIN") {
-    // Prevent accessing /admin/login when already authenticated
-    if (pathname === "/admin/login") {
-      return NextResponse.redirect(new URL("/admin", request.url));
-    }
 
     const isApi = pathname.startsWith("/api");
     const isNext = pathname.startsWith("/_next");

@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
-  Calendar,
   Trophy,
   Sparkles,
   ArrowRight,
@@ -31,7 +30,6 @@ export type CarouselSlideType =
   | "MOTD"
   | "MOTD_RESULT"
   | "HALL_OF_FAME"
-  | "TODAY_MATCHES"
   | "REGISTRATION";
 
 export interface CarouselSlide {
@@ -614,67 +612,7 @@ export default function NewsTrendingCarousel({
                       </div>
                     )}
 
-                    {/* 5. TODAY'S CONFIRMED FIXTURES */}
-                    {slide.type === "TODAY_MATCHES" && (
-                      <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
-                        <div className="space-y-2 text-left max-w-xl">
-                          <StaggerRevealItem>
-                            <span className="text-xs font-mono text-primary font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                              <Calendar className="h-3.5 w-3.5 text-primary" />
-                              <span>CONFIRMED 24-HR CYCLE FIXTURES</span>
-                            </span>
-                          </StaggerRevealItem>
-                          <StaggerRevealHeadline className="carousel-headline">
-                            {slide.title}
-                          </StaggerRevealHeadline>
-                          <StaggerRevealItem>
-                            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                              {slide.subtitle || "Matches scheduled today within official Rwandan Time (CAT)."}
-                            </p>
-                          </StaggerRevealItem>
-                          <StaggerRevealItem>
-                            <div className="pt-1">
-                              <Link
-                                href="/fixtures"
-                                tabIndex={isCenter ? 0 : -1}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className={cn(
-                                  buttonVariants({ variant: "yellow", size: "sm" }),
-                                  "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
-                                )}
-                              >
-                                <span>Open Fixtures</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
-                              </Link>
-                            </div>
-                          </StaggerRevealItem>
-                        </div>
-
-                        <StaggerRevealItem>
-                          <div className="w-full lg:w-auto flex items-center gap-2.5 overflow-x-auto no-scrollbar max-w-full">
-                            {slide.data.matches?.slice(0, 3).map((m: any) => (
-                              <div
-                                key={m.id}
-                                className="p-3 sm:p-3.5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shrink-0 text-xs space-y-1.5 shadow-md min-w-40 sm:min-w-44"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <Badge variant="outline" className="text-xs font-mono text-primary border-primary/30">
-                                    {m.division}
-                                  </Badge>
-                                  <span className="font-mono text-muted-foreground text-xs">{m.status}</span>
-                                </div>
-                                <span className="font-bold text-foreground block truncate max-w-40 text-xs sm:text-sm">
-                                  {m.homePlayer?.gamerTag} vs {m.awayPlayer?.gamerTag}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </StaggerRevealItem>
-                      </div>
-                    )}
-
-                    {/* 6. SEASON REGISTRATION */}
+                    {/* 5. SEASON REGISTRATION */}
                     {slide.type === "REGISTRATION" && (
                       <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
                         <div className="space-y-2 text-left max-w-xl">
