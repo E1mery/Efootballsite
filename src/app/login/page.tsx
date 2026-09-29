@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import EfootballLoader from "@/components/EfootballLoader";
+import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 
 function LoginForm() {
   const router = useRouter();
@@ -205,8 +206,9 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="relative w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-12 overflow-hidden">
+      <AnimatedEfootballBackground />
+      <div className="relative z-10 w-full max-w-md">
 
         {/* Ambient glow */}
         <div className="absolute -top-16 -left-16 w-60 h-60 bg-primary/15 rounded-full blur-3xl pointer-events-none" />

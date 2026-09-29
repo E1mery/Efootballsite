@@ -15,6 +15,7 @@ import {
   Globe,
   ArrowUpDown,
   Flame,
+  ChevronDown,
 } from "lucide-react";
 
 interface FixturesClientProps {
@@ -275,7 +276,7 @@ export default function FixturesClient({
             </div>
           </div>
 
-          {/* Row 2: Matchday / Round Selector, Status Pills, and Athlete Search */}
+          {/* Row 2: Matchday / Round Selector, Status Selector, and Athlete Search */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-1">
             {/* Matchday Selector Dropdown */}
             <div className="md:col-span-4 flex items-center gap-2">
@@ -283,7 +284,7 @@ export default function FixturesClient({
                 <select
                   value={roundFilter}
                   onChange={(e) => setRoundFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Matchday Rounds ({distinctRounds.length})</option>
                   {distinctRounds.map((roundName) => (
@@ -296,47 +297,38 @@ export default function FixturesClient({
               </div>
             </div>
 
-            {/* Status Pills */}
-            <div className="md:col-span-5 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              {[
-                { id: "ALL", label: "All Statuses" },
-                { id: "SCHEDULED", label: "Scheduled" },
-                { id: "LIVE", label: "Live Window" },
-                { id: "FINISHED", label: "Completed Results" },
-              ].map((st) => {
-                const isSelected = statusFilter === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setStatusFilter(st.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
-                      isSelected
-                        ? "bg-primary text-white font-black shadow-md"
-                        : "text-muted-foreground hover:text-white bg-card border border-border"
-                    }`}
-                  >
-                    {st.label}
-                  </button>
-                );
-              })}
+            {/* Status Selector Dropdown */}
+            <div className="md:col-span-4 flex items-center gap-2">
+              <div className="relative w-full">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="LIVE">Live Window</option>
+                  <option value="FINISHED">Completed Results</option>
+                </select>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
             {/* Realtime Player Search Input */}
-            <div className="md:col-span-3 relative">
+            <div className="md:col-span-4 relative">
               <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search athlete tag, name, ID..."
-                className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-8 text-xs text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border bg-card/90 py-2.5 pl-9 pr-8 text-xs font-bold text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold p-1 cursor-pointer"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import FixturesClient from "./FixturesClient";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
+import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 
 export const dynamic = "force-dynamic";
 
@@ -100,13 +101,18 @@ export default async function FixturesPage({
   const matchOfTheDay = currentRoundNum > 1 ? storedMotd : null;
 
   return (
-    <FixturesClient
-      initialMatches={matches}
-      leagueConfig={leagueConfig}
-      matchOfTheDay={matchOfTheDay}
-      initialFilter={initialFilter}
-      initialDivision={initialDivision}
-      initialRound={initialRound}
-    />
+    <div className="relative min-h-screen overflow-hidden pb-16">
+      <AnimatedEfootballBackground />
+      <div className="relative z-10">
+        <FixturesClient
+          initialMatches={matches}
+          leagueConfig={leagueConfig}
+          matchOfTheDay={matchOfTheDay}
+          initialFilter={initialFilter}
+          initialDivision={initialDivision}
+          initialRound={initialRound}
+        />
+      </div>
+    </div>
   );
 }

@@ -5,7 +5,6 @@ import {
   Globe,
   LogIn,
   UserPlus,
-  ExternalLink,
   Clock,
   CheckCircle2,
   Crown,
@@ -197,62 +196,6 @@ export default async function HomePage({
               View Continental →
             </span>
           </Link>
-        </div>
-      </section>
-
-      {/* SOCIAL MEDIA & EXTERNAL RESOURCES SECTION */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-border bg-background/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-wide">
-                  Official Community & Social Channels
-                </h2>
-              </div>
-              <p className="text-xs text-muted-foreground max-w-xl">
-                Connect with Rwandan esports athletes, find match opponents on Discord, and view match highlights on our official Instagram channel.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
-              {/* WhatsApp Community Link */}
-              <a
-                href="https://chat.whatsapp.com/DeeXZ0LWLhAGq81OtTaVZQ"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-primary/20 border border-primary/40 hover:bg-primary/30 text-white transition-all shadow-lg hover:scale-105 h-11"
-              >
-                <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-pulse shrink-0" />
-                <span className="text-xs font-bold tracking-wider">WhatsApp</span>
-                <ExternalLink className="h-3.5 w-3.5 text-foreground ml-auto sm:ml-0" />
-              </a>
-
-              {/* Discord Link */}
-              <a
-                href="https://discord.gg/rbaFrBB5p"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-primary/15 border border-primary/40 hover:bg-primary/25 text-white transition-all shadow-lg hover:scale-105 h-11"
-              >
-                <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-pulse shrink-0" />
-                <span className="text-xs font-bold tracking-wider">Discord</span>
-                <ExternalLink className="h-3.5 w-3.5 text-foreground ml-auto sm:ml-0" />
-              </a>
-
-              {/* Instagram Link */}
-              <a
-                href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/20 to-primary/20 border border-primary/40 hover:from-primary/30 hover:to-primary/30 text-white transition-all shadow-lg hover:scale-105 h-11"
-              >
-                <span className="flex h-2.5 w-2.5 rounded-full bg-primary shrink-0" />
-                <span className="text-xs font-bold tracking-wider">Instagram</span>
-                <ExternalLink className="h-3.5 w-3.5 text-foreground ml-auto sm:ml-0" />
-              </a>
-            </div>
-          </div>
         </div>
       </section>
 

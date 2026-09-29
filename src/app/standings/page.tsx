@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import StandingsTable from "@/components/StandingsTable";
 import { Trophy, ShieldCheck, Flame, Info, AlertTriangle, ArrowDown, ArrowUp, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,9 @@ export default async function StandingsPage(props: {
     );
 
     return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <div className="relative min-h-screen overflow-hidden pb-16">
+        <AnimatedEfootballBackground />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header */}
       <div className="border-b border-border pb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -210,6 +213,7 @@ export default async function StandingsPage(props: {
         </div>
       </div>
     </div>
+  </div>
   );
   } catch (renderError: any) {
     console.error("StandingsPage top-level error caught:", renderError);
