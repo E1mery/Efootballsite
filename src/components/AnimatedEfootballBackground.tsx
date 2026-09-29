@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import Image from "next/image";
 
 export default function AnimatedEfootballBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -45,78 +46,7 @@ export default function AnimatedEfootballBackground() {
       pulseTime += 0.015;
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Subtle Dark Ambient Radial Vignette
-      const gradient = ctx.createRadialGradient(
-        width / 2,
-        height / 3,
-        50,
-        width / 2,
-        height / 2,
-        Math.max(width, height) * 0.8
-      );
-      gradient.addColorStop(0, "oklch(0.42 0.18 266 / 0.08)");
-      gradient.addColorStop(0.5, "oklch(0.13 0.028 261.692 / 0.4)");
-      gradient.addColorStop(1, "oklch(0.13 0.028 261.692 / 0.95)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // 2. Animated Football Tactical Grid & Pitch Lines
-      ctx.save();
-      ctx.strokeStyle = "oklch(0.42 0.18 266 / 0.12)";
-      ctx.lineWidth = 1.5;
-
-      const centerX = width / 2;
-      const centerY = height * 0.45;
-      const pitchWidth = Math.min(width * 0.85, 900);
-      const pitchHeight = pitchWidth * 0.55;
-
-      // Draw Center Circle with gentle pulsing radius
-      const centerCircleRadius = 70 + Math.sin(pulseTime) * 4;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, centerCircleRadius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Center spot
-      ctx.fillStyle = "oklch(0.86 0.18 92 / 0.45)";
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Halfway line
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY - pitchHeight / 2);
-      ctx.lineTo(centerX, centerY + pitchHeight / 2);
-      ctx.stroke();
-
-      // Outer Pitch Boundary
-      ctx.strokeStyle = "oklch(0.42 0.18 266 / 0.09)";
-      ctx.strokeRect(
-        centerX - pitchWidth / 2,
-        centerY - pitchHeight / 2,
-        pitchWidth,
-        pitchHeight
-      );
-
-      // Left Penalty Box
-      const boxWidth = pitchWidth * 0.16;
-      const boxHeight = pitchHeight * 0.48;
-      ctx.strokeRect(
-        centerX - pitchWidth / 2,
-        centerY - boxHeight / 2,
-        boxWidth,
-        boxHeight
-      );
-
-      // Right Penalty Box
-      ctx.strokeRect(
-        centerX + pitchWidth / 2 - boxWidth,
-        centerY - boxHeight / 2,
-        boxWidth,
-        boxHeight
-      );
-      ctx.restore();
-
-      // 3. Floating Digital Stadium Embers
+      // Floating Digital Stadium Embers
       particles.forEach((p) => {
         p.x += p.vx;
         p.y += p.vy;
@@ -146,10 +76,29 @@ export default function AnimatedEfootballBackground() {
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+    <div
+      className="fixed inset-0 pointer-events-none overflow-hidden z-0"
+      aria-hidden="true"
+    >
+      {/* High-definition official eFootball Stadium background */}
+      <Image
+        src="/images/home-stadium-bg.jpg"
+        alt="eFootball Stadium Background"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center opacity-45"
+      />
+
+      {/* Cinematic Theme Vignette & Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/90" />
+      <div className="absolute inset-0 bg-hero-glow opacity-70" />
+
+      {/* Floating Stadium Atmosphere Sparks / Particles */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
-      {/* Carbon fiber grid overlay */}
-      <div className="absolute inset-0 bg-carbon-grid opacity-40" />
+
+      {/* Subtle Carbon Grid Overlay */}
+      <div className="absolute inset-0 bg-carbon-grid opacity-20" />
     </div>
   );
 }

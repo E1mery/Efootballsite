@@ -13,11 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cookies } from "next/headers";
-import NewsTrendingCarousel from "@/components/NewsTrendingCarousel";
 import { getCarouselSlides } from "@/lib/carouselData";
-import EfootballGamingLogo from "@/components/EfootballGamingLogo";
-import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
+import NewsTrendingCarousel from "@/components/NewsTrendingCarousel";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
+import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import MatchCard from "@/components/MatchCard";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 
@@ -166,21 +165,6 @@ export default async function HomePage({
         <NewsTrendingCarousel slides={carouselSlides} userSession={userSession} />
       </div>
 
-      {/* HERO INTRO HEADER */}
-      <section className="relative z-10 pt-4 sm:pt-8 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-6">
-        {/* System Gaming Logo and League Badge */}
-        <div className="flex flex-col items-center justify-center gap-4">
-          <EfootballGamingLogo size="xl" showText={false} />
-
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-tight break-words">
-            <span className="efootball-gradient-text">eFootball Rwanda</span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-foreground max-w-2xl mx-auto leading-relaxed">
-            The official national digital football championship. Athletes compete across <strong>Division 1, 2, and 3</strong> in daily <strong>24-hour matchday cycles</strong>.
-          </p>
-        </div>
-      </section>
 
       {/* MAIN USER ACTIONS HUB (What users can do) */}
       <section className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">

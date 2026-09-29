@@ -10,8 +10,7 @@ import {
   Trophy,
   Sparkles,
   ArrowRight,
-  Play,
-  Pause,
+
   Crown,
   ShieldCheck,
   TrendingUp,
@@ -252,7 +251,7 @@ export default function NewsTrendingCarousel({
                 onClick={prevSlide}
                 disabled={totalSlides <= 1}
                 aria-label="Previous slide"
-                className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-40 group hidden sm:flex"
+                className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-40 group flex"
               >
                 <ChevronLeft className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:-translate-x-0.5" />
               </button>
@@ -261,7 +260,7 @@ export default function NewsTrendingCarousel({
                 onClick={nextSlide}
                 disabled={totalSlides <= 1}
                 aria-label="Next slide"
-                className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-40 group hidden sm:flex"
+                className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-40 group flex"
               >
                 <ChevronRight className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
@@ -706,64 +705,6 @@ export default function NewsTrendingCarousel({
           })}
         </div>
 
-        {/* BOTTOM CONTROLS ROW: PAGINATION DOTS, MOBILE PREV/NEXT, PLAY/PAUSE */}
-        <div className="flex items-center justify-between px-3 sm:px-6 pt-3">
-          {/* Elegant Slide Indicators (Pagination) */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {slides.map((s, idx) => (
-              <button
-                key={s.id || idx}
-                type="button"
-                onClick={() => goToSlide(idx)}
-                aria-label={`Go to slide ${idx + 1}`}
-                className={`carousel-dot ${
-                  currentIndex === idx
-                    ? "carousel-dot-active"
-                    : "carousel-dot-inactive"
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Controls: Mobile arrows, counter, play/pause */}
-          <div className="flex items-center gap-2">
-            {/* Mobile Navigation Buttons */}
-            <div className="flex items-center gap-1.5 sm:hidden">
-              <button
-                type="button"
-                onClick={prevSlide}
-                disabled={totalSlides <= 1}
-                aria-label="Previous slide"
-                className="carousel-nav-btn text-foreground"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={nextSlide}
-                disabled={totalSlides <= 1}
-                aria-label="Next slide"
-                className="carousel-nav-btn text-foreground"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="text-xs font-mono text-muted-foreground font-bold px-2.5 py-1 rounded-md bg-card/60 border border-border/50">
-              {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsPaused(!isPaused)}
-              aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
-              className="carousel-nav-btn h-9 w-9 text-muted-foreground hover:text-foreground"
-            >
-              {isPaused ? <Play className="h-3.5 w-3.5 text-secondary" /> : <Pause className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-        </div>
       </section>
 
       {/* Auth Prompt Modal */}
