@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, findTeam } from "@/lib/teams";
+import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -98,7 +99,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="relative min-h-screen overflow-hidden pb-16">
+      <AnimatedEfootballBackground />
+      <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Back to Home Button */}
 
       {/* Header */}
@@ -415,13 +418,14 @@ export default function RegisterPage() {
               <li className="flex items-start gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
                 <span>
-                  <strong>3 Missed Matches Disqualification:</strong> If an opponent doesn't respond or misses 3 consecutive matches, submit forfeit screenshot proof and they will be immediately removed and replaced.
+                  <strong>3 Missed Matches Disqualification:</strong> If an opponent doesn&apos;t respond or misses 3 consecutive matches, submit forfeit screenshot proof and they will be immediately removed and replaced.
                 </span>
               </li>
             </ul>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -19,6 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import AuthPromptModal from "@/components/AuthPromptModal";
+import {
+  HeroEditorialStagger,
+  StaggerRevealHeadline,
+  StaggerRevealItem,
+} from "@/components/ui/hero-editorial-stagger";
 
 export type CarouselSlideType =
   | "IN_FORM"
