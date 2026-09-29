@@ -48,6 +48,26 @@ interface NewsTrendingCarouselProps {
 
 const ROTATION_INTERVAL_MS = 8000;
 
+function getSlideDiff(index: number, current: number, total: number): number {
+  if (total <= 1) return 0;
+  if (total === 2) {
+    if (index === current) return 0;
+    return 1;
+  }
+  let diff = index - current;
+  if (diff > total / 2) diff -= total;
+  if (diff < -total / 2) diff += total;
+  return diff;
+}
+
+function getSlidePositionClass(diff: number, total: number): string {
+  if (total <= 1 || diff === 0) return "carousel-card-active";
+  if (diff === 1) return "carousel-card-next";
+  if (diff === -1) return "carousel-card-prev";
+  if (diff > 1) return "carousel-card-hidden-right";
+  return "carousel-card-hidden-left";
+}
+
 export default function NewsTrendingCarousel({
   slides = [],
   userSession = null,
@@ -204,8 +224,6 @@ export default function NewsTrendingCarousel({
     return null;
   }
 
-  const currentSlide = slides[currentIndex];
-
   return (
     <>
       <section
@@ -222,29 +240,11 @@ export default function NewsTrendingCarousel({
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        className="relative z-20 mx-auto max-w-360 px-4 sm:px-6 lg:px-8 select-none focus:outline-none"
+        className="relative z-20 mx-auto max-w-360 px-2 sm:px-4 lg:px-6 select-none focus:outline-none"
       >
-        {/* PREMIUM CINEMATIC ESPORTS HERO BANNER */}
-        <div className="carousel-hero-container group">
-          {/* Multi-layer Cinematic Sports Background */}
-          <div
-            className="carousel-bg-layer"
-            // eslint-disable-next-line shadcn/no-inline-styles -- dynamic background image
-            style={{ backgroundImage: "url('/images/carousel-stadium-bg.jpg')" }}
-          />
-          {/* 1. Dark transparent base overlay */}
-          <div className="carousel-overlay-dark" />
-          {/* 2. Left-to-right gradient darker towards text area */}
-          <div className="carousel-overlay-gradient" />
-          {/* 3. Subtle vignette around edges */}
-          <div className="carousel-overlay-vignette" />
-          {/* 4. Ambient stadium floodlight / brand glow */}
-          <div className="carousel-overlay-glow" />
-
-          {/* Top Brand Accent Line */}
-          <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-primary opacity-80 relative z-10" />
-
-          {/* SIDE FLOATING NAVIGATION BUTTONS (DESKTOP) */}
+        {/* COVERFLOW STAGE: LARGE CENTERED ACTIVE SLIDE + SMALLER FLANKING PREV/NEXT SLIDES */}
+        <div className="carousel-stage-container">
+          {/* FLOATING NAVIGATION BUTTONS (DESKTOP & TABLET) */}
           {totalSlides > 1 && (
             <>
               <button
@@ -252,7 +252,7 @@ export default function NewsTrendingCarousel({
                 onClick={prevSlide}
                 disabled={totalSlides <= 1}
                 aria-label="Previous slide"
-                className="carousel-nav-btn absolute left-4 top-1/2 -translate-y-1/2 z-30 group hidden md:flex"
+                className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-40 group hidden sm:flex"
               >
                 <ChevronLeft className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:-translate-x-0.5" />
               </button>
@@ -261,456 +261,508 @@ export default function NewsTrendingCarousel({
                 onClick={nextSlide}
                 disabled={totalSlides <= 1}
                 aria-label="Next slide"
-                className="carousel-nav-btn absolute right-4 top-1/2 -translate-y-1/2 z-30 group hidden md:flex"
+                className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-40 group hidden sm:flex"
               >
                 <ChevronRight className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
             </>
           )}
 
-          {/* BANNER CONTENT PADDING & HIERARCHY */}
-          <div className="relative z-10 p-5 sm:p-7 md:p-8 flex-1 flex flex-col justify-between gap-4 md:px-14">
-            {/* TOP HEADER ROW: Category Badge, Mobile Navigation, Play/Pause */}
-            <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Badge
-                  variant={
-                    currentSlide.type === "HALL_OF_FAME"
-                      ? "yellow"
-                      : currentSlide.type === "MOTD" || currentSlide.type === "MOTD_RESULT"
-                      ? "yellow"
-                      : currentSlide.type === "IN_FORM"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className="carousel-category-badge py-1 px-3 shrink-0 flex items-center gap-1.5 shadow-sm border border-secondary/40"
-                >
-                  {currentSlide.type === "IN_FORM" && <Flame className="h-3.5 w-3.5 text-secondary animate-pulse" />}
-                  {currentSlide.type === "MOTD" && <Sparkles className="h-3.5 w-3.5 text-secondary" />}
-                  {currentSlide.type === "MOTD_RESULT" && <Award className="h-3.5 w-3.5 text-secondary" />}
-                  {currentSlide.type === "HALL_OF_FAME" && <Crown className="h-3.5 w-3.5 text-secondary" />}
-                  {currentSlide.type === "TODAY_MATCHES" && <Calendar className="h-3.5 w-3.5 text-primary" />}
-                  {currentSlide.type === "REGISTRATION" && <ShieldCheck className="h-3.5 w-3.5 text-secondary" />}
-                  <span>{currentSlide.badge}</span>
-                </Badge>
+          {/* SLIDES TRACK */}
+          {slides.map((slide, index) => {
+            const diff = getSlideDiff(index, currentIndex, totalSlides);
+            const isCenter = diff === 0;
+            const positionClass = getSlidePositionClass(diff, totalSlides);
 
-                <span className="hidden sm:inline-block text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                  Official League Radar
-                </span>
-              </div>
+            return (
+              <div
+                key={slide.id || index}
+                className={`carousel-slide-card ${positionClass}`}
+              >
+                {/* Multi-layer Cinematic Sports Background */}
+                <div
+                  className="carousel-bg-layer"
+                  // eslint-disable-next-line shadcn/no-inline-styles -- dynamic background image
+                  style={{ backgroundImage: "url('/images/carousel-stadium-bg.jpg')" }}
+                />
+                {/* 1. Dark transparent base overlay */}
+                <div className="carousel-overlay-dark" />
+                {/* 2. Left-to-right gradient darker towards text area */}
+                <div className="carousel-overlay-gradient" />
+                {/* 3. Subtle vignette around edges */}
+                <div className="carousel-overlay-vignette" />
+                {/* 4. Ambient stadium floodlight / brand glow */}
+                <div className="carousel-overlay-glow" />
 
-              {/* CONTROLS: MOBILE PREV/NEXT, PLAY/PAUSE, SLIDE COUNTER */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="text-xs font-mono text-muted-foreground font-bold px-2 py-1 rounded-md bg-card/60 border border-border/50">
-                  {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
-                </div>
+                {/* Top Brand Accent Line */}
+                <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-primary opacity-80 relative z-10" />
 
-                {/* Mobile Navigation Buttons */}
-                <div className="flex items-center gap-1.5 md:hidden">
+                {/* Clickable Overlay for Preview / Inactive Cards */}
+                {!isCenter && (
                   <button
                     type="button"
-                    onClick={prevSlide}
-                    disabled={totalSlides <= 1}
-                    aria-label="Previous slide"
-                    className="carousel-nav-btn text-foreground"
+                    onClick={() => goToSlide(index)}
+                    aria-label={`View ${slide.badge}: ${slide.title}`}
+                    className="absolute inset-0 z-30 bg-background/55 hover:bg-background/25 backdrop-blur-sm cursor-pointer transition-all duration-300 flex items-center justify-center group/preview focus:outline-none"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <span className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200 px-3.5 py-1.5 rounded-xl bg-card/90 border border-secondary/40 text-xs font-mono font-bold text-secondary shadow-xl">
+                      Click to view
+                    </span>
                   </button>
+                )}
 
-                  <button
-                    type="button"
-                    onClick={nextSlide}
-                    disabled={totalSlides <= 1}
-                    aria-label="Next slide"
-                    className="carousel-nav-btn text-foreground"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
+                {/* SLIDE CARD INNER CONTENT */}
+                <div className="relative z-10 p-5 sm:p-7 md:p-8 flex-1 flex flex-col justify-between gap-4 md:px-12">
+                  {/* TOP ROW: Category Badge, Tagline, and Counter */}
+                  <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Badge
+                        variant={
+                          slide.type === "HALL_OF_FAME"
+                            ? "yellow"
+                            : slide.type === "MOTD" || slide.type === "MOTD_RESULT"
+                            ? "yellow"
+                            : slide.type === "IN_FORM"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="carousel-category-badge py-1 px-3 shrink-0 flex items-center gap-1.5 shadow-sm border border-secondary/40"
+                      >
+                        {slide.type === "IN_FORM" && <Flame className="h-3.5 w-3.5 text-secondary animate-pulse" />}
+                        {slide.type === "MOTD" && <Sparkles className="h-3.5 w-3.5 text-secondary" />}
+                        {slide.type === "MOTD_RESULT" && <Award className="h-3.5 w-3.5 text-secondary" />}
+                        {slide.type === "HALL_OF_FAME" && <Crown className="h-3.5 w-3.5 text-secondary" />}
+                        {slide.type === "TODAY_MATCHES" && <Calendar className="h-3.5 w-3.5 text-primary" />}
+                        {slide.type === "REGISTRATION" && <ShieldCheck className="h-3.5 w-3.5 text-secondary" />}
+                        <span>{slide.badge}</span>
+                      </Badge>
 
-                {/* Play/Pause Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsPaused(!isPaused)}
-                  aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
-                  className="carousel-nav-btn h-9 w-9 text-muted-foreground hover:text-foreground"
-                >
-                  {isPaused ? <Play className="h-3.5 w-3.5 text-secondary" /> : <Pause className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* ========================================================================= */}
-            {/* MAIN CONTENT AREA PER SLIDE TYPE (SMOOTH ANIMATED ENTRANCE) */}
-            {/* ========================================================================= */}
-            <div key={currentSlide.id} className="carousel-animate-content flex-1 flex flex-col justify-center py-2 sm:py-3">
-              {/* 1. PLAYERS WHO ARE IN FORM (DISPLAYED AFTER 5 MATCHES PLAYED) */}
-              {currentSlide.type === "IN_FORM" && (
-                <div className="w-full space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
-                    <div className="space-y-1">
-                      <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5">
-                        <TrendingUp className="h-3.5 w-3.5 text-secondary" />
-                        <span>STANDINGS &amp; WIN-RATE PERFORMANCE LEADERS</span>
+                      <span className="hidden sm:inline-block text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                        Official League Radar
                       </span>
-                      <h2 className="carousel-headline">
-                        {currentSlide.title}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
-                        {currentSlide.subtitle || "Top-ranked contenders evaluated from official table standings, win rate & individual form."}
-                      </p>
                     </div>
 
-                    <Link href="/standings">
-                      <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl">
-                        <span>Full Standings</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-xs font-mono text-muted-foreground font-bold px-2 py-1 rounded-md bg-card/60 border border-border/50">
+                        {String(index + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-                    {currentSlide.data.athletes?.map((ath: any) => (
-                      <div
-                        key={ath.gamerTag}
-                        className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-3.5 space-y-2.5 shadow-md hover:border-secondary/40 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10">
-                            Rank #{ath.rank}
-                          </Badge>
-                          <span className="text-xs font-mono font-bold text-primary">
-                            {ath.division}
-                          </span>
+                  {/* MAIN BODY PER SLIDE TYPE */}
+                  <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
+                    {/* 1. PLAYERS WHO ARE IN FORM */}
+                    {slide.type === "IN_FORM" && (
+                      <div className="w-full space-y-3 sm:space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
+                          <div className="space-y-1">
+                            <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5">
+                              <TrendingUp className="h-3.5 w-3.5 text-secondary" />
+                              <span>STANDINGS &amp; WIN-RATE PERFORMANCE LEADERS</span>
+                            </span>
+                            <h2 className="carousel-headline">
+                              {slide.title}
+                            </h2>
+                            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
+                              {slide.subtitle || "Top-ranked contenders evaluated from official table standings, win rate & individual form."}
+                            </p>
+                          </div>
+
+                          <Link href="/standings" tabIndex={isCenter ? 0 : -1}>
+                            <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl">
+                              <span>Full Standings</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-11 w-11 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-primary/30 overflow-hidden text-xs font-black text-primary shadow-sm">
-                            {ath.avatar ? (
-                              <img src={ath.avatar} alt={ath.gamerTag} className="h-full w-full object-contain" loading="lazy" />
-                            ) : (
-                              ath.gamerTag.substring(0, 2).toUpperCase()
-                            )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                          {slide.data.athletes?.map((ath: any) => (
+                            <div
+                              key={ath.gamerTag}
+                              className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-3 sm:p-3.5 space-y-2 shadow-md hover:border-secondary/40 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10">
+                                  Rank #{ath.rank}
+                                </Badge>
+                                <span className="text-xs font-mono font-bold text-primary">
+                                  {ath.division}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-primary/30 overflow-hidden text-xs font-black text-primary shadow-sm">
+                                  {ath.avatar ? (
+                                    <img src={ath.avatar} alt={ath.gamerTag} className="h-full w-full object-contain" loading="lazy" />
+                                  ) : (
+                                    ath.gamerTag.substring(0, 2).toUpperCase()
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-sm font-black text-foreground block truncate">
+                                    {ath.gamerTag}
+                                  </span>
+                                  {ath.realTeam && (
+                                    <span className="text-xs text-muted-foreground truncate block">
+                                      {findTeam(ath.realTeam)?.name || ath.realTeam}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-xs font-mono">
+                                <span className="text-foreground font-bold">{ath.winRate}% Win Rate</span>
+                                <span className="text-muted-foreground">{ath.won}W / {ath.played}P</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. MATCH OF THE DAY (ACTIVE CLASH) */}
+                    {slide.type === "MOTD" && slide.data && (
+                      <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                        <div className="space-y-2 text-left max-w-xl">
+                          <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                            <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                            <span>{slide.data.division} • {slide.data.round}</span>
+                          </span>
+                          <h2 className="carousel-headline">
+                            {slide.data.homePlayer?.gamerTag} <span className="text-secondary">vs</span> {slide.data.awayPlayer?.gamerTag}
+                          </h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                            {slide.subtitle || "The featured top-tier showdown of the 24-hour cycle."}
+                          </p>
+                          <div className="pt-1">
+                            <Link href={`/fixtures?highlight=${slide.data.id}`} tabIndex={isCenter ? 0 : -1}>
+                              <Button variant="yellow" size="sm" className="carousel-cta-btn font-black text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg">
+                                <span>View Match Center</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </Link>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-sm font-black text-foreground block truncate">
-                              {ath.gamerTag}
-                            </span>
-                            {ath.realTeam && (
-                              <span className="text-xs text-muted-foreground truncate block">
-                                {findTeam(ath.realTeam)?.name || ath.realTeam}
+                        </div>
+
+                        {/* High-Impact Showdown Card */}
+                        <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/80 backdrop-blur-xl border border-secondary/30 shadow-xl">
+                          <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
+                            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                              <img
+                                src={resolvePlayerAvatar(slide.data.homePlayer)}
+                                alt={slide.data.homePlayer?.gamerTag}
+                                className="h-full w-full object-contain"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                                {slide.data.homePlayer?.gamerTag}
                               </span>
-                            )}
+                              <span className="text-xs text-muted-foreground font-mono font-bold">HOME</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="px-3 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                              VS
+                            </div>
+                            <span className="text-xs font-mono text-muted-foreground font-semibold">24H CYCLE</span>
+                          </div>
+
+                          <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
+                            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                              <img
+                                src={resolvePlayerAvatar(slide.data.awayPlayer)}
+                                alt={slide.data.awayPlayer?.gamerTag}
+                                className="h-full w-full object-contain"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                                {slide.data.awayPlayer?.gamerTag}
+                              </span>
+                              <span className="text-xs text-muted-foreground font-mono font-bold">AWAY</span>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs font-mono">
-                          <span className="text-foreground font-bold">{ath.winRate}% Win Rate</span>
-                          <span className="text-muted-foreground">{ath.won}W / {ath.played}P</span>
-                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
 
-              {/* 2. MATCH OF THE DAY (ACTIVE CLASH) */}
-              {currentSlide.type === "MOTD" && currentSlide.data && (
-                <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                  <div className="space-y-2 text-left max-w-xl">
-                    <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                      <Sparkles className="h-3.5 w-3.5 text-secondary" />
-                      <span>{currentSlide.data.division} • {currentSlide.data.round}</span>
-                    </span>
-                    <h2 className="carousel-headline">
-                      {currentSlide.data.homePlayer?.gamerTag} <span className="text-secondary">vs</span> {currentSlide.data.awayPlayer?.gamerTag}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      {currentSlide.subtitle || "The featured top-tier showdown of the 24-hour cycle."}
-                    </p>
-                    <div className="pt-2">
-                      <Link href={`/fixtures?highlight=${currentSlide.data.id}`}>
-                        <Button variant="yellow" size="sm" className="carousel-cta-btn font-black text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg">
-                          <span>View Match Center</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* High-Impact Showdown Card */}
-                  <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/80 backdrop-blur-xl border border-secondary/30 shadow-xl">
-                    <div className="flex flex-col items-center gap-2 text-center min-w-24">
-                      <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                        <img
-                          src={resolvePlayerAvatar(currentSlide.data.homePlayer)}
-                          alt={currentSlide.data.homePlayer?.gamerTag}
-                          className="h-full w-full object-contain"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                          {currentSlide.data.homePlayer?.gamerTag}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-mono font-bold">HOME</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="px-3.5 py-1.5 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-sm sm:text-base font-black text-secondary shadow-inner">
-                        VS
-                      </div>
-                      <span className="text-xs font-mono text-muted-foreground font-semibold">24H CYCLE</span>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 text-center min-w-24">
-                      <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                        <img
-                          src={resolvePlayerAvatar(currentSlide.data.awayPlayer)}
-                          alt={currentSlide.data.awayPlayer?.gamerTag}
-                          className="h-full w-full object-contain"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                          {currentSlide.data.awayPlayer?.gamerTag}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-mono font-bold">AWAY</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 3. MOTD RESULT (COMPLETED CLASH) */}
-              {currentSlide.type === "MOTD_RESULT" && currentSlide.data && (
-                <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                  <div className="space-y-2 text-left max-w-xl">
-                    <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                      <Award className="h-3.5 w-3.5 text-secondary" />
-                      <span>{currentSlide.data.division} • {currentSlide.data.round} Final</span>
-                    </span>
-                    <h2 className="carousel-headline">
-                      Match of the Day Concluded
-                    </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      {currentSlide.subtitle}
-                    </p>
-                    <div className="pt-2">
-                      <Link href="/fixtures">
-                        <Button variant="outline" size="sm" className="carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl">
-                          <span>Fixture Archive</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Final Scoreboard Card */}
-                  <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shadow-xl font-mono">
-                    <div className="text-right min-w-24">
-                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                        {currentSlide.data.homePlayer?.gamerTag}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-bold">HOME</span>
-                    </div>
-
-                    <div className="px-4 py-2 rounded-2xl bg-background/90 border border-border text-xl sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
-                      {currentSlide.data.homeScore ?? 0} : {currentSlide.data.awayScore ?? 0}
-                    </div>
-
-                    <div className="text-left min-w-24">
-                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                        {currentSlide.data.awayPlayer?.gamerTag}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-bold">AWAY</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 4. THE HALL OF FAME (TITLE WINNERS LAST SEASON) */}
-              {currentSlide.type === "HALL_OF_FAME" && (
-                <div className="w-full space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
-                    <div className="space-y-1">
-                      <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                        <Crown className="h-3.5 w-3.5 text-secondary" />
-                        <span>REIGNING CHAMPIONS &amp; HISTORIC TITLES</span>
-                      </span>
-                      <h2 className="carousel-headline">
-                        {currentSlide.title}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
-                        {currentSlide.subtitle || "Athletes who conquered Rwanda's official eFootball championships."}
-                      </p>
-                    </div>
-
-                    <Link href="/#hall-of-fame">
-                      <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl">
-                        <span>Explore Hall of Fame</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                    {currentSlide.data.champions?.map((champ: any) => (
-                      <div
-                        key={champ.id}
-                        className="rounded-xl border border-secondary/35 bg-card/75 backdrop-blur-md p-4 flex items-center justify-between gap-3 shadow-md hover:border-secondary/60 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 shadow-sm">
-                            <Crown className="h-5 w-5 text-secondary" />
-                          </div>
-                          <div>
-                            <span className="text-xs font-mono uppercase text-secondary font-bold block">
-                              👑 Champion
-                            </span>
-                            <span className="text-sm font-black text-foreground truncate block">
-                              {champ.championName}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <Badge variant="yellow" className="text-xs font-mono font-bold">
-                            {champ.season}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground block truncate max-w-28 mt-0.5">
-                            {champ.tournamentName}
+                    {/* 3. MOTD RESULT (COMPLETED CLASH) */}
+                    {slide.type === "MOTD_RESULT" && slide.data && (
+                      <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                        <div className="space-y-2 text-left max-w-xl">
+                          <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                            <Award className="h-3.5 w-3.5 text-secondary" />
+                            <span>{slide.data.division} • {slide.data.round} Final</span>
                           </span>
+                          <h2 className="carousel-headline">
+                            Match of the Day Concluded
+                          </h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                            {slide.subtitle}
+                          </p>
+                          <div className="pt-1">
+                            <Link href="/fixtures" tabIndex={isCenter ? 0 : -1}>
+                              <Button variant="outline" size="sm" className="carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl">
+                                <span>Fixture Archive</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+
+                        {/* Final Scoreboard Card */}
+                        <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shadow-xl font-mono">
+                          <div className="text-right min-w-20 sm:min-w-24">
+                            <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                              {slide.data.homePlayer?.gamerTag}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-bold">HOME</span>
+                          </div>
+
+                          <div className="px-4 py-2 rounded-2xl bg-background/90 border border-border text-lg sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
+                            {slide.data.homeScore ?? 0} : {slide.data.awayScore ?? 0}
+                          </div>
+
+                          <div className="text-left min-w-20 sm:min-w-24">
+                            <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                              {slide.data.awayPlayer?.gamerTag}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-bold">AWAY</span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
 
-              {/* 5. TODAY'S CONFIRMED FIXTURES */}
-              {currentSlide.type === "TODAY_MATCHES" && (
-                <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                  <div className="space-y-2 text-left max-w-xl">
-                    <span className="text-xs font-mono text-primary font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
-                      <span>CONFIRMED 24-HR CYCLE FIXTURES</span>
-                    </span>
-                    <h2 className="carousel-headline">
-                      {currentSlide.title}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      {currentSlide.subtitle || "Matches scheduled today within official Rwandan Time (CAT)."}
-                    </p>
-                    <div className="pt-2">
-                      <Link href="/fixtures">
-                        <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg">
-                          <span>Open Fixtures</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
+                    {/* 4. THE HALL OF FAME (TITLE WINNERS LAST SEASON) */}
+                    {slide.type === "HALL_OF_FAME" && (
+                      <div className="w-full space-y-3 sm:space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
+                          <div className="space-y-1">
+                            <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                              <Crown className="h-3.5 w-3.5 text-secondary" />
+                              <span>REIGNING CHAMPIONS &amp; HISTORIC TITLES</span>
+                            </span>
+                            <h2 className="carousel-headline">
+                              {slide.title}
+                            </h2>
+                            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
+                              {slide.subtitle || "Athletes who conquered Rwanda's official eFootball championships."}
+                            </p>
+                          </div>
 
-                  <div className="w-full lg:w-auto flex items-center gap-2.5 overflow-x-auto no-scrollbar max-w-full">
-                    {currentSlide.data.matches?.slice(0, 3).map((m: any) => (
-                      <div
-                        key={m.id}
-                        className="p-3.5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shrink-0 text-xs space-y-1.5 shadow-md min-w-44"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge variant="outline" className="text-xs font-mono text-primary border-primary/30">
-                            {m.division}
-                          </Badge>
-                          <span className="font-mono text-muted-foreground text-xs">{m.status}</span>
+                          <Link href="/#hall-of-fame" tabIndex={isCenter ? 0 : -1}>
+                            <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl">
+                              <span>Explore Hall of Fame</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
                         </div>
-                        <span className="font-bold text-foreground block truncate max-w-40 text-sm">
-                          {m.homePlayer?.gamerTag} vs {m.awayPlayer?.gamerTag}
-                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                          {slide.data.champions?.map((champ: any) => (
+                            <div
+                              key={champ.id}
+                              className="rounded-xl border border-secondary/35 bg-card/75 backdrop-blur-md p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-md hover:border-secondary/60 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 shadow-sm">
+                                  <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-mono uppercase text-secondary font-bold block">
+                                    👑 Champion
+                                  </span>
+                                  <span className="text-sm font-black text-foreground truncate block">
+                                    {champ.championName}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <Badge variant="yellow" className="text-xs font-mono font-bold">
+                                  {champ.season}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground block truncate max-w-28 mt-0.5">
+                                  {champ.tournamentName}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* 5. TODAY'S CONFIRMED FIXTURES */}
+                    {slide.type === "TODAY_MATCHES" && (
+                      <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                        <div className="space-y-2 text-left max-w-xl">
+                          <span className="text-xs font-mono text-primary font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                            <Calendar className="h-3.5 w-3.5 text-primary" />
+                            <span>CONFIRMED 24-HR CYCLE FIXTURES</span>
+                          </span>
+                          <h2 className="carousel-headline">
+                            {slide.title}
+                          </h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                            {slide.subtitle || "Matches scheduled today within official Rwandan Time (CAT)."}
+                          </p>
+                          <div className="pt-1">
+                            <Link href="/fixtures" tabIndex={isCenter ? 0 : -1}>
+                              <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg">
+                                <span>Open Fixtures</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+
+                        <div className="w-full lg:w-auto flex items-center gap-2.5 overflow-x-auto no-scrollbar max-w-full">
+                          {slide.data.matches?.slice(0, 3).map((m: any) => (
+                            <div
+                              key={m.id}
+                              className="p-3 sm:p-3.5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shrink-0 text-xs space-y-1.5 shadow-md min-w-40 sm:min-w-44"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge variant="outline" className="text-xs font-mono text-primary border-primary/30">
+                                  {m.division}
+                                </Badge>
+                                <span className="font-mono text-muted-foreground text-xs">{m.status}</span>
+                              </div>
+                              <span className="font-bold text-foreground block truncate max-w-40 text-xs sm:text-sm">
+                                {m.homePlayer?.gamerTag} vs {m.awayPlayer?.gamerTag}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 6. SEASON REGISTRATION */}
+                    {slide.type === "REGISTRATION" && (
+                      <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                        <div className="space-y-2 text-left max-w-xl">
+                          <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                            <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
+                            <span>OFFICIAL ATHLETE ENROLLMENT</span>
+                          </span>
+                          <h2 className="carousel-headline">
+                            {slide.title}
+                          </h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                            Athletes compete across Division 1, Division 2, and Division 3 in daily 24-hour matchday cycles with direct WhatsApp matchmaking.
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-mono">
+                            <span className="px-3 py-1.5 rounded-xl bg-background/80 border border-border text-foreground">
+                              Division 1, 2, 3
+                            </span>
+                            <span className="px-3 py-1.5 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-bold">
+                              WhatsApp Matchmaking
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 shrink-0">
+                          <Link href="/register" tabIndex={isCenter ? 0 : -1}>
+                            <Button variant="yellow" size="default" className="carousel-cta-btn font-black text-secondary-foreground text-sm gap-2 rounded-xl shadow-lg">
+                              <span>Register Athlete</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+
+                          <Link href="/standings" tabIndex={isCenter ? 0 : -1}>
+                            <Button variant="outline" size="default" className="carousel-cta-btn font-bold text-xs border-border rounded-xl">
+                              Standings
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BOTTOM ROW: MINIMAL FOOTER BRANDING */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/70">
+                    <span className="truncate">eFootball Rwanda League</span>
+                    <span className="uppercase tracking-widest hidden sm:inline-block">Season 2026</span>
                   </div>
                 </div>
-              )}
 
-              {/* 6. SEASON REGISTRATION */}
-              {currentSlide.type === "REGISTRATION" && (
-                <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                  <div className="space-y-2 text-left max-w-xl">
-                    <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                      <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
-                      <span>OFFICIAL ATHLETE ENROLLMENT</span>
-                    </span>
-                    <h2 className="carousel-headline">
-                      {currentSlide.title}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      Athletes compete across Division 1, Division 2, and Division 3 in daily 24-hour matchday cycles with direct WhatsApp matchmaking.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-mono">
-                      <span className="px-3 py-1.5 rounded-xl bg-background/80 border border-border text-foreground">
-                        Division 1, 2, 3
-                      </span>
-                      <span className="px-3 py-1.5 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-bold">
-                        WhatsApp Matchmaking
-                      </span>
-                    </div>
+                {/* DYNAMIC PROGRESS LINE ON BOTTOM OF ACTIVE CARD */}
+                {isCenter && totalSlides > 1 && !isPaused && (
+                  <div className="h-1 w-full bg-border/40 overflow-hidden relative z-10">
+                    <div
+                      className="h-full bg-secondary transition-all duration-75 ease-linear"
+                      // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress 0-100%
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-3 shrink-0">
-                    <Link href="/register">
-                      <Button variant="yellow" size="default" className="carousel-cta-btn font-black text-secondary-foreground text-sm gap-2 rounded-xl shadow-lg">
-                        <span>Register Athlete</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </Link>
-
-                    <Link href="/standings">
-                      <Button variant="outline" size="default" className="carousel-cta-btn font-bold text-xs border-border rounded-xl">
-                        Standings
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* BOTTOM ROW: ELEGANT SLIDE INDICATORS (PAGINATION) */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/40">
-              <div className="flex items-center gap-1.5">
-                {slides.map((s, idx) => (
-                  <button
-                    key={s.id || idx}
-                    type="button"
-                    onClick={() => goToSlide(idx)}
-                    aria-label={`Go to slide ${idx + 1}`}
-                    className={`carousel-dot ${
-                      currentIndex === idx
-                        ? "carousel-dot-active"
-                        : "carousel-dot-inactive"
-                    }`}
-                  />
-                ))}
+                )}
               </div>
+            );
+          })}
+        </div>
 
-              <span className="text-xs font-mono text-muted-foreground/70 tracking-widest uppercase hidden sm:inline-block">
-                eFootball Rwanda League
-              </span>
-            </div>
+        {/* BOTTOM CONTROLS ROW: PAGINATION DOTS, MOBILE PREV/NEXT, PLAY/PAUSE */}
+        <div className="flex items-center justify-between px-3 sm:px-6 pt-3">
+          {/* Elegant Slide Indicators (Pagination) */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {slides.map((s, idx) => (
+              <button
+                key={s.id || idx}
+                type="button"
+                onClick={() => goToSlide(idx)}
+                aria-label={`Go to slide ${idx + 1}`}
+                className={`carousel-dot ${
+                  currentIndex === idx
+                    ? "carousel-dot-active"
+                    : "carousel-dot-inactive"
+                }`}
+              />
+            ))}
           </div>
 
-          {/* DYNAMIC PROGRESS LINE ON BOTTOM OF RECTANGLE */}
-          {totalSlides > 1 && !isPaused && (
-            <div className="h-1 w-full bg-border/40 overflow-hidden relative z-10">
-              <div
-                className="h-full bg-secondary transition-all duration-75 ease-linear"
-                // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress 0-100%
-                style={{ width: `${progress}%` }}
-              />
+          {/* Controls: Mobile arrows, counter, play/pause */}
+          <div className="flex items-center gap-2">
+            {/* Mobile Navigation Buttons */}
+            <div className="flex items-center gap-1.5 sm:hidden">
+              <button
+                type="button"
+                onClick={prevSlide}
+                disabled={totalSlides <= 1}
+                aria-label="Previous slide"
+                className="carousel-nav-btn text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={nextSlide}
+                disabled={totalSlides <= 1}
+                aria-label="Next slide"
+                className="carousel-nav-btn text-foreground"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
-          )}
+
+            <div className="text-xs font-mono text-muted-foreground font-bold px-2.5 py-1 rounded-md bg-card/60 border border-border/50">
+              {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsPaused(!isPaused)}
+              aria-label={isPaused ? "Resume rotation" : "Pause rotation"}
+              className="carousel-nav-btn h-9 w-9 text-muted-foreground hover:text-foreground"
+            >
+              {isPaused ? <Play className="h-3.5 w-3.5 text-secondary" /> : <Pause className="h-3.5 w-3.5" />}
+            </button>
+          </div>
         </div>
       </section>
 

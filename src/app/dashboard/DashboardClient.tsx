@@ -40,6 +40,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ButtonRollingText } from "@/components/ui/button-rolling-text";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
@@ -101,13 +102,15 @@ function ContinentalGroupStandingsView({
             <Lock className="h-3.5 w-3.5" />
             <span>Draw Locked (Awaiting Launch)</span>
           </Button>
-          <Link
+          <ButtonRollingText
             href="/continental"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
-          >
-            <span>View Continental Qualification Slots</span>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
+            variant="outline"
+            text="View Continental Qualification Slots"
+            stagger
+            icon={<ChevronRight className="h-3.5 w-3.5" />}
+            iconPosition="right"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
+          />
         </div>
       </div>
     );
@@ -138,13 +141,15 @@ function ContinentalGroupStandingsView({
               <span>Watch Animated Draw Event</span>
             </Button>
           )}
-          <Link
+          <ButtonRollingText
             href="/continental"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
-          >
-            <span>Check Continental Center & Qualified Slots</span>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
+            variant="outline"
+            text="Check Continental Center & Qualified Slots"
+            stagger
+            icon={<ChevronRight className="h-3.5 w-3.5" />}
+            iconPosition="right"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
+          />
         </div>
       </div>
     );
@@ -193,17 +198,18 @@ function ContinentalGroupStandingsView({
               <span>Watch Draw Event</span>
             </Button>
           )}
-          <Link
+          <ButtonRollingText
             href="/continental"
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all ${
+            text="Hub & Matches"
+            stagger
+            icon={<ChevronRight className="h-4 w-4" />}
+            iconPosition="right"
+            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all ${
               isUcl
                 ? "bg-muted hover:bg-muted border border-primary/30"
                 : "bg-muted hover:bg-muted border border-secondary/30"
             }`}
-          >
-            <span>Hub & Matches</span>
-            <ChevronRight className="h-4 w-4" />
-          </Link>
+          />
         </div>
       </div>
 
@@ -1552,24 +1558,28 @@ export default function DashboardClient({
               Official Community & League Resources (Open Access)
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <a
+              <ButtonRollingText
                 href="https://discord.gg/rbaFrBB5p"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 rounded-xl bg-card border border-border hover:border-primary/40 text-xs text-foreground font-semibold flex items-center justify-between transition-all hover:text-white"
-              >
-                <span>Official Discord Community</span>
-                <ExternalLink className="h-4 w-4 text-primary" />
-              </a>
-              <a
+                variant="outline"
+                text="Official Discord Community"
+                stagger
+                icon={<ExternalLink className="h-4 w-4 text-primary" />}
+                iconPosition="right"
+                className="p-3 rounded-xl bg-card border border-border hover:border-primary/40 text-xs text-foreground font-semibold flex items-center justify-between transition-all hover:text-white w-full"
+              />
+              <ButtonRollingText
                 href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 rounded-xl bg-card border border-border hover:border-primary/40 text-xs text-foreground font-semibold flex items-center justify-between transition-all hover:text-white"
-              >
-                <span>Official Instagram</span>
-                <ExternalLink className="h-4 w-4 text-primary" />
-              </a>
+                variant="outline"
+                text="Official Instagram"
+                stagger
+                icon={<ExternalLink className="h-4 w-4 text-primary" />}
+                iconPosition="right"
+                className="p-3 rounded-xl bg-card border border-border hover:border-primary/40 text-xs text-foreground font-semibold flex items-center justify-between transition-all hover:text-white w-full"
+              />
             </div>
           </div>
         </div>
@@ -2110,16 +2120,16 @@ export default function DashboardClient({
               </div>
 
               {continentalStatus.status !== "ELIMINATED" && (
-                <Link href="/continental" className="shrink-0">
-                  <Button
-                    variant={continentalStatus.status === "QUALIFIED_UCL" ? "default" : "yellow"}
-                    size="sm"
-                    className="font-bold text-xs gap-1.5 w-full sm:w-auto"
-                  >
-                    <span>Continental Hub</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
+                <ButtonRollingText
+                  href="/continental"
+                  variant={continentalStatus.status === "QUALIFIED_UCL" ? "default" : "yellow"}
+                  size="sm"
+                  text="Continental Hub"
+                  stagger
+                  icon={<ChevronRight className="h-3.5 w-3.5" />}
+                  iconPosition="right"
+                  className="font-bold text-xs gap-1.5 w-full sm:w-auto shrink-0"
+                />
               )}
             </div>
           )}
@@ -2627,15 +2637,16 @@ export default function DashboardClient({
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <a
+                      <ButtonRollingText
                         href={`https://wa.me/${cleanWhatsapp}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-primary hover:bg-primary text-white font-bold text-xs shadow-lg transition-all"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        Chat on WA
-                      </a>
+                        text="Chat on WA"
+                        stagger
+                        icon={<MessageSquare className="h-3.5 w-3.5" />}
+                        iconPosition="left"
+                        className="py-2 px-3 rounded-xl bg-primary hover:bg-primary text-white font-bold text-xs shadow-lg transition-all"
+                      />
 
                       <button
                         type="button"
@@ -2772,15 +2783,17 @@ export default function DashboardClient({
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       {sharedSubmission?.screenshotUrl && (
-                        <a
+                        <ButtonRollingText
                           href={sharedSubmission.screenshotUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-card border border-border text-xs text-primary font-bold hover:bg-muted transition"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View Screenshot Proof
-                        </a>
+                          variant="outline"
+                          text="View Screenshot Proof"
+                          stagger
+                          icon={<Eye className="h-3.5 w-3.5" />}
+                          iconPosition="left"
+                          className="py-2 px-3.5 rounded-xl bg-card border border-border text-xs text-primary font-bold hover:bg-muted transition"
+                        />
                       )}
                     </div>
                   </div>
@@ -2820,15 +2833,17 @@ export default function DashboardClient({
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       {sharedForfeit?.proofScreenshotUrl && (
-                        <a
+                        <ButtonRollingText
                           href={sharedForfeit.proofScreenshotUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-card border border-border text-xs text-destructive font-bold hover:bg-muted transition"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View WhatsApp Proof
-                        </a>
+                          variant="outline"
+                          text="View WhatsApp Proof"
+                          stagger
+                          icon={<Eye className="h-3.5 w-3.5" />}
+                          iconPosition="left"
+                          className="py-2 px-3.5 rounded-xl bg-card border border-border text-xs text-destructive font-bold hover:bg-muted transition"
+                        />
                       )}
                     </div>
                   </div>
@@ -3194,11 +3209,14 @@ export default function DashboardClient({
                     Open Match Calendar ({allPlayerMatches.length} Fixtures)
                   </Button>
                 )}
-                <Link href="/standings">
-                  <Button variant="yellow" size="sm">
-                    View Division Standings
-                  </Button>
-                </Link>
+                <ButtonRollingText
+                  href="/standings"
+                  variant="yellow"
+                  size="sm"
+                  text="View Division Standings"
+                  stagger
+                  className="font-bold text-xs"
+                />
               </div>
             </div>
           )}
@@ -4054,39 +4072,47 @@ export default function DashboardClient({
                     <div className="pt-2 border-t border-border/80 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {matchOpponent?.whatsapp && !isFutureDivisionMatch && (
-                          <a
+                          <ButtonRollingText
                             href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-primary hover:bg-primary text-white text-xs font-bold shadow-sm"
-                          >
-                            <MessageSquare className="h-3 w-3" />
-                            WhatsApp
-                          </a>
+                            text="WhatsApp"
+                            stagger
+                            size="sm"
+                            icon={<MessageSquare className="h-3 w-3" />}
+                            iconPosition="left"
+                            className="h-7 py-1 px-2.5 rounded-lg bg-primary hover:bg-primary text-white text-xs font-bold shadow-sm"
+                          />
                         )}
 
                         {sub?.screenshotUrl && (
-                          <a
+                          <ButtonRollingText
                             href={sub.screenshotUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-primary font-bold hover:bg-muted"
-                          >
-                            <Eye className="h-3 w-3" />
-                            Proof
-                          </a>
+                            variant="outline"
+                            text="Proof"
+                            stagger
+                            size="sm"
+                            icon={<Eye className="h-3 w-3" />}
+                            iconPosition="left"
+                            className="h-7 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-primary font-bold hover:bg-muted"
+                          />
                         )}
 
                         {forfeit?.proofScreenshotUrl && (
-                          <a
+                          <ButtonRollingText
                             href={forfeit.proofScreenshotUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-destructive font-bold hover:bg-muted"
-                          >
-                            <Eye className="h-3 w-3" />
-                            Forfeit Proof
-                          </a>
+                            variant="outline"
+                            text="Forfeit Proof"
+                            stagger
+                            size="sm"
+                            icon={<Eye className="h-3 w-3" />}
+                            iconPosition="left"
+                            className="h-7 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-destructive font-bold hover:bg-muted"
+                          />
                         )}
                       </div>
 

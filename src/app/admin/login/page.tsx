@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, Lock, Mail, ArrowRight, ShieldAlert, Gamepad2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ButtonRollingText } from "@/components/ui/button-rolling-text";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -68,13 +69,15 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Back to Home Button */}
         <div>
-          <Link
+          <ButtonRollingText
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-white transition-colors bg-card/80 hover:bg-muted border border-border rounded-xl px-3.5 py-2 group shadow-sm"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-primary" />
-            <span>Back to Home</span>
-          </Link>
+            variant="ghost"
+            text="Back to Home"
+            stagger
+            icon={<ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1 text-muted-foreground group-hover:text-primary" />}
+            iconPosition="left"
+            className="h-9 text-xs font-bold text-muted-foreground hover:text-white transition-colors bg-card/80 hover:bg-muted border border-border rounded-xl px-3.5 py-2 group shadow-sm"
+          />
         </div>
 
         {/* Header Badge */}

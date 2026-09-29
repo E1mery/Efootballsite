@@ -174,6 +174,124 @@ body {
 /* PREMIUM ESPORTS / FOOTBALL CAROUSEL (NEWS & TRENDING) */
 /* ========================================================================= */
 
+.carousel-stage-container {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+  min-height: 480px;
+  height: clamp(450px, 48vh, 520px);
+}
+
+@media (max-width: 1024px) {
+  .carousel-stage-container {
+    min-height: 410px;
+    height: 430px;
+  }
+}
+
+@media (max-width: 640px) {
+  .carousel-stage-container {
+    min-height: 350px;
+    height: 370px;
+  }
+}
+
+.carousel-slide-card {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 78%;
+  min-height: 440px;
+  height: clamp(420px, 45vh, 480px);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px -15px oklch(0 0 0 / 0.5), 0 0 0 1px var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+@media (max-width: 1024px) {
+  .carousel-slide-card {
+    width: 82%;
+    min-height: 370px;
+    height: 390px;
+  }
+}
+
+@media (max-width: 640px) {
+  .carousel-slide-card {
+    width: 86%;
+    min-height: 320px;
+    height: 340px;
+    border-radius: 14px;
+  }
+}
+
+/* Coverflow Card Positioning Variants */
+.carousel-card-active {
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+  z-index: 20;
+  pointer-events: auto;
+  box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(var(--secondary) / 0.35);
+}
+
+.carousel-card-next {
+  transform: translateX(calc(-50% + 92%)) scale(0.88);
+  opacity: 0.5;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.carousel-card-next:hover {
+  opacity: 0.75;
+  transform: translateX(calc(-50% + 92%)) scale(0.9);
+}
+
+.carousel-card-prev {
+  transform: translateX(calc(-50% - 92%)) scale(0.88);
+  opacity: 0.5;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.carousel-card-prev:hover {
+  opacity: 0.75;
+  transform: translateX(calc(-50% - 92%)) scale(0.9);
+}
+
+@media (max-width: 640px) {
+  .carousel-card-next {
+    transform: translateX(calc(-50% + 94%)) scale(0.9);
+  }
+  .carousel-card-prev {
+    transform: translateX(calc(-50% - 94%)) scale(0.9);
+  }
+}
+
+.carousel-card-hidden-right {
+  transform: translateX(calc(-50% + 180%)) scale(0.75);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.carousel-card-hidden-left {
+  transform: translateX(calc(-50% - 180%)) scale(0.75);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .carousel-hero-container {
   position: relative;
   width: 100%;

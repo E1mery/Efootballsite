@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Trophy, Shield, Menu, X, ShieldAlert, Globe, User, LogIn, ExternalLink, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ButtonRollingText } from "@/components/ui/button-rolling-text";
 import { Badge } from "@/components/ui/badge";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 
@@ -135,18 +136,20 @@ export default function Navbar() {
               const isActive = pathname === link.href;
               const Icon = link.icon;
               return (
-                <Link
+                <ButtonRollingText
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  text={link.name}
+                  stagger
+                  variant="ghost"
+                  icon={<Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />}
+                  iconPosition="left"
+                  className={`h-8 px-3.5 text-xs font-semibold rounded-lg transition-all ${
                     isActive
-                      ? "bg-primary/10 text-primary shadow-inner border border-primary/30"
+                      ? "bg-primary/10 text-primary shadow-inner border border-primary/30 hover:bg-primary/20 hover:text-primary"
                       : "text-foreground hover:text-white hover:bg-muted/60"
                   }`}
-                >
-                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                  <span>{link.name}</span>
-                </Link>
+                />
               );
             })}
           </nav>
@@ -163,33 +166,47 @@ export default function Navbar() {
             </div>
           ) : session?.authenticated ? (
             session.user?.role === "ADMIN" ? (
-              <Link href="/admin">
-                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md">
-                  <ShieldAlert className="h-3.5 w-3.5" />
-                  <span>Admin Office</span>
-                </Button>
-              </Link>
+              <ButtonRollingText
+                href="/admin"
+                variant="yellow"
+                size="sm"
+                text="Admin Office"
+                stagger
+                icon={<ShieldAlert className="h-3.5 w-3.5" />}
+                iconPosition="left"
+                className="font-black text-xs gap-1.5 shadow-md"
+              />
             ) : (
-              <Link href="/dashboard">
-                <Button variant="yellow" size="sm" className="font-black text-xs gap-1.5 shadow-md">
-                  <User className="h-3.5 w-3.5" />
-                  <span>{session.player?.gamerTag || "Player Dashboard"}</span>
-                </Button>
-              </Link>
+              <ButtonRollingText
+                href="/dashboard"
+                variant="yellow"
+                size="sm"
+                text={session.player?.gamerTag || "Player Dashboard"}
+                stagger
+                icon={<User className="h-3.5 w-3.5" />}
+                iconPosition="left"
+                className="font-black text-xs gap-1.5 shadow-md"
+              />
             )
           ) : (
             <>
-              <Link href="/login">
-                <Button variant="outline" size="sm" className="font-bold text-xs gap-1.5 border-border text-foreground hover:text-white">
-                  <LogIn className="h-3.5 w-3.5" />
-                  <span>Log In</span>
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm">
-                  <span>Register</span>
-                </Button>
-              </Link>
+              <ButtonRollingText
+                href="/login"
+                variant="outline"
+                size="sm"
+                text="Log In"
+                stagger
+                icon={<LogIn className="h-3.5 w-3.5" />}
+                iconPosition="left"
+                className="font-bold text-xs gap-1.5 border-border text-foreground hover:text-white"
+              />
+              <ButtonRollingText
+                href="/register"
+                size="sm"
+                text="Register"
+                stagger
+                className="font-bold text-xs shadow-md"
+              />
             </>
           )}
         </div>
@@ -198,29 +215,27 @@ export default function Navbar() {
         {!isInsidePortal && (
           <div className="flex items-center gap-2 lg:hidden">
             {session?.authenticated ? (
-              <Link href={session.user?.role === "ADMIN" ? "/admin" : "/dashboard"}>
-                <Button
-                  size="sm"
-                  variant={session.user?.role === "ADMIN" ? "yellow" : "yellow"}
-                  className="h-8 px-2.5 text-xs font-black"
-                >
-                  <User className="h-3.5 w-3.5 mr-1" />
-                  <span className="w-20 truncate">
-                    {session.player?.gamerTag || (session.user?.role === "ADMIN" ? "Admin" : "Portal")}
-                  </span>
-                </Button>
-              </Link>
+              <ButtonRollingText
+                href={session.user?.role === "ADMIN" ? "/admin" : "/dashboard"}
+                size="sm"
+                variant="yellow"
+                text={session.player?.gamerTag || (session.user?.role === "ADMIN" ? "Admin" : "Portal")}
+                stagger
+                icon={<User className="h-3.5 w-3.5" />}
+                iconPosition="left"
+                className="h-8 px-2.5 text-xs font-black max-w-28"
+              />
             ) : (
-              <Link href="/login">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2.5 text-xs font-bold border-border text-foreground"
-                >
-                  <LogIn className="h-3 w-3 mr-1" />
-                  <span>Log In</span>
-                </Button>
-              </Link>
+              <ButtonRollingText
+                href="/login"
+                size="sm"
+                variant="outline"
+                text="Log In"
+                stagger
+                icon={<LogIn className="h-3 w-3" />}
+                iconPosition="left"
+                className="h-8 px-2.5 text-xs font-bold border-border text-foreground"
+              />
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -241,19 +256,21 @@ export default function Navbar() {
                 const isActive = pathname === link.href;
                 const Icon = link.icon;
                 return (
-                  <Link
+                  <ButtonRollingText
                     key={link.href}
                     href={link.href}
+                    text={link.name}
+                    stagger
+                    variant="ghost"
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all h-11 ${
+                    icon={<Icon className="h-4 w-4 text-primary" />}
+                    iconPosition="left"
+                    className={`flex items-center justify-start gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all h-11 w-full ${
                       isActive
                         ? "bg-muted/80 text-primary border border-primary/30"
                         : "text-foreground hover:bg-card"
                     }`}
-                  >
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span>{link.name}</span>
-                  </Link>
+                  />
                 );
               })}
 
@@ -261,30 +278,41 @@ export default function Navbar() {
 
                 {session?.authenticated ? (
                   session.user?.role === "ADMIN" ? (
-                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="yellow" className="w-full text-xs font-black h-11">
-                        Open Admin Office
-                      </Button>
-                    </Link>
+                    <ButtonRollingText
+                      href="/admin"
+                      variant="yellow"
+                      text="Open Admin Office"
+                      stagger
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-xs font-black h-11"
+                    />
                   ) : (
-                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="yellow" className="w-full text-xs font-black h-11">
-                        My Player Dashboard ({session.player?.gamerTag || "Profile"})
-                      </Button>
-                    </Link>
+                    <ButtonRollingText
+                      href="/dashboard"
+                      variant="yellow"
+                      text={`My Player Dashboard (${session.player?.gamerTag || "Profile"})`}
+                      stagger
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-xs font-black h-11"
+                    />
                   )
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full text-xs font-bold h-11">
-                        Log In
-                      </Button>
-                    </Link>
-                    <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                      <Button  className="w-full text-xs font-black h-11">
-                        Register
-                      </Button>
-                    </Link>
+                    <ButtonRollingText
+                      href="/login"
+                      variant="outline"
+                      text="Log In"
+                      stagger
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-xs font-bold h-11"
+                    />
+                    <ButtonRollingText
+                      href="/register"
+                      text="Register"
+                      stagger
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-xs font-black h-11"
+                    />
                   </div>
                 )}
               </div>
