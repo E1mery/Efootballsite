@@ -5,7 +5,6 @@ import {
   Globe,
   LogIn,
   UserPlus,
-  Clock,
   CheckCircle2,
   Crown,
 } from "lucide-react";
@@ -304,49 +303,7 @@ export default async function HomePage({
         )}
       </section>
 
-      {/* MAIN SYSTEM FEATURES & RULES */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-2xl border border-primary/20 bg-background/70 p-6 space-y-3 backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <Badge variant="default" className="text-xs bg-primary/20 text-primary border-primary/30">
-                1 MATCH PER PAIRING
-              </Badge>
-              <Clock className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="text-base font-black uppercase text-white">One-Way 24-Hr Matchdays</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Every matchday runs on a strict 24-hour window expiring at 12:00 AM midnight. All division fixtures are single round robin (1 match only).
-            </p>
-          </div>
 
-          <div className="rounded-2xl border border-secondary/20 bg-background/70 p-6 space-y-3 backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <Badge variant="yellow" className="text-xs bg-secondary/20 text-secondary border-secondary/30">
-                AUTOMATIC PROMOTION
-              </Badge>
-              <Trophy className="h-4 w-4 text-secondary" />
-            </div>
-            <h3 className="text-base font-black uppercase text-white">Division 2 & 3 Top 3 Promoted</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              At the end of the season, the top 3 ranked players in Division 2 earn automatic promotion to Division 1, and the top 3 in Division 3 promote to Division 2.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-primary/20 bg-background/70 p-6 space-y-3 backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
-                POST-SEASON
-              </Badge>
-              <Globe className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="text-base font-black uppercase text-white">eFootball UCL & Europa</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Continental cup showdowns featuring 16 top performers from all divisions in group stages followed by two-legged home & away knockouts.
-            </p>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

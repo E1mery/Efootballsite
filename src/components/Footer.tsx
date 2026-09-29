@@ -8,6 +8,7 @@ import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 export default function Footer() {
   const pathname = usePathname();
   const isAdminPortal = pathname?.startsWith("/admin");
+  const isDashboard = pathname?.startsWith("/dashboard");
 
   if (isAdminPortal) {
     return (
@@ -31,6 +32,7 @@ export default function Footer() {
     <footer className="border-t border-border/80 bg-background text-muted-foreground">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Official Community & Social Channels Banner (Compact) */}
+        {!isDashboard && (
         <div className="rounded-2xl border border-border/80 bg-card/60 p-4 sm:p-5 backdrop-blur-sm mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -81,6 +83,7 @@ export default function Footer() {
             </div>
           </div>
         </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {/* Brand Info */}
