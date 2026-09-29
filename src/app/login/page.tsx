@@ -78,7 +78,8 @@ function LoginForm() {
           setError("Your account is a Player account. Administrator access is required.");
           return;
         }
-        window.location.href = "/dashboard";
+        const redirectParam = searchParams.get("redirect");
+        window.location.href = redirectParam || "/dashboard";
       }
     } catch (err: any) {
       setError(err.message || "Invalid credentials");

@@ -169,3 +169,216 @@ body {
 .stop-secondary {
   stop-color: oklch(var(--secondary));
 }
+
+/* ========================================================================= */
+/* PREMIUM ESPORTS / FOOTBALL CAROUSEL (NEWS & TRENDING) */
+/* ========================================================================= */
+
+.carousel-hero-container {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px -15px oklch(0 0 0 / 0.5), 0 0 0 1px var(--border);
+  min-height: 440px;
+  height: clamp(420px, 45vh, 480px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+@media (max-width: 1024px) {
+  .carousel-hero-container {
+    min-height: 360px;
+    height: 390px;
+  }
+}
+
+@media (max-width: 640px) {
+  .carousel-hero-container {
+    min-height: 280px;
+    height: auto;
+    border-radius: 14px;
+  }
+}
+
+/* Multi-layer Cinematic Background */
+.carousel-bg-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  transform: scale(1.02);
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.carousel-hero-container:hover .carousel-bg-layer {
+  transform: scale(1.05);
+}
+
+/* Gradients Overlays */
+.carousel-overlay-dark {
+  position: absolute;
+  inset: 0;
+  background: oklch(var(--background) / 0.72);
+  pointer-events: none;
+}
+
+.carousel-overlay-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    oklch(var(--background) / 0.96) 0%,
+    oklch(var(--background) / 0.9) 35%,
+    oklch(var(--background) / 0.65) 70%,
+    oklch(var(--background) / 0.45) 100%
+  );
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .carousel-overlay-gradient {
+    background: linear-gradient(
+      180deg,
+      oklch(var(--background) / 0.96) 0%,
+      oklch(var(--background) / 0.88) 50%,
+      oklch(var(--background) / 0.94) 100%
+    );
+  }
+}
+
+.carousel-overlay-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 45%, oklch(var(--background) / 0.85) 100%);
+  pointer-events: none;
+}
+
+.carousel-overlay-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 30%, oklch(var(--primary) / 0.25) 0%, transparent 50%),
+              radial-gradient(circle at 20% 80%, oklch(var(--secondary) / 0.12) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes carouselSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.carousel-animate-content {
+  animation: carouselSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Headline clamp typography */
+.carousel-headline {
+  font-size: clamp(1.25rem, 2.8vw, 2.25rem);
+  line-height: 1.15;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: oklch(var(--foreground));
+  max-width: 44rem;
+}
+
+/* Category Badge */
+.carousel-category-badge {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Modern Navigation Buttons */
+.carousel-nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: oklch(var(--card) / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  color: oklch(var(--foreground));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.25);
+}
+
+.carousel-nav-btn:hover:not(:disabled) {
+  transform: scale(1.06);
+  background: oklch(var(--card) / 0.95);
+  border-color: oklch(var(--secondary) / 0.5);
+  color: oklch(var(--secondary));
+  box-shadow: 0 6px 20px oklch(var(--secondary) / 0.2);
+}
+
+.carousel-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.carousel-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .carousel-nav-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+}
+
+/* Pagination Indicators */
+.carousel-dot {
+  height: 8px;
+  border-radius: 9999px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.carousel-dot-active {
+  width: 28px;
+  background-color: oklch(var(--secondary));
+  box-shadow: 0 0 10px oklch(var(--secondary) / 0.6);
+}
+
+.carousel-dot-inactive {
+  width: 8px;
+  background-color: oklch(var(--muted-foreground) / 0.35);
+}
+
+.carousel-dot-inactive:hover {
+  background-color: oklch(var(--muted-foreground) / 0.7);
+  transform: scale(1.15);
+}
+
+/* Dynamic CTA button with hover elevation */
+.carousel-cta-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.3);
+}
+
+.carousel-cta-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px oklch(var(--secondary) / 0.3);
+}
+

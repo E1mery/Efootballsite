@@ -86,8 +86,9 @@ export default function RegisterPage() {
         localStorage.setItem("efrl_show_tutorial", "true");
       }
 
-      // Successfully registered and session created! Redirect to dashboard with welcome flag
-      router.push("/dashboard?welcome=true");
+      // Successfully registered and session created! Redirect to target or dashboard with welcome flag
+      const redirectParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null;
+      router.push(redirectParam || "/dashboard?welcome=true");
       router.refresh();
     } catch (err: any) {
       setError(err.message || "An error occurred");

@@ -12,11 +12,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cookies } from "next/headers";
+import NewsTrendingCarousel from "@/components/NewsTrendingCarousel";
+import { getCarouselSlides } from "@/lib/carouselData";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import MatchCard from "@/components/MatchCard";
-import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
@@ -33,9 +35,6 @@ export default async function HomePage({
     await redirectAdminToPortal();
   }
 
-  // Run autonomous midnight daily cycle check without requiring admin permission
-  await checkAndAutoAdvanceDailyCycle();
-
   let liveMatches: any[] = [];
   let recentMatches: any[] = [];
   let div1Standings: any[] = [];
@@ -43,9 +42,24 @@ export default async function HomePage({
   let div3Standings: any[] = [];
   let hallOfFame: any[] = [];
   let leagueConfig: any = { registrationOpen: true, currentMatchday: 1 };
+  let carouselSlides: any[] = [];
+  let userSession: any = null;
 
   try {
-    const results = await Promise.all([
+    const cookieStore = await cookies();
+    const sessionUserId = cookieStore.get("efrl_session")?.value;
+
+    const [
+      liveResults,
+      recentResults,
+      d1Results,
+      d2Results,
+      d3Results,
+      cfgResult,
+      hofResults,
+      slidesResult,
+      userResult,
+    ] = await Promise.all([
       prisma.match.findMany({
         where: { status: "LIVE" },
         include: { homePlayer: true, awayPlayer: true },
@@ -84,15 +98,30 @@ export default async function HomePage({
         orderBy: { createdAt: "desc" },
         take: 12,
       }),
+      getCarouselSlides(),
+      sessionUserId
+        ? prisma.user.findUnique({
+            where: { id: sessionUserId },
+            include: { player: true },
+          })
+        : null,
     ]);
 
-    liveMatches = results[0];
-    recentMatches = results[1];
-    div1Standings = results[2];
-    div2Standings = results[3];
-    div3Standings = results[4];
-    leagueConfig = results[5];
-    hallOfFame = results[6] || [];
+    liveMatches = liveResults;
+    recentMatches = recentResults;
+    div1Standings = d1Results;
+    div2Standings = d2Results;
+    div3Standings = d3Results;
+    leagueConfig = cfgResult;
+    hallOfFame = hofResults || [];
+    carouselSlides = slidesResult;
+    if (userResult) {
+      userSession = {
+        authenticated: true,
+        user: { id: userResult.id, email: userResult.email, role: userResult.role },
+        player: userResult.player,
+      };
+    }
   } catch (error) {
     console.error("HomePage data query error:", error);
   }
@@ -130,8 +159,15 @@ export default async function HomePage({
         </div>
       )}
 
-      {/* HERO SECTION */}
-      <section className="relative z-10 pt-12 sm:pt-20 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8">
+      {/* ========================================================================= */}
+      {/* TOP SPORTS RADAR / TRENDING SLIDER */}
+      {/* ========================================================================= */}
+      <div className="pt-2 sm:pt-4">
+        <NewsTrendingCarousel slides={carouselSlides} userSession={userSession} />
+      </div>
+
+      {/* HERO INTRO HEADER */}
+      <section className="relative z-10 pt-4 sm:pt-8 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-6">
         {/* System Gaming Logo and League Badge */}
         <div className="flex flex-col items-center justify-center gap-4">
           <EfootballGamingLogo size="xl" showText={false} />
@@ -144,9 +180,11 @@ export default async function HomePage({
             The official national digital football championship. Athletes compete across <strong>Division 1, 2, and 3</strong> in daily <strong>24-hour matchday cycles</strong>.
           </p>
         </div>
+      </section>
 
-        {/* MAIN USER ACTIONS HUB (What users can do) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 text-left">
+      {/* MAIN USER ACTIONS HUB (What users can do) */}
+      <section className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
           {/* Action 1: Player Login */}
           <Link
             href="/login"

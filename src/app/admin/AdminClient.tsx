@@ -1503,6 +1503,37 @@ export default function AdminClient({
     }
   };
 
+  // Toggle Announcement Pin / Breaking News status for Hero Carousel
+  const handleTogglePinAnnouncement = async (id: string, currentPinned: boolean) => {
+    try {
+      const res = await fetch("/api/announcements", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isPinned: !currentPinned }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update announcement");
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // Delete Announcement
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this announcement?")) return;
+    try {
+      const res = await fetch(`/api/announcements?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete announcement");
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   // Save Division Participant Capacity
   const handleSaveCapacity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -5360,8 +5391,8 @@ export default function AdminClient({
                   onChange={(e) => setIsPinned(e.target.checked)}
                   className="rounded border-border"
                 />
-                <label htmlFor="pinNotice" className="text-xs text-foreground">
-                  Pin to Top of Player Noticeboard
+                <label htmlFor="pinNotice" className="text-xs text-foreground flex items-center gap-1.5 cursor-pointer">
+                  <span>Pin to Noticeboard &amp; Feature as Breaking News on Hero Carousel</span>
                 </label>
               </div>
 
@@ -5372,24 +5403,52 @@ export default function AdminClient({
           </div>
 
           <div className="lg:col-span-6 rounded-3xl border border-border bg-background/90 p-6 sm:p-8 shadow-xl space-y-4">
-            <h3 className="text-lg font-black uppercase text-white flex items-center gap-2 border-b border-border pb-3">
+            <h3 className="text-lg font-black uppercase text-foreground flex items-center gap-2 border-b border-border pb-3">
               <Bell className="h-5 w-5 text-secondary" />
-              <span>Recent Announcements Feed</span>
+              <span>Recent Announcements &amp; News Feed</span>
             </h3>
 
             <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {announcements.map((ann) => (
-                <div key={ann.id} className="p-4 rounded-2xl bg-card/60 border border-border space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white text-xs">{ann.title}</span>
-                    <Badge variant={ann.type === "BROADCAST" ? "secondary" : "yellow"} className="text-xs">
-                      {ann.type}
-                    </Badge>
+                <div key={ann.id} className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-bold text-foreground text-xs">{ann.title}</span>
+                    <div className="flex items-center gap-1.5">
+                      {ann.isPinned && (
+                        <Badge variant="yellow" className="text-xs font-bold font-mono">
+                          ⚡ BREAKING NEWS
+                        </Badge>
+                      )}
+                      <Badge variant={ann.type === "BROADCAST" ? "secondary" : "yellow"} className="text-xs">
+                        {ann.type}
+                      </Badge>
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground">{ann.content}</p>
-                  <span className="text-xs text-muted-foreground font-mono block">
-                    {formatRwandanDateTime(ann.createdAt)} (CAT)
-                  </span>
+                  <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {formatRwandanDateTime(ann.createdAt)} (CAT)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTogglePinAnnouncement(ann.id, ann.isPinned)}
+                        className="text-xs h-7 px-2 font-semibold"
+                      >
+                        {ann.isPinned ? "Unpin News" : "⚡ Pin as Breaking"}
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnouncement(ann.id)}
+                        className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete announcement"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

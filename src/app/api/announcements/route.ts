@@ -50,6 +50,16 @@ export async function GET(req: Request) {
   }
 }
 
+async function verifyAdmin() {
+  const cookieStore = await cookies();
+  const sessionUserId = cookieStore.get("efrl_session")?.value;
+  if (!sessionUserId) return null;
+
+  const user = await prisma.user.findUnique({ where: { id: sessionUserId } });
+  if (!user || user.role !== "ADMIN") return null;
+  return user;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -88,5 +98,63 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Announcement error:", err);
     return NextResponse.json({ error: "Failed to post announcement" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const admin = await verifyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized: Administrator access required." }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { id, isPinned } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Announcement ID is required." }, { status: 400 });
+    }
+
+    const updated = await prisma.announcement.update({
+      where: { id },
+      data: { isPinned: Boolean(isPinned) },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: updated.isPinned
+        ? "Announcement pinned and marked as Breaking News for Hero Carousel!"
+        : "Announcement unpinned from Breaking News.",
+      announcement: updated,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const admin = await verifyAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized: Administrator access required." }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Announcement ID is required." }, { status: 400 });
+    }
+
+    await prisma.announcement.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Announcement removed successfully.",
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
