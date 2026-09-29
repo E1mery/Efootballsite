@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { cookies } from "next/headers";
 import { getCarouselSlides } from "@/lib/carouselData";
 import NewsTrendingCarousel from "@/components/NewsTrendingCarousel";
-import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import MatchCard from "@/components/MatchCard";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
@@ -36,9 +35,6 @@ export default async function HomePage({
 
   let liveMatches: any[] = [];
   let recentMatches: any[] = [];
-  let div1Standings: any[] = [];
-  let div2Standings: any[] = [];
-  let div3Standings: any[] = [];
   let hallOfFame: any[] = [];
   let leagueConfig: any = { registrationOpen: true, currentMatchday: 1 };
   let carouselSlides: any[] = [];
@@ -51,9 +47,6 @@ export default async function HomePage({
     const [
       liveResults,
       recentResults,
-      d1Results,
-      d2Results,
-      d3Results,
       cfgResult,
       hofResults,
       slidesResult,
@@ -69,24 +62,6 @@ export default async function HomePage({
         include: { homePlayer: true, awayPlayer: true },
         orderBy: { matchDate: "desc" },
         take: 3,
-      }),
-      prisma.standing.findMany({
-        where: { division: "Division 1" },
-        include: { player: true },
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-        take: 20,
-      }),
-      prisma.standing.findMany({
-        where: { division: "Division 2" },
-        include: { player: true },
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-        take: 20,
-      }),
-      prisma.standing.findMany({
-        where: { division: "Division 3" },
-        include: { player: true },
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-        take: 20,
       }),
       prisma.leagueConfig.upsert({
         where: { id: "default" },
@@ -108,9 +83,6 @@ export default async function HomePage({
 
     liveMatches = liveResults;
     recentMatches = recentResults;
-    div1Standings = d1Results;
-    div2Standings = d2Results;
-    div3Standings = d3Results;
     leagueConfig = cfgResult;
     hallOfFame = hofResults || [];
     carouselSlides = slidesResult;
@@ -301,38 +273,6 @@ export default async function HomePage({
         </section>
       )}
 
-      {/* ALL 3 DIVISIONS STANDINGS TABLES */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-6 w-6" />
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight">
-                All Divisions Official Standings
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Live tournament rankings across Division 1, Division 2, and Division 3.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-primary/30 text-primary font-mono text-xs">
-              MATCHDAY {leagueConfig.currentMatchday}
-            </Badge>
-            <Badge variant="outline" className="border-secondary/30 text-secondary font-mono text-xs">
-              24-HR CYCLE
-            </Badge>
-          </div>
-        </div>
-
-        {/* Home Divisions Tabs displaying all 3 division tables */}
-        <HomeDivisionsTabs
-          div1Standings={div1Standings}
-          div2Standings={div2Standings}
-          div3Standings={div3Standings}
-        />
-      </section>
 
       {/* ========================================================================= */}
       {/* HALL OF FAME: IMMORTALIZED CHAMPIONS */}
