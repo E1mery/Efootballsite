@@ -5,12 +5,10 @@ import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
-  Flame,
   Calendar,
   Trophy,
   Sparkles,
   ArrowRight,
-
   Crown,
   ShieldCheck,
   TrendingUp,
@@ -312,41 +310,6 @@ export default function NewsTrendingCarousel({
 
                 {/* SLIDE CARD INNER CONTENT */}
                 <div className="relative z-10 p-5 sm:p-7 md:p-8 flex-1 flex flex-col justify-between gap-4 md:px-12">
-                  {/* TOP ROW: Category Badge, Tagline, and Counter */}
-                  <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Badge
-                        variant={
-                          slide.type === "HALL_OF_FAME"
-                            ? "yellow"
-                            : slide.type === "MOTD" || slide.type === "MOTD_RESULT"
-                            ? "yellow"
-                            : slide.type === "IN_FORM"
-                            ? "default"
-                            : "secondary"
-                        }
-                        className="carousel-category-badge py-1 px-3 shrink-0 flex items-center gap-1.5 shadow-sm border border-secondary/40"
-                      >
-                        {slide.type === "IN_FORM" && <Flame className="h-3.5 w-3.5 text-secondary animate-pulse" />}
-                        {slide.type === "MOTD" && <Sparkles className="h-3.5 w-3.5 text-secondary" />}
-                        {slide.type === "MOTD_RESULT" && <Award className="h-3.5 w-3.5 text-secondary" />}
-                        {slide.type === "HALL_OF_FAME" && <Crown className="h-3.5 w-3.5 text-secondary" />}
-                        {slide.type === "TODAY_MATCHES" && <Calendar className="h-3.5 w-3.5 text-primary" />}
-                        {slide.type === "REGISTRATION" && <ShieldCheck className="h-3.5 w-3.5 text-secondary" />}
-                        <span>{slide.badge}</span>
-                      </Badge>
-
-                      <span className="hidden sm:inline-block text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                        Official League Radar
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-xs font-mono text-muted-foreground font-bold px-2 py-1 rounded-md bg-card/60 border border-border/50">
-                        {String(index + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
-                      </div>
-                    </div>
-                  </div>
 
                   {/* MAIN BODY PER SLIDE TYPE */}
                   <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
@@ -655,14 +618,6 @@ export default function NewsTrendingCarousel({
                           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                             Athletes compete across Division 1, Division 2, and Division 3 in daily 24-hour matchday cycles with direct WhatsApp matchmaking.
                           </p>
-                          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-mono">
-                            <span className="px-3 py-1.5 rounded-xl bg-background/80 border border-border text-foreground">
-                              Division 1, 2, 3
-                            </span>
-                            <span className="px-3 py-1.5 rounded-xl bg-secondary/10 border border-secondary/30 text-secondary font-bold">
-                              WhatsApp Matchmaking
-                            </span>
-                          </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 shrink-0">
