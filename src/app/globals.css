@@ -183,6 +183,9 @@ body {
   overflow: hidden;
   min-height: 480px;
   height: clamp(450px, 48vh, 520px);
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
 }
 
 @media (max-width: 1024px) {
@@ -212,10 +215,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-              filter 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
   will-change: transform, opacity;
 }
 
@@ -236,60 +237,9 @@ body {
   }
 }
 
-/* Coverflow Card Positioning Variants */
+/* Coverflow Card Active Glow */
 .carousel-card-active {
-  transform: translateX(-50%) scale(1);
-  opacity: 1;
-  z-index: 20;
-  pointer-events: auto;
   box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(var(--secondary) / 0.35);
-}
-
-.carousel-card-next {
-  transform: translateX(calc(-50% + 92%)) scale(0.88);
-  opacity: 0.5;
-  z-index: 10;
-  cursor: pointer;
-}
-
-.carousel-card-next:hover {
-  opacity: 0.75;
-  transform: translateX(calc(-50% + 92%)) scale(0.9);
-}
-
-.carousel-card-prev {
-  transform: translateX(calc(-50% - 92%)) scale(0.88);
-  opacity: 0.5;
-  z-index: 10;
-  cursor: pointer;
-}
-
-.carousel-card-prev:hover {
-  opacity: 0.75;
-  transform: translateX(calc(-50% - 92%)) scale(0.9);
-}
-
-@media (max-width: 640px) {
-  .carousel-card-next {
-    transform: translateX(calc(-50% + 94%)) scale(0.9);
-  }
-  .carousel-card-prev {
-    transform: translateX(calc(-50% - 94%)) scale(0.9);
-  }
-}
-
-.carousel-card-hidden-right {
-  transform: translateX(calc(-50% + 180%)) scale(0.75);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.carousel-card-hidden-left {
-  transform: translateX(calc(-50% - 180%)) scale(0.75);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
 }
 
 .carousel-hero-container {

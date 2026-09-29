@@ -17,6 +17,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { motion, useReducedMotion } from "framer-motion";
 import AuthPromptModal from "@/components/AuthPromptModal";
 import { cn } from "@/lib/utils";
 import {
@@ -61,18 +62,11 @@ function getSlideDiff(index: number, current: number, total: number): number {
   return diff;
 }
 
-function getSlidePositionClass(diff: number, total: number): string {
-  if (total <= 1 || diff === 0) return "carousel-card-active";
-  if (diff === 1) return "carousel-card-next";
-  if (diff === -1) return "carousel-card-prev";
-  if (diff > 1) return "carousel-card-hidden-right";
-  return "carousel-card-hidden-left";
-}
-
 export default function NewsTrendingCarousel({
   slides = [],
   userSession = null,
 }: NewsTrendingCarouselProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -84,10 +78,6 @@ export default function NewsTrendingCarousel({
     redirectUrl?: string;
   }>({ isOpen: false });
 
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const mouseStartX = useRef<number | null>(null);
-  const isMouseDown = useRef(false);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -140,6 +130,118 @@ export default function NewsTrendingCarousel({
     }
   };
 
+  const getCoverflowProps = useCallback(
+    (diff: number) => {
+      if (totalSlides <= 1 || diff === 0) {
+        return {
+          x: "-50%",
+          y: 0,
+          z: 0,
+          rotateY: 0,
+          scale: 1,
+          opacity: 1,
+          zIndex: 30,
+          filter: "brightness(1) blur(0px)",
+          pointerEvents: "auto" as const,
+        };
+      }
+
+      if (shouldReduceMotion) {
+        if (diff === 1) {
+          return {
+            x: "calc(-50% + 72%)",
+            y: 0,
+            z: 0,
+            rotateY: 0,
+            scale: 0.9,
+            opacity: 0.5,
+            zIndex: 20,
+            filter: "brightness(0.8) blur(0px)",
+            pointerEvents: "auto" as const,
+          };
+        }
+        if (diff === -1) {
+          return {
+            x: "calc(-50% - 72%)",
+            y: 0,
+            z: 0,
+            rotateY: 0,
+            scale: 0.9,
+            opacity: 0.5,
+            zIndex: 20,
+            filter: "brightness(0.8) blur(0px)",
+            pointerEvents: "auto" as const,
+          };
+        }
+        return {
+          x: diff > 0 ? "calc(-50% + 140%)" : "calc(-50% - 140%)",
+          y: 0,
+          z: 0,
+          rotateY: 0,
+          scale: 0.75,
+          opacity: 0,
+          zIndex: 10,
+          filter: "brightness(0.5) blur(0px)",
+          pointerEvents: "none" as const,
+        };
+      }
+
+      // 3D Motion Coverflow
+      if (diff === 1) {
+        return {
+          x: "calc(-50% + 70%)",
+          y: 0,
+          z: -140,
+          rotateY: -30,
+          scale: 0.86,
+          opacity: 0.55,
+          zIndex: 20,
+          filter: "brightness(0.75) blur(0.5px)",
+          pointerEvents: "auto" as const,
+        };
+      }
+      if (diff === -1) {
+        return {
+          x: "calc(-50% - 70%)",
+          y: 0,
+          z: -140,
+          rotateY: 30,
+          scale: 0.86,
+          opacity: 0.55,
+          zIndex: 20,
+          filter: "brightness(0.75) blur(0.5px)",
+          pointerEvents: "auto" as const,
+        };
+      }
+      if (diff > 1) {
+        return {
+          x: "calc(-50% + 140%)",
+          y: 0,
+          z: -280,
+          rotateY: -45,
+          scale: 0.72,
+          opacity: 0,
+          zIndex: 10,
+          filter: "brightness(0.5) blur(2px)",
+          pointerEvents: "none" as const,
+        };
+      }
+      // diff < -1
+      return {
+        x: "calc(-50% - 140%)",
+        y: 0,
+        z: -280,
+        rotateY: 45,
+        scale: 0.72,
+        opacity: 0,
+        zIndex: 10,
+        filter: "brightness(0.5) blur(2px)",
+        pointerEvents: "none" as const,
+      };
+    },
+    [totalSlides, shouldReduceMotion]
+  );
+
   useEffect(() => {
     if (totalSlides <= 1 || isPaused || authModal.isOpen) {
       return;
@@ -181,50 +283,6 @@ export default function NewsTrendingCarousel({
     }
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
-      if (deltaX > 0) {
-        prevSlide();
-      } else {
-        nextSlide();
-      }
-    }
-    touchStartX.current = null;
-    touchStartY.current = null;
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement | null;
-    if (target?.closest("button, a, input, select")) {
-      return;
-    }
-    isMouseDown.current = true;
-    mouseStartX.current = e.clientX;
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!isMouseDown.current || mouseStartX.current === null) return;
-    const deltaX = e.clientX - mouseStartX.current;
-    if (Math.abs(deltaX) > 50) {
-      if (deltaX > 0) {
-        prevSlide();
-      } else {
-        nextSlide();
-      }
-    }
-    isMouseDown.current = false;
-    mouseStartX.current = null;
-  };
-
   if (totalSlides === 0) {
     return null;
   }
@@ -241,10 +299,6 @@ export default function NewsTrendingCarousel({
         onMouseLeave={() => setIsPaused(false)}
         onFocus={() => setIsPaused(true)}
         onBlur={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
         className="relative z-20 mx-auto max-w-360 px-2 sm:px-4 lg:px-6 select-none focus:outline-none"
       >
         {/* COVERFLOW STAGE: LARGE CENTERED ACTIVE SLIDE + SMALLER FLANKING PREV/NEXT SLIDES */}
@@ -253,12 +307,50 @@ export default function NewsTrendingCarousel({
           {slides.map((slide, index) => {
             const diff = getSlideDiff(index, currentIndex, totalSlides);
             const isCenter = diff === 0;
-            const positionClass = getSlidePositionClass(diff, totalSlides);
 
             return (
-              <div
+              <motion.div
                 key={slide.id || index}
-                className={`carousel-slide-card ${positionClass}`}
+                className={cn(
+                  "carousel-slide-card",
+                  isCenter && "carousel-card-active"
+                )}
+                initial={false}
+                animate={getCoverflowProps(diff)}
+                transition={{
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 28,
+                  mass: 0.9,
+                }}
+                drag={isCenter && totalSlides > 1 ? "x" : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.25}
+                onDragEnd={(_, info) => {
+                  const swipeThreshold = 50;
+                  const velocityThreshold = 350;
+                  if (
+                    info.offset.x < -swipeThreshold ||
+                    info.velocity.x < -velocityThreshold
+                  ) {
+                    nextSlide();
+                  } else if (
+                    info.offset.x > swipeThreshold ||
+                    info.velocity.x > velocityThreshold
+                  ) {
+                    prevSlide();
+                  }
+                }}
+                whileHover={
+                  !isCenter && Math.abs(diff) === 1
+                    ? {
+                        scale: 0.89,
+                        opacity: 0.8,
+                        rotateY: diff === 1 ? -18 : 18,
+                        transition: { duration: 0.25 },
+                      }
+                    : undefined
+                }
               >
                 {/* Multi-layer Cinematic Sports Background */}
                 <div
@@ -685,7 +777,7 @@ export default function NewsTrendingCarousel({
                     />
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })}
 
@@ -724,6 +816,23 @@ export default function NewsTrendingCarousel({
           )}
         </div>
 
+        {/* Coverflow Pagination Dots */}
+        {totalSlides > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-3 sm:pt-4">
+            {slides.map((s, idx) => (
+              <button
+                key={s.id || idx}
+                type="button"
+                onClick={() => goToSlide(idx)}
+                aria-label={`Go to slide ${idx + 1}`}
+                className={cn(
+                  "carousel-dot",
+                  idx === currentIndex ? "carousel-dot-active" : "carousel-dot-inactive"
+                )}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Auth Prompt Modal */}
