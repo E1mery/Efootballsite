@@ -335,6 +335,7 @@ body {
   transform: scale(1.02);
   transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
+  pointer-events: none;
 }
 
 .carousel-hero-container:hover .carousel-bg-layer {

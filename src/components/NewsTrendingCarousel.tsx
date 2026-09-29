@@ -15,10 +15,11 @@ import {
   Award,
   CheckCircle2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import AuthPromptModal from "@/components/AuthPromptModal";
+import { cn } from "@/lib/utils";
 import {
   HeroEditorialStagger,
   StaggerRevealHeadline,
@@ -204,6 +205,10 @@ export default function NewsTrendingCarousel({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("button, a, input, select")) {
+      return;
+    }
     isMouseDown.current = true;
     mouseStartX.current = e.clientX;
   };
@@ -246,30 +251,6 @@ export default function NewsTrendingCarousel({
       >
         {/* COVERFLOW STAGE: LARGE CENTERED ACTIVE SLIDE + SMALLER FLANKING PREV/NEXT SLIDES */}
         <div className="carousel-stage-container">
-          {/* FLOATING NAVIGATION BUTTONS (DESKTOP & TABLET) */}
-          {totalSlides > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={prevSlide}
-                disabled={totalSlides <= 1}
-                aria-label="Previous slide"
-                className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-40 group flex"
-              >
-                <ChevronLeft className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:-translate-x-0.5" />
-              </button>
-              <button
-                type="button"
-                onClick={nextSlide}
-                disabled={totalSlides <= 1}
-                aria-label="Next slide"
-                className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-40 group flex"
-              >
-                <ChevronRight className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
-              </button>
-            </>
-          )}
-
           {/* SLIDES TRACK */}
           {slides.map((slide, index) => {
             const diff = getSlideDiff(index, currentIndex, totalSlides);
@@ -303,11 +284,16 @@ export default function NewsTrendingCarousel({
                 {!isCenter && (
                   <button
                     type="button"
-                    onClick={() => goToSlide(index)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goToSlide(index);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
                     aria-label={`View ${slide.badge}: ${slide.title}`}
                     className="absolute inset-0 z-30 bg-background/55 hover:bg-background/25 backdrop-blur-sm cursor-pointer transition-all duration-300 flex items-center justify-center group/preview focus:outline-none"
                   >
-                    <span className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200 px-3.5 py-1.5 rounded-xl bg-card/90 border border-secondary/40 text-xs font-mono font-bold text-secondary shadow-xl">
+                    <span className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200 px-3.5 py-1.5 rounded-xl bg-card/90 border border-secondary/40 text-xs font-mono font-bold text-secondary shadow-xl pointer-events-none">
                       Click to view
                     </span>
                   </button>
@@ -344,11 +330,18 @@ export default function NewsTrendingCarousel({
                           </div>
 
                           <StaggerRevealItem>
-                            <Link href="/standings" tabIndex={isCenter ? 0 : -1}>
-                              <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl">
-                                <span>Full Standings</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
-                              </Button>
+                            <Link
+                              href="/standings"
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "yellow", size: "sm" }),
+                                "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>Full Standings</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                           </StaggerRevealItem>
                         </div>
@@ -420,11 +413,18 @@ export default function NewsTrendingCarousel({
                           </StaggerRevealItem>
                           <StaggerRevealItem>
                             <div className="pt-1">
-                              <Link href={`/fixtures?highlight=${slide.data.id}`} tabIndex={isCenter ? 0 : -1}>
-                                <Button variant="yellow" size="sm" className="carousel-cta-btn font-black text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg">
-                                  <span>View Match Center</span>
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                </Button>
+                              <Link
+                                href={`/fixtures?highlight=${slide.data.id}`}
+                                tabIndex={isCenter ? 0 : -1}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className={cn(
+                                  buttonVariants({ variant: "yellow", size: "sm" }),
+                                  "carousel-cta-btn font-black text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                                )}
+                              >
+                                <span>View Match Center</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
                               </Link>
                             </div>
                           </StaggerRevealItem>
@@ -498,11 +498,18 @@ export default function NewsTrendingCarousel({
                           </StaggerRevealItem>
                           <StaggerRevealItem>
                             <div className="pt-1">
-                              <Link href="/fixtures" tabIndex={isCenter ? 0 : -1}>
-                                <Button variant="outline" size="sm" className="carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl">
-                                  <span>Fixture Archive</span>
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                </Button>
+                              <Link
+                                href="/fixtures"
+                                tabIndex={isCenter ? 0 : -1}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className={cn(
+                                  buttonVariants({ variant: "outline", size: "sm" }),
+                                  "carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                                )}
+                              >
+                                <span>Fixture Archive</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
                               </Link>
                             </div>
                           </StaggerRevealItem>
@@ -555,11 +562,18 @@ export default function NewsTrendingCarousel({
                           </div>
 
                           <StaggerRevealItem>
-                            <Link href="/#hall-of-fame" tabIndex={isCenter ? 0 : -1}>
-                              <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl">
-                                <span>Explore Hall of Fame</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
-                              </Button>
+                            <Link
+                              href="/#hall-of-fame"
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "yellow", size: "sm" }),
+                                "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>Explore Hall of Fame</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                           </StaggerRevealItem>
                         </div>
@@ -620,11 +634,18 @@ export default function NewsTrendingCarousel({
                           </StaggerRevealItem>
                           <StaggerRevealItem>
                             <div className="pt-1">
-                              <Link href="/fixtures" tabIndex={isCenter ? 0 : -1}>
-                                <Button variant="yellow" size="sm" className="carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg">
-                                  <span>Open Fixtures</span>
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                </Button>
+                              <Link
+                                href="/fixtures"
+                                tabIndex={isCenter ? 0 : -1}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className={cn(
+                                  buttonVariants({ variant: "yellow", size: "sm" }),
+                                  "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                                )}
+                              >
+                                <span>Open Fixtures</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
                               </Link>
                             </div>
                           </StaggerRevealItem>
@@ -675,17 +696,31 @@ export default function NewsTrendingCarousel({
 
                         <StaggerRevealItem>
                           <div className="flex flex-wrap items-center gap-3 shrink-0">
-                            <Link href="/register" tabIndex={isCenter ? 0 : -1}>
-                              <Button variant="yellow" size="default" className="carousel-cta-btn font-black text-secondary-foreground text-sm gap-2 rounded-xl shadow-lg">
-                                <span>Register Athlete</span>
-                                <ArrowRight className="h-4 w-4" />
-                              </Button>
+                            <Link
+                              href="/register"
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "yellow", size: "default" }),
+                                "carousel-cta-btn font-black text-secondary-foreground text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>Register Athlete</span>
+                              <ArrowRight className="h-4 w-4" />
                             </Link>
 
-                            <Link href="/standings" tabIndex={isCenter ? 0 : -1}>
-                              <Button variant="outline" size="default" className="carousel-cta-btn font-bold text-xs border-border rounded-xl">
-                                Standings
-                              </Button>
+                            <Link
+                              href="/standings"
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "outline", size: "default" }),
+                                "carousel-cta-btn font-bold text-xs border-border rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>Standings</span>
                             </Link>
                           </div>
                         </StaggerRevealItem>
@@ -715,6 +750,40 @@ export default function NewsTrendingCarousel({
               </div>
             );
           })}
+
+          {/* FLOATING NAVIGATION BUTTONS (DESKTOP & TABLET) */}
+          {totalSlides > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  prevSlide();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                disabled={totalSlides <= 1}
+                aria-label="Previous slide"
+                className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-50 group flex cursor-pointer pointer-events-auto select-none"
+              >
+                <ChevronLeft className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:-translate-x-0.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  nextSlide();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                disabled={totalSlides <= 1}
+                aria-label="Next slide"
+                className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-50 group flex cursor-pointer pointer-events-auto select-none"
+              >
+                <ChevronRight className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
+              </button>
+            </>
+          )}
         </div>
 
       </section>
