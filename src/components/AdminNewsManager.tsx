@@ -566,77 +566,265 @@ export default function AdminNewsManager({
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-background/90 text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="py-3 px-4">Featured Image</th>
-                  <th className="py-3 px-4">Title</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Publish Date</th>
-                  <th className="py-3 px-4">Expiration Date</th>
-                  <th className="py-3 px-4">Carousel Status</th>
-                  <th className="py-3 px-4">Created Date</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {filteredNews.map((item) => {
-                  const computed = getComputedStatus(item);
-                  const isCarouselEligible =
-                    item.status === "PUBLISHED" &&
-                    item.showOnCarousel &&
-                    computed === "PUBLISHED";
+          <div className="w-full">
+            {/* ========================================================================= */}
+            {/* DESKTOP TABLE VIEW (Clean, well-spaced, no squished columns) */}
+            {/* ========================================================================= */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-background/90 text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="py-3.5 px-4 w-2/5 min-w-72">Article &amp; Details</th>
+                    <th className="py-3.5 px-4 w-1/5 min-w-40">Status &amp; Carousel</th>
+                    <th className="py-3.5 px-4 w-1/5 min-w-44">Schedule</th>
+                    <th className="py-3.5 px-4 w-1/5 min-w-48 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {filteredNews.map((item) => {
+                    const computed = getComputedStatus(item);
+                    const isCarouselEligible =
+                      item.status === "PUBLISHED" &&
+                      item.showOnCarousel &&
+                      computed === "PUBLISHED";
 
-                  const pubStr = new Date(item.publishDate).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+                    const pubStr = new Date(item.publishDate).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
 
-                  const expStr = new Date(item.expirationDate).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+                    const expStr = new Date(item.expirationDate).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
 
-                  const createdStr = new Date(item.createdAt).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  });
-
-                  return (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-muted/30 transition-colors duration-150"
-                    >
-                      {/* Featured Image Thumbnail */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="h-12 w-20 rounded-lg overflow-hidden border border-border/80 bg-background/60 shadow-sm shrink-0 flex items-center justify-center">
-                          {item.featuredImage ? (
-                            <img
-                              src={item.featuredImage}
-                              alt={item.title}
-                              className="h-full w-auto max-w-full object-contain aspect-auto"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                              <ImageIcon className="h-4 w-4" />
+                    return (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-muted/30 transition-colors duration-150 group/row"
+                      >
+                        {/* 1. Article & Details: Thumbnail + Badges + Title + 1-Line Excerpt */}
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Thumbnail */}
+                            <div className="h-14 w-20 rounded-xl overflow-hidden border border-border/80 bg-background/80 shadow-sm shrink-0 flex items-center justify-center relative">
+                              {item.featuredImage ? (
+                                <img
+                                  src={item.featuredImage}
+                                  alt={item.title}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                  <ImageIcon className="h-5 w-5" />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </td>
 
-                      {/* Title */}
-                      <td className="py-3 px-4 max-w-xs">
-                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            {/* Text Info */}
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs font-mono font-medium border-border/80 bg-muted/30 px-1.5 py-0"
+                                >
+                                  {item.category}
+                                </Badge>
+                                {item.id.startsWith("sys-") && (
+                                  <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
+                                    System
+                                  </Badge>
+                                )}
+                                {isCarouselEligible && (
+                                  <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/40 bg-secondary/10 px-1.5 py-0">
+                                    Live on Carousel
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <h4
+                                className="font-black text-foreground text-xs sm:text-sm truncate block"
+                                title={item.title}
+                              >
+                                {item.title}
+                              </h4>
+
+                              <p
+                                className="text-xs text-muted-foreground truncate block max-w-sm"
+                                title={item.description}
+                              >
+                                {item.description}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 2. Status & Carousel Quick Toggle */}
+                        <td className="py-3.5 px-4 whitespace-nowrap align-middle">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              {computed === "DRAFT" && (
+                                <Badge variant="secondary" className="text-xs font-mono font-bold">
+                                  Draft
+                                </Badge>
+                              )}
+                              {computed === "PUBLISHED" && (
+                                <Badge variant="green" className="text-xs font-mono font-bold">
+                                  Published
+                                </Badge>
+                              )}
+                              {computed === "SCHEDULED" && (
+                                <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/40">
+                                  Scheduled
+                                </Badge>
+                              )}
+                              {computed === "EXPIRED" && (
+                                <Badge variant="destructive" className="text-xs font-mono font-bold">
+                                  Expired
+                                </Badge>
+                              )}
+                            </div>
+
+                            {/* Carousel Toggle Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCarousel(item)}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border",
+                                item.showOnCarousel
+                                  ? "bg-secondary/15 text-secondary border-secondary/40 hover:bg-secondary/25"
+                                  : "bg-muted/40 text-muted-foreground border-border hover:bg-muted/70"
+                              )}
+                              title="Click to toggle carousel display (Separate from Delete)"
+                            >
+                              <Radio className={cn("h-3 w-3", item.showOnCarousel ? "text-secondary" : "text-muted-foreground")} />
+                              <span>{item.showOnCarousel ? "Carousel ON" : "Carousel OFF"}</span>
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* 3. Schedule Timestamps */}
+                        <td className="py-3.5 px-4 whitespace-nowrap align-middle font-mono text-xs">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 text-secondary shrink-0" />
+                              <span className="truncate">{pubStr}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground/75 text-xs">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">Exp: {expStr}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 4. Actions: Preview, Unpublish/Publish, Edit, Delete */}
+                        <td className="py-3.5 px-4 whitespace-nowrap align-middle text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Preview Button */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPreviewItem(item)}
+                              className="h-8 px-2 text-xs text-foreground hover:text-secondary rounded-lg"
+                              title="Preview how this appears on carousel"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+
+                            {/* Quick Publish / Unpublish Toggle */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleToggleStatus(item)}
+                              className={cn(
+                                "h-8 px-2.5 text-xs font-mono font-semibold rounded-lg border-border",
+                                item.status === "PUBLISHED"
+                                  ? "text-muted-foreground hover:text-foreground"
+                                  : "text-primary border-primary/40 hover:bg-primary/10"
+                              )}
+                              title={item.status === "PUBLISHED" ? "Unpublish (Move to Draft)" : "Publish Now"}
+                            >
+                              {item.status === "PUBLISHED" ? "Unpublish" : "Publish"}
+                            </Button>
+
+                            {/* Edit Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenEdit(item)}
+                              className="h-8 px-2.5 text-xs font-semibold gap-1 rounded-lg border-border hover:border-secondary/50 hover:text-secondary"
+                              title="Edit news article"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                              <span>Edit</span>
+                            </Button>
+
+                            {/* Delete Button */}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setDeletingItem(item)}
+                              className="h-8 px-2 text-xs text-destructive-foreground rounded-lg"
+                              title="Permanently delete from database & carousel"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* MOBILE CARD VIEW (Responsive card layout for smaller screens) */}
+            {/* ========================================================================= */}
+            <div className="md:hidden divide-y divide-border/60">
+              {filteredNews.map((item) => {
+                const computed = getComputedStatus(item);
+                const isCarouselEligible =
+                  item.status === "PUBLISHED" &&
+                  item.showOnCarousel &&
+                  computed === "PUBLISHED";
+
+                const pubStr = new Date(item.publishDate).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
+
+                return (
+                  <div key={item.id} className="p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="h-16 w-20 rounded-xl overflow-hidden border border-border/80 bg-background/80 shadow-sm shrink-0 flex items-center justify-center">
+                        {item.featuredImage ? (
+                          <img
+                            src={item.featuredImage}
+                            alt={item.title}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                            <ImageIcon className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant="outline" className="text-xs font-mono font-medium border-border/80 px-1.5 py-0">
+                            {item.category}
+                          </Badge>
                           {item.id.startsWith("sys-") && (
                             <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
                               System
@@ -644,144 +832,85 @@ export default function AdminNewsManager({
                           )}
                           {isCarouselEligible && (
                             <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/40 px-1.5 py-0">
-                              Live on Carousel
+                              Live
                             </Badge>
                           )}
                         </div>
-                        <span className="font-bold text-foreground text-xs sm:text-sm line-clamp-1 block">
+
+                        <h4 className="font-black text-foreground text-xs sm:text-sm line-clamp-1 block">
                           {item.title}
-                        </span>
-                        <span className="text-xs text-muted-foreground line-clamp-1 block mt-0.5">
+                        </h4>
+
+                        <p className="text-xs text-muted-foreground line-clamp-1 block">
                           {item.description}
-                        </span>
-                      </td>
+                        </p>
+                      </div>
+                    </div>
 
-                      {/* Category */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <Badge
-                          variant="outline"
-                          className="text-xs font-mono font-medium border-border/80"
-                        >
-                          {item.category}
-                        </Badge>
-                      </td>
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-xs font-mono">
+                      <div className="flex items-center gap-1.5">
+                        {computed === "DRAFT" && <Badge variant="secondary" className="text-xs">Draft</Badge>}
+                        {computed === "PUBLISHED" && <Badge variant="green" className="text-xs">Published</Badge>}
+                        {computed === "SCHEDULED" && <Badge variant="outline" className="text-xs text-primary border-primary/40">Scheduled</Badge>}
+                        {computed === "EXPIRED" && <Badge variant="destructive" className="text-xs">Expired</Badge>}
 
-                      {/* Status */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {computed === "DRAFT" && (
-                          <Badge variant="secondary" className="text-xs font-mono font-bold">
-                            Draft
-                          </Badge>
-                        )}
-                        {computed === "PUBLISHED" && (
-                          <Badge variant="green" className="text-xs font-mono font-bold">
-                            Published
-                          </Badge>
-                        )}
-                        {computed === "SCHEDULED" && (
-                          <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/40">
-                            Scheduled
-                          </Badge>
-                        )}
-                        {computed === "EXPIRED" && (
-                          <Badge variant="destructive" className="text-xs font-mono font-bold">
-                            Expired
-                          </Badge>
-                        )}
-                      </td>
-
-                      {/* Publish Date */}
-                      <td className="py-3 px-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                        {pubStr}
-                      </td>
-
-                      {/* Expiration Date */}
-                      <td className="py-3 px-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                        {expStr}
-                      </td>
-
-                      {/* Carousel Status Toggle */}
-                      <td className="py-3 px-4 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => handleToggleCarousel(item)}
                           className={cn(
-                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-bold transition-all cursor-pointer border",
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-mono font-bold border",
                             item.showOnCarousel
-                              ? "bg-secondary/15 text-secondary border-secondary/40 hover:bg-secondary/25"
-                              : "bg-muted/40 text-muted-foreground border-border hover:bg-muted/70"
+                              ? "bg-secondary/15 text-secondary border-secondary/40"
+                              : "bg-muted/40 text-muted-foreground border-border"
                           )}
-                          title="Click to toggle carousel display (Separate from Delete)"
                         >
                           <Radio className={cn("h-3 w-3", item.showOnCarousel ? "text-secondary" : "text-muted-foreground")} />
-                          <span>{item.showOnCarousel ? "Carousel ON" : "Carousel OFF"}</span>
+                          <span>{item.showOnCarousel ? "ON" : "OFF"}</span>
                         </button>
-                      </td>
+                      </div>
 
-                      {/* Created Date */}
-                      <td className="py-3 px-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                        {createdStr}
-                      </td>
+                      <span className="text-muted-foreground text-xs">{pubStr}</span>
+                    </div>
 
-                      {/* Actions */}
-                      <td className="py-3 px-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Preview Button */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setPreviewItem(item)}
-                            className="h-8 px-2 text-xs text-foreground hover:text-white"
-                            title="Preview how this appears on carousel"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-
-                          {/* Quick Publish / Unpublish Toggle */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleStatus(item)}
-                            className={cn(
-                              "h-8 px-2 text-xs font-mono",
-                              item.status === "PUBLISHED"
-                                ? "text-muted-foreground hover:text-white"
-                                : "text-primary hover:text-primary"
-                            )}
-                            title={item.status === "PUBLISHED" ? "Unpublish (Move to Draft)" : "Publish Now"}
-                          >
-                            {item.status === "PUBLISHED" ? "Unpublish" : "Publish"}
-                          </Button>
-
-                          {/* Edit Button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenEdit(item)}
-                            className="h-8 px-2.5 text-xs font-semibold gap-1"
-                            title="Edit news article"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                            <span>Edit</span>
-                          </Button>
-
-                          {/* Delete Button (Permanent removal with separate confirmation) */}
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setDeletingItem(item)}
-                            className="h-8 px-2 text-xs text-destructive-foreground"
-                            title="Permanently delete from database & carousel"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    <div className="flex items-center justify-end gap-1.5 pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPreviewItem(item)}
+                        className="h-8 px-2 text-xs"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleStatus(item)}
+                        className="h-8 px-2 text-xs font-mono"
+                      >
+                        {item.status === "PUBLISHED" ? "Unpublish" : "Publish"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenEdit(item)}
+                        className="h-8 px-2.5 text-xs font-semibold gap-1"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        <span>Edit</span>
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeletingItem(item)}
+                        className="h-8 px-2 text-xs"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
