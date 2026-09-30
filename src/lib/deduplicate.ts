@@ -1,10 +1,6 @@
-import { PrismaClient } from "@prisma/client";
-import { normalizePhoneNumber, isSamePhoneNumber } from "D:/Mywebsitse/Efootball website/src/lib/phone";
-import * as dns from "dns";
+import { prisma } from "@/lib/prisma";
+import { normalizePhoneNumber, isSamePhoneNumber } from "@/lib/phone";
 
-dns.setDefaultResultOrder("ipv4first");
-
-const prisma = new PrismaClient();
 
 export interface DuplicateReport {
   scannedUsers: number;
