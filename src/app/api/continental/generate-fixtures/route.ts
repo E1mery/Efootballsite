@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
       });
 
-      const requiredSlots = competition === "UCL" ? 16 : 12;
+      const requiredSlots = 16;
       if (slots.length < requiredSlots) {
         return NextResponse.json(
           {
@@ -57,18 +57,18 @@ export async function POST(req: Request) {
         );
       }
 
-      // Check for division violation (no 3 players from same division in UCL, max 1 in Europa)
-      const maxDivViolation = competition === "UCL" ? 3 : 2;
+      // Check for division violation (max 2 players from Division 1, max 1 from Division 2 or 3)
       const groups = ["Group A", "Group B", "Group C", "Group D"];
       for (const grp of groups) {
         const groupMembers = slots.filter((s) => s.groupName === grp);
         const divCounts: Record<string, number> = {};
         for (const m of groupMembers) {
           divCounts[m.playerDivision] = (divCounts[m.playerDivision] || 0) + 1;
-          if (divCounts[m.playerDivision] >= maxDivViolation) {
+          const allowedDiv = m.playerDivision === "Division 1" ? 2 : 1;
+          if (divCounts[m.playerDivision] > allowedDiv) {
             return NextResponse.json(
               {
-                error: `Group Violation in ${grp}: Contains ${divCounts[m.playerDivision]} athletes from ${m.playerDivision}. Regulations strictly prohibit more than ${maxDivViolation - 1} athlete(s) from the same division in this group.`,
+                error: `Group Violation in ${grp}: Contains ${divCounts[m.playerDivision]} athletes from ${m.playerDivision}. Regulations strictly prohibit more than ${allowedDiv} athlete(s) from ${m.playerDivision} in this group.`,
               },
               { status: 400 }
             );

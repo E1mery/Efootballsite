@@ -430,7 +430,7 @@ export default async function DashboardPage() {
   ];
 
   const europaQualified = [
-    ...div1Standings.slice(8, 12),
+    ...div1Standings.slice(8, 16),
     ...div2Standings.slice(4, 8),
     ...div3Standings.slice(4, 8),
   ];
@@ -450,7 +450,7 @@ export default async function DashboardPage() {
       : div3Standings;
 
   const uclCutoff = player.division === "Division 1" ? 8 : 4;
-  const europaCutoff = player.division === "Division 1" ? 12 : 8;
+  const europaCutoff = player.division === "Division 1" ? 16 : 8;
 
   // Unplayed matches in this division
   const unplayedDivisionMatches = await prisma.match.findMany({

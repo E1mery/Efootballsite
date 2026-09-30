@@ -95,7 +95,7 @@ export default async function ContinentalCupsPage() {
         include: { player: true },
         orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
         skip: 8,
-        take: 4,
+        take: 8,
       }),
       prisma.standing.findMany({
         where: { division: "Division 2" },

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AdminClient from "./AdminClient";
 import { ensurePasswordResetTable } from "@/lib/passwordReset";
+import { ensureNewsTable } from "@/lib/ensureNewsTable";
 import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 
@@ -27,6 +28,7 @@ export default async function AdminPage() {
   // Automatically purge replied player messages and announcements older than 24 hours
   await cleanupExpiredRepliedMessages();
   await cleanupExpiredAnnouncements();
+  await ensureNewsTable();
 
   const [
     matches,
@@ -46,6 +48,7 @@ export default async function AdminPage() {
     hallOfFameEntries,
     playerMessages,
     reviews,
+    newsArticles,
   ] = await Promise.all([
     prisma.match.findMany({
       include: {
@@ -59,7 +62,7 @@ export default async function AdminPage() {
       orderBy: [{ round: "asc" }, { matchDate: "asc" }],
     }),
     prisma.matchSubmission.findMany({
-      where: { status: "PENDING" },
+      where: { status: { not: "REPLACED" } },
       include: {
         match: { include: { homePlayer: true, awayPlayer: true } },
         submittedByPlayer: true,
@@ -168,6 +171,9 @@ export default async function AdminPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.news.findMany({
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   // Safely fetch password reset requests without risking crashing the admin portal
@@ -234,6 +240,7 @@ export default async function AdminPage() {
         initialPlayerMessages={playerMessages}
         initialReviews={reviews}
         initialPasswordResets={enrichedPasswordResets}
+        initialNews={newsArticles}
       />
     </div>
   );

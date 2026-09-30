@@ -144,14 +144,14 @@ export async function POST(req: Request) {
           }
         }
       } else {
-        // Europa League Draw
+        // Europa League Draw: 8 from Div 1 (ranks 9-16), 4 from Div 2 (ranks 5-8), 4 from Div 3 (ranks 5-8)
         const [div1E, div2E, div3E] = await Promise.all([
           prisma.standing.findMany({
             where: { division: "Division 1" },
             include: { player: true },
             orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
             skip: 8,
-            take: 4,
+            take: 8,
           }),
           prisma.standing.findMany({
             where: { division: "Division 2" },
@@ -169,22 +169,7 @@ export async function POST(req: Request) {
           }),
         ]);
 
-        // 1 Div 1 in each group (Groups A, B, C, D)
-        for (let i = 0; i < 4; i++) {
-          if (div1E[i]) {
-            await prisma.uclGroupSlot.create({
-              data: {
-                competition: "EUROPA",
-                groupName: groups[i],
-                playerId: div1E[i].playerId,
-                playerDivision: "Division 1",
-                slotIndex: 1,
-              },
-            });
-          }
-        }
-
-        // 1 Div 2 in each group (Groups A, B, C, D)
+        // Place 1 Div 2 into each group (Groups A, B, C, D)
         for (let i = 0; i < 4; i++) {
           if (div2E[i]) {
             await prisma.uclGroupSlot.create({
@@ -193,13 +178,13 @@ export async function POST(req: Request) {
                 groupName: groups[i],
                 playerId: div2E[i].playerId,
                 playerDivision: "Division 2",
-                slotIndex: 2,
+                slotIndex: 1,
               },
             });
           }
         }
 
-        // 1 Div 3 in each group (Groups A, B, C, D)
+        // Place 1 Div 3 into each group (Groups A, B, C, D)
         for (let i = 0; i < 4; i++) {
           if (div3E[i]) {
             await prisma.uclGroupSlot.create({
@@ -208,7 +193,24 @@ export async function POST(req: Request) {
                 groupName: groups[i],
                 playerId: div3E[i].playerId,
                 playerDivision: "Division 3",
-                slotIndex: 3,
+                slotIndex: 2,
+              },
+            });
+          }
+        }
+
+        // Place 2 Div 1 into each group (Groups A, B, C, D)
+        for (let i = 0; i < 8; i++) {
+          if (div1E[i]) {
+            const groupIdx = i % 4;
+            const slotIdx = i < 4 ? 3 : 4;
+            await prisma.uclGroupSlot.create({
+              data: {
+                competition: "EUROPA",
+                groupName: groups[groupIdx],
+                playerId: div1E[i].playerId,
+                playerDivision: "Division 1",
+                slotIndex: slotIdx,
               },
             });
           }
@@ -255,8 +257,8 @@ export async function POST(req: Request) {
       include: { player: true },
     });
 
-    // Check capacity: max 4 for UCL, max 3 for Europa
-    const maxCapacity = competition === "UCL" ? 4 : 3;
+    // Check capacity: max 4 for both UCL and Europa
+    const maxCapacity = 4;
     if (existingInGroup.length >= maxCapacity) {
       return NextResponse.json(
         { error: `${groupName} is already full (${maxCapacity}/${maxCapacity} players). Please pick an available group.` },
@@ -265,17 +267,17 @@ export async function POST(req: Request) {
     }
 
     // ENFORCE STRICT DIVISION SEPARATION:
-    // In UCL: max 2 from same division. In Europa: max 1 from same division.
+    // Max 2 from Division 1, max 1 from Division 2 or Division 3
     const sameDivisionPlayers = existingInGroup.filter(
       (slot) => slot.playerDivision === votingPlayer.division
     );
 
-    const maxSameDivision = competition === "UCL" ? 2 : 1;
+    const maxSameDivision = votingPlayer.division === "Division 1" ? 2 : 1;
     if (sameDivisionPlayers.length >= maxSameDivision) {
       const existingNames = sameDivisionPlayers.map((s) => s.player?.gamerTag || "player").join(" and ");
       return NextResponse.json(
         {
-          error: `Group Allocation Rule: ${groupName} already contains ${sameDivisionPlayers.length} athlete(s) from ${votingPlayer.division} (${existingNames}). League regulations state maximum ${maxSameDivision} player(s) from the same division in this competition!`,
+          error: `Group Allocation Rule: ${groupName} already contains ${sameDivisionPlayers.length} athlete(s) from ${votingPlayer.division} (${existingNames}). League regulations state maximum ${maxSameDivision} player(s) from ${votingPlayer.division} in this competition!`,
         },
         { status: 400 }
       );

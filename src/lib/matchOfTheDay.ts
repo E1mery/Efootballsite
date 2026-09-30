@@ -75,6 +75,8 @@ export function evaluateDivisionMatchOfTheDay(
       headline = `${division.toUpperCase()} TOP 4 BATTLE (#${home.rank} vs #${away.rank})`;
     } else if (division === "Division 1" && home.rank <= 8 && away.rank <= 8) {
       headline = `UCL QUALIFICATION RACE (#${home.rank} vs #${away.rank})`;
+    } else if (division === "Division 1" && home.rank <= 16 && away.rank <= 16) {
+      headline = `EUROPA QUALIFICATION RACE (#${home.rank} vs #${away.rank})`;
     } else if ((division === "Division 2" || division === "Division 3") && (home.rank <= 3 || away.rank <= 3)) {
       headline = `PROMOTION RACE CLASH (#${home.rank} vs #${away.rank})`;
     } else {

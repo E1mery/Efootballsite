@@ -74,11 +74,10 @@ export default function ContinentalDrawExperience({
 
   // Prepare draw order and pots
   // UCL: Pot 1 (Top 8 Div 1), Pot 2 (Top 4 Div 2), Pot 3 (Top 4 Div 3)
-  // Europa: Pot 1 (4 Div 1), Pot 2 (4 Div 2), Pot 3 (4 Div 3)
+  // Europa: Pot 1 (8 Div 1), Pot 2 (4 Div 2), Pot 3 (4 Div 3)
   const safeQualified = qualifiedAthletes || [];
-  const expectedSlots = isUcl ? 16 : 12;
-  const maxPerGroup = isUcl ? 4 : 3;
-  const maxSameDiv = isUcl ? 2 : 1;
+  const expectedSlots = 16;
+  const maxPerGroup = 4;
 
   const div1Players = safeQualified.filter((a) => a.division === "Division 1");
   const div2Players = safeQualified.filter((a) => a.division === "Division 2");
@@ -141,14 +140,8 @@ export default function ContinentalDrawExperience({
       const shuffledD2 = [...div2Players].sort(() => Math.random() - 0.5);
       const shuffledD3 = [...div3Players].sort(() => Math.random() - 0.5);
 
-      let sequence: DrawAthlete[] = [];
-      if (isUcl) {
-        // UCL: Pot 2 (Div 2) -> Pot 3 (Div 3) -> Pot 1 (Div 1)
-        sequence = [...shuffledD2, ...shuffledD3, ...shuffledD1];
-      } else {
-        // Europa: Pot 1 (Div 1) -> Pot 2 (Div 2) -> Pot 3 (Div 3)
-        sequence = [...shuffledD1, ...shuffledD2, ...shuffledD3];
-      }
+      // Both UCL and Europa: Pot 2 (Div 2, 4 players) -> Pot 3 (Div 3, 4 players) -> Pot 1 (Div 1, 8 players)
+      const sequence: DrawAthlete[] = [...shuffledD2, ...shuffledD3, ...shuffledD1];
 
       setRemainingPool(sequence);
       setCurrentGroupAllocations({
@@ -165,7 +158,7 @@ export default function ContinentalDrawExperience({
   }, [qualifiedAthletes, existingSlots, isUcl, isAdmin]);
 
   // Find eligible group for an athlete with division protection:
-  // "no more than 2 players from the same division in the same group"
+  // "no more than 2 players from Division 1, and max 1 from Division 2 or 3 in the same group"
   const findEligibleGroup = (
     athlete: DrawAthlete,
     allocations: Record<string, DrawAthlete[]>
@@ -179,7 +172,8 @@ export default function ContinentalDrawExperience({
         continue;
       }
       const sameDivCount = inGrp.filter((p) => p.division === athlete.division).length;
-      if (sameDivCount >= maxSameDiv) {
+      const allowedForDiv = athlete.division === "Division 1" ? 2 : 1;
+      if (sameDivCount >= allowedForDiv) {
         invalid.push(g);
         continue;
       }
@@ -679,11 +673,9 @@ export default function ContinentalDrawExperience({
           <div className="space-y-2 text-xs text-foreground">
             <div className="p-2 rounded-xl bg-background/80 border border-border/80">
               <strong className="text-secondary block mb-0.5">
-                {isUcl ? "Max 2 per Division" : "Strict 1 per Division"}
+                Max 2 from Division 1
               </strong>
-              {isUcl
-                ? "No group may contain 3 or more athletes from the same league."
-                : "Each group contains exactly 1 athlete from each of the 3 divisions."}
+              Each group contains 2 athletes from Division 1, 1 from Division 2, and 1 from Division 3.
             </div>
             <div className="p-2 rounded-xl bg-background/80 border border-border/80">
               <strong className="text-primary block mb-0.5">Simultaneous 2-Legs</strong>

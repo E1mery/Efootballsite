@@ -181,7 +181,7 @@ export default function QuickGuideModal({
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-white">Admin Verification:</strong> League Commissioners inspect the screenshot and verify the score to update division standings.
+                  <strong className="text-white">Instant Table Update:</strong> Once submitted, the league table standings update immediately without waiting for admin approval! League Commissioners inspect uploaded proof screenshots and can adjust or correct goals if needed.
                 </span>
               </li>
             </ul>
@@ -215,7 +215,7 @@ export default function QuickGuideModal({
                 2. Click the red <strong>&quot;Claim Forfeit&quot;</strong> button on your match card.
               </li>
               <li>
-                3. Upload the screenshot proof and submit. The commissioner desk reviews the chat and awards you a <strong className="text-destructive">3-0 Forfeit Win (+3 Points)</strong>.
+                3. Upload the screenshot proof and submit. The commissioner desk reviews the chat proof and must approve the claim before the <strong className="text-destructive">3-0 Forfeit Win (+3 Points pass over)</strong> is awarded.
               </li>
             </ul>
           </div>

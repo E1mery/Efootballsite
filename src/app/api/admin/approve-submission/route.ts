@@ -137,9 +137,41 @@ export async function POST(req: Request) {
           data: { status: "REJECTED", adminNotes },
         });
 
+        // Revert match if it was completed
+        if (sub.match.status === "FINISHED") {
+          const revertedMatch = await prisma.match.update({
+            where: { id: sub.matchId },
+            data: {
+              status: "SCHEDULED",
+              homeScore: null,
+              awayScore: null,
+              leg2HomeScore: null,
+              leg2AwayScore: null,
+              aggregateHomeScore: null,
+              aggregateAwayScore: null,
+              screenshotUrl: null,
+              leg2ScreenshotUrl: null,
+              notes: adminNotes || "Submission invalidated by Admin Office. Fixture reset to SCHEDULED.",
+            },
+          });
+
+          const divToRecalc =
+            revertedMatch.stage === "GROUP" && revertedMatch.groupName
+              ? `${revertedMatch.division} ${revertedMatch.groupName}`
+              : revertedMatch.division;
+          await recalculateStandings(revertedMatch.tournamentId, divToRecalc);
+
+          await notifyStandingsUpdate({
+            tournamentType: revertedMatch.division,
+            competitionName: revertedMatch.division,
+            groupName: revertedMatch.groupName,
+            matchSummary: "Result Reverted (Match Reset)",
+          });
+        }
+
         return NextResponse.json({
           success: true,
-          message: "Match result submission rejected.",
+          message: "Match result submission rejected, scores reverted, and table recalculated.",
         });
       }
     }

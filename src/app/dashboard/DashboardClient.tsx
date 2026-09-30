@@ -519,7 +519,7 @@ export default function DashboardClient({
               !prev?.europaStarted &&
               !data.config.europaDrawCompleted &&
               !hasAutoOpenedEuropaRef.current &&
-              ((europaQualified || []).length >= 12 || (europaSlots || []).length >= 12)
+              ((europaQualified || []).length >= 16 || (europaSlots || []).length >= 16)
             ) {
               hasAutoOpenedEuropaRef.current = true;
               setViewDrawModal("EUROPA");
@@ -973,7 +973,7 @@ export default function DashboardClient({
           leagueConfig?.europaStarted &&
           !leagueConfig?.europaDrawCompleted &&
           !hasAutoOpenedEuropaRef.current &&
-          (europaQualifiedAthletes.length >= 12 || (europaSlots || []).length >= 12)
+          (europaQualifiedAthletes.length >= 16 || (europaSlots || []).length >= 16)
         ) {
           hasAutoOpenedEuropaRef.current = true;
           setViewDrawModal("EUROPA");
@@ -2328,7 +2328,7 @@ export default function DashboardClient({
 
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xs text-muted-foreground">
-                      12 Qualified Athletes • Groups A-D
+                      16 Qualified Athletes • Groups A-D
                     </span>
                     {(() => {
                       const isEuropaLive = Boolean(leagueConfig?.europaStarted || europaDrawCountdown.isDue);
@@ -2921,12 +2921,12 @@ export default function DashboardClient({
                     <Lock className="h-5 w-5 text-secondary shrink-0" />
                     <div>
                       <span className="font-black uppercase tracking-wider text-white block">
-                        Match Completed • Next Round Drops After 24-Hr Deadline
+                        Match Completed • Standings Updated
                       </span>
                       <span className="text-xs text-foreground">
                         {isMySubmission
-                          ? "You uploaded the match score and proof. Under the 1 match per day rule, next round fixtures drop at 12:00 AM Midnight after today's 24-hr deadline."
-                          : `@${submitterGamerTag} uploaded the match score and proof. Under the 1 match per day rule, next round fixtures drop at 12:00 AM Midnight after today's 24-hr deadline.`}
+                          ? "You submitted the match score and proof. Division standings updated automatically. Under the 1 match per day rule, next round fixtures drop at 12:00 AM Midnight."
+                          : `@${submitterGamerTag} submitted the match score and proof. Division standings updated automatically. Under the 1 match per day rule, next round fixtures drop at 12:00 AM Midnight.`}
                       </span>
                     </div>
                   </div>
@@ -2935,12 +2935,12 @@ export default function DashboardClient({
                     <Lock className="h-5 w-5 text-destructive shrink-0" />
                     <div>
                       <span className="font-black uppercase tracking-wider text-white block">
-                        Uploading Closed for Both Athletes
+                        Forfeit Claim Pending Admin Approval
                       </span>
                       <span className="text-xs text-foreground">
                         {isMyClaim
-                          ? "You filed a forfeit walkover claim. Submissions are closed for both athletes."
-                          : `@${claimantGamerTag} filed a forfeit claim against you. Submissions are closed pending arbitration.`}
+                          ? "You filed a forfeit walkover claim. The League Admin must review and approve your proof for the 3-0 walkover (+3 points) to pass over."
+                          : `@${claimantGamerTag} filed a forfeit claim against you. The League Admin must review and approve before any walkover points can be awarded.`}
                       </span>
                     </div>
                   </div>
@@ -4623,10 +4623,10 @@ export default function DashboardClient({
                 <div className="p-6 rounded-2xl bg-secondary/30 border border-secondary/40 text-center space-y-4">
                   <Lock className="h-10 w-10 text-secondary mx-auto" />
                   <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Match Result Submitted & Standings Updated</h4>
                     <p className="text-xs text-foreground mt-1">
-                      Match score and proof screenshot have already been uploaded by <strong>@{modalSubmitterGamerTag}</strong>.
-                      The uploading window is closed for both athletes while awaiting Commissioner approval.
+                      Match score and proof screenshot have already been submitted by <strong>@{modalSubmitterGamerTag}</strong>.
+                      The league table standings have been updated automatically. The League Admin can inspect the proof screenshot and adjust goals if necessary.
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => { setShowResultModal(false); setActionMatch(null); }} className="text-xs">
@@ -4637,10 +4637,10 @@ export default function DashboardClient({
                 <div className="p-6 rounded-2xl bg-destructive/30 border border-destructive/40 text-center space-y-4">
                   <Lock className="h-10 w-10 text-destructive mx-auto" />
                   <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Forfeit Claim Pending Admin Approval</h4>
                     <p className="text-xs text-foreground mt-1">
-                      A forfeit walkover claim has already been filed by <strong>@{modalClaimantGamerTag}</strong>.
-                      Result uploads are closed for both athletes while under league arbitration.
+                      A forfeit walkover claim has been filed by <strong>@{modalClaimantGamerTag}</strong>.
+                      League Admin approval is required before the 3-0 walkover (+3 points pass over) can be claimed.
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => { setShowResultModal(false); setActionMatch(null); }} className="text-xs">
@@ -4986,10 +4986,10 @@ export default function DashboardClient({
                 <div className="p-6 rounded-2xl bg-secondary/30 border border-secondary/40 text-center space-y-4">
                   <Lock className="h-10 w-10 text-secondary mx-auto" />
                   <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Match Result Submitted & Standings Updated</h4>
                     <p className="text-xs text-foreground mt-1">
-                      Match score and proof screenshot have already been uploaded by <strong>@{modalSubmitterGamerTag}</strong>.
-                      Forfeit claims cannot be submitted while the match result is awaiting admin verification.
+                      Match score and proof screenshot have already been submitted by <strong>@{modalSubmitterGamerTag}</strong>.
+                      The match result has been recorded and the league standings table updated.
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => { setShowForfeitModal(false); setActionMatch(null); }} className="text-xs">
@@ -5000,10 +5000,10 @@ export default function DashboardClient({
                 <div className="p-6 rounded-2xl bg-destructive/30 border border-destructive/40 text-center space-y-4">
                   <Lock className="h-10 w-10 text-destructive mx-auto" />
                   <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Uploading Closed for Both Athletes</h4>
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Forfeit Claim Pending Admin Approval</h4>
                     <p className="text-xs text-foreground mt-1">
                       A forfeit walkover claim has already been filed by <strong>@{modalClaimantGamerTag}</strong>.
-                      The uploading window is closed for both athletes while under league arbitration.
+                      League Admin approval is required before the 3-0 walkover (+3 points pass over) can be claimed.
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => { setShowForfeitModal(false); setActionMatch(null); }} className="text-xs">

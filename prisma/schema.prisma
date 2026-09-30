@@ -354,4 +354,26 @@ model PasswordResetRequest {
   @@index([status])
 }
 
+model News {
+  id             String    @id @default(cuid())
+  title          String
+  category       String    // "League News", "Match", "Competition", "Registration", "Announcement", "System Update", "Event", "Other"
+  featuredImage  String
+  description    String    @db.Text
+  buttonText     String?
+  buttonUrl      String?
+  status         String    @default("DRAFT") // "DRAFT" or "PUBLISHED"
+  publishDate    DateTime  @default(now())
+  expirationDate DateTime
+  showOnCarousel Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([publishDate])
+  @@index([expirationDate])
+  @@index([showOnCarousel])
+}
+
+
 

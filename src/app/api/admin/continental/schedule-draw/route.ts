@@ -151,11 +151,11 @@ export async function POST(req: Request) {
         const div = slot.playerDivision;
         if (!groupDivisions[grp]) groupDivisions[grp] = {};
         groupDivisions[grp][div] = (groupDivisions[grp][div] || 0) + 1;
-        const maxPerDiv = competition === "UCL" ? 2 : 1;
+        const maxPerDiv = div === "Division 1" ? 2 : 1;
         if (groupDivisions[grp][div] > maxPerDiv) {
           return NextResponse.json(
             {
-              error: `Invalid Draw: ${grp} contains ${groupDivisions[grp][div]} players from ${div}. Strict rule: no more than ${maxPerDiv} player(s) from the same division per group in ${competition}!`,
+              error: `Invalid Draw: ${grp} contains ${groupDivisions[grp][div]} players from ${div}. Strict rule: no more than ${maxPerDiv} player(s) from ${div} per group in ${competition}!`,
             },
             { status: 400 }
           );

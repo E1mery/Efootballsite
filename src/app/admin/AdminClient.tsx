@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  X,
   Trophy,
   Calendar,
   Send,
@@ -48,12 +49,14 @@ import {
   RotateCcw,
   Star,
   KeyRound,
+  Newspaper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
+import AdminNewsManager from "@/components/AdminNewsManager";
 import {
   getTomorrowInRwandaString,
   formatRwandanDate,
@@ -101,6 +104,7 @@ export default function AdminClient({
   initialPlayerMessages = [],
   initialReviews = [],
   initialPasswordResets = [],
+  initialNews = [],
 }: {
   matches: any[];
   pendingSubmissions: any[];
@@ -121,11 +125,13 @@ export default function AdminClient({
   initialPlayerMessages?: any[];
   initialReviews?: any[];
   initialPasswordResets?: any[];
+  initialNews?: any[];
 }) {
   const router = useRouter();
 
   type TabType =
     | "DASHBOARD"
+    | "NEWS"
     | "PENDING_REGISTRATIONS"
     | "RESERVE_POOL"
     | "TABLES"
@@ -151,6 +157,17 @@ export default function AdminClient({
   const [playerMessages, setPlayerMessages] = useState<any[]>(initialPlayerMessages);
   const [reviewsList, setReviewsList] = useState<any[]>(initialReviews);
   const [passwordResets, setPasswordResets] = useState<any[]>(initialPasswordResets);
+  const [newsArticles, setNewsArticles] = useState<any[]>(initialNews || []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab")?.toUpperCase();
+      if (tabParam === "NEWS") {
+        setActiveTab("NEWS");
+      }
+    }
+  }, []);
 
   // New admin operations state
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
@@ -182,6 +199,12 @@ export default function AdminClient({
   const [allMatchesFilterDiv, setAllMatchesFilterDiv] = useState<string>("ALL");
   const [allMatchesFilterStatus, setAllMatchesFilterStatus] = useState<string>("ALL");
   const [allMatchesSearch, setAllMatchesSearch] = useState<string>("");
+
+  // Direct Match Goals Editor Modal State
+  const [editingMatchGoals, setEditingMatchGoals] = useState<any | null>(null);
+  const [editMatchHomeScore, setEditMatchHomeScore] = useState<number>(0);
+  const [editMatchAwayScore, setEditMatchAwayScore] = useState<number>(0);
+  const [savingMatchGoals, setSavingMatchGoals] = useState<boolean>(false);
 
   // Pending approvals search & filters & actions
   const [pendingSearch, setPendingSearch] = useState("");
@@ -918,6 +941,35 @@ export default function AdminClient({
     }
   };
 
+  // Direct Goal Change / Entry for Any Match (Recalculates Standings Immediately)
+  const handleSaveDirectMatchScore = async () => {
+    if (!editingMatchGoals) return;
+    setSavingMatchGoals(true);
+    try {
+      const res = await fetch("/api/admin/approve-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "DIRECT_SCORE_ENTRY",
+          matchId: editingMatchGoals.id,
+          homeScore: Number(editMatchHomeScore),
+          awayScore: Number(editMatchAwayScore),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save match goals");
+
+      alert(data.message);
+      setEditingMatchGoals(null);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingMatchGoals(false);
+    }
+  };
+
   // Trigger 12:00 AM Daily Cycle
   const handleTriggerDailyCycle = async () => {
     if (!confirm("Trigger 12:00 AM cycle now? This will advance the matchday and process any expired unplayed matches.")) {
@@ -1133,7 +1185,7 @@ export default function AdminClient({
   }, [div1Standings, div2Standings, div3Standings]);
 
   const europaQualifiedAthletes = useMemo(() => {
-    const d1Next4 = (div1Standings || []).slice(8, 12).map((s: any) => ({
+    const d1Next8 = (div1Standings || []).slice(8, 16).map((s: any) => ({
       id: s.player.id,
       gamerTag: s.player.gamerTag,
       fullName: s.player.fullName,
@@ -1160,7 +1212,7 @@ export default function AdminClient({
       avatar: s.player.avatar,
       overallRating: s.player.overallRating || 80,
     }));
-    return [...d1Next4, ...d2Next4, ...d3Next4];
+    return [...d1Next8, ...d2Next4, ...d3Next4];
   }, [div1Standings, div2Standings, div3Standings]);
 
   const handleCommitDrawFromModal = async (competition: "UCL" | "EUROPA", slots: any[]) => {
@@ -1924,6 +1976,30 @@ export default function AdminClient({
         </button>
 
         <button
+          onClick={() => setActiveTab("NEWS")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
+            activeTab === "NEWS"
+              ? "bg-secondary text-secondary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
+          }`}
+        >
+          <Newspaper className={`h-4 w-4 ${activeTab === "NEWS" ? "text-secondary-foreground" : "text-secondary"}`} />
+          <span>News</span>
+          {newsArticles.length > 0 && (
+            <Badge
+              variant="yellow"
+              className={`text-xs px-1.5 py-0 font-black ${
+                activeTab === "NEWS"
+                  ? "bg-background text-secondary"
+                  : "bg-secondary text-secondary-foreground"
+              }`}
+            >
+              {newsArticles.length}
+            </Badge>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab("PENDING_REGISTRATIONS")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
             activeTab === "PENDING_REGISTRATIONS"
@@ -2174,6 +2250,34 @@ export default function AdminClient({
               </Button>
             </div>
           )}
+
+          {/* Quick Access: News & Carousel Hub */}
+          <div className="rounded-3xl border border-secondary/40 bg-card/90 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/20 border border-secondary/40 text-secondary shrink-0">
+                <Newspaper className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black uppercase text-white">News &amp; Homepage Carousel Control</h3>
+                  <Badge variant="yellow" className="font-mono text-xs">
+                    {newsArticles.length} Article{newsArticles.length !== 1 ? "s" : ""}
+                  </Badge>
+                </div>
+                <p className="text-xs text-foreground mt-0.5">
+                  Publish official league news, schedule announcements, control carousel visibility, and manage article expiration dates.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setActiveTab("NEWS")}
+              variant="yellow"
+              className="font-bold text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg"
+            >
+              <span>Manage News</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2831,6 +2935,23 @@ export default function AdminClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: NEWS & CAROUSEL MANAGEMENT */}
+      {/* ========================================================================= */}
+      {activeTab === "NEWS" && (
+        <AdminNewsManager
+          initialNews={newsArticles}
+          onRefresh={() => {
+            fetch("/api/admin/news")
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.news) setNewsArticles(data.news);
+              })
+              .catch(() => {});
+          }}
+        />
       )}
 
       {/* ========================================================================= */}
@@ -3742,7 +3863,7 @@ export default function AdminClient({
                         <span>eFootball Europa League (UEL) Group Stage</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Qualified: Div 1 ranks 9-12, Div 2 ranks 5-8, Div 3 ranks 5-8. Strict division separation enforced.
+                        Qualified: Div 1 ranks 9-16, Div 2 ranks 5-8, Div 3 ranks 5-8. Strict division separation enforced.
                       </p>
                     </div>
 
@@ -3778,7 +3899,7 @@ export default function AdminClient({
                         >
                           <div className="flex items-center justify-between border-b border-border pb-2">
                             <span className="text-sm font-black uppercase text-secondary">{grpName}</span>
-                            <span className="text-xs font-mono text-muted-foreground">{groupSlots.length}/3 Players</span>
+                            <span className="text-xs font-mono text-muted-foreground">{groupSlots.length}/4 Players</span>
                           </div>
 
                           <div className="space-y-2">
@@ -4433,7 +4554,7 @@ export default function AdminClient({
                   </Badge>
                 </div>
                 <p className="text-xs text-foreground">
-                  12 Total Players: <strong>Div 1 (ranks 9-12)</strong>, <strong>Div 2 (ranks 5-8)</strong>, <strong>Div 3 (ranks 5-8)</strong>.
+                  16 Total Players: <strong>Div 1 (ranks 9-16)</strong>, <strong>Div 2 (ranks 5-8)</strong>, <strong>Div 3 (ranks 5-8)</strong>.
                 </p>
 
                 {/* Schedule Draw Event Controls */}
@@ -4662,7 +4783,7 @@ export default function AdminClient({
                       : "text-muted-foreground hover:text-white"
                   }`}
                 >
-                  <span>Proof Screenshots</span>
+                  <span>Uploaded Results & Proofs</span>
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
                       scoreQueueSubTab === "SUBMISSIONS"
@@ -4689,7 +4810,7 @@ export default function AdminClient({
             </div>
           </div>
 
-          {/* SUB-TAB 1: PENDING PROOF SCREENSHOTS */}
+          {/* SUB-TAB 1: UPLOADED RESULTS & PROOF SCREENSHOTS */}
           {scoreQueueSubTab === "SUBMISSIONS" && (
             <div className="space-y-6">
               {pendingSubmissions.length > 0 && (
@@ -4698,24 +4819,24 @@ export default function AdminClient({
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary animate-pulse" />
                       <span className="text-sm font-black text-white uppercase tracking-wider">
-                        Simultaneous Batch Score Insertion ({pendingSubmissions.length} Pending)
+                        Uploaded Match Results & Screenshot Proofs ({pendingSubmissions.length})
                       </span>
                     </div>
                     <p className="text-xs text-foreground">
-                      Verify goals in the cards below. Clicking this saves all played matches at once, recalculates all league tables in a single atomic update, and notifies all registered players.
+                      Table standings update automatically upon player submission. Inspect the proof screenshots below to verify scores, or change and adjust match goals at any time.
                     </p>
                   </div>
                   <Button
                     disabled={batchLoading}
                     onClick={handleBatchApproveSubmissions}
-                    className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-white font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg whitespace-nowrap"
+                    className="bg-primary hover:bg-primary text-white font-black px-5 py-2.5 rounded-xl text-xs gap-2 shadow-lg whitespace-nowrap"
                   >
                     {batchLoading ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
                     ) : (
                       <CheckCircle2 className="h-4 w-4 text-white" />
                     )}
-                    Insert All {pendingSubmissions.length} Match Goals & Update Tables Once
+                    Save All {pendingSubmissions.length} Match Goals & Update Tables
                   </Button>
                 </div>
               )}
@@ -4723,9 +4844,9 @@ export default function AdminClient({
               {pendingSubmissions.length === 0 ? (
                 <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
                   <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
-                  <p className="font-bold text-foreground">Queue is clear! No pending match score screenshots to review.</p>
+                  <p className="font-bold text-foreground">No uploaded match results to review.</p>
                   <p className="text-xs text-muted-foreground">
-                    Switch to the "Direct Matchday Scoring" tab to enter goals for any matchday fixtures directly.
+                    Player uploaded match results and proof screenshots will appear here. Switch to the "Direct Matchday Scoring" tab to enter goals for any matchday fixtures directly.
                   </p>
                 </div>
               ) : (
@@ -4875,7 +4996,7 @@ export default function AdminClient({
                       {/* Official Score & Goals Verification Inputs */}
                       <div className="rounded-xl bg-background border border-primary/30 p-3 space-y-2">
                         <span className="text-xs font-mono font-bold text-primary uppercase tracking-widest block">
-                          Verified Match Goals (Insert From Screenshot):
+                          Verified Match Goals (Change / Adjust Goals):
                         </span>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex-1 text-center">
@@ -4886,7 +5007,7 @@ export default function AdminClient({
                               type="number"
                               min="0"
                               max="40"
-                              value={submissionScores[sub.id]?.home ?? sub.homeScore}
+                              value={submissionScores[sub.id]?.home ?? sub.match?.homeScore ?? sub.homeScore}
                               onChange={(e) => handleScoreChange(sub.id, "home", Number(e.target.value))}
                               className="text-center font-mono text-lg font-black bg-card border-primary/40 text-primary h-9"
                             />
@@ -4902,7 +5023,7 @@ export default function AdminClient({
                               type="number"
                               min="0"
                               max="40"
-                              value={submissionScores[sub.id]?.away ?? sub.awayScore}
+                              value={submissionScores[sub.id]?.away ?? sub.match?.awayScore ?? sub.awayScore}
                               onChange={(e) => handleScoreChange(sub.id, "away", Number(e.target.value))}
                               className="text-center font-mono text-lg font-black bg-card border-primary/40 text-primary h-9"
                             />
@@ -4919,14 +5040,14 @@ export default function AdminClient({
                             handleReviewSubmission(
                               sub.id,
                               "APPROVE",
-                              submissionScores[sub.id]?.home ?? sub.homeScore,
-                              submissionScores[sub.id]?.away ?? sub.awayScore
+                              submissionScores[sub.id]?.home ?? sub.match?.homeScore ?? sub.homeScore,
+                              submissionScores[sub.id]?.away ?? sub.match?.awayScore ?? sub.awayScore
                             )
                           }
                           className="bg-primary hover:bg-primary text-white font-black text-xs gap-1.5 shadow-lg"
                         >
                           <CheckCircle2 className="h-4 w-4 text-white" />
-                          Approve Individually
+                          Save / Change Goals
                         </Button>
                         <Button
                           variant="outline"
@@ -4936,7 +5057,7 @@ export default function AdminClient({
                           className="font-bold gap-1 text-xs"
                         >
                           <XCircle className="h-4 w-4" />
-                          Reject
+                          Reject & Invalidate
                         </Button>
                         <Button
                           variant="outline"
@@ -6429,6 +6550,21 @@ export default function AdminClient({
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => {
+                              setEditingMatchGoals(match);
+                              setEditMatchHomeScore(match.homeScore ?? 0);
+                              setEditMatchAwayScore(match.awayScore ?? 0);
+                            }}
+                            className="text-xs gap-1 h-8 border-primary/40 text-primary hover:bg-primary/20 font-bold"
+                            title="Change match goals and recalculate standings"
+                          >
+                            <Trophy className="h-3.5 w-3.5 text-primary" />
+                            <span>Change Goals</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleExtendDeadline(match.id, 24)}
                             disabled={extendingMatchId === match.id}
                             className="text-xs gap-1 h-8 border-secondary/40 text-secondary hover:bg-secondary/20"
@@ -7393,6 +7529,93 @@ export default function AdminClient({
               >
                 <Layers className={`h-3.5 w-3.5 ${updatingPlayerDivision ? "animate-spin" : ""}`} />
                 {updatingPlayerDivision ? "Transferring..." : "Confirm Division Change"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DIRECT MATCH GOALS EDITOR MODAL */}
+      {editingMatchGoals && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-3xl border border-border bg-background p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="yellow" className="text-xs font-mono">
+                    {editingMatchGoals.round}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {editingMatchGoals.division}
+                  </Badge>
+                </div>
+                <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-primary" />
+                  Change Match Goals
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditingMatchGoals(null)}
+                className="text-muted-foreground hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 text-center">
+                  <span className="text-xs font-bold text-foreground block truncate mb-1">
+                    {editingMatchGoals.homePlayer?.gamerTag} (Home)
+                  </span>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="40"
+                    value={editMatchHomeScore}
+                    onChange={(e) => setEditMatchHomeScore(Number(e.target.value))}
+                    className="text-center font-mono text-xl font-black bg-background border-border text-primary h-11"
+                  />
+                </div>
+                <span className="text-lg font-black text-muted-foreground mt-4">-</span>
+                <div className="flex-1 text-center">
+                  <span className="text-xs font-bold text-foreground block truncate mb-1">
+                    {editingMatchGoals.awayPlayer?.gamerTag} (Away)
+                  </span>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="40"
+                    value={editMatchAwayScore}
+                    onChange={(e) => setEditMatchAwayScore(Number(e.target.value))}
+                    className="text-center font-mono text-xl font-black bg-background border-border text-primary h-11"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Saving goals will update the match, immediately recalculate the league standings table, and notify all registered players.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                disabled={savingMatchGoals}
+                onClick={handleSaveDirectMatchScore}
+                className="flex-1 bg-primary hover:bg-primary text-white font-black text-xs gap-1.5 h-10 shadow-lg"
+              >
+                {savingMatchGoals ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Save Goals & Update Table
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEditingMatchGoals(null)}
+                className="text-xs h-10"
+              >
+                Cancel
               </Button>
             </div>
           </div>

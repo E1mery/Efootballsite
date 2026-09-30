@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { uploadBase64ToR2 } from "@/lib/r2";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
+import { recalculateStandings } from "@/lib/recalculateStandings";
+import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 
 export async function POST(req: Request) {
   try {
@@ -227,41 +229,135 @@ export async function POST(req: Request) {
       finalLeg2ScreenshotUrl = await uploadBase64ToR2(leg2ScreenshotUrl, "results");
     }
 
-    // Create submission for admin review with status PENDING
+    const officialHomeScore = Number(homeScore);
+    const officialAwayScore = Number(awayScore);
+    const officialLeg2Home = leg2HomeScore !== undefined ? Number(leg2HomeScore) : null;
+    const officialLeg2Away = leg2AwayScore !== undefined ? Number(leg2AwayScore) : null;
+    const officialAggHome = isTwoLegged ? calculatedAggHome : null;
+    const officialAggAway = isTwoLegged ? calculatedAggAway : null;
+
+    // Create submission record with status APPROVED so admin can inspect proof and modify goals
     const submission = await prisma.matchSubmission.create({
       data: {
         matchId,
         submittedByPlayerId: user.player.id,
-        homeScore: Number(homeScore),
-        awayScore: Number(awayScore),
-        leg2HomeScore: leg2HomeScore !== undefined ? Number(leg2HomeScore) : null,
-        leg2AwayScore: leg2AwayScore !== undefined ? Number(leg2AwayScore) : null,
-        aggregateHomeScore: isTwoLegged ? calculatedAggHome : null,
-        aggregateAwayScore: isTwoLegged ? calculatedAggAway : null,
+        homeScore: officialHomeScore,
+        awayScore: officialAwayScore,
+        leg2HomeScore: officialLeg2Home,
+        leg2AwayScore: officialLeg2Away,
+        aggregateHomeScore: officialAggHome,
+        aggregateAwayScore: officialAggAway,
         screenshotUrl: finalScreenshotUrl,
         leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
         notes: notes || null,
-        status: "PENDING",
+        status: "APPROVED",
       },
     });
 
-    // Notify opponent that result was uploaded and upload window is closed
+    // Update match to FINISHED with official goals and screenshot proof
+    const updatedMatch = await prisma.match.update({
+      where: { id: matchId },
+      data: {
+        homeScore: officialHomeScore,
+        awayScore: officialAwayScore,
+        leg2HomeScore: officialLeg2Home,
+        leg2AwayScore: officialLeg2Away,
+        aggregateHomeScore: officialAggHome,
+        aggregateAwayScore: officialAggAway,
+        status: "FINISHED",
+        screenshotUrl: finalScreenshotUrl,
+        leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
+        notes:
+          notes ||
+          (officialLeg2Home !== null
+            ? `2-Leg Match (Leg 1: ${officialHomeScore}-${officialAwayScore}, Leg 2: ${officialLeg2Home}-${officialLeg2Away}, Agg: ${officialAggHome}-${officialAggAway})`
+            : `Submitted by @${user.player.gamerTag} (${officialHomeScore} - ${officialAwayScore})`),
+      },
+    });
+
+    // Reset consecutive missed counters since players completed their match fixture
+    await prisma.player.updateMany({
+      where: { id: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
+      data: { consecutiveMissed: 0 },
+    });
+    await prisma.standing.updateMany({
+      where: { playerId: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
+      data: { consecutiveMissed: 0 },
+    });
+
+    // Recalculate standings table immediately without requiring admin approval
+    const divToRecalc =
+      updatedMatch.stage === "GROUP" && updatedMatch.groupName
+        ? `${updatedMatch.division} ${updatedMatch.groupName}`
+        : updatedMatch.division;
+    await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+
+    // Notify participating players and broadcast standings update to all platform users
+    const matchSummary =
+      officialAggHome !== null
+        ? `Agg: ${officialAggHome} - ${officialAggAway}`
+        : `${officialHomeScore} - ${officialAwayScore}`;
+
+    await notifyStandingsUpdate({
+      tournamentType: updatedMatch.division,
+      competitionName: updatedMatch.division,
+      groupName: updatedMatch.groupName,
+      matchSummary,
+    });
+
+    // If knockout match, automatically notify the eliminated athlete
+    const isKnockout = ["QUARTER_FINAL", "SEMI_FINAL", "FINAL"].includes(updatedMatch.stage);
+    if (isKnockout) {
+      const homeTotal = officialAggHome ?? officialHomeScore;
+      const awayTotal = officialAggAway ?? officialAwayScore;
+      const eliminatedPlayerId =
+        homeTotal < awayTotal
+          ? updatedMatch.homePlayerId
+          : awayTotal < homeTotal
+          ? updatedMatch.awayPlayerId
+          : null;
+      if (eliminatedPlayerId) {
+        const stageLabel =
+          updatedMatch.stage === "QUARTER_FINAL"
+            ? "Quarter-Finals"
+            : updatedMatch.stage === "SEMI_FINAL"
+            ? "Semi-Finals"
+            : "Grand Final";
+        const compLabel = updatedMatch.division === "EUROPA" ? "Europa League" : "UCL";
+        await prisma.announcement
+          .create({
+            data: {
+              title: `⚠️ Tournament Elimination Notice: ${compLabel} (${stageLabel})`,
+              content: `Your campaign in the ${compLabel} has concluded. You have been eliminated in the ${stageLabel}. Thank you for your exceptional effort and sportsmanship!`,
+              type: "INDIVIDUAL",
+              targetPlayerId: eliminatedPlayerId,
+              isPinned: true,
+            },
+          })
+          .catch(() => {});
+      }
+    }
+
+    // Notify opponent that result was submitted and standings updated
     const opponentId =
       match.homePlayerId === user.player.id ? match.awayPlayerId : match.homePlayerId;
     if (opponentId) {
-      await prisma.announcement.create({
-        data: {
-          title: `Match Result Uploaded (${match.round})`,
-          content: `@${user.player.gamerTag} has uploaded the match result screenshot (${homeScore} - ${awayScore}) for your ${match.round} fixture. The upload window is now closed for both athletes while the League Admin verifies the proof.`,
-          type: "INDIVIDUAL",
-          targetPlayerId: opponentId,
-        },
-      }).catch(() => {});
+      await prisma.announcement
+        .create({
+          data: {
+            title: `Match Result Submitted (${match.round})`,
+            content: `@${user.player.gamerTag} has submitted the match result (${officialHomeScore} - ${officialAwayScore}) for your ${match.round} fixture. The league table has been updated automatically.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: opponentId,
+          },
+        })
+        .catch(() => {});
     }
 
     return NextResponse.json({
       success: true,
-      message: "Match results and screenshot submitted! Admin will verify and update the table.",
+      message:
+        "Match results and screenshot submitted! League table standings have updated automatically.",
       submission,
     });
   } catch (err: any) {

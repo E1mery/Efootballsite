@@ -36,7 +36,7 @@ export default function HomeDivisionsTabs({
       name: "Division 1 (Premiership)",
       badge: "TIER 1 PREMIERSHIP",
       color: "text-primary border-primary/30 bg-primary/10",
-      description: "Elite Mobile Athletes. 1st-8th advance to UCL (1st Champion), 9th-12th to Europa League, Mid-Table safe, Bottom 3 relegated to Division 2.",
+      description: "Elite Mobile Athletes. 1st-8th advance to UCL (1st Champion), 9th-16th to Europa League, Mid-Table safe, Bottom 3 relegated to Division 2.",
       standings: div1Standings,
     },
     "Division 2": {

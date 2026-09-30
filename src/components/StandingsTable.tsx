@@ -128,15 +128,15 @@ export default function StandingsTable({
               let isMidTable = false;
 
               if (divisionName === "Division 1") {
-                if (isBottomThree) {
-                  isRelegation = true;
-                } else if (rank === 1) {
+                if (rank === 1) {
                   isChampion = true;
                   isUcl = true;
                 } else if (rank <= 8) {
                   isUcl = true;
-                } else if (rank <= 12) {
+                } else if (rank <= 16) {
                   isEuropa = true;
+                } else if (isBottomThree) {
+                  isRelegation = true;
                 } else {
                   isMidTable = true;
                 }
@@ -474,7 +474,7 @@ export default function StandingsTable({
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded bg-secondary/20 border border-secondary/30" />
-                <span className="text-foreground">9th - 12th: Europa League</span>
+                <span className="text-foreground">9th - 16th: Europa League</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded bg-muted/60 border border-border" />

@@ -181,7 +181,7 @@ export default async function StandingsPage(props: {
           </div>
           <p className="text-xs text-foreground leading-relaxed">
             {currentDivision === "Division 1"
-              ? "Players placed 9th to 12th enter the Europa League group tournament."
+              ? "Players placed 9th to 16th enter the Europa League group tournament."
               : "Players placed 5th to 8th enter the Europa League group tournament."}
           </p>
         </div>
@@ -194,7 +194,7 @@ export default async function StandingsPage(props: {
           </div>
           <p className="text-xs text-foreground leading-relaxed">
             {currentDivision === "Division 1"
-              ? "Bottom 3 players are relegated to Division 2 upon season finalization. 13th placed players remain safe in Mid-Table."
+              ? "Bottom 3 players are relegated to Division 2 upon season finalization. 17th placed players remain safe in Mid-Table."
               : currentDivision === "Division 2"
               ? "Top 3 are PROMOTED to Division 1. Bottom 3 are relegated to Division 3. 9th-13th remain safe in Mid-Table."
               : "Top 3 are PROMOTED to Division 2. Division 3 has no relegation (National Academy tier). 9th+ remain in Mid-Table."}
