@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { syncSystemNewsToCarousel } from "@/lib/systemNewsService";
 
 // Verify admin session helper
 async function verifyAdmin() {
@@ -75,45 +76,121 @@ export async function POST(req: Request) {
       },
     });
 
-    // If registration is closed or opened, create an automatic broadcast announcement
+    // If registration is closed or opened, handle announcements and news
     if (typeof registrationOpen === "boolean") {
-      await prisma.announcement.create({
-        data: {
-          title: registrationOpen
-            ? "📢 Official Notice: League Registration is OPEN!"
-            : "🛑 Official Notice: League Registration is now CLOSED!",
-          content: registrationOpen
-            ? "Registration is officially open for eFootball Mobile Divisions 1, 2, and 3. Secure your gamer slot before division caps (20 players max) fill up."
-            : "Registration has closed! Matchday schedules are now being generated. All players must prepare to play their 24-hour cycle fixtures.",
-          type: "BROADCAST",
-          isPinned: true,
-        },
-      });
+      if (registrationOpen) {
+        await prisma.announcement.create({
+          data: {
+            title: "📢 Official Notice: League Registration is OPEN!",
+            content: "Registration is officially open for eFootball Mobile Divisions 1, 2, and 3. Secure your gamer slot before division caps (20 players max) fill up.",
+            type: "BROADCAST",
+            isPinned: true,
+          },
+        });
+      } else {
+        await prisma.announcement.updateMany({
+          where: {
+            OR: [
+              { title: { contains: "Registration is OPEN", mode: "insensitive" } },
+              { content: { contains: "Registration is officially open", mode: "insensitive" } },
+            ],
+            isPinned: true,
+          },
+          data: { isPinned: false },
+        }).catch(() => {});
+        await prisma.news.updateMany({
+          where: {
+            OR: [
+              { id: "sys-season-registration" },
+              { title: { contains: "Registration", mode: "insensitive" } },
+            ],
+            showOnCarousel: true,
+          },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
     }
 
-    if (uclStarted) {
-      await prisma.announcement.create({
-        data: {
-          title: "🏆 eFootball Champions League (UCL) Officially LAUNCHED!",
-          content:
-            "The League Administrator has inaugurated the UCL post-season championship! Qualified players (Top 8 from Div 1, Top 4 from Div 2, Top 4 from Div 3) must cast their group slot votes. Strict division separation rules apply.",
-          type: "BROADCAST",
-          isPinned: true,
-        },
-      });
+    if (typeof uclStarted === "boolean") {
+      if (uclStarted) {
+        await prisma.announcement.create({
+          data: {
+            title: "🏆 eFootball Champions League (UCL) Officially LAUNCHED!",
+            content:
+              "The League Administrator has inaugurated the UCL post-season championship! Qualified players (Top 8 from Div 1, Top 4 from Div 2, Top 4 from Div 3) must cast their group slot votes. Strict division separation rules apply.",
+            type: "BROADCAST",
+            isPinned: true,
+          },
+        });
+      } else {
+        // Locked: unpin any UCL announcements and turn off carousel display
+        await prisma.announcement.updateMany({
+          where: {
+            OR: [
+              { title: { contains: "Champions League", mode: "insensitive" } },
+              { title: { contains: "UCL", mode: "insensitive" } },
+              { content: { contains: "Champions League", mode: "insensitive" } },
+              { content: { contains: "UCL", mode: "insensitive" } },
+            ],
+            isPinned: true,
+          },
+          data: { isPinned: false },
+        }).catch(() => {});
+        await prisma.news.updateMany({
+          where: {
+            OR: [
+              { id: "sys-announcement-ucl-launched" },
+              { title: { contains: "Champions League", mode: "insensitive" } },
+              { title: { contains: "UCL", mode: "insensitive" } },
+            ],
+            showOnCarousel: true,
+          },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
     }
 
-    if (europaStarted) {
-      await prisma.announcement.create({
-        data: {
-          title: "🌍 eFootball Europa League (UEL) Officially LAUNCHED!",
-          content:
-            "The League Administrator has inaugurated the Europa League tournament! Qualified players must complete their group draws and knockout brackets.",
-          type: "BROADCAST",
-          isPinned: true,
-        },
-      });
+    if (typeof europaStarted === "boolean") {
+      if (europaStarted) {
+        await prisma.announcement.create({
+          data: {
+            title: "🌍 eFootball Europa League (UEL) Officially LAUNCHED!",
+            content:
+              "The League Administrator has inaugurated the Europa League tournament! Qualified players must complete their group draws and knockout brackets.",
+            type: "BROADCAST",
+            isPinned: true,
+          },
+        });
+      } else {
+        // Locked: unpin any Europa announcements and turn off carousel display
+        await prisma.announcement.updateMany({
+          where: {
+            OR: [
+              { title: { contains: "Europa League", mode: "insensitive" } },
+              { title: { contains: "Europa", mode: "insensitive" } },
+              { content: { contains: "Europa League", mode: "insensitive" } },
+              { content: { contains: "Europa", mode: "insensitive" } },
+            ],
+            isPinned: true,
+          },
+          data: { isPinned: false },
+        }).catch(() => {});
+        await prisma.news.updateMany({
+          where: {
+            OR: [
+              { id: "sys-announcement-europa-launched" },
+              { title: { contains: "Europa League", mode: "insensitive" } },
+              { title: { contains: "Europa", mode: "insensitive" } },
+            ],
+            showOnCarousel: true,
+          },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
     }
+
+    // Synchronize system news to ensure Admin News Tab displays all active items
+    await syncSystemNewsToCarousel().catch(() => {});
 
     return NextResponse.json({
       success: true,

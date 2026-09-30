@@ -62,7 +62,6 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       europaKnockoutMatches,
       maxPlayedStanding,
       hallOfFameEntries,
-      pinnedBroadcastAnnouncements,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
         where: { id: "default" },
@@ -104,19 +103,6 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       }),
       prisma.hallOfFame.findMany({
         orderBy: [{ season: "desc" }, { createdAt: "desc" }],
-        take: 3,
-      }),
-      prisma.announcement.findMany({
-        where: {
-          type: "BROADCAST",
-          isPinned: true,
-          NOT: [
-            { title: { contains: "Reset", mode: "insensitive" } },
-            { content: { contains: "standings reset", mode: "insensitive" } },
-            { content: { contains: "clean state", mode: "insensitive" } },
-          ],
-        },
-        orderBy: [{ createdAt: "desc" }],
         take: 3,
       }),
     ]);
@@ -420,30 +406,6 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       };
     });
 
-    // 7. Pinned Commissioner Broadcast Announcements (if not already included)
-    for (const ann of pinnedBroadcastAnnouncements) {
-      if (isStandingsResetAnnouncement(ann)) continue;
-      if (!slides.some((s) => s.title.toLowerCase() === ann.title.toLowerCase())) {
-        slides.push({
-          id: `announcement-${ann.id}`,
-          type: "SYSTEM_ANNOUNCEMENT",
-          badge: "SYSTEM ANNOUNCEMENT",
-          category: "System Announcement",
-          tabLabel: "Official Notice",
-          title: ann.title,
-          subtitle: "Official Commissioner Noticeboard",
-          description: ann.content,
-          featuredImage: "/images/carousel-stadium-bg.jpg",
-          buttonText: "Noticeboard",
-          buttonUrl: "/dashboard",
-          publishDate: ann.createdAt,
-          data: {
-            subType: "BROADCAST_NOTICE",
-            announcementId: ann.id,
-          },
-        });
-      }
-    }
 
     // 8. Auto-update: In-Form Athletes (Only after at least 5 matches played)
     const maxPlayed = maxPlayedStanding?.played || 0;
@@ -506,8 +468,27 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       });
     }
 
-    // Final safety check: guarantee no league standings reset announcement ever appears
-    return slides.filter((slide) => !isStandingsResetAnnouncement(slide));
+    // Final safety check: guarantee no league standings reset or locked-competition news ever appears
+    return slides.filter((slide) => {
+      if (isStandingsResetAnnouncement(slide)) return false;
+
+      const titleLower = (slide.title || "").toLowerCase();
+      const descLower = (slide.description || "").toLowerCase();
+      const isUcl = titleLower.includes("champions league") || titleLower.includes("ucl") || descLower.includes("champions league");
+      const isEuropa = titleLower.includes("europa league") || titleLower.includes("europa") || descLower.includes("europa league");
+      const isReg = titleLower.includes("registration") || titleLower.includes("enrollment") || descLower.includes("enrollment");
+
+      // When UCL is locked: ALL UCL slides MUST BE REMOVED!
+      if (!leagueConfig.uclStarted && isUcl) return false;
+
+      // When Europa is locked: ALL Europa slides MUST BE REMOVED!
+      if (!leagueConfig.europaStarted && isEuropa) return false;
+
+      // When Registration is closed: Registration slides MUST BE REMOVED!
+      if (!leagueConfig.registrationOpen && isReg) return false;
+
+      return true;
+    });
   } catch (error) {
     console.error("[getCarouselSlides] Error assembling carousel data:", error);
     return [];

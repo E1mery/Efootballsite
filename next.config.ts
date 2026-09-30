@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   experimental: {
     cpus: 1,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {

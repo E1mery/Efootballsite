@@ -464,6 +464,130 @@ export async function syncSystemNewsToCarousel() {
           data: { showOnCarousel: false },
         });
       }
+      // Unpin any registration announcements
+      await prisma.announcement.updateMany({
+        where: {
+          OR: [
+            { title: { contains: "Registration is OPEN", mode: "insensitive" } },
+            { content: { contains: "Registration is officially open", mode: "insensitive" } },
+          ],
+          isPinned: true,
+        },
+        data: { isPinned: false },
+      }).catch(() => {});
+    }
+
+    // =========================================================================
+    // 8. UCL Official Launch News (Synced to News Table for Admin Management)
+    // =========================================================================
+    const uclLaunchId = "sys-announcement-ucl-launched";
+    if (leagueConfig.uclStarted) {
+      if (!dismissedSet.has(uclLaunchId)) {
+        const existing = await prisma.news.findUnique({ where: { id: uclLaunchId } });
+        if (!existing) {
+          const item = await prisma.news.create({
+            data: {
+              id: uclLaunchId,
+              title: "🏆 eFootball Champions League (UCL) Officially LAUNCHED!",
+              category: "Competition",
+              description: "The League Administrator has inaugurated the UCL post-season championship! Qualified players (Top 8 from Div 1, Top 4 from Div 2, Top 4 from Div 3) must cast their group slot votes. Strict division separation rules apply.",
+              featuredImage: "/images/carousel-stadium-bg.jpg",
+              buttonText: "Continental Hub",
+              buttonUrl: "/continental",
+              status: "PUBLISHED",
+              publishDate: now,
+              expirationDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+              showOnCarousel: true,
+            },
+          });
+          synced.push(item);
+        }
+      }
+    } else {
+      // When UCL is locked, IMMEDIATELY remove/turn off carousel display for all UCL news
+      await prisma.news.updateMany({
+        where: {
+          OR: [
+            { id: uclLaunchId },
+            { id: "sys-announcement-draw-scheduled" },
+            { id: "sys-announcement-draw-results" },
+            { id: "sys-announcement-both-advance" },
+            { title: { contains: "Champions League", mode: "insensitive" } },
+            { title: { contains: "UCL", mode: "insensitive" } },
+          ],
+          showOnCarousel: true,
+        },
+        data: { showOnCarousel: false },
+      }).catch(() => {});
+
+      // Also unpin any old UCL announcements in Announcement table
+      await prisma.announcement.updateMany({
+        where: {
+          OR: [
+            { title: { contains: "Champions League", mode: "insensitive" } },
+            { title: { contains: "UCL", mode: "insensitive" } },
+            { content: { contains: "Champions League", mode: "insensitive" } },
+            { content: { contains: "UCL", mode: "insensitive" } },
+          ],
+          isPinned: true,
+        },
+        data: { isPinned: false },
+      }).catch(() => {});
+    }
+
+    // =========================================================================
+    // 9. Europa League Official Launch News (Synced to News Table for Admin Management)
+    // =========================================================================
+    const europaLaunchId = "sys-announcement-europa-launched";
+    if (leagueConfig.europaStarted) {
+      if (!dismissedSet.has(europaLaunchId)) {
+        const existing = await prisma.news.findUnique({ where: { id: europaLaunchId } });
+        if (!existing) {
+          const item = await prisma.news.create({
+            data: {
+              id: europaLaunchId,
+              title: "🌍 eFootball Europa League (UEL) Officially LAUNCHED!",
+              category: "Competition",
+              description: "The League Administrator has inaugurated the Europa League tournament! Qualified players must complete their group draws and knockout brackets.",
+              featuredImage: "/images/carousel-stadium-bg.jpg",
+              buttonText: "Continental Hub",
+              buttonUrl: "/continental",
+              status: "PUBLISHED",
+              publishDate: now,
+              expirationDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+              showOnCarousel: true,
+            },
+          });
+          synced.push(item);
+        }
+      }
+    } else {
+      // When Europa is locked, IMMEDIATELY remove/turn off carousel display for all Europa news
+      await prisma.news.updateMany({
+        where: {
+          OR: [
+            { id: europaLaunchId },
+            { title: { contains: "Europa League", mode: "insensitive" } },
+            { title: { contains: "Europa", mode: "insensitive" } },
+          ],
+          showOnCarousel: true,
+        },
+        data: { showOnCarousel: false },
+      }).catch(() => {});
+
+      // Also unpin any old Europa announcements in Announcement table
+      await prisma.announcement.updateMany({
+        where: {
+          OR: [
+            { title: { contains: "Europa League", mode: "insensitive" } },
+            { title: { contains: "Europa", mode: "insensitive" } },
+            { content: { contains: "Europa League", mode: "insensitive" } },
+            { content: { contains: "Europa", mode: "insensitive" } },
+          ],
+          isPinned: true,
+        },
+        data: { isPinned: false },
+      }).catch(() => {});
     }
   } catch (err) {
     console.error("[syncSystemNewsToCarousel] Error:", err);

@@ -263,6 +263,20 @@ export async function POST(req: Request) {
           },
           data: { showOnCarousel: false },
         }).catch(() => {});
+
+        // Unpin any old announcements for this locked competition
+        await prisma.announcement.updateMany({
+          where: {
+            OR: [
+              { title: { contains: compKeyword, mode: "insensitive" } },
+              { title: { contains: shortKeyword, mode: "insensitive" } },
+              { content: { contains: compKeyword, mode: "insensitive" } },
+              { content: { contains: shortKeyword, mode: "insensitive" } },
+            ],
+            isPinned: true,
+          },
+          data: { isPinned: false },
+        }).catch(() => {});
       }
 
       await syncSystemNewsToCarousel();
