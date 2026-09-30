@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ensureNewsTable } from "@/lib/ensureNewsTable";
-import { evaluateMatchOfTheDay } from "@/lib/matchOfTheDay";
+import { syncSystemNewsToCarousel } from "@/lib/systemNewsService";
 import {
   formatRwandanDate,
   formatRwandanTime,
@@ -9,72 +9,59 @@ import {
 import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
 
 /**
- * Retrieves both administrator-created news articles and real-time automated system updates
+ * Retrieves all administrator-created news articles and synchronized system updates
  * for the homepage carousel.
  *
- * Rules:
- * 1. Admin news articles appear when:
- *    - Status = PUBLISHED
- *    - Show on Carousel = ON (true)
- *    - Publish Date <= Current Date/Time
- *    - Expiration Date > Current Date/Time
- * 2. Automated system news/updates are dynamically generated from real league events:
- *    - [System announcement] 1: Division league Starting date & time after admin scheduled it
- *    - [System announcement] 2: Champions League & Europa League Draw confirmed date (when admin scheduled it)
- *    - [System announcement] 3: Champions League & Europa League Draw results
- *    - [System announcement] 4: When BOTH UCL & Europa League advance to the next stages
- *    - Real Match of the Day (Active Clash)
- *    - Real MOTD Final Result (Completed Clash)
- *    - Real In-Form Athletes (after >= 5 matches played)
- *    - Real Hall of Fame Champions
- *    - Real Season Registration Status
+ * Strict Rules:
+ * 1. All news displayed on the carousel is synchronized with the database (News table)
+ *    so that administrators can manage them (edit, change schedule, toggle carousel, or delete).
+ * 2. When Europa or UCL schedule time resets, or competitions are locked, any corresponding
+ *    draw/advance news on the carousel is removed immediately.
+ * 3. UCL news cannot be published on the carousel when UCL is locked (!leagueConfig.uclStarted).
+ * 4. Europa news cannot be published on the carousel when Europa is locked (!leagueConfig.europaStarted).
+ * 5. League standings and tournament reset announcements are strictly barred from carousel publication.
  */
+
+/**
+ * Strict safeguard: League standings and tournament reset announcements must NOT be published on the carousel.
+ */
+function isStandingsResetAnnouncement(item: {
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  content?: string;
+}): boolean {
+  const combined = `${item.title || ""} ${item.subtitle || ""} ${item.description || ""} ${item.content || ""}`.toLowerCase();
+  return (
+    combined.includes("standings reset") ||
+    combined.includes("reset standings") ||
+    combined.includes("schedule & standings reset") ||
+    combined.includes("standings & schedule reset") ||
+    (combined.includes("reset") && combined.includes("standings")) ||
+    (combined.includes("reset") && combined.includes("tournament")) ||
+    (combined.includes("reset") && combined.includes("matchday 1 clean state")) ||
+    (combined.includes("reset") && combined.includes("clean state"))
+  );
+}
+
 export async function getCarouselSlides(): Promise<CarouselSlide[]> {
   try {
     await ensureNewsTable();
+    // 1. Ensure system announcements and live updates are synchronized in database
+    await syncSystemNewsToCarousel();
+
     const now = new Date();
 
-    // 1. Query eligible Admin news articles from database
-    const eligibleNews = await prisma.news.findMany({
-      where: {
-        status: "PUBLISHED",
-        showOnCarousel: true,
-        publishDate: { lte: now },
-        expirationDate: { gt: now },
-      },
-      orderBy: { publishDate: "desc" },
-    });
-
-    const slides: CarouselSlide[] = eligibleNews.map((item) => ({
-      id: item.id,
-      type: "NEWS",
-      badge: item.category.toUpperCase(),
-      category: item.category,
-      tabLabel: item.title,
-      title: item.title,
-      subtitle: item.description,
-      description: item.description,
-      featuredImage: item.featuredImage,
-      buttonText: item.buttonText,
-      buttonUrl: item.buttonUrl,
-      publishDate: item.publishDate,
-      expirationDate: item.expirationDate,
-      data: item,
-    }));
-
-    // 2. Fetch real live system events for automated carousel updates
+    // 2. Fetch live league state to enforce lock & reset constraints
     const [
       leagueConfig,
-      motdActiveMatch,
-      motdRecentResults,
-      allStandings,
-      hallOfFameEntries,
-      maxPlayedStanding,
       earliestDivMatch,
-      divTournaments,
       uclGroupSlotsCount,
+      europaSlotsCount,
       uclKnockoutMatches,
       europaKnockoutMatches,
+      maxPlayedStanding,
+      hallOfFameEntries,
       pinnedBroadcastAnnouncements,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
@@ -88,47 +75,12 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         },
       }),
       prisma.match.findFirst({
-        where: {
-          isMatchOfTheDay: true,
-          status: { in: ["SCHEDULED", "LIVE"] },
-        },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-        },
-      }),
-      prisma.match.findMany({
-        where: {
-          isMatchOfTheDay: true,
-          status: "FINISHED",
-        },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-        },
-        orderBy: [{ matchDate: "desc" }],
-        take: 1,
-      }),
-      prisma.standing.findMany({
-        orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
-      }),
-      prisma.hallOfFame.findMany({
-        orderBy: [{ season: "desc" }, { createdAt: "desc" }],
-        take: 3,
-      }),
-      prisma.standing.findFirst({
-        orderBy: { played: "desc" },
-      }),
-      prisma.match.findFirst({
         where: { division: { in: ["Division 1", "Division 2", "Division 3"] } },
         orderBy: [{ matchDate: "asc" }],
         include: { tournament: true },
       }),
-      prisma.tournament.findMany({
-        where: { type: "DIVISION" },
-        select: { id: true, name: true, startDate: true, status: true },
-      }),
-      prisma.uclGroupSlot.count(),
+      prisma.uclGroupSlot.count({ where: { competition: "UCL" } }),
+      prisma.uclGroupSlot.count({ where: { competition: "EUROPA" } }),
       prisma.match.findMany({
         where: {
           division: "UCL",
@@ -147,141 +99,48 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         orderBy: [{ matchDate: "desc" }],
         take: 4,
       }),
+      prisma.standing.findFirst({
+        orderBy: { played: "desc" },
+      }),
+      prisma.hallOfFame.findMany({
+        orderBy: [{ season: "desc" }, { createdAt: "desc" }],
+        take: 3,
+      }),
       prisma.announcement.findMany({
-        where: { type: "BROADCAST", isPinned: true },
+        where: {
+          type: "BROADCAST",
+          isPinned: true,
+          NOT: [
+            { title: { contains: "Reset", mode: "insensitive" } },
+            { content: { contains: "standings reset", mode: "insensitive" } },
+            { content: { contains: "clean state", mode: "insensitive" } },
+          ],
+        },
         orderBy: [{ createdAt: "desc" }],
-        take: 2,
+        take: 3,
       }),
     ]);
 
-    // =========================================================================
-    // SYSTEM ANNOUNCEMENTS (Automated real-time league and tournament milestones)
-    // =========================================================================
+    // 3. Query all eligible news articles and system announcements from database
+    const eligibleNews = await prisma.news.findMany({
+      where: {
+        status: "PUBLISHED",
+        showOnCarousel: true,
+        publishDate: { lte: now },
+        expirationDate: { gt: now },
+      },
+      orderBy: { publishDate: "desc" },
+    });
 
-    // 1. Division league Starting date(time) after admin scheduled it
-    const kickoffDate = earliestDivMatch?.tournament?.startDate || earliestDivMatch?.matchDate;
-    if (earliestDivMatch && kickoffDate) {
-      const formattedKickoffDate = formatRwandanDate(kickoffDate, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-      const formattedKickoffTime = formatRwandanTime(kickoffDate);
-      const formattedKickoffFull = `${formattedKickoffDate} at ${formattedKickoffTime} (CAT)`;
+    // 4. Competition Lock and Draw Reset conditions
+    const hasUclScheduled = Boolean(leagueConfig.uclStarted && leagueConfig.uclDrawTime && !leagueConfig.uclDrawCompleted);
+    const hasEuropaScheduled = Boolean(leagueConfig.europaStarted && leagueConfig.europaDrawTime && !leagueConfig.europaDrawCompleted);
+    const hasAnyScheduledDraw = hasUclScheduled || hasEuropaScheduled;
 
-      slides.push({
-        id: "system-announcement-league-kickoff",
-        type: "SYSTEM_ANNOUNCEMENT",
-        badge: "SYSTEM ANNOUNCEMENT",
-        category: "System Announcement",
-        tabLabel: "League Kickoff",
-        title: "Official Division League Starting Date & Time Confirmed",
-        subtitle: `Kickoff Scheduled: ${formattedKickoffFull}`,
-        description: `The Commissioner has officially confirmed the schedule for Division 1, Division 2, and Division 3. First round fixtures drop on ${formattedKickoffFull}. All pairings remain strictly sealed until kickoff time. Prepare your squad!`,
-        featuredImage: "/images/carousel-stadium-bg.jpg",
-        buttonText: "View Fixtures",
-        buttonUrl: "/fixtures",
-        publishDate: kickoffDate,
-        data: {
-          subType: "LEAGUE_START",
-          kickoffDate,
-          formattedKickoffDate,
-          formattedKickoffTime,
-          formattedKickoffFull,
-          seasonName: leagueConfig.season,
-          currentMatchday: leagueConfig.currentMatchday || 1,
-        },
-      });
-    }
+    const isUclDrawDone = Boolean(leagueConfig.uclStarted && (leagueConfig.uclDrawCompleted || uclGroupSlotsCount >= 16));
+    const isEuropaDrawDone = Boolean(leagueConfig.europaStarted && (leagueConfig.europaDrawCompleted || europaSlotsCount >= 16));
+    const hasDrawResults = isUclDrawDone || isEuropaDrawDone;
 
-    // 2. CHAMPIONS LEAGUE & EUROPA LEAGUE Draw confirmed date (When admin scheduled it)
-    const hasUclScheduled = Boolean(leagueConfig.uclDrawTime && !leagueConfig.uclDrawCompleted);
-    const hasEuropaScheduled = Boolean(leagueConfig.europaDrawTime && !leagueConfig.europaDrawCompleted);
-
-    if (hasUclScheduled || hasEuropaScheduled) {
-      const uclTimeStr = leagueConfig.uclDrawTime ? formatRwandanDateTime(leagueConfig.uclDrawTime) : null;
-      const europaTimeStr = leagueConfig.europaDrawTime ? formatRwandanDateTime(leagueConfig.europaDrawTime) : null;
-
-      let drawTitle = "UCL & Europa League Draws Confirmed Date & Time";
-      let drawSubtitle = "Official Continental Cups Live Draw Event";
-      let drawDesc = "";
-
-      if (hasUclScheduled && hasEuropaScheduled) {
-        drawTitle = "Champions League & Europa League Draws Confirmed Date & Time";
-        drawSubtitle = "UCL & Europa League Official Live Draw Events Scheduled";
-        drawDesc = `The Commissioner has officially scheduled the live draws: Champions League on ${uclTimeStr} (CAT) and Europa League on ${europaTimeStr} (CAT). Watch the live animated draws on the Continental Cups page.`;
-      } else if (hasUclScheduled) {
-        drawTitle = "Champions League Official Draw Confirmed Date & Time";
-        drawSubtitle = `UCL Live Animated Draw Event • ${uclTimeStr} (CAT)`;
-        drawDesc = `The Commissioner has officially scheduled the Champions League live draws event on ${uclTimeStr} (CAT / Rwandan Time). Watch the live broadcast on the Continental Cups page.`;
-      } else {
-        drawTitle = "Europa League Official Draw Confirmed Date & Time";
-        drawSubtitle = `Europa League Live Animated Draw Event • ${europaTimeStr} (CAT)`;
-        drawDesc = `The Commissioner has officially scheduled the Europa League live draws event on ${europaTimeStr} (CAT / Rwandan Time). Watch the live broadcast on the Continental Cups page.`;
-      }
-
-      slides.push({
-        id: "system-announcement-draw-scheduled",
-        type: "SYSTEM_ANNOUNCEMENT",
-        badge: "SYSTEM ANNOUNCEMENT",
-        category: "System Announcement",
-        tabLabel: "Draw Scheduled",
-        title: drawTitle,
-        subtitle: drawSubtitle,
-        description: drawDesc,
-        featuredImage: "/images/carousel-stadium-bg.jpg",
-        buttonText: "Watch Live Draw",
-        buttonUrl: "/continental",
-        publishDate: leagueConfig.uclDrawTime || leagueConfig.europaDrawTime || now,
-        data: {
-          subType: "DRAW_SCHEDULED",
-          hasUclScheduled,
-          hasEuropaScheduled,
-          uclDrawTime: leagueConfig.uclDrawTime,
-          europaDrawTime: leagueConfig.europaDrawTime,
-          uclTimeStr,
-          europaTimeStr,
-        },
-      });
-    }
-
-    // 3. CHAMPIONS LEAGUE & EUROPA LEAGUE DRAW results
-    const isUclDrawDone = Boolean(leagueConfig.uclDrawCompleted);
-    const isEuropaDrawDone = Boolean(leagueConfig.europaDrawCompleted);
-    const hasDrawResults = isUclDrawDone || isEuropaDrawDone || uclGroupSlotsCount >= 16;
-
-    if (hasDrawResults) {
-      let drawResultsTitle = "Champions League & Europa League Official Draw Results";
-      if (isUclDrawDone && !isEuropaDrawDone) {
-        drawResultsTitle = "Champions League Official Draw Results Confirmed";
-      } else if (!isUclDrawDone && isEuropaDrawDone) {
-        drawResultsTitle = "Europa League Official Draw Results Confirmed";
-      }
-
-      slides.push({
-        id: "system-announcement-draw-results",
-        type: "SYSTEM_ANNOUNCEMENT",
-        badge: "SYSTEM ANNOUNCEMENT",
-        category: "System Announcement",
-        tabLabel: "Draw Results",
-        title: drawResultsTitle,
-        subtitle: "Groups A, B, C & D Confirmed with Strict Division Separation",
-        description: "The live animated draws have concluded! All 4 groups are locked. Check your group opponents, qualified division representatives, and match schedule.",
-        featuredImage: "/images/carousel-stadium-bg.jpg",
-        buttonText: "View Groups & Draws",
-        buttonUrl: "/continental",
-        publishDate: now,
-        data: {
-          subType: "DRAW_RESULTS",
-          isUclDrawDone,
-          isEuropaDrawDone,
-          slotsCount: uclGroupSlotsCount,
-        },
-      });
-    }
-
-    // 4. when BOTH UCL & EUROPA advances to the next stages
     const getKnockoutStage = (matches: any[]) => {
       if (matches.some((m) => m.stage === "FINAL")) return "FINAL";
       if (matches.some((m) => m.stage === "SEMI_FINAL")) return "SEMI_FINAL";
@@ -290,57 +149,280 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
     };
     const uclKnockoutStage = getKnockoutStage(uclKnockoutMatches);
     const europaKnockoutStage = getKnockoutStage(europaKnockoutMatches);
+    const bothUnlocked = Boolean(leagueConfig.uclStarted && leagueConfig.europaStarted);
+    const hasContinentalAdvance = Boolean(bothUnlocked && uclKnockoutStage && europaKnockoutStage);
 
-    if (uclKnockoutStage && europaKnockoutStage) {
-      const stageLabelMap: Record<string, string> = {
-        QUARTER_FINAL: "Quarter-Finals",
-        SEMI_FINAL: "Semi-Finals",
-        FINAL: "Grand Final",
+    const kickoffDate = earliestDivMatch?.tournament?.startDate || earliestDivMatch?.matchDate;
+    const formattedKickoffDate = kickoffDate
+      ? formatRwandanDate(kickoffDate, {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : null;
+    const formattedKickoffTime = kickoffDate ? formatRwandanTime(kickoffDate) : null;
+    const formattedKickoffFull = formattedKickoffDate && formattedKickoffTime
+      ? `${formattedKickoffDate} at ${formattedKickoffTime} (CAT)`
+      : null;
+
+    const uclTimeStr = leagueConfig.uclDrawTime ? formatRwandanDateTime(leagueConfig.uclDrawTime) : null;
+    const europaTimeStr = leagueConfig.europaDrawTime ? formatRwandanDateTime(leagueConfig.europaDrawTime) : null;
+
+    const stageLabelMap: Record<string, string> = {
+      QUARTER_FINAL: "Quarter-Finals",
+      SEMI_FINAL: "Semi-Finals",
+      FINAL: "Grand Final",
+    };
+    const uclStageLabel = uclKnockoutStage ? (stageLabelMap[uclKnockoutStage] || uclKnockoutStage) : "";
+    const europaStageLabel = europaKnockoutStage ? (stageLabelMap[europaKnockoutStage] || europaKnockoutStage) : "";
+    const sameStage = Boolean(uclKnockoutStage && europaKnockoutStage && uclKnockoutStage === europaKnockoutStage);
+
+    // 5. Filter news based on standings reset & lock/reset rules
+    const filteredEligibleNews = eligibleNews.filter((item) => {
+      // Rule 1: No standings reset announcements
+      if (isStandingsResetAnnouncement(item)) return false;
+
+      const titleLower = item.title.toLowerCase();
+      const descLower = item.description.toLowerCase();
+      const isUclItem = titleLower.includes("champions league") || titleLower.includes("ucl") || descLower.includes("champions league");
+      const isEuropaItem = titleLower.includes("europa league") || titleLower.includes("europa") || descLower.includes("europa league");
+
+      // Rule 2: UCL locked -> No UCL news
+      if (!leagueConfig.uclStarted) {
+        if (isUclItem && !isEuropaItem) return false;
+      }
+
+      // Rule 3: Europa locked -> No Europa news
+      if (!leagueConfig.europaStarted) {
+        if (isEuropaItem && !isUclItem) return false;
+      }
+
+      // Rule 4: Scheduled draw slide requires active scheduled draw time and unlocked competition
+      if (item.id === "sys-announcement-draw-scheduled") {
+        if (!hasAnyScheduledDraw) return false;
+      }
+
+      // Rule 5: Draw results slide requires unlocked competition and completed draw
+      if (item.id === "sys-announcement-draw-results") {
+        if (!hasDrawResults) return false;
+      }
+
+      // Rule 6: Both advance slide requires BOTH unlocked and advanced
+      if (item.id === "sys-announcement-both-advance") {
+        if (!hasContinentalAdvance) return false;
+      }
+
+      // Rule 7: If UCL draw time is null, reject any item specifically about UCL draw
+      if (!leagueConfig.uclDrawTime && titleLower.includes("champions league") && titleLower.includes("draw") && !titleLower.includes("result")) {
+        return false;
+      }
+
+      // Rule 8: If Europa draw time is null, reject any item specifically about Europa draw
+      if (!leagueConfig.europaDrawTime && titleLower.includes("europa") && titleLower.includes("draw") && !titleLower.includes("result")) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // 6. Map filtered news into CarouselSlides
+    const slides: CarouselSlide[] = filteredEligibleNews.map((item) => {
+      // 1. Division League Kickoff
+      if (item.id === "sys-announcement-league-kickoff") {
+        return {
+          id: item.id,
+          type: "SYSTEM_ANNOUNCEMENT",
+          badge: "SYSTEM ANNOUNCEMENT",
+          category: "System Announcement",
+          tabLabel: "League Kickoff",
+          title: item.title,
+          subtitle: `Kickoff Scheduled: ${formattedKickoffFull || "Confirmed by Admin"}`,
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "View Fixtures",
+          buttonUrl: item.buttonUrl || "/fixtures",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            subType: "LEAGUE_START",
+            kickoffDate,
+            formattedKickoffDate,
+            formattedKickoffTime,
+            formattedKickoffFull,
+            seasonName: leagueConfig.season,
+            currentMatchday: leagueConfig.currentMatchday || 1,
+          },
+        };
+      }
+
+      // 2. Champions League & Europa League Draw Scheduled
+      if (item.id === "sys-announcement-draw-scheduled") {
+        return {
+          id: item.id,
+          type: "SYSTEM_ANNOUNCEMENT",
+          badge: "SYSTEM ANNOUNCEMENT",
+          category: "System Announcement",
+          tabLabel: "Draw Scheduled",
+          title: item.title,
+          subtitle: "Official Continental Cups Live Draw Event",
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Watch Live Draw",
+          buttonUrl: item.buttonUrl || "/continental",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            subType: "DRAW_SCHEDULED",
+            hasUclScheduled,
+            hasEuropaScheduled,
+            uclDrawTime: leagueConfig.uclDrawTime,
+            europaDrawTime: leagueConfig.europaDrawTime,
+            uclTimeStr,
+            europaTimeStr,
+          },
+        };
+      }
+
+      // 3. Champions League & Europa League Draw Results
+      if (item.id === "sys-announcement-draw-results") {
+        return {
+          id: item.id,
+          type: "SYSTEM_ANNOUNCEMENT",
+          badge: "SYSTEM ANNOUNCEMENT",
+          category: "System Announcement",
+          tabLabel: "Draw Results",
+          title: item.title,
+          subtitle: "Groups A, B, C & D Confirmed with Strict Division Separation",
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "View Groups & Draws",
+          buttonUrl: item.buttonUrl || "/continental",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            subType: "DRAW_RESULTS",
+            isUclDrawDone,
+            isEuropaDrawDone,
+            slotsCount: uclGroupSlotsCount,
+          },
+        };
+      }
+
+      // 4. Knockout Advance: When BOTH UCL & Europa League Advance
+      if (item.id === "sys-announcement-both-advance") {
+        return {
+          id: item.id,
+          type: "SYSTEM_ANNOUNCEMENT",
+          badge: "SYSTEM ANNOUNCEMENT",
+          category: "System Announcement",
+          tabLabel: "Next Stages",
+          title: item.title,
+          subtitle: sameStage
+            ? `Both Continental Cups Advance to ${uclStageLabel}`
+            : `UCL (${uclStageLabel}) • Europa League (${europaStageLabel})`,
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Continental Hub",
+          buttonUrl: item.buttonUrl || "/continental",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            subType: "CONTINENTAL_ADVANCE",
+            uclStage: uclKnockoutStage,
+            europaStage: europaKnockoutStage,
+            uclStageLabel,
+            europaStageLabel,
+            sameStage,
+          },
+        };
+      }
+
+      // 5. MOTD Concluded Result
+      if (item.id.startsWith("sys-motd-result-")) {
+        return {
+          id: item.id,
+          type: "MOTD_RESULT",
+          badge: "MOTD FINAL RESULT",
+          category: "Match",
+          tabLabel: "MOTD Result",
+          title: item.title,
+          subtitle: "Match of the Day Concluded",
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Fixture Archive",
+          buttonUrl: item.buttonUrl || "/fixtures",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: item,
+        };
+      }
+
+      // 6. MOTD Active Match
+      if (item.id.startsWith("sys-motd-")) {
+        return {
+          id: item.id,
+          type: "MOTD",
+          badge: "MATCH OF THE DAY",
+          category: "Match",
+          tabLabel: "Match of the Day",
+          title: item.title,
+          subtitle: item.description,
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Match Center",
+          buttonUrl: item.buttonUrl || "/fixtures",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: item,
+        };
+      }
+
+      // 7. Season Registration
+      if (item.id === "sys-season-registration") {
+        return {
+          id: item.id,
+          type: "REGISTRATION",
+          badge: "SEASON ENROLLMENT",
+          category: "Registration",
+          tabLabel: "Season Registration",
+          title: item.title,
+          subtitle: "Division 1, Division 2, Division 3 • WhatsApp Room Match Scheduling",
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Register Athlete",
+          buttonUrl: item.buttonUrl || "/register",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            seasonName: leagueConfig.season,
+            currentMatchday: leagueConfig.currentMatchday || 1,
+          },
+        };
+      }
+
+      // Standard Administrator-created News Article
+      return {
+        id: item.id,
+        type: item.category === "System Announcement" ? "SYSTEM_ANNOUNCEMENT" : "NEWS",
+        badge: item.category.toUpperCase(),
+        category: item.category,
+        tabLabel: item.title,
+        title: item.title,
+        subtitle: item.description,
+        description: item.description,
+        featuredImage: item.featuredImage,
+        buttonText: item.buttonText,
+        buttonUrl: item.buttonUrl,
+        publishDate: item.publishDate,
+        expirationDate: item.expirationDate,
+        data: item,
       };
+    });
 
-      const uclStageLabel = stageLabelMap[uclKnockoutStage] || uclKnockoutStage;
-      const europaStageLabel = stageLabelMap[europaKnockoutStage] || europaKnockoutStage;
-      const sameStage = uclKnockoutStage === europaKnockoutStage;
-
-      const advanceTitle = sameStage
-        ? `UCL & Europa League Advance to ${uclStageLabel}!`
-        : `UCL & Europa League Advance to Next Stages (${uclStageLabel} & ${europaStageLabel})!`;
-
-      const advanceSubtitle = sameStage
-        ? `Both Continental Cups Advance to ${uclStageLabel}`
-        : `UCL (${uclStageLabel}) • Europa League (${europaStageLabel})`;
-
-      const advanceDesc =
-        sameStage && uclKnockoutStage === "FINAL"
-          ? "The pinnacle of eFootball mobile has arrived! Both Champions League and Europa League have advanced to the ultimate Grand Final. Single-match showdowns to decide Rwanda's continental champions."
-          : "Both the Champions League and Europa League have officially advanced to the next stages! Contenders will battle in intense 2-legged aggregate showdowns. Coordinate via WhatsApp and report results.";
-
-      slides.push({
-        id: "system-announcement-both-advance",
-        type: "SYSTEM_ANNOUNCEMENT",
-        badge: "SYSTEM ANNOUNCEMENT",
-        category: "System Announcement",
-        tabLabel: "Next Stages",
-        title: advanceTitle,
-        subtitle: advanceSubtitle,
-        description: advanceDesc,
-        featuredImage: "/images/carousel-stadium-bg.jpg",
-        buttonText: "Continental Hub",
-        buttonUrl: "/continental",
-        publishDate: now,
-        data: {
-          subType: "CONTINENTAL_ADVANCE",
-          uclStage: uclKnockoutStage,
-          europaStage: europaKnockoutStage,
-          uclStageLabel,
-          europaStageLabel,
-          sameStage,
-        },
-      });
-    }
-
-    // 5. Also publish direct Commissioner broadcast announcements that are pinned
+    // 7. Pinned Commissioner Broadcast Announcements (if not already included)
     for (const ann of pinnedBroadcastAnnouncements) {
+      if (isStandingsResetAnnouncement(ann)) continue;
       if (!slides.some((s) => s.title.toLowerCase() === ann.title.toLowerCase())) {
         slides.push({
           id: `announcement-${ann.id}`,
@@ -363,67 +445,9 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       }
     }
 
-    // Check Match of the Day (MOTD)
-    let resolvedMotd = motdActiveMatch;
-    const currentRoundNum = leagueConfig.currentMatchday || 1;
-    if (!resolvedMotd && currentRoundNum > 1) {
-      const roundMatches = await prisma.match.findMany({
-        where: { round: `Matchday ${currentRoundNum}` },
-        include: { homePlayer: true, awayPlayer: true },
-      });
-      resolvedMotd = evaluateMatchOfTheDay(roundMatches, allStandings, currentRoundNum);
-    }
-
-    // Auto-update: Active Match of the Day
-    if (resolvedMotd && !slides.some((s) => s.id.includes(resolvedMotd.id))) {
-      const motdAny = resolvedMotd as any;
-      slides.push({
-        id: `motd-${resolvedMotd.id}`,
-        type: "MOTD",
-        badge: "MATCH OF THE DAY",
-        category: "Match",
-        tabLabel: "Match of the Day",
-        title: `${resolvedMotd.homePlayer?.gamerTag} vs ${resolvedMotd.awayPlayer?.gamerTag}`,
-        subtitle: motdAny.motdHeadline || `${resolvedMotd.division} • ${resolvedMotd.round}`,
-        description: `Featured clash in ${resolvedMotd.division} (${resolvedMotd.round}). Coordinate in WhatsApp room before midnight.`,
-        featuredImage: resolvedMotd.homePlayer?.avatar || resolvedMotd.awayPlayer?.avatar || "/images/carousel-stadium-bg.jpg",
-        buttonText: "Match Center",
-        buttonUrl: `/fixtures?highlight=${resolvedMotd.id}`,
-        data: resolvedMotd,
-      });
-    }
-
-    // Auto-update: MOTD Concluded Result
-    if (motdRecentResults.length > 0) {
-      const latestResult = motdRecentResults[0];
-      const homeScore = latestResult.homeScore ?? 0;
-      const awayScore = latestResult.awayScore ?? 0;
-      const winner =
-        homeScore > awayScore
-          ? latestResult.homePlayer?.gamerTag
-          : awayScore > homeScore
-          ? latestResult.awayPlayer?.gamerTag
-          : "Stalemate Draw";
-
-      slides.push({
-        id: `motd-result-${latestResult.id}`,
-        type: "MOTD_RESULT",
-        badge: "MOTD FINAL RESULT",
-        category: "Match",
-        tabLabel: "MOTD Result",
-        title: `${latestResult.homePlayer?.gamerTag} ${homeScore} - ${awayScore} ${latestResult.awayPlayer?.gamerTag}`,
-        subtitle: `${latestResult.division} • ${latestResult.round} • Winner: ${winner}`,
-        description: `Match of the Day concluded. Official scores and statistics applied to standings.`,
-        featuredImage: latestResult.homePlayer?.avatar || "/images/carousel-stadium-bg.jpg",
-        buttonText: "Fixture Archive",
-        buttonUrl: "/fixtures",
-        data: latestResult,
-      });
-    }
-
-    // Auto-update: In-Form Athletes (Only after at least 5 matches played)
+    // 8. Auto-update: In-Form Athletes (Only after at least 5 matches played)
     const maxPlayed = maxPlayedStanding?.played || 0;
-    if (maxPlayed >= 5) {
+    if (maxPlayed >= 5 && !slides.some((s) => s.id === "in-form-athletes-slide")) {
       const topInFormStandings = await prisma.standing.findMany({
         where: { played: { gte: 5 } },
         include: { player: true },
@@ -463,8 +487,8 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       }
     }
 
-    // Auto-update: Hall of Fame Champions (if records exist in DB)
-    if (hallOfFameEntries.length > 0) {
+    // 9. Auto-update: Hall of Fame Champions (if records exist in DB)
+    if (hallOfFameEntries.length > 0 && !slides.some((s) => s.id === "hall-of-fame-slide")) {
       const topChamp = hallOfFameEntries[0];
       slides.push({
         id: "hall-of-fame-slide",
@@ -482,28 +506,8 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       });
     }
 
-    // Auto-update: Season Registration (if active and not already covered)
-    if (leagueConfig.registrationOpen && !slides.some((s) => s.category === "Registration")) {
-      slides.push({
-        id: "season-registration-slide",
-        type: "REGISTRATION",
-        badge: "SEASON ENROLLMENT",
-        category: "Registration",
-        tabLabel: "Season Registration",
-        title: `${leagueConfig.season} Official Registration Open`,
-        subtitle: "Division 1, Division 2, Division 3 • WhatsApp Room Match Scheduling",
-        description: "Athletes compete across Division 1, Division 2, and Division 3 in daily 24-hour matchday cycles with direct WhatsApp matchmaking.",
-        featuredImage: "/images/carousel-stadium-bg.jpg",
-        buttonText: "Register Athlete",
-        buttonUrl: "/register",
-        data: {
-          seasonName: leagueConfig.season,
-          currentMatchday: leagueConfig.currentMatchday || 1,
-        },
-      });
-    }
-
-    return slides;
+    // Final safety check: guarantee no league standings reset announcement ever appears
+    return slides.filter((slide) => !isStandingsResetAnnouncement(slide));
   } catch (error) {
     console.error("[getCarouselSlides] Error assembling carousel data:", error);
     return [];

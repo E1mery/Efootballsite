@@ -16,7 +16,6 @@ import {
   Megaphone,
   Trophy,
   Zap,
-  Clock,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +66,7 @@ interface CoverflowCardProps {
   shouldReduceMotion: boolean | null;
   isCenter: boolean;
   isPaused: boolean;
+  isMobile: boolean;
   progress: number;
   onCardClick: (index: number) => void;
 }
@@ -82,6 +82,7 @@ const CoverflowCard = memo(function CoverflowCard({
   shouldReduceMotion,
   isCenter,
   isPaused,
+  isMobile,
   progress,
   onCardClick,
 }: CoverflowCardProps) {
@@ -115,14 +116,14 @@ const CoverflowCard = memo(function CoverflowCard({
 
   const scale = useTransform(scrollX, (value) => {
     const absPos = Math.abs(index - value);
-    return Math.max(0.76, 1 - absPos * 0.12);
+    return Math.max(isMobile ? 0.84 : 0.76, 1 - absPos * (isMobile ? 0.1 : 0.12));
   });
 
   const opacity = useTransform(scrollX, (value) => {
     const absPos = Math.abs(index - value);
     if (absPos <= 0.6) return 1;
-    if (absPos <= 1.6) return 0.65;
-    if (absPos <= 2.6) return 0.25;
+    if (absPos <= 1.6) return isMobile ? 0.4 : 0.65;
+    if (absPos <= 2.6) return isMobile ? 0.1 : 0.25;
     return 0;
   });
 
@@ -199,25 +200,25 @@ const CoverflowCard = memo(function CoverflowCard({
           aria-label={`View ${slide.category}: ${slide.title}`}
           className="absolute inset-0 z-30 bg-background/40 hover:bg-background/15 backdrop-blur-sm cursor-pointer transition-all duration-300 flex items-center justify-center group/preview focus:outline-none"
         >
-          <span className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200 px-3.5 py-1.5 rounded-xl bg-card/90 border border-secondary/40 text-xs font-mono font-bold text-secondary shadow-xl pointer-events-none">
+          <span className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200 px-3 py-1 rounded-xl bg-card/90 border border-secondary/40 text-xs font-mono font-bold text-secondary shadow-xl pointer-events-none">
             Click to view
           </span>
         </button>
       )}
 
       {/* SLIDE CARD INNER CONTENT */}
-      <div className="relative z-10 p-5 sm:p-7 md:p-8 flex-1 flex flex-col justify-between gap-4 md:px-10 lg:px-12 w-full h-full">
+      <div className="relative z-10 p-3.5 sm:p-6 md:p-8 flex-1 flex flex-col justify-between gap-3 sm:gap-4 md:px-10 lg:px-12 w-full h-full overflow-hidden">
         <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
           {/* ========================================================================= */}
           {/* 1. MATCH OF THE DAY AUTOMATED SYSTEM SHOWDOWN */}
           {/* ========================================================================= */}
           {slide.type === "MOTD" && slide.data && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
-              <div className="space-y-3 text-left max-w-xl w-full">
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm"
+                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
                   >
                     <Sparkles className="h-3 w-3 mr-1" />
                     <span>
@@ -235,7 +236,7 @@ const CoverflowCard = memo(function CoverflowCard({
                   {slide.data.awayPlayer?.gamerTag}
                 </h2>
 
-                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-3">
+                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
                   {slide.subtitle || slide.description}
                 </p>
 
@@ -259,9 +260,9 @@ const CoverflowCard = memo(function CoverflowCard({
               </div>
 
               {/* Head-to-Head Card with Auto Ratio Avatars */}
-              <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl shrink-0">
-                <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
-                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+              <div className="w-full lg:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl shrink-0">
+                <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
+                  <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
                     <img
                       src={resolvePlayerAvatar(slide.data.homePlayer)}
                       alt={slide.data.homePlayer?.gamerTag}
@@ -270,7 +271,7 @@ const CoverflowCard = memo(function CoverflowCard({
                     />
                   </div>
                   <div>
-                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
                       {slide.data.homePlayer?.gamerTag}
                     </span>
                     <span className="text-xs text-muted-foreground font-mono font-bold">
@@ -279,8 +280,8 @@ const CoverflowCard = memo(function CoverflowCard({
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-1">
-                  <div className="px-3 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                  <div className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
                     VS
                   </div>
                   <span className="text-xs font-mono text-muted-foreground font-semibold">
@@ -288,8 +289,8 @@ const CoverflowCard = memo(function CoverflowCard({
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
-                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
+                  <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
                     <img
                       src={resolvePlayerAvatar(slide.data.awayPlayer)}
                       alt={slide.data.awayPlayer?.gamerTag}
@@ -298,7 +299,7 @@ const CoverflowCard = memo(function CoverflowCard({
                     />
                   </div>
                   <div>
-                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
                       {slide.data.awayPlayer?.gamerTag}
                     </span>
                     <span className="text-xs text-muted-foreground font-mono font-bold">
@@ -314,12 +315,12 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 2. MOTD FINAL RESULT AUTOMATED UPDATE */}
           {/* ========================================================================= */}
           {slide.type === "MOTD_RESULT" && slide.data && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
-              <div className="space-y-3 text-left max-w-xl w-full">
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm"
+                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
                   >
                     <Award className="h-3 w-3 mr-1" />
                     <span>
@@ -332,7 +333,7 @@ const CoverflowCard = memo(function CoverflowCard({
                   Match of the Day Concluded
                 </h2>
 
-                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-3">
+                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
                   {slide.subtitle || slide.description}
                 </p>
 
@@ -356,9 +357,9 @@ const CoverflowCard = memo(function CoverflowCard({
               </div>
 
               {/* Scoreboard Card */}
-              <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
-                <div className="text-right min-w-20 sm:min-w-24">
-                  <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+              <div className="w-full lg:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
+                <div className="text-right min-w-16 sm:min-w-24">
+                  <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
                     {slide.data.homePlayer?.gamerTag}
                   </span>
                   <span className="text-xs text-muted-foreground font-bold">
@@ -366,12 +367,12 @@ const CoverflowCard = memo(function CoverflowCard({
                   </span>
                 </div>
 
-                <div className="px-4 py-2 rounded-2xl bg-background/90 border border-border text-lg sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
+                <div className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-background/90 border border-border text-base sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
                   {slide.data.homeScore ?? 0} : {slide.data.awayScore ?? 0}
                 </div>
 
-                <div className="text-left min-w-20 sm:min-w-24">
-                  <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                <div className="text-left min-w-16 sm:min-w-24">
+                  <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
                     {slide.data.awayPlayer?.gamerTag}
                   </span>
                   <span className="text-xs text-muted-foreground font-bold">
@@ -386,17 +387,17 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 3. IN-FORM ATHLETES AUTOMATED UPDATE */}
           {/* ========================================================================= */}
           {slide.type === "IN_FORM" && slide.data && (
-            <div className="w-full space-y-3 sm:space-y-4 my-auto">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
+            <div className="w-full space-y-2.5 sm:space-y-4 my-auto">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 sm:gap-3 text-left">
                 <div className="space-y-1">
                   <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
                     <TrendingUp className="h-3.5 w-3.5 text-secondary" />
-                    <span>STANDINGS &amp; WIN-RATE PERFORMANCE LEADERS</span>
+                    <span>STANDINGS &amp; PERFORMANCE LEADERS</span>
                   </span>
                   <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                     {slide.title}
                   </h2>
-                  <p className="text-xs sm:text-sm text-foreground/80 max-w-xl leading-relaxed">
+                  <p className="text-xs sm:text-sm text-foreground/80 max-w-xl leading-relaxed line-clamp-2 sm:line-clamp-3">
                     {slide.subtitle || slide.description}
                   </p>
                 </div>
@@ -418,26 +419,26 @@ const CoverflowCard = memo(function CoverflowCard({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-                {slide.data.athletes?.map((ath: any) => (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pt-1">
+                {slide.data.athletes?.slice(0, 4).map((ath: any) => (
                   <div
                     key={ath.gamerTag}
-                    className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-3 sm:p-3.5 space-y-2 shadow-md hover:border-secondary/40 transition-colors"
+                    className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-2 sm:p-3 space-y-1.5 sm:space-y-2 shadow-md hover:border-secondary/40 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <Badge
                         variant="outline"
-                        className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10"
+                        className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10 px-1.5 py-0"
                       >
-                        Rank #{ath.rank}
+                        #{ath.rank}
                       </Badge>
-                      <span className="text-xs font-mono font-bold text-primary">
+                      <span className="text-xs font-mono font-bold text-primary truncate max-w-20">
                         {ath.division}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-primary/30 overflow-hidden text-xs font-black text-primary shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 aspect-square items-center justify-center rounded-lg sm:rounded-xl bg-card border border-primary/30 overflow-hidden text-xs font-black text-primary shadow-sm">
                         {ath.avatar ? (
                           <img
                             src={ath.avatar}
@@ -450,7 +451,7 @@ const CoverflowCard = memo(function CoverflowCard({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <span className="text-sm font-black text-foreground block truncate">
+                        <span className="text-xs sm:text-sm font-black text-foreground block truncate">
                           {ath.gamerTag}
                         </span>
                         {ath.realTeam && (
@@ -461,9 +462,9 @@ const CoverflowCard = memo(function CoverflowCard({
                       </div>
                     </div>
 
-                    <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-xs font-mono">
+                    <div className="pt-1 border-t border-border/60 flex items-center justify-between text-xs font-mono">
                       <span className="text-foreground font-bold">
-                        {ath.winRate}% Win Rate
+                        {ath.winRate}% Win
                       </span>
                       <span className="text-muted-foreground">
                         {ath.won}W / {ath.played}P
@@ -479,8 +480,8 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 4. HALL OF FAME REIGNING CHAMPIONS */}
           {/* ========================================================================= */}
           {slide.type === "HALL_OF_FAME" && slide.data && (
-            <div className="w-full space-y-3 sm:space-y-4 my-auto">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
+            <div className="w-full space-y-2.5 sm:space-y-4 my-auto">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 sm:gap-3 text-left">
                 <div className="space-y-1">
                   <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
                     <Crown className="h-3.5 w-3.5 text-secondary" />
@@ -489,7 +490,7 @@ const CoverflowCard = memo(function CoverflowCard({
                   <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                     {slide.title}
                   </h2>
-                  <p className="text-xs sm:text-sm text-foreground/80 max-w-xl leading-relaxed">
+                  <p className="text-xs sm:text-sm text-foreground/80 max-w-xl leading-relaxed line-clamp-2 sm:line-clamp-3">
                     {slide.subtitle || slide.description}
                   </p>
                 </div>
@@ -511,34 +512,34 @@ const CoverflowCard = memo(function CoverflowCard({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                {slide.data.champions?.map((champ: any) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pt-1">
+                {slide.data.champions?.slice(0, 3).map((champ: any) => (
                   <div
                     key={champ.id}
-                    className="rounded-xl border border-secondary/35 bg-card/75 backdrop-blur-md p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-md hover:border-secondary/60 transition-colors"
+                    className="rounded-xl border border-secondary/35 bg-card/75 backdrop-blur-md p-2.5 sm:p-3.5 flex items-center justify-between gap-2 shadow-md hover:border-secondary/60 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 shadow-sm">
-                        <Crown className="h-5 w-5 text-secondary" />
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 shadow-sm">
+                        <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <span className="text-xs font-mono uppercase text-secondary font-bold block">
                           👑 Champion
                         </span>
-                        <span className="text-sm font-black text-foreground truncate block">
+                        <span className="text-xs sm:text-sm font-black text-foreground truncate block">
                           {champ.championName}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <Badge
                         variant="yellow"
-                        className="text-xs font-mono font-bold"
+                        className="text-xs font-mono font-bold px-1.5 py-0"
                       >
                         {champ.season}
                       </Badge>
-                      <span className="text-xs text-muted-foreground block truncate max-w-28 mt-0.5">
+                      <span className="text-xs text-muted-foreground block truncate max-w-24 mt-0.5">
                         {champ.tournamentName}
                       </span>
                     </div>
@@ -552,8 +553,8 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 5. SEASON REGISTRATION AUTOMATED BULLETIN */}
           {/* ========================================================================= */}
           {slide.type === "REGISTRATION" && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
-              <div className="space-y-3 text-left max-w-xl w-full">
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
                   <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
                   <span>OFFICIAL ATHLETE ENROLLMENT</span>
@@ -561,7 +562,7 @@ const CoverflowCard = memo(function CoverflowCard({
                 <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                   {slide.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
+                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
                   {slide.description}
                 </p>
 
@@ -574,7 +575,7 @@ const CoverflowCard = memo(function CoverflowCard({
                       onMouseDown={(e) => e.stopPropagation()}
                       className={cn(
                         buttonVariants({ variant: "yellow", size: "default" }),
-                        "carousel-cta-btn font-black text-secondary-foreground text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
                       )}
                     >
                       <span>{slide.buttonText}</span>
@@ -590,13 +591,13 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 6. SYSTEM ANNOUNCEMENTS (Official League & Tournament Milestones) */}
           {/* ========================================================================= */}
           {slide.type === "SYSTEM_ANNOUNCEMENT" && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               {/* Left Column: Text & CTA */}
-              <div className="space-y-3.5 text-left max-w-xl flex-1 w-full">
+              <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-xl flex-1 w-full">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge
                     variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm"
+                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
                   >
                     <Megaphone className="h-3 w-3 mr-1" />
                     <span>System Announcement</span>
@@ -604,13 +605,13 @@ const CoverflowCard = memo(function CoverflowCard({
                   {slide.subtitle && (
                     <span className="text-xs font-mono text-secondary font-semibold">
                       {slide.data?.subType === "LEAGUE_START"
-                        ? "Official Schedule Confirmed"
+                        ? "Schedule Confirmed"
                         : slide.data?.subType === "DRAW_SCHEDULED"
-                        ? "Live Draw Scheduled"
+                        ? "Draw Scheduled"
                         : slide.data?.subType === "DRAW_RESULTS"
-                        ? "Group Stage Seeded"
+                        ? "Draw Complete"
                         : slide.data?.subType === "CONTINENTAL_ADVANCE"
-                        ? "Knockout Stage Active"
+                        ? "Knockout Active"
                         : "Official Notice"}
                     </span>
                   )}
@@ -620,12 +621,12 @@ const CoverflowCard = memo(function CoverflowCard({
                   {slide.title}
                 </h2>
 
-                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4 max-w-xl font-normal">
+                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-2 sm:line-clamp-4 max-w-xl font-normal">
                   {slide.description}
                 </p>
 
                 {slide.buttonText && slide.buttonUrl && (
-                  <div className="pt-2">
+                  <div className="pt-1 sm:pt-2">
                     <Link
                       href={slide.buttonUrl}
                       tabIndex={isCenter ? 0 : -1}
@@ -647,34 +648,34 @@ const CoverflowCard = memo(function CoverflowCard({
               <div className="w-full lg:w-auto shrink-0 flex items-center justify-center">
                 {/* 1. LEAGUE START SHOWCASE */}
                 {slide.data?.subType === "LEAGUE_START" && (
-                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
-                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                  <div className="w-full sm:w-auto min-w-0 max-w-full sm:min-w-64 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-2.5 sm:space-y-3">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2">
                       <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 text-secondary" />
                         <span>Official Kickoff (CAT)</span>
                       </span>
-                      <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/30">
-                        Midnight 12:00 AM
+                      <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/30 px-1.5 py-0">
+                        12:00 AM
                       </Badge>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <span className="text-xs text-muted-foreground font-mono font-semibold block">
-                        Starting Date &amp; Time:
+                        Kickoff Date &amp; Time:
                       </span>
-                      <span className="text-sm sm:text-base font-black text-foreground block">
+                      <span className="text-xs sm:text-sm font-black text-foreground block">
                         {slide.data?.formattedKickoffFull || slide.data?.formattedKickoffDate || "Confirmed by Admin"}
                       </span>
                     </div>
 
-                    <div className="pt-1 flex items-center gap-2 flex-wrap">
-                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                    <div className="pt-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
                         Division 1
                       </Badge>
-                      <Badge variant="outline" className="text-xs font-mono font-bold border-secondary/40 text-secondary">
+                      <Badge variant="outline" className="text-xs font-mono font-bold border-secondary/40 text-secondary px-1.5 py-0">
                         Division 2
                       </Badge>
-                      <Badge variant="outline" className="text-xs font-mono font-bold border-primary/40 text-primary">
+                      <Badge variant="outline" className="text-xs font-mono font-bold border-primary/40 text-primary px-1.5 py-0">
                         Division 3
                       </Badge>
                     </div>
@@ -683,34 +684,34 @@ const CoverflowCard = memo(function CoverflowCard({
 
                 {/* 2. DRAW SCHEDULED SHOWCASE */}
                 {slide.data?.subType === "DRAW_SCHEDULED" && (
-                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
-                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                  <div className="w-full sm:w-auto min-w-0 max-w-full sm:min-w-64 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-2.5 sm:space-y-3">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2">
                       <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
                         <Trophy className="h-3.5 w-3.5 text-secondary" />
-                        <span>Continental Live Draws</span>
+                        <span>Live Draws</span>
                       </span>
-                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
                         Scheduled
                       </Badge>
                     </div>
 
-                    <div className="space-y-2.5 text-xs font-mono">
+                    <div className="space-y-2 text-xs font-mono">
                       {slide.data?.uclTimeStr && (
-                        <div className="flex items-center justify-between p-2 rounded-xl bg-background/70 border border-border">
-                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                        <div className="flex items-center justify-between p-2 rounded-lg sm:rounded-xl bg-background/70 border border-border gap-2">
+                          <span className="font-bold text-foreground flex items-center gap-1.5 shrink-0">
                             <Sparkles className="h-3 w-3 text-secondary" />
-                            <span>UCL Draw:</span>
+                            <span>UCL:</span>
                           </span>
-                          <span className="text-secondary font-bold text-right">{slide.data.uclTimeStr} (CAT)</span>
+                          <span className="text-secondary font-bold text-right truncate">{slide.data.uclTimeStr} (CAT)</span>
                         </div>
                       )}
                       {slide.data?.europaTimeStr && (
-                        <div className="flex items-center justify-between p-2 rounded-xl bg-background/70 border border-border">
-                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                        <div className="flex items-center justify-between p-2 rounded-lg sm:rounded-xl bg-background/70 border border-border gap-2">
+                          <span className="font-bold text-foreground flex items-center gap-1.5 shrink-0">
                             <Award className="h-3 w-3 text-primary" />
-                            <span>Europa Draw:</span>
+                            <span>Europa:</span>
                           </span>
-                          <span className="text-primary font-bold text-right">{slide.data.europaTimeStr} (CAT)</span>
+                          <span className="text-primary font-bold text-right truncate">{slide.data.europaTimeStr} (CAT)</span>
                         </div>
                       )}
                     </div>
@@ -719,87 +720,83 @@ const CoverflowCard = memo(function CoverflowCard({
 
                 {/* 3. DRAW RESULTS SHOWCASE */}
                 {slide.data?.subType === "DRAW_RESULTS" && (
-                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
-                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                  <div className="w-full sm:w-auto min-w-0 max-w-full sm:min-w-64 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-2.5 sm:space-y-3">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2">
                       <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
                         <Trophy className="h-3.5 w-3.5 text-secondary" />
-                        <span>Group Draw Complete</span>
+                        <span>Draw Complete</span>
                       </span>
-                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
                         4 Groups Locked
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono">
-                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                    <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center text-xs font-mono">
+                      <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
                         Group A
                       </div>
-                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                      <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
                         Group B
                       </div>
-                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                      <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
                         Group C
                       </div>
-                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                      <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
                         Group D
                       </div>
                     </div>
 
-                    <p className="text-xs font-mono text-muted-foreground text-center pt-1">
-                      Top 2 athletes from each group advance to Quarter-Finals
+                    <p className="text-xs font-mono text-muted-foreground text-center pt-0.5">
+                      Top 2 athletes advance to Quarter-Finals
                     </p>
                   </div>
                 )}
 
                 {/* 4. BOTH ADVANCE SHOWCASE */}
                 {slide.data?.subType === "CONTINENTAL_ADVANCE" && (
-                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
-                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                  <div className="w-full sm:w-auto min-w-0 max-w-full sm:min-w-64 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-2.5 sm:space-y-3">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2">
                       <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
                         <Zap className="h-3.5 w-3.5 text-secondary" />
-                        <span>Knockout Phase Active</span>
+                        <span>Knockout Phase</span>
                       </span>
-                      <Badge variant="yellow" className="text-xs font-mono font-bold">
-                        Both Advanced
+                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
+                        Both Active
                       </Badge>
                     </div>
 
-                    <div className="space-y-2 text-xs font-mono">
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/70 border border-secondary/30">
-                        <span className="font-bold text-foreground flex items-center gap-1.5">
-                          <Crown className="h-3.5 w-3.5 text-secondary" />
-                          <span>Champions League</span>
+                    <div className="space-y-1.5 sm:space-y-2 text-xs font-mono">
+                      <div className="flex items-center justify-between p-2 rounded-lg sm:rounded-xl bg-background/70 border border-secondary/30 gap-2">
+                        <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                          <Crown className="h-3.5 w-3.5 text-secondary shrink-0" />
+                          <span>UCL</span>
                         </span>
-                        <Badge variant="yellow" className="text-xs font-mono font-bold">
+                        <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0 shrink-0">
                           {slide.data?.uclStageLabel || "Quarter-Finals"}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/70 border border-primary/30">
-                        <span className="font-bold text-foreground flex items-center gap-1.5">
-                          <Award className="h-3.5 w-3.5 text-primary" />
-                          <span>Europa League</span>
+                      <div className="flex items-center justify-between p-2 rounded-lg sm:rounded-xl bg-background/70 border border-primary/30 gap-2">
+                        <span className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                          <Award className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span>Europa</span>
                         </span>
-                        <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/40">
+                        <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/40 px-1.5 py-0 shrink-0">
                           {slide.data?.europaStageLabel || "Quarter-Finals"}
                         </Badge>
                       </div>
-                    </div>
-
-                    <div className="text-xs font-mono text-muted-foreground text-center pt-1">
-                      Simultaneous 2-leg aggregate battles
                     </div>
                   </div>
                 )}
 
                 {/* DEFAULT BROADCAST NOTICE SHOWCASE */}
                 {!["LEAGUE_START", "DRAW_SCHEDULED", "DRAW_RESULTS", "CONTINENTAL_ADVANCE"].includes(slide.data?.subType) && (
-                  <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 p-4 max-w-sm">
-                    <div className="flex items-center gap-2 mb-2 text-xs font-mono text-secondary font-bold">
+                  <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 p-3 sm:p-4 max-w-sm">
+                    <div className="flex items-center gap-2 mb-1.5 text-xs font-mono text-secondary font-bold">
                       <Megaphone className="h-4 w-4" />
                       <span>COMMISSIONER NOTICE</span>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-4">
+                    <p className="text-xs text-muted-foreground line-clamp-3 sm:line-clamp-4">
                       {slide.description}
                     </p>
                   </div>
@@ -812,13 +809,13 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 7. STANDARD NEWS ARTICLE (Admin Created or System Published) */}
           {/* ========================================================================= */}
           {(!slide.type || slide.type === "NEWS") && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               {/* Left Column: Text & CTA */}
-              <div className="space-y-3.5 text-left max-w-2xl flex-1 w-full">
-                <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-2xl flex-1 w-full">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge
                     variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm"
+                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
                   >
                     <Newspaper className="h-3 w-3 mr-1" />
                     <span>{slide.category}</span>
@@ -835,13 +832,13 @@ const CoverflowCard = memo(function CoverflowCard({
                   {slide.title}
                 </h2>
 
-                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4 whitespace-pre-line max-w-xl font-normal">
+                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-2 sm:line-clamp-4 whitespace-pre-line max-w-xl font-normal">
                   {slide.description}
                 </p>
 
                 {/* Optional CTA Button (Rendered only when configured) */}
                 {slide.buttonText && slide.buttonUrl && (
-                  <div className="pt-2">
+                  <div className="pt-1 sm:pt-2">
                     <Link
                       href={slide.buttonUrl}
                       tabIndex={isCenter ? 0 : -1}
@@ -861,11 +858,11 @@ const CoverflowCard = memo(function CoverflowCard({
 
               {/* Right Column: Featured Image with auto ratio according to uploaded image */}
               {slide.featuredImage && (
-                <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 max-h-52 sm:max-h-60 lg:max-h-72 max-w-full lg:max-w-md w-auto group/img flex items-center justify-center p-1.5">
+                <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 max-h-32 sm:max-h-52 lg:max-h-68 max-w-full lg:max-w-md w-auto group/img flex items-center justify-center p-1 sm:p-1.5">
                   <img
                     src={slide.featuredImage}
                     alt={slide.title}
-                    className="w-auto h-auto max-h-48 sm:max-h-56 lg:max-h-68 max-w-full rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 shadow-md"
+                    className="w-auto h-auto max-h-28 sm:max-h-48 lg:max-h-64 max-w-full rounded-lg sm:rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 shadow-md"
                     loading="lazy"
                   />
                 </div>
@@ -875,19 +872,19 @@ const CoverflowCard = memo(function CoverflowCard({
         </div>
 
         {/* BOTTOM ROW: League Branding & Verified Bulletins */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/80 w-full mt-auto">
+        <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/80 w-full mt-auto shrink-0">
           <span className="truncate">
-            eFootball Rwanda League • News &amp; Updates
+            eFootball Rwanda League • Official
           </span>
           <span className="uppercase tracking-widest hidden sm:inline-block font-semibold text-secondary">
-            Official Broadcast
+            Live Bulletin
           </span>
         </div>
       </div>
 
       {/* Dynamic progress line on bottom of active card */}
       {isCenter && totalSlides > 1 && !isPaused && (
-        <div className="h-1 w-full bg-border/40 overflow-hidden relative z-10">
+        <div className="h-1 w-full bg-border/40 overflow-hidden relative z-10 shrink-0">
           <div
             className="h-full bg-secondary transition-all duration-75 ease-linear"
             // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress 0-100%
@@ -934,17 +931,20 @@ export default function NewsTrendingCarousel({
     return () => ro.disconnect();
   }, []);
 
-  const isMobile = containerWidth < 640;
-  const isTablet = containerWidth >= 640 && containerWidth < 1024;
+  const isSmallMobile = containerWidth < 480;
+  const isMobile = containerWidth < 768;
+  const isTablet = containerWidth >= 768 && containerWidth < 1024;
 
-  const centerGap = isMobile
-    ? Math.round(containerWidth * 0.44)
+  const centerGap = isSmallMobile
+    ? Math.round(containerWidth * 0.78)
+    : isMobile
+    ? Math.round(containerWidth * 0.68)
     : isTablet
-    ? Math.round(containerWidth * 0.46)
-    : Math.round(Math.min(520, containerWidth * 0.46));
+    ? Math.round(containerWidth * 0.52)
+    : Math.round(Math.min(520, containerWidth * 0.44));
 
-  const stackSpacing = isMobile ? 55 : isTablet ? 80 : 110;
-  const rotation = isMobile ? 26 : isTablet ? 32 : 36;
+  const stackSpacing = isSmallMobile ? 28 : isMobile ? 48 : isTablet ? 75 : 105;
+  const rotation = isSmallMobile ? 12 : isMobile ? 16 : isTablet ? 24 : 32;
 
   const jumpToIndex = useCallback(
     (index: number) => {
@@ -1041,14 +1041,18 @@ export default function NewsTrendingCarousel({
     (_: unknown, info: PanInfo) => {
       setIsDragging(false);
       setIsPaused(false);
-      const projected = scrollX.get() - info.velocity.x * 0.0018;
-      const clamped = Math.min(
-        Math.max(Math.round(projected), 0),
-        totalSlides - 1
-      );
+      const velocity = info.velocity.x;
+      let targetIndex: number;
+      // Flick detection: fast finger swipe advances to next/prev slide cleanly
+      if (Math.abs(velocity) > 280) {
+        targetIndex = velocity < 0 ? currentIndex + 1 : currentIndex - 1;
+      } else {
+        targetIndex = Math.round(scrollX.get());
+      }
+      const clamped = Math.min(Math.max(targetIndex, 0), totalSlides - 1);
       jumpToIndex(clamped);
     },
-    [scrollX, totalSlides, jumpToIndex]
+    [scrollX, totalSlides, jumpToIndex, currentIndex]
   );
 
   if (totalSlides === 0) {
@@ -1097,13 +1101,14 @@ export default function NewsTrendingCarousel({
               shouldReduceMotion={shouldReduceMotion}
               isCenter={index === currentIndex}
               isPaused={isPaused}
+              isMobile={isMobile}
               progress={progress}
               onCardClick={jumpToIndex}
             />
           ))}
         </div>
 
-        {/* FLOATING NAVIGATION BUTTONS */}
+        {/* FLOATING NAVIGATION BUTTONS (Tablets & Desktop) */}
         {totalSlides > 1 && (
           <>
             <button
@@ -1116,7 +1121,7 @@ export default function NewsTrendingCarousel({
               onMouseDown={(e) => e.stopPropagation()}
               disabled={totalSlides <= 1}
               aria-label="Previous news slide"
-              className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-50 group flex cursor-pointer pointer-events-auto select-none"
+              className="carousel-nav-btn absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 z-50 group hidden sm:flex cursor-pointer pointer-events-auto select-none"
             >
               <ChevronLeft className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:-translate-x-0.5" />
             </button>
@@ -1130,7 +1135,7 @@ export default function NewsTrendingCarousel({
               onMouseDown={(e) => e.stopPropagation()}
               disabled={totalSlides <= 1}
               aria-label="Next news slide"
-              className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-50 group flex cursor-pointer pointer-events-auto select-none"
+              className="carousel-nav-btn absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 z-50 group hidden sm:flex cursor-pointer pointer-events-auto select-none"
             >
               <ChevronRight className="h-5 w-5 text-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
             </button>
@@ -1138,23 +1143,46 @@ export default function NewsTrendingCarousel({
         )}
       </motion.div>
 
-      {/* Pagination Dots */}
+      {/* Pagination Bar with Mobile Navigation Controls */}
       {totalSlides > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-3 sm:pt-4">
-          {slides.map((s, idx) => (
-            <button
-              key={s.id || idx}
-              type="button"
-              onClick={() => jumpToIndex(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-              className={cn(
-                "carousel-dot",
-                idx === currentIndex
-                  ? "carousel-dot-active"
-                  : "carousel-dot-inactive"
-              )}
-            />
-          ))}
+        <div className="flex items-center justify-center gap-3 pt-3 sm:pt-4">
+          {/* Mobile-friendly mini arrow for left */}
+          <button
+            type="button"
+            onClick={prevSlide}
+            aria-label="Previous slide"
+            className="sm:hidden h-7 w-7 rounded-lg bg-card/90 border border-border text-foreground flex items-center justify-center cursor-pointer active:scale-95 shadow-sm"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {/* Pagination dots */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {slides.map((s, idx) => (
+              <button
+                key={s.id || idx}
+                type="button"
+                onClick={() => jumpToIndex(idx)}
+                aria-label={`Go to slide ${idx + 1}`}
+                className={cn(
+                  "carousel-dot cursor-pointer",
+                  idx === currentIndex
+                    ? "carousel-dot-active"
+                    : "carousel-dot-inactive"
+                )}
+              />
+            ))}
+          </div>
+
+          {/* Mobile-friendly mini arrow for right */}
+          <button
+            type="button"
+            onClick={nextSlide}
+            aria-label="Next slide"
+            className="sm:hidden h-7 w-7 rounded-lg bg-card/90 border border-border text-foreground flex items-center justify-center cursor-pointer active:scale-95 shadow-sm"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
       )}
     </section>

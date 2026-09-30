@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ensureNewsTable } from "@/lib/ensureNewsTable";
+import { syncSystemNewsToCarousel } from "@/lib/systemNewsService";
 import AdminNewsManager from "@/components/AdminNewsManager";
 import { ArrowLeft, Shield, Sliders } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ export default async function AdminNewsPage() {
   }
 
   await ensureNewsTable();
+  await syncSystemNewsToCarousel();
   const news = await prisma.news.findMany({
     orderBy: { createdAt: "desc" },
   });

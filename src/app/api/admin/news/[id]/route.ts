@@ -193,6 +193,13 @@ export async function DELETE(
       where: { id },
     });
 
+    if (id.startsWith("sys-")) {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "DismissedSystemNews" ("id") VALUES ($1) ON CONFLICT ("id") DO NOTHING`,
+        id
+      ).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, message: "News permanently deleted." });
   } catch (error: any) {
     console.error("[DELETE /api/admin/news/[id]] Error:", error);

@@ -182,7 +182,7 @@ body {
   margin-right: auto;
   overflow: hidden;
   min-height: 480px;
-  height: clamp(450px, 48vh, 520px);
+  height: clamp(460px, 48vh, 520px);
   perspective: 1200px;
   perspective-origin: 50% 50%;
   transform-style: preserve-3d;
@@ -190,15 +190,22 @@ body {
 
 @media (max-width: 1024px) {
   .carousel-stage-container {
-    min-height: 440px;
-    height: 460px;
+    min-height: 460px;
+    height: clamp(460px, 50vh, 500px);
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .carousel-stage-container {
-    min-height: 390px;
-    height: 410px;
+    min-height: 490px;
+    height: clamp(490px, 62vh, 550px);
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-stage-container {
+    min-height: 500px;
+    height: clamp(500px, 70vh, 560px);
   }
 }
 
@@ -208,8 +215,8 @@ body {
   left: 50%;
   width: 78%;
   min-height: 440px;
-  height: clamp(420px, 45vh, 480px);
-  border-radius: 16px;
+  height: clamp(430px, 45vh, 480px);
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 45px -15px oklch(0 0 0 / 0.5), 0 0 0 1px var(--border);
   display: flex;
@@ -222,17 +229,27 @@ body {
 
 @media (max-width: 1024px) {
   .carousel-slide-card {
-    width: 84%;
-    min-height: 400px;
-    height: 420px;
+    width: 85%;
+    min-height: 430px;
+    height: clamp(430px, 48vh, 470px);
+    border-radius: 18px;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .carousel-slide-card {
     width: 90%;
-    min-height: 360px;
-    height: 380px;
+    min-height: 460px;
+    height: clamp(460px, 60vh, 520px);
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-slide-card {
+    width: 93%;
+    min-height: 480px;
+    height: clamp(480px, 67vh, 540px);
     border-radius: 14px;
   }
 }
@@ -361,12 +378,26 @@ body {
 
 /* Headline clamp typography */
 .carousel-headline {
-  font-size: clamp(1.25rem, 2.8vw, 2.25rem);
-  line-height: 1.15;
+  font-size: clamp(1.125rem, 2.4vw + 0.4rem, 2.25rem);
+  line-height: 1.18;
   font-weight: 900;
   letter-spacing: -0.025em;
   color: oklch(var(--foreground));
   max-width: 44rem;
+}
+
+@media (max-width: 768px) {
+  .carousel-headline {
+    font-size: clamp(1.1rem, 3.8vw, 1.45rem);
+    line-height: 1.22;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-headline {
+    font-size: clamp(1.025rem, 4.4vw, 1.25rem);
+    line-height: 1.25;
+  }
 }
 
 /* Category Badge */

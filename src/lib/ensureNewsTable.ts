@@ -28,6 +28,14 @@ export async function ensureNewsTable() {
       )
     `);
 
+    // 1b. Create DismissedSystemNews table to prevent resurrecting deleted system items
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DismissedSystemNews" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "dismissedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // 2. Create indexes
     const indexes = [
       { name: "News_status_idx", col: "status" },

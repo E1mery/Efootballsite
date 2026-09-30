@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ensureNewsTable } from "@/lib/ensureNewsTable";
 import { ensureR2FileUrl } from "@/lib/r2";
+import { syncSystemNewsToCarousel } from "@/lib/systemNewsService";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -30,6 +31,7 @@ export async function GET() {
     }
 
     await ensureNewsTable();
+    await syncSystemNewsToCarousel();
     const news = await prisma.news.findMany({
       orderBy: { createdAt: "desc" },
     });

@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       create: { id: "default", currentMatchday: 1, registrationOpen: false },
     });
 
-    // 5. Post broadcast announcement
+    // 5. Post broadcast announcement (internal notice only, strictly excluded from hero carousel)
     await prisma.announcement.create({
       data: {
         title: "🔄 League Schedule & Standings Reset by Commissioner",
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
           division === "ALL" ? "all divisions (Div 1, Div 2, Div 3)" : division
         } have been completely reset to Matchday 1 clean state by the Commissioner Office.`,
         type: "BROADCAST",
-        isPinned: true,
+        isPinned: false,
       },
     });
 

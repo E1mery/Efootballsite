@@ -49,6 +49,7 @@ const CATEGORIES = [
   "Competition",
   "Registration",
   "Announcement",
+  "System Announcement",
   "System Update",
   "Event",
   "Other",
@@ -635,6 +636,18 @@ export default function AdminNewsManager({
 
                       {/* Title */}
                       <td className="py-3 px-4 max-w-xs">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {item.id.startsWith("sys-") && (
+                            <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
+                              System
+                            </Badge>
+                          )}
+                          {isCarouselEligible && (
+                            <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/40 px-1.5 py-0">
+                              Live on Carousel
+                            </Badge>
+                          )}
+                        </div>
                         <span className="font-bold text-foreground text-xs sm:text-sm line-clamp-1 block">
                           {item.title}
                         </span>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { formatRwandanDateTime } from "@/lib/rwandanTime";
+import { syncSystemNewsToCarousel } from "@/lib/systemNewsService";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -30,7 +31,9 @@ export async function POST(req: Request) {
     const currentLeagueConfig = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
     const isCompUnlocked = competition === "UCL" ? currentLeagueConfig?.uclStarted : currentLeagueConfig?.europaStarted;
 
+    // =========================================================================
     // 1. SCHEDULE DRAW
+    // =========================================================================
     if (action === "SCHEDULE_DRAW") {
       if (!isCompUnlocked) {
         return NextResponse.json(
@@ -39,9 +42,49 @@ export async function POST(req: Request) {
         );
       }
 
-      const updateData: any = {};
-      const dateVal = drawTime ? new Date(drawTime) : null;
+      // If drawTime is null or empty, treat as reset schedule
+      if (!drawTime) {
+        const updateData: any = {};
+        if (competition === "UCL") {
+          updateData.uclDrawTime = null;
+        } else {
+          updateData.europaDrawTime = null;
+        }
 
+        const config = await prisma.leagueConfig.upsert({
+          where: { id: "default" },
+          update: updateData,
+          create: { id: "default", ...updateData },
+        });
+
+        // Remove published news from carousel when schedule time resets
+        const otherDrawTime = competition === "UCL" ? config.europaDrawTime : config.uclDrawTime;
+        if (!otherDrawTime) {
+          await prisma.news.updateMany({
+            where: { id: "sys-announcement-draw-scheduled" },
+            data: { showOnCarousel: false },
+          }).catch(() => {});
+        }
+
+        // Clean up broadcast announcement
+        await prisma.announcement.deleteMany({
+          where: {
+            type: "BROADCAST",
+            title: { contains: `${competition} Official Draws Event Scheduled` },
+          },
+        }).catch(() => {});
+
+        await syncSystemNewsToCarousel();
+
+        return NextResponse.json({
+          success: true,
+          message: `${competition} Draw scheduled time has been reset and published announcement removed from carousel.`,
+          config,
+        });
+      }
+
+      const dateVal = new Date(drawTime);
+      const updateData: any = {};
       if (competition === "UCL") {
         updateData.uclDrawTime = dateVal;
       } else {
@@ -54,27 +97,78 @@ export async function POST(req: Request) {
         create: { id: "default", ...updateData },
       });
 
+      // Clear any prior dismissal so the new schedule appears
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM "DismissedSystemNews" WHERE "id" = 'sys-announcement-draw-scheduled'`
+      ).catch(() => {});
+
       // Broadcast announcement about scheduled draw
-      if (dateVal) {
-        const drawDisplay = formatRwandanDateTime(dateVal);
-        await prisma.announcement.create({
-          data: {
-            title: `🏆 ${competition} Official Draws Event Scheduled!`,
-            content: `The League Commissioner has officially scheduled the live draws event for the ${competition} on ${drawDisplay} (CAT / Rwandan Time). All athletes can watch the live animated draw event on the Continental Cups page.`,
-            type: "BROADCAST",
-            isPinned: true,
-          },
-        }).catch(() => {});
-      }
+      const drawDisplay = formatRwandanDateTime(dateVal);
+      await prisma.announcement.create({
+        data: {
+          title: `🏆 ${competition} Official Draws Event Scheduled!`,
+          content: `The League Commissioner has officially scheduled the live draws event for the ${competition} on ${drawDisplay} (CAT / Rwandan Time). All athletes can watch the live animated draw event on the Continental Cups page.`,
+          type: "BROADCAST",
+          isPinned: true,
+        },
+      }).catch(() => {});
+
+      // Sync into News table for carousel and admin portal
+      await syncSystemNewsToCarousel();
 
       return NextResponse.json({
         success: true,
-        message: `${competition} Draw Event scheduled for ${dateVal ? `${formatRwandanDateTime(dateVal)} (CAT)` : "TBD"}`,
+        message: `${competition} Draw Event scheduled for ${formatRwandanDateTime(dateVal)} (CAT)`,
         config,
       });
     }
 
-    // 2. LAUNCH LIVE DRAW (Commissioner triggers live broadcast for all players)
+    // =========================================================================
+    // 2. RESET SCHEDULE TIME
+    // =========================================================================
+    if (action === "RESET_SCHEDULE") {
+      const updateData: any = {};
+      if (competition === "UCL") {
+        updateData.uclDrawTime = null;
+      } else {
+        updateData.europaDrawTime = null;
+      }
+
+      const config = await prisma.leagueConfig.upsert({
+        where: { id: "default" },
+        update: updateData,
+        create: { id: "default", ...updateData },
+      });
+
+      // When schedule time resets, remove the published news from the carousel
+      const otherDrawTime = competition === "UCL" ? config.europaDrawTime : config.uclDrawTime;
+      if (!otherDrawTime) {
+        await prisma.news.updateMany({
+          where: { id: "sys-announcement-draw-scheduled" },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
+
+      // Clean up broadcast announcement
+      await prisma.announcement.deleteMany({
+        where: {
+          type: "BROADCAST",
+          title: { contains: `${competition} Official Draws Event Scheduled` },
+        },
+      }).catch(() => {});
+
+      await syncSystemNewsToCarousel();
+
+      return NextResponse.json({
+        success: true,
+        message: `${competition} Draw schedule time has been reset and published announcement removed from carousel.`,
+        config,
+      });
+    }
+
+    // =========================================================================
+    // 3. LAUNCH LIVE DRAW (Commissioner triggers live broadcast for all players)
+    // =========================================================================
     if (action === "LAUNCH_LIVE_DRAW") {
       const updateData: any = {};
       if (competition === "UCL") {
@@ -106,6 +200,8 @@ export async function POST(req: Request) {
         },
       }).catch(() => {});
 
+      await syncSystemNewsToCarousel();
+
       return NextResponse.json({
         success: true,
         message: `Official live ${competition} draw has been launched across all player portals!`,
@@ -113,13 +209,17 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. TOGGLE COMPETITION LOCK/UNLOCK
+    // =========================================================================
+    // 4. TOGGLE COMPETITION LOCK/UNLOCK
+    // =========================================================================
     if (action === "TOGGLE_COMPETITION") {
       const updateData: any = {};
+      const isNowStarted = Boolean(started);
+
       if (competition === "UCL") {
-        updateData.uclStarted = Boolean(started);
+        updateData.uclStarted = isNowStarted;
       } else {
-        updateData.europaStarted = Boolean(started);
+        updateData.europaStarted = isNowStarted;
       }
 
       const config = await prisma.leagueConfig.upsert({
@@ -128,6 +228,45 @@ export async function POST(req: Request) {
         create: { id: "default", ...updateData },
       });
 
+      // When competition is locked (started = false), remove its news from the carousel immediately!
+      if (!isNowStarted) {
+        const otherUnlocked = competition === "UCL" ? config.europaStarted : config.uclStarted;
+
+        // If the other competition is also not unlocked, disable scheduled draw news on carousel
+        if (!otherUnlocked) {
+          await prisma.news.updateMany({
+            where: { id: "sys-announcement-draw-scheduled" },
+            data: { showOnCarousel: false },
+          }).catch(() => {});
+          await prisma.news.updateMany({
+            where: { id: "sys-announcement-draw-results" },
+            data: { showOnCarousel: false },
+          }).catch(() => {});
+        }
+
+        // Knockout advance requires BOTH unlocked; disable if either locked
+        await prisma.news.updateMany({
+          where: { id: "sys-announcement-both-advance" },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+
+        // Deactivate any manual or custom news mentioning this locked competition
+        const compKeyword = competition === "UCL" ? "Champions League" : "Europa League";
+        const shortKeyword = competition === "UCL" ? "UCL" : "Europa";
+        await prisma.news.updateMany({
+          where: {
+            OR: [
+              { title: { contains: compKeyword, mode: "insensitive" } },
+              { title: { contains: shortKeyword, mode: "insensitive" } },
+            ],
+            category: { in: ["Competition", "Announcement"] },
+          },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
+
+      await syncSystemNewsToCarousel();
+
       return NextResponse.json({
         success: true,
         message: `${competition} is now ${started ? "UNLOCKED" : "LOCKED"}.`,
@@ -135,7 +274,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. COMMIT OFFICIAL ANIMATED DRAW SLOTS
+    // =========================================================================
+    // 5. COMMIT OFFICIAL ANIMATED DRAW SLOTS
+    // =========================================================================
     if (action === "COMMIT_DRAW") {
       if (!Array.isArray(slots) || slots.length === 0) {
         return NextResponse.json(
@@ -195,6 +336,11 @@ export async function POST(req: Request) {
         data: updateConfig,
       });
 
+      // Draw concluded -> Clear draw-results dismissal if previously dismissed
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM "DismissedSystemNews" WHERE "id" = 'sys-announcement-draw-results'`
+      ).catch(() => {});
+
       // Broadcast announcement
       await prisma.announcement.create({
         data: {
@@ -205,13 +351,18 @@ export async function POST(req: Request) {
         },
       }).catch(() => {});
 
+      // Synchronize results to News table & carousel
+      await syncSystemNewsToCarousel();
+
       return NextResponse.json({
         success: true,
         message: `Successfully committed official ${competition} group draw!`,
       });
     }
 
-    // 4. RESET DRAW
+    // =========================================================================
+    // 6. RESET DRAW
+    // =========================================================================
     if (action === "RESET_DRAW") {
       await prisma.uclGroupSlot.deleteMany({
         where: { competition },
@@ -220,18 +371,50 @@ export async function POST(req: Request) {
       const resetData: any = {};
       if (competition === "UCL") {
         resetData.uclDrawCompleted = false;
+        resetData.uclDrawTime = null; // Wipe scheduled draw time!
       } else {
         resetData.europaDrawCompleted = false;
+        resetData.europaDrawTime = null; // Wipe scheduled draw time!
       }
 
-      await prisma.leagueConfig.update({
+      const updatedConfig = await prisma.leagueConfig.update({
         where: { id: "default" },
         data: resetData,
       });
 
+      // Remove published news from the carousel
+      const otherDrawDone = competition === "UCL" ? updatedConfig.europaDrawCompleted : updatedConfig.uclDrawCompleted;
+      if (!otherDrawDone) {
+        await prisma.news.updateMany({
+          where: { id: "sys-announcement-draw-results" },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
+
+      const otherScheduled = competition === "UCL" ? Boolean(updatedConfig.europaDrawTime) : Boolean(updatedConfig.uclDrawTime);
+      if (!otherScheduled) {
+        await prisma.news.updateMany({
+          where: { id: "sys-announcement-draw-scheduled" },
+          data: { showOnCarousel: false },
+        }).catch(() => {});
+      }
+
+      // Clean up broadcast announcements for this draw
+      await prisma.announcement.deleteMany({
+        where: {
+          type: "BROADCAST",
+          OR: [
+            { title: { contains: `${competition} Official Draws Event Scheduled` } },
+            { title: { contains: `${competition} Official Group Draws Concluded` } },
+          ],
+        },
+      }).catch(() => {});
+
+      await syncSystemNewsToCarousel();
+
       return NextResponse.json({
         success: true,
-        message: `${competition} draw has been reset.`,
+        message: `${competition} draw and scheduled time have been reset. Published carousel announcements removed.`,
       });
     }
 

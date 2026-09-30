@@ -1129,6 +1129,37 @@ export default function AdminClient({
     }
   };
 
+  // Reset Scheduled Draw Time (Removes published draw announcement from carousel)
+  const handleResetScheduleTime = async (competition: "UCL" | "EUROPA") => {
+    if (!confirm(`Reset and clear scheduled draw time for ${competition}? Published draw announcement on the carousel will be removed immediately.`)) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/continental/schedule-draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "RESET_SCHEDULE",
+          competition,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset draw time");
+      alert(data.message);
+      if (competition === "UCL") {
+        setUclDrawInput("");
+      } else {
+        setEuropaDrawInput("");
+      }
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Launch Official Live Animated Draws System (Broadcasts simultaneously to all player portals)
   const handleLaunchLiveDraw = async (competition: "UCL" | "EUROPA") => {
     setActionLoading(true);
@@ -4478,6 +4509,17 @@ export default function AdminClient({
                     >
                       Schedule Event
                     </Button>
+                    {leagueConfig.uclDrawTime && (
+                      <Button
+                        onClick={() => handleResetScheduleTime("UCL")}
+                        disabled={actionLoading || !leagueConfig.uclStarted}
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs shrink-0 font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        Reset Time
+                      </Button>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
@@ -4632,6 +4674,17 @@ export default function AdminClient({
                     >
                       Schedule Event
                     </Button>
+                    {leagueConfig.europaDrawTime && (
+                      <Button
+                        onClick={() => handleResetScheduleTime("EUROPA")}
+                        disabled={actionLoading || !leagueConfig.europaStarted}
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs shrink-0 font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        Reset Time
+                      </Button>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
