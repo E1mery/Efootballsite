@@ -359,6 +359,27 @@ export default function AdminNewsManager({
     }
   };
 
+  // Auto-sync system news updates
+  const [isSyncing, setIsSyncing] = useState(false);
+  const handleAutoSyncSystemNews = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/admin/news/auto-sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to auto-sync system updates.");
+      }
+      if (data.news) {
+        setNewsList(data.news);
+      }
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to auto-sync system news.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Filtered News Items
   const filteredNews = useMemo(() => {
     return newsList.filter((item) => {
@@ -425,15 +446,29 @@ export default function AdminNewsManager({
           </p>
         </div>
 
-        <Button
-          onClick={handleOpenCreate}
-          variant="yellow"
-          size="default"
-          className="rounded-xl font-bold text-xs sm:text-sm gap-2 shrink-0 shadow-lg cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Create News Article</span>
-        </Button>
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <Button
+            onClick={handleAutoSyncSystemNews}
+            disabled={isSyncing}
+            variant="outline"
+            size="default"
+            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border hover:bg-muted"
+            title="Automatically detect active matchday, MOTD, and registration to publish system updates"
+          >
+            <Sparkles className="h-4 w-4 text-secondary" />
+            <span>{isSyncing ? "Syncing..." : "Auto-Sync System Updates"}</span>
+          </Button>
+
+          <Button
+            onClick={handleOpenCreate}
+            variant="yellow"
+            size="default"
+            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-lg cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create News Article</span>
+          </Button>
+        </div>
       </div>
 
       {/* Metrics Strip */}
@@ -582,12 +617,12 @@ export default function AdminNewsManager({
                     >
                       {/* Featured Image Thumbnail */}
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="h-12 w-20 rounded-lg overflow-hidden border border-border/80 bg-background/60 shadow-sm shrink-0">
+                        <div className="h-12 w-20 rounded-lg overflow-hidden border border-border/80 bg-background/60 shadow-sm shrink-0 flex items-center justify-center">
                           {item.featuredImage ? (
                             <img
                               src={item.featuredImage}
                               alt={item.title}
-                              className="h-full w-full object-cover"
+                              className="h-full w-auto max-w-full object-contain aspect-auto"
                               loading="lazy"
                             />
                           ) : (
@@ -838,14 +873,14 @@ export default function AdminNewsManager({
                   </label>
                 </div>
 
-                {/* Real-time Image Preview */}
+                {/* Real-time Image Preview with auto ratio according to uploaded image */}
                 {formData.featuredImage && (
-                  <div className="relative rounded-2xl overflow-hidden border border-border bg-background/80 p-2 flex items-center gap-3">
-                    <div className="h-16 w-24 rounded-lg overflow-hidden border border-border/80 bg-background shrink-0">
+                  <div className="relative rounded-2xl overflow-hidden border border-border bg-background/80 p-3 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="rounded-xl overflow-hidden border border-border/80 bg-background shrink-0 max-h-40 max-w-full sm:max-w-xs flex items-center justify-center">
                       <img
                         src={formData.featuredImage}
                         alt="Preview"
-                        className="h-full w-full object-cover"
+                        className="w-auto h-auto max-h-40 max-w-full object-contain aspect-auto"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                         }}
@@ -1105,13 +1140,13 @@ export default function AdminNewsManager({
                     )}
                   </div>
 
-                  {/* Featured Image */}
+                  {/* Featured Image with auto ratio according to uploaded image */}
                   {previewItem.featuredImage && (
-                    <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl w-full max-w-sm aspect-video shrink-0">
+                    <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl shrink-0 max-h-56 sm:max-h-64 lg:max-h-72 max-w-full lg:max-w-md w-auto flex items-center justify-center">
                       <img
                         src={previewItem.featuredImage}
                         alt={previewItem.title}
-                        className="w-full h-full object-cover"
+                        className="w-auto h-auto max-h-56 sm:max-h-64 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto"
                       />
                     </div>
                   )}

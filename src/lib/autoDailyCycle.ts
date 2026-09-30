@@ -306,6 +306,14 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
       },
     });
 
+    // 7. Auto-send official news & updates to carousel and database
+    try {
+      const { syncSystemNewsToCarousel } = await import("@/lib/systemNewsService");
+      await syncSystemNewsToCarousel();
+    } catch (newsErr) {
+      console.warn("Auto-sync news warning during daily cycle:", newsErr);
+    }
+
     return {
       advanced: true,
       currentMatchday: nextMatchday,
