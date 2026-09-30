@@ -530,31 +530,6 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* External Resources & Community Links */}
-        <div className="rounded-2xl mt-5 border border-border bg-background/80 p-4 space-y-3">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block text-center">
-            External Community & League Tables (Open Access)
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="https://discord.gg/rbaFrBB5p"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-card border border-border hover:border-primary/40 text-center text-xs text-foreground font-semibold transition-all hover:text-white"
-            >
-              Official Discord ↗
-            </a>
-            <a
-              href="https://www.instagram.com/efootball_rwanda1/?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw%3D%3D"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-card border border-border hover:border-primary/40 text-center text-xs text-foreground font-semibold transition-all hover:text-white"
-            >
-              Official Instagram ↗
-            </a>
-          </div>
-        </div>
-
         {/* Back Link */}
         <div className="text-center">
           <Link
