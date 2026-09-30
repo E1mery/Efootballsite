@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { findTeam } from "@/lib/teams";
+import { normalizePhoneNumber, isSamePhoneNumber } from "@/lib/phone";
 
 export async function PUT(req: Request) {
   try {
@@ -44,7 +45,31 @@ export async function PUT(req: Request) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanGamerTag = gamerTag.trim();
     const cleanFullName = fullName.trim();
-    const cleanWhatsapp = whatsapp.trim();
+
+    // Check phone number format and uniqueness
+    const phoneCheck = normalizePhoneNumber(whatsapp);
+    if (!phoneCheck.isValid) {
+      return NextResponse.json(
+        { error: phoneCheck.error || "Please enter a valid WhatsApp phone number." },
+        { status: 400 }
+      );
+    }
+
+    if (!isSamePhoneNumber(user.player.whatsapp, phoneCheck.formatted)) {
+      const otherPlayers = await prisma.player.findMany({
+        where: { id: { not: user.player.id } },
+        select: { id: true, gamerTag: true, whatsapp: true },
+      });
+      const duplicatePhone = otherPlayers.find((p) =>
+        isSamePhoneNumber(p.whatsapp, phoneCheck.formatted)
+      );
+      if (duplicatePhone) {
+        return NextResponse.json(
+          { error: `This WhatsApp phone number (${phoneCheck.formatted}) is already registered to another athlete (@${duplicatePhone.gamerTag}).` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Check email uniqueness if modified
     if (cleanEmail !== user.email.toLowerCase()) {
@@ -100,7 +125,7 @@ export async function PUT(req: Request) {
     const playerUpdateData: any = {
       gamerTag: cleanGamerTag,
       fullName: cleanFullName,
-      whatsapp: cleanWhatsapp,
+      whatsapp: phoneCheck.formatted,
     };
 
     if (realTeam !== undefined) {

@@ -182,7 +182,7 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
               />
               <span className="text-xs text-muted-foreground mt-1 block">
-                Required for matchmaking coordination with opponents and Commissioner updates.
+                Required for matchmaking coordination. Strict limit: 1 athlete per WhatsApp number.
               </span>
             </div>
 
@@ -199,6 +199,9 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
+                <span className="text-xs text-muted-foreground mt-1 block">
+                  One official athlete registration per email.
+                </span>
               </div>
 
               <div>

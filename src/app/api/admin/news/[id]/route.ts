@@ -93,11 +93,40 @@ export async function PUT(
       dataToUpdate.category = body.category.trim();
     }
 
+    const effectiveCategory = dataToUpdate.category ?? existing.category ?? "";
+    const effectiveTitle = dataToUpdate.title ?? existing.title ?? "";
+    const effectiveDesc = dataToUpdate.description ?? existing.description ?? "";
+    const effectiveUrl = dataToUpdate.buttonUrl ?? existing.buttonUrl ?? "";
+    const isEuropaNews =
+      effectiveCategory.toLowerCase().includes("europa") ||
+      effectiveTitle.toLowerCase().includes("europa") ||
+      effectiveDesc.toLowerCase().includes("europa") ||
+      effectiveUrl.toLowerCase().includes("europa");
+
+    const isUclNews =
+      !isEuropaNews &&
+      (effectiveCategory.toLowerCase().includes("ucl") ||
+        effectiveTitle.toLowerCase().includes("ucl") ||
+        effectiveTitle.toLowerCase().includes("champions league") ||
+        effectiveDesc.toLowerCase().includes("ucl") ||
+        effectiveDesc.toLowerCase().includes("champions league") ||
+        effectiveUrl.toLowerCase().includes("ucl"));
+
     if (body.featuredImage !== undefined) {
-      if (!body.featuredImage || typeof body.featuredImage !== "string" || !body.featuredImage.trim()) {
+      let resolvedImg = body.featuredImage ? body.featuredImage.trim() : "";
+      if (isEuropaNews && (!resolvedImg || resolvedImg === "/images/carousel-stadium-bg.jpg" || resolvedImg === "/images/ucl-stadium-bg.jpg")) {
+        resolvedImg = "/images/europa-stadium-bg.jpg";
+      } else if (isUclNews && (!resolvedImg || resolvedImg === "/images/carousel-stadium-bg.jpg" || resolvedImg === "/images/europa-stadium-bg.jpg")) {
+        resolvedImg = "/images/ucl-stadium-bg.jpg";
+      }
+      if (!resolvedImg) {
         return NextResponse.json({ error: "Featured image cannot be empty." }, { status: 400 });
       }
-      dataToUpdate.featuredImage = await ensureR2FileUrl(body.featuredImage.trim(), "news");
+      dataToUpdate.featuredImage = await ensureR2FileUrl(resolvedImg, "news");
+    } else if (isEuropaNews && (existing.featuredImage === "/images/carousel-stadium-bg.jpg" || existing.featuredImage === "/images/ucl-stadium-bg.jpg")) {
+      dataToUpdate.featuredImage = "/images/europa-stadium-bg.jpg";
+    } else if (isUclNews && (existing.featuredImage === "/images/carousel-stadium-bg.jpg" || existing.featuredImage === "/images/europa-stadium-bg.jpg")) {
+      dataToUpdate.featuredImage = "/images/ucl-stadium-bg.jpg";
     }
 
     if (body.description !== undefined) {

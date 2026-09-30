@@ -82,8 +82,31 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    const isEuropaNews =
+      category.trim().toLowerCase().includes("europa") ||
+      title.trim().toLowerCase().includes("europa") ||
+      (typeof description === "string" && description.toLowerCase().includes("europa")) ||
+      Boolean(buttonUrl && typeof buttonUrl === "string" && buttonUrl.toLowerCase().includes("europa"));
 
-    if (!featuredImage || typeof featuredImage !== "string" || !featuredImage.trim()) {
+    const isUclNews =
+      !isEuropaNews &&
+      (category.trim().toLowerCase().includes("ucl") ||
+        title.trim().toLowerCase().includes("ucl") ||
+        title.trim().toLowerCase().includes("champions league") ||
+        (typeof description === "string" && (description.toLowerCase().includes("ucl") || description.toLowerCase().includes("champions league"))) ||
+        Boolean(buttonUrl && typeof buttonUrl === "string" && buttonUrl.toLowerCase().includes("ucl")));
+
+    let resolvedFeaturedImage =
+      (typeof featuredImage === "string" ? featuredImage.trim() : "") ||
+      (isEuropaNews ? "/images/europa-stadium-bg.jpg" : isUclNews ? "/images/ucl-stadium-bg.jpg" : "");
+
+    if (isEuropaNews && (!resolvedFeaturedImage || resolvedFeaturedImage === "/images/carousel-stadium-bg.jpg" || resolvedFeaturedImage === "/images/ucl-stadium-bg.jpg")) {
+      resolvedFeaturedImage = "/images/europa-stadium-bg.jpg";
+    } else if (isUclNews && (!resolvedFeaturedImage || resolvedFeaturedImage === "/images/carousel-stadium-bg.jpg" || resolvedFeaturedImage === "/images/europa-stadium-bg.jpg")) {
+      resolvedFeaturedImage = "/images/ucl-stadium-bg.jpg";
+    }
+
+    if (!resolvedFeaturedImage) {
       return NextResponse.json(
         { error: "Featured image is required." },
         { status: 400 }
@@ -128,7 +151,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const finalFeaturedImage = await ensureR2FileUrl(featuredImage.trim(), "news");
+    const finalFeaturedImage = await ensureR2FileUrl(resolvedFeaturedImage, "news");
 
     const validStatus = status === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
 

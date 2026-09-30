@@ -210,15 +210,29 @@ function ContinentalGroupStandingsView({
 
   return (
     <div className="relative overflow-hidden rounded-3xl p-1 space-y-6">
-      {/* Official UCL Stadium Graphic Background */}
-      {isUcl && (
-        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-3xl">
-          <img
+      {/* Official UCL / Europa Stadium Graphic Background */}
+      {isUcl ? (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-3xl" aria-hidden="true">
+          <Image
             src="/images/ucl-stadium-bg.jpg"
             alt="eFootball UCL Stadium"
-            className="w-full h-full object-cover object-center opacity-20 scale-105"
+            fill
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover object-center opacity-20 scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95 rounded-3xl" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-3xl" aria-hidden="true">
+          <Image
+            src="/images/europa-stadium-bg.jpg"
+            alt="eFootball Europa League Stadium"
+            fill
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover object-center opacity-25 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95 rounded-3xl" />
+          <div className="absolute inset-0 bg-hero-glow opacity-50" />
         </div>
       )}
 

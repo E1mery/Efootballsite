@@ -212,6 +212,30 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       return true;
     });
 
+    // Helper to select the accurate stadium background for carousel slides (Europa vs UCL vs League)
+    const resolveSlideFeaturedImage = (item: any) => {
+      const explicit = item.featuredImage?.trim();
+      const text = `${item.title || ""} ${item.description || ""} ${item.subtitle || ""} ${item.category || ""} ${item.id || ""}`.toLowerCase();
+      const isEuropa = text.includes("europa");
+      const isUcl = !isEuropa && (text.includes("ucl") || text.includes("champions league"));
+
+      if (isEuropa) {
+        if (!explicit || explicit === "/images/carousel-stadium-bg.jpg" || explicit === "/images/ucl-stadium-bg.jpg") {
+          return "/images/europa-stadium-bg.jpg";
+        }
+        return explicit;
+      }
+
+      if (isUcl) {
+        if (!explicit || explicit === "/images/carousel-stadium-bg.jpg") {
+          return "/images/ucl-stadium-bg.jpg";
+        }
+        return explicit;
+      }
+
+      return explicit || "/images/carousel-stadium-bg.jpg";
+    };
+
     // 6. Map filtered news into CarouselSlides
     const slides: CarouselSlide[] = filteredEligibleNews.map((item) => {
       // 1. Division League Kickoff
@@ -253,7 +277,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           title: item.title,
           subtitle: "Official Continental Cups Live Draw Event",
           description: item.description,
-          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          featuredImage: resolveSlideFeaturedImage(item),
           buttonText: item.buttonText || "Watch Live Draw",
           buttonUrl: item.buttonUrl || "/continental",
           publishDate: item.publishDate,
@@ -281,7 +305,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           title: item.title,
           subtitle: "Groups A, B, C & D Confirmed with Strict Division Separation",
           description: item.description,
-          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          featuredImage: resolveSlideFeaturedImage(item),
           buttonText: item.buttonText || "View Groups & Draws",
           buttonUrl: item.buttonUrl || "/continental",
           publishDate: item.publishDate,
@@ -308,7 +332,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
             ? `Both Continental Cups Advance to ${uclStageLabel}`
             : `UCL (${uclStageLabel}) • Europa League (${europaStageLabel})`,
           description: item.description,
-          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          featuredImage: resolveSlideFeaturedImage(item),
           buttonText: item.buttonText || "Continental Hub",
           buttonUrl: item.buttonUrl || "/continental",
           publishDate: item.publishDate,
@@ -397,7 +421,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         title: item.title,
         subtitle: item.description,
         description: item.description,
-        featuredImage: item.featuredImage,
+        featuredImage: resolveSlideFeaturedImage(item),
         buttonText: item.buttonText,
         buttonUrl: item.buttonUrl,
         publishDate: item.publishDate,

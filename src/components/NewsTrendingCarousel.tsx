@@ -147,6 +147,48 @@ const CoverflowCard = memo(function CoverflowCard({
       })
     : null;
 
+  const isEuropaSlide = Boolean(
+    slide.category?.toLowerCase().includes("europa") ||
+    slide.title?.toLowerCase().includes("europa") ||
+    slide.description?.toLowerCase().includes("europa") ||
+    slide.buttonUrl?.toLowerCase().includes("europa") ||
+    slide.featuredImage === "/images/europa-stadium-bg.jpg" ||
+    slide.data?.competition === "EUROPA" ||
+    slide.data?.division === "EUROPA" ||
+    (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.europaTimeStr) && !slide.data?.uclTimeStr)
+  );
+
+  const isUclSlide = !isEuropaSlide && Boolean(
+    slide.category?.toLowerCase().includes("ucl") ||
+    slide.title?.toLowerCase().includes("ucl") ||
+    slide.title?.toLowerCase().includes("champions league") ||
+    slide.description?.toLowerCase().includes("ucl") ||
+    slide.description?.toLowerCase().includes("champions league") ||
+    slide.buttonUrl?.toLowerCase().includes("ucl") ||
+    slide.featuredImage === "/images/ucl-stadium-bg.jpg" ||
+    slide.data?.competition === "UCL" ||
+    slide.data?.division === "UCL" ||
+    (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.uclTimeStr))
+  );
+
+  const ambientBackgroundImage = isEuropaSlide
+    ? "/images/europa-stadium-bg.jpg"
+    : isUclSlide
+    ? "/images/ucl-stadium-bg.jpg"
+    : "/images/carousel-stadium-bg.jpg";
+
+  const effectiveFeaturedImage =
+    slide.featuredImage &&
+    slide.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
+    slide.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
+    slide.featuredImage !== "/images/europa-stadium-bg.jpg"
+      ? slide.featuredImage
+      : isEuropaSlide
+      ? "/images/europa-stadium-bg.jpg"
+      : isUclSlide
+      ? "/images/ucl-stadium-bg.jpg"
+      : slide.featuredImage || "/images/carousel-stadium-bg.jpg";
+
   return (
     <motion.div
       key={slide.id || index}
@@ -174,10 +216,10 @@ const CoverflowCard = memo(function CoverflowCard({
       {/* Cinematic Ambient Background Image */}
       <div className="carousel-bg-layer overflow-hidden">
         <img
-          src="/images/carousel-stadium-bg.jpg"
+          src={ambientBackgroundImage}
           alt=""
           aria-hidden="true"
-          className="h-full w-full object-cover opacity-60"
+          className={cn("h-full w-full object-cover", isUclSlide ? "opacity-50" : "opacity-60")}
         />
       </div>
       <div className="carousel-overlay-dark" />
@@ -814,7 +856,7 @@ const CoverflowCard = memo(function CoverflowCard({
               <div
                 className={cn(
                   "space-y-2.5 sm:space-y-3.5 text-left",
-                  slide.featuredImage
+                  effectiveFeaturedImage
                     ? "flex-1 min-w-0 max-w-xl"
                     : "w-full max-w-2xl flex-1"
                 )}
@@ -864,11 +906,11 @@ const CoverflowCard = memo(function CoverflowCard({
               </div>
 
               {/* Right Column: Featured Image - Large, prominent, properly positioned on the right */}
-              {slide.featuredImage && (
+              {effectiveFeaturedImage && (
                 <div className="shrink-0 w-2/5 sm:w-5/12 max-w-xs sm:max-w-sm md:max-w-md h-full flex items-center justify-center p-1 sm:p-2">
                   <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/60 backdrop-blur-md shadow-2xl p-1.5 sm:p-2.5 flex items-center justify-center w-full max-h-64 sm:max-h-80 md:max-h-96 group/img">
                     <img
-                      src={slide.featuredImage}
+                      src={effectiveFeaturedImage}
                       alt={slide.title}
                       className="w-auto h-auto max-h-60 sm:max-h-72 md:max-h-80 max-w-full rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 drop-shadow-2xl"
                       loading="lazy"

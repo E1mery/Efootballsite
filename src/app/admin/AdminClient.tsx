@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -3782,13 +3783,16 @@ export default function AdminClient({
           {tableSubTab === "UCL" && (
             <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-background/80 p-4 sm:p-6 space-y-6">
               {/* Official UCL Stadium Graphic Background */}
-              <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-                <img
+              <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+                <Image
                   src="/images/ucl-stadium-bg.jpg"
                   alt="eFootball UCL Stadium"
-                  className="w-full h-full object-cover object-center opacity-15 scale-105"
+                  fill
+                  sizes="(max-width: 1200px) 100vw, 1200px"
+                  className="object-cover object-center opacity-15 scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+                <div className="absolute inset-0 bg-hero-glow opacity-50" />
               </div>
 
               <div className="relative z-10 space-y-6">
@@ -3918,7 +3922,21 @@ export default function AdminClient({
 
           {/* Europa Tables */}
           {tableSubTab === "EUROPA" && (
-            <div className="space-y-6">
+            <div className="relative overflow-hidden rounded-3xl border border-secondary/30 bg-background/80 p-4 sm:p-6 space-y-6">
+              {/* Official Europa League Stadium Graphic Background */}
+              <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+                <Image
+                  src="/images/europa-stadium-bg.jpg"
+                  alt="eFootball Europa League Stadium"
+                  fill
+                  sizes="(max-width: 1200px) 100vw, 1200px"
+                  className="object-cover object-center opacity-20 scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+                <div className="absolute inset-0 bg-hero-glow opacity-50" />
+              </div>
+
+              <div className="relative z-10 space-y-6">
               {!leagueConfig.europaStarted ? (
                 <div className="rounded-3xl border border-border bg-background/90 p-8 text-center space-y-4">
                   <div className="inline-flex p-4 rounded-2xl bg-secondary/10 border border-secondary/30 text-secondary">
@@ -4030,6 +4048,7 @@ export default function AdminClient({
                   </div>
                 </div>
               )}
+              </div>
             </div>
           )}
         </div>

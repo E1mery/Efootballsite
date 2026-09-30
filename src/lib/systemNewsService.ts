@@ -38,13 +38,39 @@ export async function autoPublishSystemNews(params: {
       return existing;
     }
 
+    const textLower = `${params.title || ""} ${params.description || ""} ${params.category || ""} ${params.buttonUrl || ""}`.toLowerCase();
+    const isEuropa = textLower.includes("europa");
+    const isUcl =
+      !isEuropa &&
+      (params.category === "Competition" && (params.title.toLowerCase().includes("ucl") || params.title.toLowerCase().includes("champions league")) ||
+        params.category?.toLowerCase().includes("ucl") ||
+        params.title?.toLowerCase().includes("ucl") ||
+        params.title?.toLowerCase().includes("champions league") ||
+        params.description?.toLowerCase().includes("ucl") ||
+        params.description?.toLowerCase().includes("champions league") ||
+        params.buttonUrl?.toLowerCase().includes("ucl"));
+
+    const fallbackImage = isEuropa
+      ? "/images/europa-stadium-bg.jpg"
+      : isUcl
+      ? "/images/ucl-stadium-bg.jpg"
+      : "/images/carousel-stadium-bg.jpg";
+
+    const finalFeaturedImage =
+      params.featuredImage?.trim() &&
+      params.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
+      params.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
+      params.featuredImage !== "/images/europa-stadium-bg.jpg"
+        ? params.featuredImage.trim()
+        : fallbackImage;
+
     return await prisma.news.create({
       data: {
         id: params.id,
         title: params.title.trim(),
         category: params.category,
         description: params.description.trim(),
-        featuredImage: params.featuredImage?.trim() || "/images/carousel-stadium-bg.jpg",
+        featuredImage: finalFeaturedImage,
         buttonText: params.buttonText?.trim() || null,
         buttonUrl: params.buttonUrl?.trim() || null,
         status: "PUBLISHED",
@@ -215,6 +241,11 @@ export async function syncSystemNewsToCarousel() {
       }
 
       const existing = await prisma.news.findUnique({ where: { id: drawScheduledId } });
+      const scheduledImg = !hasUclScheduled && hasEuropaScheduled
+        ? "/images/europa-stadium-bg.jpg"
+        : hasUclScheduled
+        ? "/images/ucl-stadium-bg.jpg"
+        : "/images/carousel-stadium-bg.jpg";
       if (!existing) {
         const item = await prisma.news.create({
           data: {
@@ -222,7 +253,7 @@ export async function syncSystemNewsToCarousel() {
             title: drawTitle,
             category: "Announcement",
             description: drawDesc,
-            featuredImage: "/images/carousel-stadium-bg.jpg",
+            featuredImage: scheduledImg,
             buttonText: "Watch Live Draw",
             buttonUrl: "/continental",
             status: "PUBLISHED",
@@ -240,6 +271,7 @@ export async function syncSystemNewsToCarousel() {
             data: {
               title: drawTitle,
               description: drawDesc,
+              featuredImage: scheduledImg,
             },
           });
         }
@@ -278,6 +310,11 @@ export async function syncSystemNewsToCarousel() {
       }
 
       const existing = await prisma.news.findUnique({ where: { id: drawResultsId } });
+      const drawResultsImg = !isUclDrawDone && isEuropaDrawDone
+        ? "/images/europa-stadium-bg.jpg"
+        : isUclDrawDone
+        ? "/images/ucl-stadium-bg.jpg"
+        : "/images/carousel-stadium-bg.jpg";
       if (!existing) {
         const item = await prisma.news.create({
           data: {
@@ -285,7 +322,7 @@ export async function syncSystemNewsToCarousel() {
             title: drawResultsTitle,
             category: "Announcement",
             description: drawResultsDesc,
-            featuredImage: "/images/carousel-stadium-bg.jpg",
+            featuredImage: drawResultsImg,
             buttonText: "View Groups & Draws",
             buttonUrl: "/continental",
             status: "PUBLISHED",
@@ -295,6 +332,15 @@ export async function syncSystemNewsToCarousel() {
           },
         });
         synced.push(item);
+      } else if (existing.showOnCarousel && existing.featuredImage !== drawResultsImg) {
+        await prisma.news.update({
+          where: { id: drawResultsId },
+          data: {
+            title: drawResultsTitle,
+            description: drawResultsDesc,
+            featuredImage: drawResultsImg,
+          },
+        });
       }
     }
 
@@ -351,7 +397,7 @@ export async function syncSystemNewsToCarousel() {
             title: advanceTitle,
             category: "Announcement",
             description: advanceDesc,
-            featuredImage: "/images/carousel-stadium-bg.jpg",
+            featuredImage: "/images/ucl-stadium-bg.jpg",
             buttonText: "Continental Hub",
             buttonUrl: "/continental",
             status: "PUBLISHED",
@@ -361,6 +407,11 @@ export async function syncSystemNewsToCarousel() {
           },
         });
         synced.push(item);
+      } else if (existing.showOnCarousel && existing.featuredImage !== "/images/ucl-stadium-bg.jpg") {
+        await prisma.news.update({
+          where: { id: advanceId },
+          data: { featuredImage: "/images/ucl-stadium-bg.jpg" },
+        });
       }
     }
 
@@ -491,7 +542,7 @@ export async function syncSystemNewsToCarousel() {
               title: "🏆 eFootball Champions League (UCL) Officially LAUNCHED!",
               category: "Competition",
               description: "The League Administrator has inaugurated the UCL post-season championship! Qualified players (Top 8 from Div 1, Top 4 from Div 2, Top 4 from Div 3) must cast their group slot votes. Strict division separation rules apply.",
-              featuredImage: "/images/carousel-stadium-bg.jpg",
+              featuredImage: "/images/ucl-stadium-bg.jpg",
               buttonText: "Continental Hub",
               buttonUrl: "/continental",
               status: "PUBLISHED",
@@ -501,8 +552,30 @@ export async function syncSystemNewsToCarousel() {
             },
           });
           synced.push(item);
+        } else if (existing.showOnCarousel && existing.featuredImage !== "/images/ucl-stadium-bg.jpg") {
+          await prisma.news.update({
+            where: { id: uclLaunchId },
+            data: { featuredImage: "/images/ucl-stadium-bg.jpg" },
+          });
         }
       }
+
+      // Auto-migrate any existing UCL news in the News table that still has the generic stadium background
+      await prisma.news.updateMany({
+        where: {
+          OR: [
+            { id: uclLaunchId },
+            { id: "sys-announcement-ucl" },
+            { category: "eFootball UCL" },
+            { title: { contains: "UCL", mode: "insensitive" } },
+            { title: { contains: "Champions League", mode: "insensitive" } },
+            { description: { contains: "Champions League", mode: "insensitive" } },
+            { buttonUrl: { contains: "UCL", mode: "insensitive" } },
+          ],
+          featuredImage: "/images/carousel-stadium-bg.jpg",
+        },
+        data: { featuredImage: "/images/ucl-stadium-bg.jpg" },
+      }).catch(() => {});
     } else {
       // When UCL is locked, IMMEDIATELY remove/turn off carousel display for all UCL news
       await prisma.news.updateMany({
@@ -549,7 +622,7 @@ export async function syncSystemNewsToCarousel() {
               title: "🌍 eFootball Europa League (UEL) Officially LAUNCHED!",
               category: "Competition",
               description: "The League Administrator has inaugurated the Europa League tournament! Qualified players must complete their group draws and knockout brackets.",
-              featuredImage: "/images/carousel-stadium-bg.jpg",
+              featuredImage: "/images/europa-stadium-bg.jpg",
               buttonText: "Continental Hub",
               buttonUrl: "/continental",
               status: "PUBLISHED",
@@ -559,6 +632,11 @@ export async function syncSystemNewsToCarousel() {
             },
           });
           synced.push(item);
+        } else if (existing.featuredImage !== "/images/europa-stadium-bg.jpg") {
+          await prisma.news.update({
+            where: { id: europaLaunchId },
+            data: { featuredImage: "/images/europa-stadium-bg.jpg" },
+          });
         }
       }
     } else {

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findTeam } from "@/lib/teams";
 import { recalculateStandings } from "@/lib/recalculateStandings";
+import { normalizePhoneNumber, isSamePhoneNumber } from "@/lib/phone";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -49,7 +50,30 @@ export async function POST(req: Request) {
       updateData.fullName = fullName.trim();
     }
     if (whatsapp && whatsapp.trim()) {
-      updateData.whatsapp = whatsapp.trim();
+      const phoneCheck = normalizePhoneNumber(whatsapp);
+      if (!phoneCheck.isValid) {
+        return NextResponse.json(
+          { error: phoneCheck.error || "Please enter a valid WhatsApp phone number." },
+          { status: 400 }
+        );
+      }
+
+      if (!isSamePhoneNumber(player.whatsapp, phoneCheck.formatted)) {
+        const otherPlayers = await prisma.player.findMany({
+          where: { id: { not: playerId } },
+          select: { id: true, gamerTag: true, whatsapp: true },
+        });
+        const duplicatePhone = otherPlayers.find((p) =>
+          isSamePhoneNumber(p.whatsapp, phoneCheck.formatted)
+        );
+        if (duplicatePhone) {
+          return NextResponse.json(
+            { error: `This WhatsApp phone number (${phoneCheck.formatted}) is already assigned to @${duplicatePhone.gamerTag}.` },
+            { status: 400 }
+          );
+        }
+      }
+      updateData.whatsapp = phoneCheck.formatted;
     }
     if (division) {
       updateData.division = division;

@@ -45,6 +45,8 @@ export interface NewsItem {
 
 const CATEGORIES = [
   "League News",
+  "eFootball UCL",
+  "eFootball Europa",
   "Match",
   "Competition",
   "Registration",
@@ -206,8 +208,35 @@ export default function AdminNewsManager({
       setFormError("Category is required.");
       return;
     }
-    if (!formData.featuredImage.trim()) {
-      setFormError("Featured image is required. Upload an image or enter a valid URL.");
+    const isEuropa =
+      formData.category.toLowerCase().includes("europa") ||
+      formData.title.toLowerCase().includes("europa") ||
+      formData.description.toLowerCase().includes("europa") ||
+      Boolean(formData.buttonUrl && formData.buttonUrl.toLowerCase().includes("europa"));
+
+    const isUcl =
+      !isEuropa &&
+      (formData.category.toLowerCase().includes("ucl") ||
+        formData.title.toLowerCase().includes("ucl") ||
+        formData.title.toLowerCase().includes("champions league") ||
+        formData.description.toLowerCase().includes("ucl") ||
+        formData.description.toLowerCase().includes("champions league") ||
+        Boolean(formData.buttonUrl && formData.buttonUrl.toLowerCase().includes("ucl")));
+
+    const effectiveFeaturedImage =
+      formData.featuredImage.trim() &&
+      formData.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
+      formData.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
+      formData.featuredImage !== "/images/europa-stadium-bg.jpg"
+        ? formData.featuredImage.trim()
+        : isEuropa
+        ? "/images/europa-stadium-bg.jpg"
+        : isUcl
+        ? "/images/ucl-stadium-bg.jpg"
+        : formData.featuredImage.trim();
+
+    if (!effectiveFeaturedImage) {
+      setFormError("Featured image is required. Upload an image, or use Europa/UCL Stadium Background.");
       return;
     }
     if (!formData.description.trim()) {
@@ -250,7 +279,7 @@ export default function AdminNewsManager({
         body: JSON.stringify({
           title: formData.title,
           category: formData.category,
-          featuredImage: formData.featuredImage,
+          featuredImage: effectiveFeaturedImage,
           description: formData.description,
           buttonText: formData.buttonText || null,
           buttonUrl: formData.buttonUrl || null,
@@ -962,7 +991,25 @@ export default function AdminNewsManager({
                 <Input
                   required
                   value={formData.title}
-                  onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
+                  onChange={(e) => {
+                    const nextTitle = e.target.value;
+                    setFormData((p) => {
+                      const nextData = { ...p, title: nextTitle };
+                      const text = `${nextTitle} ${p.category}`.toLowerCase();
+                      if (
+                        text.includes("europa") &&
+                        (!p.featuredImage || p.featuredImage === "/images/carousel-stadium-bg.jpg" || p.featuredImage === "/images/ucl-stadium-bg.jpg")
+                      ) {
+                        nextData.featuredImage = "/images/europa-stadium-bg.jpg";
+                      } else if (
+                        (text.includes("ucl") || text.includes("champions league")) &&
+                        (!p.featuredImage || p.featuredImage === "/images/carousel-stadium-bg.jpg" || p.featuredImage === "/images/europa-stadium-bg.jpg")
+                      ) {
+                        nextData.featuredImage = "/images/ucl-stadium-bg.jpg";
+                      }
+                      return nextData;
+                    });
+                  }}
                   placeholder="e.g. Official Season 2026 Matchday 1 Schedule Announced"
                   className="text-xs sm:text-sm rounded-xl"
                 />
@@ -976,7 +1023,24 @@ export default function AdminNewsManager({
                 <select
                   required
                   value={formData.category}
-                  onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))}
+                  onChange={(e) => {
+                    const nextCat = e.target.value;
+                    setFormData((p) => {
+                      const nextData = { ...p, category: nextCat };
+                      if (
+                        nextCat.toLowerCase().includes("europa") &&
+                        (!p.featuredImage || p.featuredImage === "/images/carousel-stadium-bg.jpg" || p.featuredImage === "/images/ucl-stadium-bg.jpg")
+                      ) {
+                        nextData.featuredImage = "/images/europa-stadium-bg.jpg";
+                      } else if (
+                        (nextCat.includes("UCL") || nextCat.toLowerCase().includes("champions league")) &&
+                        (!p.featuredImage || p.featuredImage === "/images/carousel-stadium-bg.jpg" || p.featuredImage === "/images/europa-stadium-bg.jpg")
+                      ) {
+                        nextData.featuredImage = "/images/ucl-stadium-bg.jpg";
+                      }
+                      return nextData;
+                    });
+                  }}
                   className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   {CATEGORIES.map((cat) => (
@@ -989,9 +1053,34 @@ export default function AdminNewsManager({
 
               {/* Featured Image (Required) with Upload & Live Preview */}
               <div className="space-y-2">
-                <label className="text-xs font-mono font-bold uppercase text-foreground block mb-1">
-                  Featured Image <span className="text-destructive">*</span>
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-mono font-bold uppercase text-foreground block">
+                    Featured Image <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((p) => ({ ...p, featuredImage: "/images/europa-stadium-bg.jpg" }))
+                      }
+                      className="inline-flex items-center gap-1 text-xs font-mono text-secondary hover:underline font-bold"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>Use Europa Background</span>
+                    </button>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((p) => ({ ...p, featuredImage: "/images/ucl-stadium-bg.jpg" }))
+                      }
+                      className="inline-flex items-center gap-1 text-xs font-mono text-primary hover:underline font-bold"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>Use UCL Background</span>
+                    </button>
+                  </div>
+                </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input
                     required
@@ -1002,6 +1091,28 @@ export default function AdminNewsManager({
                     placeholder="Upload a file or enter image URL (https://...)"
                     className="text-xs sm:text-sm rounded-xl flex-1"
                   />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((p) => ({ ...p, featuredImage: "/images/europa-stadium-bg.jpg" }))
+                    }
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-secondary/20 border border-secondary/40 text-secondary text-xs font-bold hover:bg-secondary/30 transition-colors shrink-0"
+                    title="Use official Europa League stadium graphic as background"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Europa Stadium</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((p) => ({ ...p, featuredImage: "/images/ucl-stadium-bg.jpg" }))
+                    }
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 border border-primary/40 text-primary text-xs font-bold hover:bg-primary/30 transition-colors shrink-0"
+                    title="Use official UCL stadium graphic as background"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>UCL Stadium</span>
+                  </button>
                   <label className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/20 cursor-pointer transition-colors shrink-0">
                     <Upload className="h-3.5 w-3.5" />
                     <span>{isUploading ? "Uploading..." : "Upload File"}</span>
@@ -1233,7 +1344,16 @@ export default function AdminNewsManager({
               {/* Dynamic Background Image */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
                 <img
-                  src={previewItem.featuredImage || "/images/carousel-stadium-bg.jpg"}
+                  src={
+                    previewItem.featuredImage && previewItem.featuredImage !== "/images/carousel-stadium-bg.jpg"
+                      ? previewItem.featuredImage
+                      : previewItem.title?.toLowerCase().includes("ucl") ||
+                        previewItem.category?.toLowerCase().includes("ucl") ||
+                        previewItem.description?.toLowerCase().includes("ucl") ||
+                        previewItem.description?.toLowerCase().includes("champions league")
+                      ? "/images/ucl-stadium-bg.jpg"
+                      : "/images/carousel-stadium-bg.jpg"
+                  }
                   alt=""
                   aria-hidden="true"
                   className="h-full w-full object-cover"
@@ -1283,10 +1403,23 @@ export default function AdminNewsManager({
                   </div>
 
                   {/* Featured Image with auto ratio according to uploaded image */}
-                  {previewItem.featuredImage && (
+                  {(previewItem.featuredImage ||
+                    previewItem.title?.toLowerCase().includes("ucl") ||
+                    previewItem.category?.toLowerCase().includes("ucl") ||
+                    previewItem.description?.toLowerCase().includes("ucl") ||
+                    previewItem.description?.toLowerCase().includes("champions league")) && (
                     <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl shrink-0 max-h-56 sm:max-h-64 lg:max-h-72 max-w-full lg:max-w-md w-auto flex items-center justify-center">
                       <img
-                        src={previewItem.featuredImage}
+                        src={
+                          previewItem.featuredImage && previewItem.featuredImage !== "/images/carousel-stadium-bg.jpg"
+                            ? previewItem.featuredImage
+                            : previewItem.title?.toLowerCase().includes("ucl") ||
+                              previewItem.category?.toLowerCase().includes("ucl") ||
+                              previewItem.description?.toLowerCase().includes("ucl") ||
+                              previewItem.description?.toLowerCase().includes("champions league")
+                            ? "/images/ucl-stadium-bg.jpg"
+                            : previewItem.featuredImage
+                        }
                         alt={previewItem.title}
                         className="w-auto h-auto max-h-56 sm:max-h-64 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto"
                       />

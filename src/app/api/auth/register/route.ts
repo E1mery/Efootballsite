@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { findTeam } from "@/lib/teams";
+import { normalizePhoneNumber, isSamePhoneNumber } from "@/lib/phone";
 
 export async function POST(req: Request) {
   try {
@@ -28,11 +29,48 @@ export async function POST(req: Request) {
     const cleanGamerTag = gamerTag.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check uniqueness
-    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    // 1. Email validation and strict duplicate protocol
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return NextResponse.json(
+        { error: "Please provide a valid email address." },
+        { status: 400 }
+      );
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: { email: { equals: cleanEmail, mode: "insensitive" } },
+    });
     if (existingUser) {
       return NextResponse.json(
-        { error: "An account with this email already exists. Please log in." },
+        { error: "An account with this email already exists. Duplicate registrations are not permitted. Please log in." },
+        { status: 400 }
+      );
+    }
+
+    // 2. Phone number (WhatsApp) validation and strict duplicate protocol
+    const phoneCheck = normalizePhoneNumber(whatsapp);
+    if (!phoneCheck.isValid) {
+      return NextResponse.json(
+        { error: phoneCheck.error || "Please enter a valid WhatsApp phone number (e.g. +250 788 123 456 or 0788123456)." },
+        { status: 400 }
+      );
+    }
+
+    // Check all existing players to prevent duplicate phone numbers across any format
+    const existingPlayers = await prisma.player.findMany({
+      select: { id: true, gamerTag: true, fullName: true, whatsapp: true },
+    });
+
+    const duplicatePhonePlayer = existingPlayers.find((p) =>
+      isSamePhoneNumber(p.whatsapp, phoneCheck.formatted)
+    );
+
+    if (duplicatePhonePlayer) {
+      return NextResponse.json(
+        {
+          error: `This phone number (${phoneCheck.formatted}) is already registered to athlete @${duplicatePhonePlayer.gamerTag}. You cannot register more than once.`,
+        },
         { status: 400 }
       );
     }
@@ -123,7 +161,7 @@ export async function POST(req: Request) {
         gamerTag: cleanGamerTag,
         fullName: fullName.trim(),
         efootballId: sanitizedKonami,
-        whatsapp: whatsapp.trim(),
+        whatsapp: phoneCheck.formatted,
         division: assignedDivision,
         realTeam: selectedClub ? selectedClub.name : (realTeam || null),
         avatar: selectedClub ? selectedClub.logo : null,
