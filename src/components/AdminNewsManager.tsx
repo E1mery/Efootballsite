@@ -1367,10 +1367,6 @@ export default function AdminNewsManager({
                   {/* Text & CTA */}
                   <div className="space-y-3 max-w-xl flex-1 text-left">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="yellow" className="text-xs font-mono font-bold uppercase tracking-wider">
-                        <Newspaper className="h-3 w-3 mr-1" />
-                        <span>{previewItem.category}</span>
-                      </Badge>
                       <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>

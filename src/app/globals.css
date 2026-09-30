@@ -197,15 +197,15 @@ body {
 
 @media (max-width: 768px) {
   .carousel-stage-container {
-    min-height: 520px;
-    height: clamp(520px, 68vh, 580px);
+    min-height: 500px;
+    height: clamp(500px, 66vh, 580px);
   }
 }
 
 @media (max-width: 480px) {
   .carousel-stage-container {
-    min-height: 550px;
-    height: clamp(550px, 76vh, 610px);
+    min-height: 460px;
+    height: clamp(460px, 70vh, 600px);
   }
 }
 
@@ -239,19 +239,26 @@ body {
 
 @media (max-width: 768px) {
   .carousel-slide-card {
-    width: 90%;
-    min-height: 520px;
-    height: clamp(520px, 68vh, 580px);
+    width: 92%;
+    /* Content-sized on small screens so short slides
+       (e.g. registration) don't render a tall empty card */
+    height: auto;
+    min-height: 0;
+    max-height: calc(100% - 16px);
     border-radius: 20px;
+  }
+
+  /* Tall slides (MOTD, In-Form, HOF) scroll inside the card
+     instead of overflowing the stage on short phones */
+  .carousel-slide-body {
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 
 @media (max-width: 480px) {
   .carousel-slide-card {
     width: 94%;
-    min-height: 540px;
-    height: clamp(540px, 75vh, 600px);
-    border-radius: 20px;
   }
 }
 
@@ -444,11 +451,9 @@ body {
   cursor: not-allowed;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .carousel-nav-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    display: none;
   }
 }
 

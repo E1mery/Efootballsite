@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  Newspaper,
   Calendar,
   Sparkles,
   Award,
@@ -251,7 +250,7 @@ const CoverflowCard = memo(function CoverflowCard({
       )}
 
       {/* SLIDE CARD INNER CONTENT */}
-      <div className="relative z-10 p-3.5 sm:p-6 md:p-8 flex-1 flex flex-col justify-between gap-3 sm:gap-4 md:px-10 lg:px-12 w-full h-full overflow-hidden">
+      <div className="carousel-slide-body relative z-10 p-3.5 sm:p-6 md:p-8 flex-1 flex flex-col justify-between gap-3 sm:gap-4 md:px-10 lg:px-12 w-full h-full overflow-hidden">
         <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
           {/* ========================================================================= */}
           {/* 1. MATCH OF THE DAY AUTOMATED SYSTEM SHOWDOWN */}
@@ -606,7 +605,7 @@ const CoverflowCard = memo(function CoverflowCard({
                 <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                   {slide.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
+                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-4 sm:line-clamp-3">
                   {slide.description}
                 </p>
 
@@ -864,13 +863,6 @@ const CoverflowCard = memo(function CoverflowCard({
                 )}
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge
-                    variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider"
-                  >
-                    <Newspaper className="h-3 w-3 mr-1" />
-                    <span>{slide.category}</span>
-                  </Badge>
                   {formattedPublishDate && (
                     <span className="text-xs font-mono text-muted-foreground flex items-center gap-1 font-semibold">
                       <Calendar className="h-3 w-3" />
@@ -923,8 +915,8 @@ const CoverflowCard = memo(function CoverflowCard({
         </div>
 
         {/* BOTTOM ROW: League Branding & Verified Bulletins */}
-        <div className="flex items-center justify-between pt-3 border-t border-border/40 text-xs font-mono text-muted-foreground w-full mt-auto shrink-0">
-          <span className="truncate">
+        <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between pt-3 border-t border-border/40 text-xs font-mono text-muted-foreground w-full mt-auto shrink-0">
+          <span className="text-[11px] leading-snug sm:text-xs">
             eFootball Rwanda League • Official News Bulletin
           </span>
           <span className="uppercase tracking-widest hidden sm:inline-block font-semibold text-secondary">

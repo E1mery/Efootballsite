@@ -29,17 +29,17 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-border/80 bg-background text-muted-foreground">
+    <footer className="relative z-10 border-t border-border/80 bg-background text-muted-foreground">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Official Community & Social Channels Banner (Compact) */}
         {!isDashboard && (
         <div className="rounded-2xl border border-border/80 bg-card/60 p-4 sm:p-5 backdrop-blur-sm mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-foreground font-mono">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-secondary font-mono">
                 Official Community & Social Channels
               </h3>
-              <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+              <p className="text-xs text-foreground max-w-2xl leading-relaxed">
                 Connect with Rwandan esports athletes, find match opponents on Discord, and view match highlights on our official Instagram channel.
               </p>
             </div>
@@ -54,7 +54,7 @@ export default function Footer() {
               >
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
                 <span>WhatsApp</span>
-                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground shrink-0" />
+                <ExternalLink className="h-3 w-3 text-foreground/60 group-hover:text-secondary shrink-0" />
               </a>
 
               {/* Discord Link */}
@@ -66,7 +66,7 @@ export default function Footer() {
               >
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
                 <span>Discord</span>
-                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground shrink-0" />
+                <ExternalLink className="h-3 w-3 text-foreground/60 group-hover:text-secondary shrink-0" />
               </a>
 
               {/* Instagram Link */}
@@ -78,7 +78,7 @@ export default function Footer() {
               >
                 <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
                 <span>Instagram</span>
-                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground shrink-0" />
+                <ExternalLink className="h-3 w-3 text-foreground/60 group-hover:text-secondary shrink-0" />
               </a>
             </div>
           </div>
@@ -89,39 +89,39 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="space-y-3 sm:col-span-2 lg:col-span-1">
             <EfootballGamingLogo size="sm" showText={true} />
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
+            <p className="text-xs text-foreground leading-relaxed max-w-sm">
               Rwanda&apos;s premier competitive eFootball gaming championship. Organizing national leagues, digital cups, and esports athlete development.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground mb-3 font-mono">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-secondary mb-3 font-mono">
               Competitions
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2 text-xs text-foreground">
               <li>
-                <Link href="/standings?division=Division%201" className="hover:text-primary transition-colors">
+                <Link href="/standings?division=Division%201" className="hover:text-secondary transition-colors">
                   Premiership (Division 1)
                 </Link>
               </li>
               <li>
-                <Link href="/standings?division=Division%202" className="hover:text-primary transition-colors">
+                <Link href="/standings?division=Division%202" className="hover:text-secondary transition-colors">
                   Championship (Division 2)
                 </Link>
               </li>
               <li>
-                <Link href="/standings?division=Division%203" className="hover:text-primary transition-colors">
+                <Link href="/standings?division=Division%203" className="hover:text-secondary transition-colors">
                   National Academy (Division 3)
                 </Link>
               </li>
               <li>
-                <Link href="/continental" className="hover:text-primary transition-colors">
+                <Link href="/continental" className="hover:text-secondary transition-colors">
                   eFootball UCL & Europa League
                 </Link>
               </li>
               <li>
-                <Link href="/fixtures" className="hover:text-primary transition-colors">
+                <Link href="/fixtures" className="hover:text-secondary transition-colors">
                   Daily Matchday Fixtures
                 </Link>
               </li>
@@ -130,22 +130,22 @@ export default function Footer() {
 
           {/* External Resources & Portals */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground mb-3 font-mono">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-secondary mb-3 font-mono">
               External Resources & Portals
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2 text-xs text-foreground">
               <li>
-                <Link href="/login" className="hover:text-primary transition-colors">
+                <Link href="/login" className="hover:text-secondary transition-colors">
                   Login Portal
                 </Link>
               </li>
               <li>
-                <Link href="/register" className="hover:text-primary transition-colors">
+                <Link href="/register" className="hover:text-secondary transition-colors">
                   Season Registration
                 </Link>
               </li>
               <li>
-                <Link href="/standings" className="hover:text-primary transition-colors">
+                <Link href="/standings" className="hover:text-secondary transition-colors">
                   Live Standings & Tables
                 </Link>
               </li>
@@ -154,9 +154,9 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-4">
-          <p>© {new Date().getFullYear()} eFootball Rwanda League (EFRL). All rights reserved.</p>
-          <div className="flex items-center gap-1 text-muted-foreground">
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between text-xs gap-4">
+          <p className="text-foreground">© {new Date().getFullYear()} <span className="font-semibold text-secondary">eFootball Rwanda League (EFRL).</span> All rights reserved.</p>
+          <div className="flex items-center gap-1 text-foreground">
             <span>Kigali, Rwanda Digital Esports Championship</span>
           </div>
         </div>
