@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { ensureR2FileUrl } from "@/lib/r2";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -47,13 +48,18 @@ export async function POST(req: Request) {
       );
     }
 
+    let finalPlayerImage = playerImage?.trim() || null;
+    if (finalPlayerImage) {
+      finalPlayerImage = await ensureR2FileUrl(finalPlayerImage, "hall-of-fame");
+    }
+
     const entry = await prisma.hallOfFame.create({
       data: {
         tournamentName: tournamentName.trim(),
         season: season.trim(),
         championName: championName.trim(),
         championRealName: championRealName?.trim() || null,
-        playerImage: playerImage?.trim() || null,
+        playerImage: finalPlayerImage || null,
         trophyType: trophyType || "GOLD",
       },
     });

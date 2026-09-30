@@ -10,6 +10,11 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpg",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/avif",
+  "image/bmp",
+  "image/svg+xml",
 ]);
 
 export async function POST(req: Request) {
@@ -43,9 +48,13 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
+    const mime = file.type.toLowerCase();
+    let extension = file.name.split(".").pop()?.toLowerCase() || "png";
+    const isImageExtension = ["png", "jpg", "jpeg", "webp", "gif", "heic", "heif", "avif", "bmp", "svg"].includes(extension);
+
+    if (!ALLOWED_MIME_TYPES.has(mime) && !isImageExtension) {
       return NextResponse.json(
-        { error: "Invalid file type. Only PNG, JPEG, WEBP, and GIF images are allowed." },
+        { error: "Invalid file type. Only PNG, JPEG, WEBP, GIF, HEIC, and AVIF images are allowed." },
         { status: 400 }
       );
     }
@@ -60,10 +69,8 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Extension from mime or filename
-    let extension = file.name.split(".").pop()?.toLowerCase() || "png";
-    if (!["png", "jpg", "jpeg", "webp", "gif"].includes(extension)) {
-      extension = file.type.split("/")[1] || "png";
+    if (!["png", "jpg", "jpeg", "webp", "gif", "heic", "heif", "avif", "bmp", "svg"].includes(extension)) {
+      extension = mime.split("/")[1] || "png";
     }
 
     const fileId = crypto.randomUUID();

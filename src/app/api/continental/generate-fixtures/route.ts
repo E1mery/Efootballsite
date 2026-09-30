@@ -113,11 +113,7 @@ export async function POST(req: Request) {
         });
       }
 
-      let matchCount = 0;
-      // In each group:
-      // For 4 players (UCL): 3 Matchdays, 2 matches per matchday
-      // For 3 players (Europa): 3 Matchdays, 1 match per matchday (round-robin)
-      // Played 2 legs at the same time
+      const groupMatchesToInsert: any[] = [];
       for (const grp of groups) {
         const groupSlots = slots.filter((s) => s.groupName === grp);
         const [p1, p2, p3, p4] = groupSlots;
@@ -144,26 +140,30 @@ export async function POST(req: Request) {
           const deadlineDate = new Date(matchDate.getTime() + 24 * 60 * 60 * 1000);
 
           for (const [home, away] of pairs) {
-            await prisma.match.create({
-              data: {
-                tournamentId: tournament.id,
-                division: competition,
-                stage: "GROUP",
-                groupName: grp,
-                homePlayerId: home.playerId,
-                awayPlayerId: away.playerId,
-                round,
-                platform: "eFootball Mobile",
-                status: "SCHEDULED",
-                matchDate: rIdx === 0 ? now : matchDate,
-                deadlineDate: rIdx === 0 ? deadline24h : deadlineDate,
-                notes: "2-Legged Match (Played simultaneously). Upload Leg 1 and Leg 2 screenshots with aggregate score.",
-              },
+            groupMatchesToInsert.push({
+              tournamentId: tournament.id,
+              division: competition,
+              stage: "GROUP",
+              groupName: grp,
+              homePlayerId: home.playerId,
+              awayPlayerId: away.playerId,
+              round,
+              platform: "eFootball Mobile",
+              status: "SCHEDULED",
+              matchDate: rIdx === 0 ? now : matchDate,
+              deadlineDate: rIdx === 0 ? deadline24h : deadlineDate,
+              notes: "2-Legged Match (Played simultaneously). Upload Leg 1 and Leg 2 screenshots with aggregate score.",
             });
-            matchCount++;
           }
         }
       }
+
+      if (groupMatchesToInsert.length > 0) {
+        await prisma.match.createMany({
+          data: groupMatchesToInsert,
+        });
+      }
+      const matchCount = groupMatchesToInsert.length;
 
       // Automatically evaluate and set Group Matches of the Day based on domestic league performance
       await syncContinentalGroupMotds(competition);
@@ -228,23 +228,21 @@ export async function POST(req: Request) {
         { name: "Quarter-Final 4", home: top2PerGroup["Group D"][0].player, away: top2PerGroup["Group C"][1].player },
       ];
 
-      for (const qf of qfPairings) {
-        await prisma.match.create({
-          data: {
-            tournamentId: tournament.id,
-            division: competition,
-            stage: "QUARTER_FINAL",
-            homePlayerId: qf.home.id,
-            awayPlayerId: qf.away.id,
-            round: qf.name,
-            platform: "eFootball Mobile",
-            status: "SCHEDULED",
-            matchDate: now,
-            deadlineDate: deadline24h,
-            notes: "Quarter-Final: 2 legs played simultaneously. Upload Leg 1 & Leg 2 screenshots. Winner on aggregate qualifies for Semi-Finals.",
-          },
-        });
-      }
+      await prisma.match.createMany({
+        data: qfPairings.map((qf) => ({
+          tournamentId: tournament.id,
+          division: competition,
+          stage: "QUARTER_FINAL",
+          homePlayerId: qf.home.id,
+          awayPlayerId: qf.away.id,
+          round: qf.name,
+          platform: "eFootball Mobile",
+          status: "SCHEDULED",
+          matchDate: now,
+          deadlineDate: deadline24h,
+          notes: "Quarter-Final: 2 legs played simultaneously. Upload Leg 1 & Leg 2 screenshots. Winner on aggregate qualifies for Semi-Finals.",
+        })),
+      });
 
       await prisma.announcement.create({
         data: {
@@ -304,23 +302,21 @@ export async function POST(req: Request) {
         { name: "Semi-Final 2", home: qfWinners[2], away: qfWinners[3] },
       ];
 
-      for (const sf of sfPairings) {
-        await prisma.match.create({
-          data: {
-            tournamentId: tournament.id,
-            division: competition,
-            stage: "SEMI_FINAL",
-            homePlayerId: sf.home.id,
-            awayPlayerId: sf.away.id,
-            round: sf.name,
-            platform: "eFootball Mobile",
-            status: "SCHEDULED",
-            matchDate: now,
-            deadlineDate: deadline24h,
-            notes: "Semi-Final: 2 legs played simultaneously. Upload Leg 1 & Leg 2 screenshots. Winner on aggregate qualifies for the Grand Final.",
-          },
-        });
-      }
+      await prisma.match.createMany({
+        data: sfPairings.map((sf) => ({
+          tournamentId: tournament.id,
+          division: competition,
+          stage: "SEMI_FINAL",
+          homePlayerId: sf.home.id,
+          awayPlayerId: sf.away.id,
+          round: sf.name,
+          platform: "eFootball Mobile",
+          status: "SCHEDULED",
+          matchDate: now,
+          deadlineDate: deadline24h,
+          notes: "Semi-Final: 2 legs played simultaneously. Upload Leg 1 & Leg 2 screenshots. Winner on aggregate qualifies for the Grand Final.",
+        })),
+      });
 
       await prisma.announcement.create({
         data: {

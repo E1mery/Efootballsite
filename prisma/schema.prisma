@@ -151,6 +151,7 @@ model Standing {
   player            Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
   
   rank              Int         @default(1)
+  previousRank      Int?
   played            Int         @default(0)
   won               Int         @default(0)
   drawn             Int         @default(0)
@@ -170,6 +171,30 @@ model Standing {
   @@unique([tournamentId, playerId])
   @@index([playerId])
   @@index([division])
+}
+
+model StandingsUpdate {
+  id           String   @id @default(cuid())
+  tournamentId String
+  division     String
+  round        Int      @default(1)
+  updateKey    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tournamentId, division])
+  @@index([division])
+}
+
+model UserStandingsView {
+  id        String   @id @default(cuid())
+  userId    String
+  division  String
+  updateKey String
+  viewedAt  DateTime @default(now())
+
+  @@unique([userId, division])
+  @@index([userId])
 }
 
 model MatchSubmission {

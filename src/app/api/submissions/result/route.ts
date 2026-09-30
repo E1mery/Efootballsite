@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { uploadBase64ToR2 } from "@/lib/r2";
+import { uploadBase64ToR2, ensureR2FileUrl } from "@/lib/r2";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
@@ -218,62 +218,57 @@ export async function POST(req: Request) {
       });
     }
 
-    // Ensure screenshots are stored in Cloudflare R2
-    let finalScreenshotUrl = screenshotUrl;
-    if (screenshotUrl && screenshotUrl.startsWith("data:")) {
-      finalScreenshotUrl = await uploadBase64ToR2(screenshotUrl, "results");
-    }
-
-    let finalLeg2ScreenshotUrl = leg2ScreenshotUrl || null;
-    if (leg2ScreenshotUrl && leg2ScreenshotUrl.startsWith("data:")) {
-      finalLeg2ScreenshotUrl = await uploadBase64ToR2(leg2ScreenshotUrl, "results");
-    }
+    // Ensure all uploaded screenshots/pictures are stored in Cloudflare R2 storage to prevent data loss
+    const finalScreenshotUrl = await ensureR2FileUrl(screenshotUrl, "results");
+    const finalLeg2ScreenshotUrl = leg2ScreenshotUrl
+      ? await ensureR2FileUrl(leg2ScreenshotUrl, "results")
+      : null;
 
     const officialHomeScore = Number(homeScore);
     const officialAwayScore = Number(awayScore);
-    const officialLeg2Home = leg2HomeScore !== undefined ? Number(leg2HomeScore) : null;
-    const officialLeg2Away = leg2AwayScore !== undefined ? Number(leg2AwayScore) : null;
+    const officialLeg2Home = leg2HomeScore !== undefined && leg2HomeScore !== null ? Number(leg2HomeScore) : null;
+    const officialLeg2Away = leg2AwayScore !== undefined && leg2AwayScore !== null ? Number(leg2AwayScore) : null;
     const officialAggHome = isTwoLegged ? calculatedAggHome : null;
     const officialAggAway = isTwoLegged ? calculatedAggAway : null;
 
-    // Create submission record with status APPROVED so admin can inspect proof and modify goals
-    const submission = await prisma.matchSubmission.create({
-      data: {
-        matchId,
-        submittedByPlayerId: user.player.id,
-        homeScore: officialHomeScore,
-        awayScore: officialAwayScore,
-        leg2HomeScore: officialLeg2Home,
-        leg2AwayScore: officialLeg2Away,
-        aggregateHomeScore: officialAggHome,
-        aggregateAwayScore: officialAggAway,
-        screenshotUrl: finalScreenshotUrl,
-        leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
-        notes: notes || null,
-        status: "APPROVED",
-      },
-    });
-
-    // Update match to FINISHED with official goals and screenshot proof
-    const updatedMatch = await prisma.match.update({
-      where: { id: matchId },
-      data: {
-        homeScore: officialHomeScore,
-        awayScore: officialAwayScore,
-        leg2HomeScore: officialLeg2Home,
-        leg2AwayScore: officialLeg2Away,
-        aggregateHomeScore: officialAggHome,
-        aggregateAwayScore: officialAggAway,
-        status: "FINISHED",
-        screenshotUrl: finalScreenshotUrl,
-        leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
-        notes:
-          notes ||
-          (officialLeg2Home !== null
-            ? `2-Leg Match (Leg 1: ${officialHomeScore}-${officialAwayScore}, Leg 2: ${officialLeg2Home}-${officialLeg2Away}, Agg: ${officialAggHome}-${officialAggAway})`
-            : `Submitted by @${user.player.gamerTag} (${officialHomeScore} - ${officialAwayScore})`),
-      },
-    });
+    // Atomically store submitted results (official goals and Cloudflare screenshot URLs) in database
+    const [submission, updatedMatch] = await prisma.$transaction([
+      prisma.matchSubmission.create({
+        data: {
+          matchId,
+          submittedByPlayerId: user.player.id,
+          homeScore: officialHomeScore,
+          awayScore: officialAwayScore,
+          leg2HomeScore: officialLeg2Home,
+          leg2AwayScore: officialLeg2Away,
+          aggregateHomeScore: officialAggHome,
+          aggregateAwayScore: officialAggAway,
+          screenshotUrl: finalScreenshotUrl,
+          leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
+          notes: notes || null,
+          status: "APPROVED",
+        },
+      }),
+      prisma.match.update({
+        where: { id: matchId },
+        data: {
+          homeScore: officialHomeScore,
+          awayScore: officialAwayScore,
+          leg2HomeScore: officialLeg2Home,
+          leg2AwayScore: officialLeg2Away,
+          aggregateHomeScore: officialAggHome,
+          aggregateAwayScore: officialAggAway,
+          status: "FINISHED",
+          screenshotUrl: finalScreenshotUrl,
+          leg2ScreenshotUrl: finalLeg2ScreenshotUrl,
+          notes:
+            notes ||
+            (officialLeg2Home !== null
+              ? `2-Leg Match (Leg 1: ${officialHomeScore}-${officialAwayScore}, Leg 2: ${officialLeg2Home}-${officialLeg2Away}, Agg: ${officialAggHome}-${officialAggAway})`
+              : `Submitted by @${user.player.gamerTag} (${officialHomeScore} - ${officialAwayScore})`),
+        },
+      }),
+    ]);
 
     // Reset consecutive missed counters since players completed their match fixture
     await prisma.player.updateMany({

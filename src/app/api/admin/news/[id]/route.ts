@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ensureNewsTable } from "@/lib/ensureNewsTable";
+import { ensureR2FileUrl } from "@/lib/r2";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -96,7 +97,7 @@ export async function PUT(
       if (!body.featuredImage || typeof body.featuredImage !== "string" || !body.featuredImage.trim()) {
         return NextResponse.json({ error: "Featured image cannot be empty." }, { status: 400 });
       }
-      dataToUpdate.featuredImage = body.featuredImage.trim();
+      dataToUpdate.featuredImage = await ensureR2FileUrl(body.featuredImage.trim(), "news");
     }
 
     if (body.description !== undefined) {

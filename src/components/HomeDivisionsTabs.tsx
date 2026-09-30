@@ -11,6 +11,9 @@ interface HomeDivisionsTabsProps {
   div2Standings: any[];
   div3Standings: any[];
   defaultDivision?: "Division 1" | "Division 2" | "Division 3";
+  updatesMap?: Record<string, { updateKey: string; userAlreadyViewed?: boolean }>;
+  currentUserId?: string | null;
+  currentRound?: number;
 }
 
 export default function HomeDivisionsTabs({
@@ -18,6 +21,9 @@ export default function HomeDivisionsTabs({
   div2Standings,
   div3Standings,
   defaultDivision = "Division 1",
+  updatesMap,
+  currentUserId,
+  currentRound,
 }: HomeDivisionsTabsProps) {
   const [activeDivision, setActiveDivision] = useState<"Division 1" | "Division 2" | "Division 3">(defaultDivision);
   const [isMorphing, setIsMorphing] = useState(false);
@@ -112,6 +118,10 @@ export default function HomeDivisionsTabs({
             standings={current.standings}
             divisionName={activeDivision}
             compact={false}
+            updateKey={updatesMap?.[activeDivision]?.updateKey}
+            userAlreadyViewed={updatesMap?.[activeDivision]?.userAlreadyViewed}
+            currentUserId={currentUserId}
+            currentRound={currentRound}
           />
         </LoaderSkeleton>
       </div>

@@ -17,26 +17,42 @@ export const r2Client = new S3Client({
 
 /**
  * Uploads a raw buffer to Cloudflare R2 and returns a publicly accessible URL.
+ * Includes automatic retry with backoff to prevent data loss during transient network issues.
  */
 export async function uploadBufferToR2(
   buffer: Buffer | Uint8Array,
   key: string,
   contentType: string
 ): Promise<string> {
-  const command = new PutObjectCommand({
-    Bucket: R2_BUCKET_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: contentType,
-  });
+  const maxRetries = 2;
+  let lastError: any = null;
 
-  await r2Client.send(command);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const command = new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+      });
 
-  // If a custom domain or R2 public dev URL is set, use it; otherwise use the built-in streaming endpoint
-  if (process.env.R2_PUBLIC_URL) {
-    return `${process.env.R2_PUBLIC_URL.replace(/\/$/, "")}/${key}`;
+      await r2Client.send(command);
+
+      // If a custom domain or R2 public dev URL is set, use it; otherwise use the built-in streaming endpoint
+      if (process.env.R2_PUBLIC_URL) {
+        return `${process.env.R2_PUBLIC_URL.replace(/\/$/, "")}/${key}`;
+      }
+      return `/api/files/${key}`;
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[Cloudflare R2] Upload attempt ${attempt + 1} failed for key ${key}:`, err?.message);
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      }
+    }
   }
-  return `/api/files/${key}`;
+
+  throw new Error(`Failed to upload file to Cloudflare storage after ${maxRetries + 1} attempts: ${lastError?.message || "Unknown error"}`);
 }
 
 /**
@@ -46,34 +62,75 @@ export async function uploadBase64ToR2(
   dataUri: string,
   folder: string = "screenshots"
 ): Promise<string> {
-  if (!dataUri || !dataUri.startsWith("data:")) {
-    // If it's already a URL (e.g. starts with http or /api/files), return as-is
-    if (dataUri && (dataUri.startsWith("http") || dataUri.startsWith("/api/files"))) {
-      return dataUri;
+  if (!dataUri) {
+    throw new Error("Invalid base64 image data: empty input.");
+  }
+
+  // If it's already a URL (e.g. starts with http or /api/files), return as-is
+  if (dataUri.startsWith("http://") || dataUri.startsWith("https://") || dataUri.startsWith("/api/files/")) {
+    return dataUri;
+  }
+
+  // Handle data URI format or raw base64
+  let contentType = "image/png";
+  let base64Data = dataUri;
+
+  if (dataUri.startsWith("data:")) {
+    const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error("Invalid image format or encoding.");
     }
-    throw new Error("Invalid base64 image data URI.");
+    contentType = match[1].toLowerCase();
+    base64Data = match[2];
   }
 
-  const match = dataUri.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-  if (!match) {
-    throw new Error("Invalid image format or encoding.");
-  }
-
-  const contentType = match[1];
-  const base64Data = match[2];
   const buffer = Buffer.from(base64Data, "base64");
 
-  // Determine file extension
+  // Determine file extension accurately
   let extension = "png";
   if (contentType.includes("jpeg") || contentType.includes("jpg")) extension = "jpg";
   else if (contentType.includes("webp")) extension = "webp";
   else if (contentType.includes("gif")) extension = "gif";
   else if (contentType.includes("svg")) extension = "svg";
+  else if (contentType.includes("heic")) extension = "heic";
+  else if (contentType.includes("heif")) extension = "heif";
+  else if (contentType.includes("avif")) extension = "avif";
+  else if (contentType.includes("bmp")) extension = "bmp";
 
   const fileId = crypto.randomUUID();
   const key = `uploads/${folder}/${Date.now()}-${fileId}.${extension}`;
 
   return await uploadBufferToR2(buffer, key, contentType);
+}
+
+/**
+ * Ensures a file string (URL or base64 data) is permanently stored in Cloudflare R2 storage.
+ * If already a Cloudflare or external URL, returns it directly.
+ * If base64, uploads immediately to Cloudflare R2 and returns the persistent URL.
+ * Guarantees no base64 payloads pollute the database.
+ */
+export async function ensureR2FileUrl(
+  input: string | null | undefined,
+  folder: string = "uploads"
+): Promise<string> {
+  if (!input || !input.trim()) return "";
+  const trimmed = input.trim();
+
+  // Already uploaded / stored in Cloudflare storage or external CDN
+  if (
+    trimmed.startsWith("/api/files/") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("http://")
+  ) {
+    return trimmed;
+  }
+
+  // Base64 data URI or raw base64: upload to Cloudflare storage
+  if (trimmed.startsWith("data:") || trimmed.length > 200) {
+    return await uploadBase64ToR2(trimmed, folder);
+  }
+
+  return trimmed;
 }
 
 /**

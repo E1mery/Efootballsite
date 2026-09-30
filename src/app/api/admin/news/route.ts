@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ensureNewsTable } from "@/lib/ensureNewsTable";
+import { ensureR2FileUrl } from "@/lib/r2";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -125,13 +126,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const finalFeaturedImage = await ensureR2FileUrl(featuredImage.trim(), "news");
+
     const validStatus = status === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
 
     const news = await prisma.news.create({
       data: {
         title: title.trim(),
         category: category.trim(),
-        featuredImage: featuredImage.trim(),
+        featuredImage: finalFeaturedImage,
         description: description.trim(),
         buttonText: buttonText?.trim() || null,
         buttonUrl: buttonUrl?.trim() || null,

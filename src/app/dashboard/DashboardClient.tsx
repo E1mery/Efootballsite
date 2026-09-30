@@ -443,6 +443,7 @@ export default function DashboardClient({
   europaGroupMotds = {},
   isSeasonAwaitingKickoff = false,
   seasonKickoffDate = null,
+  standingsUpdatesMap = {},
 }: {
   player: any;
   user: any;
@@ -477,6 +478,7 @@ export default function DashboardClient({
   opponentPreviousMatches?: any[];
   isSeasonAwaitingKickoff?: boolean;
   seasonKickoffDate?: string | null;
+  standingsUpdatesMap?: Record<string, { updateKey: string; userAlreadyViewed: boolean }>;
 }) {
   const router = useRouter();
 
@@ -1348,7 +1350,8 @@ export default function DashboardClient({
         setter(data.url);
       }
     } catch (err: any) {
-      console.warn("R2 upload fallback notice:", err);
+      console.warn("Cloudflare R2 upload error:", err);
+      alert(err.message || "Failed to upload picture to Cloudflare storage. Please check your internet connection and try selecting the image again.");
     } finally {
       if (setLoading) setLoading(false);
     }
@@ -1959,6 +1962,9 @@ export default function DashboardClient({
                   ? (currentPlayer.division as "Division 2" | "Division 3")
                   : "Division 1"
               }
+              updatesMap={standingsUpdatesMap}
+              currentUserId={user?.id}
+              currentRound={leagueConfig?.currentMatchday}
             />
           )}
 

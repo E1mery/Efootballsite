@@ -195,33 +195,36 @@ export async function POST(req: Request) {
 
       // Generate single-leg round-robin schedule (1 match only per pairing, 1 leg only, no second leg)
       const allRounds = generateRoundRobin(players, true);
-      let divMatchesCount = 0;
+      const matchesToInsert: any[] = [];
 
       for (const roundData of allRounds) {
         const roundName = `Matchday ${roundData.roundNumber}`;
-        const isMatchday1 = roundData.roundNumber === 1;
 
         // Schedule dates: strictly 12:00 AM (00:00:00) with 24 hours duration expiring at 12:00 AM next day
         const matchDate = new Date(baseKickoffDate.getTime() + (roundData.roundNumber - 1) * 24 * 60 * 60 * 1000);
         const deadlineDate = new Date(matchDate.getTime() + 24 * 60 * 60 * 1000);
 
         for (const [homeId, awayId] of roundData.pairings) {
-          await prisma.match.create({
-            data: {
-              tournamentId: tournament.id,
-              division: divName,
-              homePlayerId: homeId,
-              awayPlayerId: awayId,
-              round: roundName,
-              platform: "eFootball Mobile",
-              status: "SCHEDULED",
-              matchDate,
-              deadlineDate,
-            },
+          matchesToInsert.push({
+            tournamentId: tournament.id,
+            division: divName,
+            homePlayerId: homeId,
+            awayPlayerId: awayId,
+            round: roundName,
+            platform: "eFootball Mobile",
+            status: "SCHEDULED",
+            matchDate,
+            deadlineDate,
           });
-          divMatchesCount++;
         }
+      }
 
+      let divMatchesCount = 0;
+      if (matchesToInsert.length > 0) {
+        await prisma.match.createMany({
+          data: matchesToInsert,
+        });
+        divMatchesCount = matchesToInsert.length;
       }
 
       totalMatchesGenerated += divMatchesCount;

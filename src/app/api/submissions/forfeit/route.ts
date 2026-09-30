@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { uploadBase64ToR2 } from "@/lib/r2";
+import { uploadBase64ToR2, ensureR2FileUrl } from "@/lib/r2";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 
 export async function POST(req: Request) {
@@ -184,10 +184,7 @@ export async function POST(req: Request) {
     const accusedPlayerId =
       match.homePlayerId === user.player.id ? match.awayPlayerId : match.homePlayerId;
 
-    let finalProofScreenshotUrl = proofScreenshotUrl;
-    if (proofScreenshotUrl && proofScreenshotUrl.startsWith("data:")) {
-      finalProofScreenshotUrl = await uploadBase64ToR2(proofScreenshotUrl, "forfeits");
-    }
+    const finalProofScreenshotUrl = await ensureR2FileUrl(proofScreenshotUrl, "forfeits");
 
     const claim = await prisma.forfeitClaim.create({
       data: {

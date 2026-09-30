@@ -47,6 +47,13 @@ export async function recalculateStandings(tournamentId: string, division: strin
     include: { player: true },
   });
 
+  const previousRanks: Record<string, number> = {};
+  for (const s of standings) {
+    if (s.playerId && typeof s.rank === "number") {
+      previousRanks[s.playerId] = s.rank;
+    }
+  }
+
   const playerStats: Record<
     string,
     {
@@ -160,12 +167,13 @@ export async function recalculateStandings(tournamentId: string, division: strin
     return tagA.localeCompare(tagB);
   });
 
+  const canonicalDiv = isGroup && groupName ? `${comp} ${groupName}` : division;
+
   for (let i = 0; i < sortedPlayerIds.length; i++) {
     const pId = sortedPlayerIds[i];
     const st = playerStats[pId];
     const last5 = st.form.slice(-5).join(",") || "D";
-
-    const canonicalDiv = isGroup && groupName ? `${comp} ${groupName}` : division;
+    const prevRank = previousRanks[pId] !== undefined ? previousRanks[pId] : null;
 
     await prisma.standing.upsert({
       where: {
@@ -177,6 +185,7 @@ export async function recalculateStandings(tournamentId: string, division: strin
       update: {
         division: canonicalDiv,
         rank: i + 1,
+        previousRank: prevRank,
         played: st.played,
         won: st.won,
         drawn: st.drawn,
@@ -192,6 +201,7 @@ export async function recalculateStandings(tournamentId: string, division: strin
         division: canonicalDiv,
         playerId: pId,
         rank: i + 1,
+        previousRank: null,
         played: st.played,
         won: st.won,
         drawn: st.drawn,
@@ -212,5 +222,42 @@ export async function recalculateStandings(tournamentId: string, division: strin
         matchesPlayed: st.played,
       },
     });
+  }
+
+  // Record StandingsUpdate to track new movement state and one-time display
+  try {
+    const maxPlayed = Math.max(
+      ...Object.values(playerStats).map((st) => st.played),
+      0
+    );
+
+    const config = await prisma.leagueConfig.findUnique({
+      where: { id: "default" },
+      select: { currentMatchday: true },
+    });
+    const effectiveRound = Math.max(config?.currentMatchday || 1, maxPlayed);
+    const updateKey = `upd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    await prisma.standingsUpdate.upsert({
+      where: {
+        tournamentId_division: {
+          tournamentId,
+          division: canonicalDiv,
+        },
+      },
+      update: {
+        round: effectiveRound,
+        updateKey,
+        updatedAt: new Date(),
+      },
+      create: {
+        tournamentId,
+        division: canonicalDiv,
+        round: effectiveRound,
+        updateKey,
+      },
+    });
+  } catch (updateErr) {
+    console.warn("StandingsUpdate recording warning:", updateErr);
   }
 }

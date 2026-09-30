@@ -13,6 +13,10 @@ import {
   Crown,
   TrendingUp,
   ShieldCheck,
+  Megaphone,
+  Trophy,
+  Zap,
+  Clock,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -583,7 +587,229 @@ const CoverflowCard = memo(function CoverflowCard({
           )}
 
           {/* ========================================================================= */}
-          {/* 6. STANDARD NEWS ARTICLE (Admin Created or System Published) */}
+          {/* 6. SYSTEM ANNOUNCEMENTS (Official League & Tournament Milestones) */}
+          {/* ========================================================================= */}
+          {slide.type === "SYSTEM_ANNOUNCEMENT" && (
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
+              {/* Left Column: Text & CTA */}
+              <div className="space-y-3.5 text-left max-w-xl flex-1 w-full">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge
+                    variant="yellow"
+                    className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm"
+                  >
+                    <Megaphone className="h-3 w-3 mr-1" />
+                    <span>System Announcement</span>
+                  </Badge>
+                  {slide.subtitle && (
+                    <span className="text-xs font-mono text-secondary font-semibold">
+                      {slide.data?.subType === "LEAGUE_START"
+                        ? "Official Schedule Confirmed"
+                        : slide.data?.subType === "DRAW_SCHEDULED"
+                        ? "Live Draw Scheduled"
+                        : slide.data?.subType === "DRAW_RESULTS"
+                        ? "Group Stage Seeded"
+                        : slide.data?.subType === "CONTINENTAL_ADVANCE"
+                        ? "Knockout Stage Active"
+                        : "Official Notice"}
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="carousel-headline font-black text-foreground tracking-tight leading-tight drop-shadow-sm">
+                  {slide.title}
+                </h2>
+
+                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4 max-w-xl font-normal">
+                  {slide.description}
+                </p>
+
+                {slide.buttonText && slide.buttonUrl && (
+                  <div className="pt-2">
+                    <Link
+                      href={slide.buttonUrl}
+                      tabIndex={isCenter ? 0 : -1}
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className={cn(
+                        buttonVariants({ variant: "yellow", size: "default" }),
+                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                      )}
+                    >
+                      <span>{slide.buttonText}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Dynamic Visual Showcase based on subType */}
+              <div className="w-full lg:w-auto shrink-0 flex items-center justify-center">
+                {/* 1. LEAGUE START SHOWCASE */}
+                {slide.data?.subType === "LEAGUE_START" && (
+                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                      <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-secondary" />
+                        <span>Official Kickoff (CAT)</span>
+                      </span>
+                      <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/30">
+                        Midnight 12:00 AM
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-mono font-semibold block">
+                        Starting Date &amp; Time:
+                      </span>
+                      <span className="text-sm sm:text-base font-black text-foreground block">
+                        {slide.data?.formattedKickoffFull || slide.data?.formattedKickoffDate || "Confirmed by Admin"}
+                      </span>
+                    </div>
+
+                    <div className="pt-1 flex items-center gap-2 flex-wrap">
+                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                        Division 1
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-mono font-bold border-secondary/40 text-secondary">
+                        Division 2
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-mono font-bold border-primary/40 text-primary">
+                        Division 3
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. DRAW SCHEDULED SHOWCASE */}
+                {slide.data?.subType === "DRAW_SCHEDULED" && (
+                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                      <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
+                        <Trophy className="h-3.5 w-3.5 text-secondary" />
+                        <span>Continental Live Draws</span>
+                      </span>
+                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                        Scheduled
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2.5 text-xs font-mono">
+                      {slide.data?.uclTimeStr && (
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-background/70 border border-border">
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            <Sparkles className="h-3 w-3 text-secondary" />
+                            <span>UCL Draw:</span>
+                          </span>
+                          <span className="text-secondary font-bold text-right">{slide.data.uclTimeStr} (CAT)</span>
+                        </div>
+                      )}
+                      {slide.data?.europaTimeStr && (
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-background/70 border border-border">
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            <Award className="h-3 w-3 text-primary" />
+                            <span>Europa Draw:</span>
+                          </span>
+                          <span className="text-primary font-bold text-right">{slide.data.europaTimeStr} (CAT)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. DRAW RESULTS SHOWCASE */}
+                {slide.data?.subType === "DRAW_RESULTS" && (
+                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                      <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
+                        <Trophy className="h-3.5 w-3.5 text-secondary" />
+                        <span>Group Draw Complete</span>
+                      </span>
+                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                        4 Groups Locked
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono">
+                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                        Group A
+                      </div>
+                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                        Group B
+                      </div>
+                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                        Group C
+                      </div>
+                      <div className="p-2 rounded-xl bg-background/70 border border-secondary/30 font-bold text-secondary">
+                        Group D
+                      </div>
+                    </div>
+
+                    <p className="text-xs font-mono text-muted-foreground text-center pt-1">
+                      Top 2 athletes from each group advance to Quarter-Finals
+                    </p>
+                  </div>
+                )}
+
+                {/* 4. BOTH ADVANCE SHOWCASE */}
+                {slide.data?.subType === "CONTINENTAL_ADVANCE" && (
+                  <div className="w-full sm:w-auto p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-3 min-w-72 sm:min-w-80">
+                    <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                      <span className="text-xs font-mono font-bold text-secondary uppercase flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5 text-secondary" />
+                        <span>Knockout Phase Active</span>
+                      </span>
+                      <Badge variant="yellow" className="text-xs font-mono font-bold">
+                        Both Advanced
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 text-xs font-mono">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/70 border border-secondary/30">
+                        <span className="font-bold text-foreground flex items-center gap-1.5">
+                          <Crown className="h-3.5 w-3.5 text-secondary" />
+                          <span>Champions League</span>
+                        </span>
+                        <Badge variant="yellow" className="text-xs font-mono font-bold">
+                          {slide.data?.uclStageLabel || "Quarter-Finals"}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-background/70 border border-primary/30">
+                        <span className="font-bold text-foreground flex items-center gap-1.5">
+                          <Award className="h-3.5 w-3.5 text-primary" />
+                          <span>Europa League</span>
+                        </span>
+                        <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/40">
+                          {slide.data?.europaStageLabel || "Quarter-Finals"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-mono text-muted-foreground text-center pt-1">
+                      Simultaneous 2-leg aggregate battles
+                    </div>
+                  </div>
+                )}
+
+                {/* DEFAULT BROADCAST NOTICE SHOWCASE */}
+                {!["LEAGUE_START", "DRAW_SCHEDULED", "DRAW_RESULTS", "CONTINENTAL_ADVANCE"].includes(slide.data?.subType) && (
+                  <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 p-4 max-w-sm">
+                    <div className="flex items-center gap-2 mb-2 text-xs font-mono text-secondary font-bold">
+                      <Megaphone className="h-4 w-4" />
+                      <span>COMMISSIONER NOTICE</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-4">
+                      {slide.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 7. STANDARD NEWS ARTICLE (Admin Created or System Published) */}
           {/* ========================================================================= */}
           {(!slide.type || slide.type === "NEWS") && (
             <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">

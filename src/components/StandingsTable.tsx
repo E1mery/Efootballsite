@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, Globe, ArrowUp, ArrowDown, AlertTriangle, ShieldAlert, Smartphone, MessageSquare, Shield } from "lucide-react";
+import { Trophy, Globe, ArrowUp, ArrowDown, Minus, AlertTriangle, ShieldAlert, Smartphone, MessageSquare, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface StandingRow {
   id: string;
   rank: number;
+  previousRank?: number | null;
   division: string;
   played: number;
   won: number;
@@ -40,12 +41,20 @@ interface StandingsTableProps {
   standings: StandingRow[];
   divisionName?: string;
   compact?: boolean;
+  updateKey?: string;
+  currentRound?: number;
+  currentUserId?: string | null;
+  userAlreadyViewed?: boolean;
 }
 
 export default function StandingsTable({
   standings,
   divisionName = "Division 1",
   compact = false,
+  updateKey,
+  currentRound,
+  currentUserId,
+  userAlreadyViewed = false,
 }: StandingsTableProps) {
   // Deterministic 5-level tiebreaker sorting: Points -> GD -> GF -> Won -> GamerTag
   const sortedStandings = useMemo(() => {
@@ -73,12 +82,72 @@ export default function StandingsTable({
       });
   }, [standings]);
 
+  // Derive effective update key from explicit prop or latest standing updatedAt
+  const effectiveUpdateKey = useMemo(() => {
+    if (updateKey) return updateKey;
+    const latestTime = (standings || []).reduce((max, s: any) => {
+      const t = s.updatedAt ? new Date(s.updatedAt).getTime() : 0;
+      return t > max ? t : max;
+    }, 0);
+    return `${divisionName}_${latestTime || 0}`;
+  }, [updateKey, standings, divisionName]);
+
+  // Round requirement:
+  // Round 1: No movement indicators
+  // Round 2 onward: movement indicators can be displayed after each standings update
+  const maxPlayed = useMemo(() => {
+    return Math.max(...(standings || []).map((s) => s.played || 0), 0);
+  }, [standings]);
+
+  const isRound2OrLater = useMemo(() => {
+    const roundNumber = typeof currentRound === "number" ? currentRound : maxPlayed;
+    return roundNumber >= 2 || maxPlayed >= 2;
+  }, [currentRound, maxPlayed]);
+
+  const [showMovement, setShowMovement] = useState(false);
+
+  useEffect(() => {
+    if (!isRound2OrLater || !effectiveUpdateKey) {
+      setShowMovement(false);
+      return;
+    }
+
+    const userKey = currentUserId ? `u_${currentUserId}` : "guest";
+    const storageKey = `ef_standings_viewed_${userKey}_${divisionName}`;
+    const storedKey = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
+
+    // If server already recorded that this user viewed this update, or if localStorage has it
+    if (userAlreadyViewed || storedKey === effectiveUpdateKey) {
+      setShowMovement(false);
+    } else {
+      // First time viewing after this update!
+      setShowMovement(true);
+
+      // Record in localStorage immediately so subsequent visits hide movement
+      try {
+        localStorage.setItem(storageKey, effectiveUpdateKey);
+      } catch (e) {}
+
+      // If user is logged in, also record in database
+      if (currentUserId) {
+        fetch("/api/standings/viewed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            division: divisionName,
+            updateKey: effectiveUpdateKey,
+          }),
+        }).catch(() => {});
+      }
+    }
+  }, [isRound2OrLater, effectiveUpdateKey, userAlreadyViewed, currentUserId, divisionName]);
+
   return (
     <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
       <Table className="w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-14 text-center">Pos</TableHead>
+            <TableHead className={`${showMovement ? "w-20" : "w-14"} text-center transition-all`}>Pos</TableHead>
             <TableHead>eFootball Mobile Athlete (Gamer Tag)</TableHead>
             {!compact && <TableHead className="hidden lg:table-cell">WhatsApp Contact</TableHead>}
             <TableHead className="text-center">MP</TableHead>
@@ -189,9 +258,9 @@ export default function StandingsTable({
                     : "hover:bg-muted/60"
                 }`}
               >
-                {/* Rank */}
+                {/* Rank & Movement */}
                 <TableCell className="text-center font-bold">
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-center gap-1.5">
                     <span
                       className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-black ${
                         isDisqualified
@@ -211,6 +280,47 @@ export default function StandingsTable({
                     >
                       {rank}
                     </span>
+
+                    {showMovement && (
+                      <span className="inline-flex items-center justify-center min-w-5 text-xs">
+                        {(() => {
+                          const prevRank = row.previousRank;
+                          if (prevRank === null || prevRank === undefined || prevRank <= 0 || prevRank === rank) {
+                            return (
+                              <span
+                                className="inline-flex items-center text-muted-foreground font-bold"
+                                title="Position unchanged (—)"
+                              >
+                                <Minus className="h-3 w-3" strokeWidth={2.5} />
+                              </span>
+                            );
+                          }
+                          if (rank < prevRank) {
+                            const diff = prevRank - rank;
+                            return (
+                              <span
+                                className="inline-flex items-center text-primary font-black gap-0.5"
+                                title={`Moved up ${diff} spot${diff > 1 ? "s" : ""} (Previous: #${prevRank})`}
+                              >
+                                <ArrowUp className="h-3 w-3" strokeWidth={2.5} />
+                                {diff > 0 && <span className="text-xs font-mono leading-none">{diff}</span>}
+                              </span>
+                            );
+                          } else {
+                            const diff = rank - prevRank;
+                            return (
+                              <span
+                                className="inline-flex items-center text-destructive font-black gap-0.5"
+                                title={`Dropped ${diff} spot${diff > 1 ? "s" : ""} (Previous: #${prevRank})`}
+                              >
+                                <ArrowDown className="h-3 w-3" strokeWidth={2.5} />
+                                {diff > 0 && <span className="text-xs font-mono leading-none">{diff}</span>}
+                              </span>
+                            );
+                          }
+                        })()}
+                      </span>
+                    )}
                   </div>
                 </TableCell>
 

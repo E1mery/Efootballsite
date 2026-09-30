@@ -404,6 +404,26 @@ export default async function DashboardPage() {
     europaGroupStandings = sortStandingsDeterministically(rawEuropaStandings);
   }
 
+  // Fetch standings update states and user view status for one-time movement display
+  const [standingsUpdates, userStandingsViews] = await Promise.all([
+    prisma.standingsUpdate.findMany(),
+    user.id ? prisma.userStandingsView.findMany({ where: { userId: user.id } }) : [],
+  ]);
+
+  const standingsUpdatesMap: Record<string, { updateKey: string; userAlreadyViewed: boolean }> = {};
+  const userViewsMap = new Map<string, string>();
+  for (const v of userStandingsViews) {
+    userViewsMap.set(v.division, v.updateKey);
+  }
+
+  for (const u of standingsUpdates) {
+    const alreadyViewed = userViewsMap.get(u.division) === u.updateKey;
+    standingsUpdatesMap[u.division] = {
+      updateKey: u.updateKey,
+      userAlreadyViewed: alreadyViewed,
+    };
+  }
+
   // Compute Match of the Day for each division (all athletes including reserve can view & vote)
   let divisionalMotd: Record<string, any> = {
     "Division 1": null,
@@ -828,6 +848,7 @@ export default async function DashboardPage() {
         opponentPreviousMatches={opponentPreviousMatches}
         isSeasonAwaitingKickoff={isSeasonAwaitingKickoff}
         seasonKickoffDate={seasonKickoffDate}
+        standingsUpdatesMap={standingsUpdatesMap}
       />
     </div>
   );

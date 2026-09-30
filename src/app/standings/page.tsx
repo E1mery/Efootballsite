@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 import StandingsTable from "@/components/StandingsTable";
 import { Trophy, ShieldCheck, Flame, Info, AlertTriangle, ArrowDown, ArrowUp, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +14,17 @@ export default async function StandingsPage(props: {
     const params = (props?.searchParams ? await props.searchParams : {}) || {};
     const currentDivision = params.division || "Division 1";
 
+    const cookieStore = await cookies();
+    const sessionUserId = cookieStore.get("efrl_session")?.value;
+
     // Fetch standings for selected division with player profile and team
     let standings: any[] = [];
     let leagueConfig: any = null;
+    let updateRecord: any = null;
+    let userAlreadyViewed = false;
+
     try {
-      const [st, cfg] = await Promise.all([
+      const [st, cfg, upd] = await Promise.all([
         prisma.standing.findMany({
           where: { division: currentDivision },
           include: {
@@ -25,6 +32,10 @@ export default async function StandingsPage(props: {
           },
         }),
         prisma.leagueConfig.findUnique({ where: { id: "default" } }),
+        prisma.standingsUpdate.findFirst({
+          where: { division: currentDivision },
+          orderBy: { updatedAt: "desc" },
+        }),
       ]);
       // Defensively ensure only active (non-reserved) records with populated player relations are included and sorted deterministically
       standings = (st || [])
@@ -37,6 +48,21 @@ export default async function StandingsPage(props: {
           return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
         });
       leagueConfig = cfg;
+      updateRecord = upd;
+
+      if (sessionUserId && upd?.updateKey) {
+        const view = await prisma.userStandingsView.findUnique({
+          where: {
+            userId_division: {
+              userId: sessionUserId,
+              division: currentDivision,
+            },
+          },
+        });
+        if (view && view.updateKey === upd.updateKey) {
+          userAlreadyViewed = true;
+        }
+      }
     } catch (error) {
       console.error("Standings fetch error:", error);
     }
@@ -155,6 +181,10 @@ export default async function StandingsPage(props: {
           standings={standings}
           divisionName={currentDivision}
           compact={false}
+          updateKey={updateRecord?.updateKey}
+          currentRound={leagueConfig?.currentMatchday}
+          currentUserId={sessionUserId}
+          userAlreadyViewed={userAlreadyViewed}
         />
       </div>
 

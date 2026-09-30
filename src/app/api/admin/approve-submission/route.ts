@@ -178,7 +178,16 @@ export async function POST(req: Request) {
 
     // 1b. Direct Score Entry by Admin (Without or Overriding Player Submission)
     if (actionType === "DIRECT_SCORE_ENTRY") {
-      const { matchId, homeScore, awayScore, notes } = body;
+      const {
+        matchId,
+        homeScore,
+        awayScore,
+        leg2HomeScore,
+        leg2AwayScore,
+        aggregateHomeScore,
+        aggregateAwayScore,
+        notes,
+      } = body;
       if (!matchId || typeof homeScore !== "number" || typeof awayScore !== "number") {
         return NextResponse.json({ error: "Match ID and valid scores are required." }, { status: 400 });
       }
@@ -186,14 +195,33 @@ export async function POST(req: Request) {
       const match = await prisma.match.findUnique({ where: { id: matchId } });
       if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
+      const officialLeg2Home = typeof leg2HomeScore === "number" ? leg2HomeScore : null;
+      const officialLeg2Away = typeof leg2AwayScore === "number" ? leg2AwayScore : null;
+      const officialAggHome = typeof aggregateHomeScore === "number" ? aggregateHomeScore : (officialLeg2Home !== null ? homeScore + officialLeg2Home : null);
+      const officialAggAway = typeof aggregateAwayScore === "number" ? aggregateAwayScore : (officialLeg2Away !== null ? awayScore + officialLeg2Away : null);
+
       const updatedMatch = await prisma.match.update({
         where: { id: matchId },
         data: {
           homeScore,
           awayScore,
+          leg2HomeScore: officialLeg2Home,
+          leg2AwayScore: officialLeg2Away,
+          aggregateHomeScore: officialAggHome,
+          aggregateAwayScore: officialAggAway,
           status: "FINISHED",
           notes: notes || `Direct score entry by Admin Office (${homeScore} - ${awayScore})`,
         },
+      });
+
+      // Reset consecutive missed counters for participating players
+      await prisma.player.updateMany({
+        where: { id: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
+        data: { consecutiveMissed: 0 },
+      });
+      await prisma.standing.updateMany({
+        where: { playerId: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
+        data: { consecutiveMissed: 0 },
       });
 
       // Recalculate table

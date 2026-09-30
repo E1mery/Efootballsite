@@ -86,6 +86,16 @@ export async function POST(req: Request) {
         });
       }
 
+      // Reset consecutive missed counters for both participating players as their match fixture is fulfilled
+      await prisma.player.updateMany({
+        where: { id: { in: [match.homePlayerId, match.awayPlayerId] } },
+        data: { consecutiveMissed: 0 },
+      });
+      await prisma.standing.updateMany({
+        where: { playerId: { in: [match.homePlayerId, match.awayPlayerId] } },
+        data: { consecutiveMissed: 0 },
+      });
+
       updatedMatchIds.push(matchId);
 
       const targetDiv = match.stage === "GROUP" && match.groupName
