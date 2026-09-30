@@ -4667,8 +4667,19 @@ export default function AdminClient({
               </div>
 
               {/* Europa Card */}
-              <div className="rounded-2xl border border-secondary/30 bg-card/60 p-6 space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="relative overflow-hidden rounded-2xl border border-secondary/30 bg-card/60 p-6 space-y-4">
+                {/* Official Europa Stadium Graphic Background */}
+                <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                  <img
+                    src="/images/europa-stadium-bg.jpg"
+                    alt="eFootball Europa Stadium"
+                    className="w-full h-full object-cover object-center opacity-20 scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-card/85 via-card/75 to-card/95" />
+                </div>
+
+                <div className="relative z-10 space-y-4">
+                  <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Globe className="h-5 w-5 text-secondary" />
                     <span className="font-black uppercase text-white">eFootball Europa League</span>
@@ -4828,6 +4839,7 @@ export default function AdminClient({
                       4. Generate Final & Poll
                     </Button>
                   </div>
+                </div>
                 </div>
               </div>
             </div>
