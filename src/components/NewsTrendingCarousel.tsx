@@ -213,7 +213,7 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 1. MATCH OF THE DAY AUTOMATED SYSTEM SHOWDOWN */}
           {/* ========================================================================= */}
           {slide.type === "MOTD" && slide.data && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
                   <Badge
@@ -260,7 +260,7 @@ const CoverflowCard = memo(function CoverflowCard({
               </div>
 
               {/* Head-to-Head Card with Auto Ratio Avatars */}
-              <div className="w-full lg:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl shrink-0">
+              <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl shrink-0">
                 <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
                   <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
                     <img
@@ -315,7 +315,7 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 2. MOTD FINAL RESULT AUTOMATED UPDATE */}
           {/* ========================================================================= */}
           {slide.type === "MOTD_RESULT" && slide.data && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
                   <Badge
@@ -357,7 +357,7 @@ const CoverflowCard = memo(function CoverflowCard({
               </div>
 
               {/* Scoreboard Card */}
-              <div className="w-full lg:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
+              <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
                 <div className="text-right min-w-16 sm:min-w-24">
                   <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
                     {slide.data.homePlayer?.gamerTag}
@@ -553,7 +553,7 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 5. SEASON REGISTRATION AUTOMATED BULLETIN */}
           {/* ========================================================================= */}
           {slide.type === "REGISTRATION" && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
                   <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
@@ -591,7 +591,7 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 6. SYSTEM ANNOUNCEMENTS (Official League & Tournament Milestones) */}
           {/* ========================================================================= */}
           {slide.type === "SYSTEM_ANNOUNCEMENT" && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               {/* Left Column: Text & CTA */}
               <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-xl flex-1 w-full">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -645,7 +645,7 @@ const CoverflowCard = memo(function CoverflowCard({
               </div>
 
               {/* Right Column: Dynamic Visual Showcase based on subType */}
-              <div className="w-full lg:w-auto shrink-0 flex items-center justify-center">
+              <div className="w-full md:w-auto shrink-0 flex items-center justify-center">
                 {/* 1. LEAGUE START SHOWCASE */}
                 {slide.data?.subType === "LEAGUE_START" && (
                   <div className="w-full sm:w-auto min-w-0 max-w-full sm:min-w-64 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl space-y-2.5 sm:space-y-3">
@@ -809,9 +809,16 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 7. STANDARD NEWS ARTICLE (Admin Created or System Published) */}
           {/* ========================================================================= */}
           {(!slide.type || slide.type === "NEWS") && (
-            <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+            <div className="w-full flex-1 flex flex-row items-center justify-between gap-3 sm:gap-6 md:gap-8 my-auto h-full">
               {/* Left Column: Text & CTA */}
-              <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-2xl flex-1 w-full">
+              <div
+                className={cn(
+                  "space-y-2.5 sm:space-y-3.5 text-left",
+                  slide.featuredImage
+                    ? "flex-1 min-w-0 max-w-xl"
+                    : "w-full max-w-2xl flex-1"
+                )}
+              >
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge
                     variant="yellow"
@@ -832,7 +839,7 @@ const CoverflowCard = memo(function CoverflowCard({
                   {slide.title}
                 </h2>
 
-                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-2 sm:line-clamp-4 whitespace-pre-line max-w-xl font-normal">
+                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4 whitespace-pre-line max-w-xl font-normal">
                   {slide.description}
                 </p>
 
@@ -856,15 +863,17 @@ const CoverflowCard = memo(function CoverflowCard({
                 )}
               </div>
 
-              {/* Right Column: Featured Image with auto ratio according to uploaded image */}
+              {/* Right Column: Featured Image - Large, prominent, properly positioned on the right */}
               {slide.featuredImage && (
-                <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 max-h-32 sm:max-h-52 lg:max-h-68 max-w-full lg:max-w-md w-auto group/img flex items-center justify-center p-1 sm:p-1.5">
-                  <img
-                    src={slide.featuredImage}
-                    alt={slide.title}
-                    className="w-auto h-auto max-h-28 sm:max-h-48 lg:max-h-64 max-w-full rounded-lg sm:rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 shadow-md"
-                    loading="lazy"
-                  />
+                <div className="shrink-0 w-2/5 sm:w-5/12 max-w-xs sm:max-w-sm md:max-w-md h-full flex items-center justify-center p-1 sm:p-2">
+                  <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/60 backdrop-blur-md shadow-2xl p-1.5 sm:p-2.5 flex items-center justify-center w-full max-h-64 sm:max-h-80 md:max-h-96 group/img">
+                    <img
+                      src={slide.featuredImage}
+                      alt={slide.title}
+                      className="w-auto h-auto max-h-60 sm:max-h-72 md:max-h-80 max-w-full rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 drop-shadow-2xl"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               )}
             </div>
