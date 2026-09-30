@@ -190,15 +190,15 @@ body {
 
 @media (max-width: 1024px) {
   .carousel-stage-container {
-    min-height: 410px;
-    height: 430px;
+    min-height: 440px;
+    height: 460px;
   }
 }
 
 @media (max-width: 640px) {
   .carousel-stage-container {
-    min-height: 350px;
-    height: 370px;
+    min-height: 390px;
+    height: 410px;
   }
 }
 
@@ -222,17 +222,17 @@ body {
 
 @media (max-width: 1024px) {
   .carousel-slide-card {
-    width: 82%;
-    min-height: 370px;
-    height: 390px;
+    width: 84%;
+    min-height: 400px;
+    height: 420px;
   }
 }
 
 @media (max-width: 640px) {
   .carousel-slide-card {
-    width: 86%;
-    min-height: 320px;
-    height: 340px;
+    width: 90%;
+    min-height: 360px;
+    height: 380px;
     border-radius: 14px;
   }
 }

@@ -19,11 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
-import {
-  HeroEditorialStagger,
-  StaggerRevealHeadline,
-  StaggerRevealItem,
-} from "@/components/ui/hero-editorial-stagger";
+
 
 export interface CarouselSlide {
   id: string;
@@ -320,13 +316,13 @@ export default function NewsTrendingCarousel({
                   : undefined
               }
             >
-              {/* Dynamic Background Image */}
+              {/* Cinematic Ambient Background Image */}
               <div className="carousel-bg-layer overflow-hidden">
                 <img
-                  src={slide.featuredImage || "/images/carousel-stadium-bg.jpg"}
+                  src="/images/carousel-stadium-bg.jpg"
                   alt=""
                   aria-hidden="true"
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover opacity-60"
                 />
               </div>
               <div className="carousel-overlay-dark" />
@@ -357,104 +353,92 @@ export default function NewsTrendingCarousel({
               )}
 
               {/* SLIDE CARD INNER CONTENT */}
-              <HeroEditorialStagger
-                key={`editorial-${slide.id || index}-${isCenter ? "active" : "inactive"}`}
-                isActive={isCenter}
-                className="relative z-10 p-5 sm:p-7 md:p-8 flex-1 flex flex-col justify-between gap-4 md:px-12"
-              >
+              <div className="relative z-10 p-5 sm:p-7 md:p-8 flex-1 flex flex-col justify-between gap-4 md:px-10 lg:px-12 w-full h-full">
                 <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
                   {/* ========================================================================= */}
                   {/* 1. MATCH OF THE DAY AUTOMATED SYSTEM SHOWDOWN */}
                   {/* ========================================================================= */}
                   {slide.type === "MOTD" && slide.data && (
-                    <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                      <div className="space-y-3 text-left max-w-xl">
-                        <StaggerRevealItem>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="yellow" className="text-xs font-mono font-bold uppercase tracking-wider">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              <span>{slide.data.division} • {slide.data.round}</span>
-                            </Badge>
-                            <span className="text-xs font-mono text-muted-foreground">Match of the Day</span>
-                          </div>
-                        </StaggerRevealItem>
+                    <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
+                      <div className="space-y-3 text-left max-w-xl w-full">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="yellow" className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm">
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            <span>{slide.data.division} • {slide.data.round}</span>
+                          </Badge>
+                          <span className="text-xs font-mono text-muted-foreground font-semibold">Match of the Day</span>
+                        </div>
 
-                        <StaggerRevealHeadline className="carousel-headline">
+                        <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                           {slide.data.homePlayer?.gamerTag} <span className="text-secondary">vs</span> {slide.data.awayPlayer?.gamerTag}
-                        </StaggerRevealHeadline>
+                        </h2>
 
-                        <StaggerRevealItem>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                            {slide.subtitle || slide.description}
-                          </p>
-                        </StaggerRevealItem>
+                        <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-3">
+                          {slide.subtitle || slide.description}
+                        </p>
 
                         {slide.buttonText && slide.buttonUrl && (
-                          <StaggerRevealItem>
-                            <div className="pt-1">
-                              <Link
-                                href={slide.buttonUrl}
-                                tabIndex={isCenter ? 0 : -1}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className={cn(
-                                  buttonVariants({ variant: "yellow", size: "default" }),
-                                  "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
-                                )}
-                              >
-                                <span>{slide.buttonText}</span>
-                                <ArrowRight className="h-4 w-4" />
-                              </Link>
-                            </div>
-                          </StaggerRevealItem>
+                          <div className="pt-1">
+                            <Link
+                              href={slide.buttonUrl}
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "yellow", size: "default" }),
+                                "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>{slide.buttonText}</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </div>
                         )}
                       </div>
 
                       {/* Head-to-Head Card with Auto Ratio Avatars */}
-                      <StaggerRevealItem>
-                        <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/80 backdrop-blur-xl border border-secondary/30 shadow-xl">
-                          <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
-                            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                              <img
-                                src={resolvePlayerAvatar(slide.data.homePlayer)}
-                                alt={slide.data.homePlayer?.gamerTag}
-                                className="h-full w-full object-contain aspect-square"
-                                loading="lazy"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                                {slide.data.homePlayer?.gamerTag}
-                              </span>
-                              <span className="text-xs text-muted-foreground font-mono font-bold">HOME</span>
-                            </div>
+                      <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl shrink-0">
+                        <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
+                          <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                            <img
+                              src={resolvePlayerAvatar(slide.data.homePlayer)}
+                              alt={slide.data.homePlayer?.gamerTag}
+                              className="h-full w-full object-contain aspect-square"
+                              loading="lazy"
+                            />
                           </div>
-
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="px-3 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
-                              VS
-                            </div>
-                            <span className="text-xs font-mono text-muted-foreground font-semibold">24H CYCLE</span>
-                          </div>
-
-                          <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
-                            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                              <img
-                                src={resolvePlayerAvatar(slide.data.awayPlayer)}
-                                alt={slide.data.awayPlayer?.gamerTag}
-                                className="h-full w-full object-contain aspect-square"
-                                loading="lazy"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                                {slide.data.awayPlayer?.gamerTag}
-                              </span>
-                              <span className="text-xs text-muted-foreground font-mono font-bold">AWAY</span>
-                            </div>
+                          <div>
+                            <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                              {slide.data.homePlayer?.gamerTag}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono font-bold">HOME</span>
                           </div>
                         </div>
-                      </StaggerRevealItem>
+
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="px-3 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                            VS
+                          </div>
+                          <span className="text-xs font-mono text-muted-foreground font-semibold">24H CYCLE</span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-2 text-center min-w-20 sm:min-w-24">
+                          <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                            <img
+                              src={resolvePlayerAvatar(slide.data.awayPlayer)}
+                              alt={slide.data.awayPlayer?.gamerTag}
+                              className="h-full w-full object-contain aspect-square"
+                              loading="lazy"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                              {slide.data.awayPlayer?.gamerTag}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono font-bold">AWAY</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -462,70 +446,62 @@ export default function NewsTrendingCarousel({
                   {/* 2. MOTD FINAL RESULT AUTOMATED UPDATE */}
                   {/* ========================================================================= */}
                   {slide.type === "MOTD_RESULT" && slide.data && (
-                    <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                      <div className="space-y-3 text-left max-w-xl">
-                        <StaggerRevealItem>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="yellow" className="text-xs font-mono font-bold uppercase tracking-wider">
-                              <Award className="h-3 w-3 mr-1" />
-                              <span>{slide.data.division} • {slide.data.round} Final</span>
-                            </Badge>
-                          </div>
-                        </StaggerRevealItem>
+                    <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
+                      <div className="space-y-3 text-left max-w-xl w-full">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="yellow" className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm">
+                            <Award className="h-3 w-3 mr-1" />
+                            <span>{slide.data.division} • {slide.data.round} Final</span>
+                          </Badge>
+                        </div>
 
-                        <StaggerRevealHeadline className="carousel-headline">
+                        <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                           Match of the Day Concluded
-                        </StaggerRevealHeadline>
+                        </h2>
 
-                        <StaggerRevealItem>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                            {slide.subtitle || slide.description}
-                          </p>
-                        </StaggerRevealItem>
+                        <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-3">
+                          {slide.subtitle || slide.description}
+                        </p>
 
                         {slide.buttonText && slide.buttonUrl && (
-                          <StaggerRevealItem>
-                            <div className="pt-1">
-                              <Link
-                                href={slide.buttonUrl}
-                                tabIndex={isCenter ? 0 : -1}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className={cn(
-                                  buttonVariants({ variant: "outline", size: "default" }),
-                                  "carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
-                                )}
-                              >
-                                <span>{slide.buttonText}</span>
-                                <ArrowRight className="h-4 w-4" />
-                              </Link>
-                            </div>
-                          </StaggerRevealItem>
+                          <div className="pt-1">
+                            <Link
+                              href={slide.buttonUrl}
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "outline", size: "default" }),
+                                "carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>{slide.buttonText}</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </div>
                         )}
                       </div>
 
                       {/* Scoreboard Card */}
-                      <StaggerRevealItem>
-                        <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shadow-xl font-mono">
-                          <div className="text-right min-w-20 sm:min-w-24">
-                            <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                              {slide.data.homePlayer?.gamerTag}
-                            </span>
-                            <span className="text-xs text-muted-foreground font-bold">HOME</span>
-                          </div>
-
-                          <div className="px-4 py-2 rounded-2xl bg-background/90 border border-border text-lg sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
-                            {slide.data.homeScore ?? 0} : {slide.data.awayScore ?? 0}
-                          </div>
-
-                          <div className="text-left min-w-20 sm:min-w-24">
-                            <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
-                              {slide.data.awayPlayer?.gamerTag}
-                            </span>
-                            <span className="text-xs text-muted-foreground font-bold">AWAY</span>
-                          </div>
+                      <div className="w-full lg:w-auto flex items-center justify-center gap-4 sm:gap-6 p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
+                        <div className="text-right min-w-20 sm:min-w-24">
+                          <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                            {slide.data.homePlayer?.gamerTag}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-bold">HOME</span>
                         </div>
-                      </StaggerRevealItem>
+
+                        <div className="px-4 py-2 rounded-2xl bg-background/90 border border-border text-lg sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
+                          {slide.data.homeScore ?? 0} : {slide.data.awayScore ?? 0}
+                        </div>
+
+                        <div className="text-left min-w-20 sm:min-w-24">
+                          <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-28">
+                            {slide.data.awayPlayer?.gamerTag}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-bold">AWAY</span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -533,88 +509,80 @@ export default function NewsTrendingCarousel({
                   {/* 3. IN-FORM ATHLETES AUTOMATED UPDATE */}
                   {/* ========================================================================= */}
                   {slide.type === "IN_FORM" && slide.data && (
-                    <div className="w-full space-y-3 sm:space-y-4">
+                    <div className="w-full space-y-3 sm:space-y-4 my-auto">
                       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
                         <div className="space-y-1">
-                          <StaggerRevealItem>
-                            <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
-                              <TrendingUp className="h-3.5 w-3.5 text-secondary" />
-                              <span>STANDINGS &amp; WIN-RATE PERFORMANCE LEADERS</span>
-                            </span>
-                          </StaggerRevealItem>
-                          <StaggerRevealHeadline className="carousel-headline">
+                          <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
+                            <TrendingUp className="h-3.5 w-3.5 text-secondary" />
+                            <span>STANDINGS &amp; WIN-RATE PERFORMANCE LEADERS</span>
+                          </span>
+                          <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                             {slide.title}
-                          </StaggerRevealHeadline>
-                          <StaggerRevealItem>
-                            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
-                              {slide.subtitle || slide.description}
-                            </p>
-                          </StaggerRevealItem>
+                          </h2>
+                          <p className="text-xs sm:text-sm text-foreground/80 max-w-xl leading-relaxed">
+                            {slide.subtitle || slide.description}
+                          </p>
                         </div>
 
                         {slide.buttonText && slide.buttonUrl && (
-                          <StaggerRevealItem>
-                            <Link
-                              href={slide.buttonUrl}
-                              tabIndex={isCenter ? 0 : -1}
-                              onClick={(e) => e.stopPropagation()}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              className={cn(
-                                buttonVariants({ variant: "yellow", size: "sm" }),
-                                "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
-                              )}
-                            >
-                              <span>{slide.buttonText}</span>
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
-                          </StaggerRevealItem>
+                          <Link
+                            href={slide.buttonUrl}
+                            tabIndex={isCenter ? 0 : -1}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className={cn(
+                              buttonVariants({ variant: "yellow", size: "sm" }),
+                              "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                            )}
+                          >
+                            <span>{slide.buttonText}</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
                         )}
                       </div>
 
-                      <StaggerRevealItem>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-                          {slide.data.athletes?.map((ath: any) => (
-                            <div
-                              key={ath.gamerTag}
-                              className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-3 sm:p-3.5 space-y-2 shadow-md hover:border-secondary/40 transition-colors"
-                            >
-                              <div className="flex items-center justify-between">
-                                <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10">
-                                  Rank #{ath.rank}
-                                </Badge>
-                                <span className="text-xs font-mono font-bold text-primary">
-                                  {ath.division}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                        {slide.data.athletes?.map((ath: any) => (
+                          <div
+                            key={ath.gamerTag}
+                            className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-3 sm:p-3.5 space-y-2 shadow-md hover:border-secondary/40 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10">
+                                Rank #{ath.rank}
+                              </Badge>
+                              <span className="text-xs font-mono font-bold text-primary">
+                                {ath.division}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-primary/30 overflow-hidden text-xs font-black text-primary shadow-sm">
+                                {ath.avatar ? (
+                                  <img src={ath.avatar} alt={ath.gamerTag} className="h-full w-full object-contain aspect-square" loading="lazy" />
+                                ) : (
+                                  ath.gamerTag.substring(0, 2).toUpperCase()
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-sm font-black text-foreground block truncate">
+                                  {ath.gamerTag}
                                 </span>
-                              </div>
-
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-10 w-10 shrink-0 aspect-square items-center justify-center rounded-xl bg-card border border-primary/30 overflow-hidden text-xs font-black text-primary shadow-sm">
-                                  {ath.avatar ? (
-                                    <img src={ath.avatar} alt={ath.gamerTag} className="h-full w-full object-contain aspect-square" loading="lazy" />
-                                  ) : (
-                                    ath.gamerTag.substring(0, 2).toUpperCase()
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <span className="text-sm font-black text-foreground block truncate">
-                                    {ath.gamerTag}
+                                {ath.realTeam && (
+                                  <span className="text-xs text-muted-foreground truncate block">
+                                    {findTeam(ath.realTeam)?.name || ath.realTeam}
                                   </span>
-                                  {ath.realTeam && (
-                                    <span className="text-xs text-muted-foreground truncate block">
-                                      {findTeam(ath.realTeam)?.name || ath.realTeam}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-xs font-mono">
-                                <span className="text-foreground font-bold">{ath.winRate}% Win Rate</span>
-                                <span className="text-muted-foreground">{ath.won}W / {ath.played}P</span>
+                                )}
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </StaggerRevealItem>
+
+                            <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-xs font-mono">
+                              <span className="text-foreground font-bold">{ath.winRate}% Win Rate</span>
+                              <span className="text-muted-foreground">{ath.won}W / {ath.played}P</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -622,77 +590,69 @@ export default function NewsTrendingCarousel({
                   {/* 4. HALL OF FAME REIGNING CHAMPIONS */}
                   {/* ========================================================================= */}
                   {slide.type === "HALL_OF_FAME" && slide.data && (
-                    <div className="w-full space-y-3 sm:space-y-4">
+                    <div className="w-full space-y-3 sm:space-y-4 my-auto">
                       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-left">
                         <div className="space-y-1">
-                          <StaggerRevealItem>
-                            <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
-                              <Crown className="h-3.5 w-3.5 text-secondary" />
-                              <span>REIGNING CHAMPIONS &amp; HISTORIC TITLES</span>
-                            </span>
-                          </StaggerRevealItem>
-                          <StaggerRevealHeadline className="carousel-headline">
+                          <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
+                            <Crown className="h-3.5 w-3.5 text-secondary" />
+                            <span>REIGNING CHAMPIONS &amp; HISTORIC TITLES</span>
+                          </span>
+                          <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                             {slide.title}
-                          </StaggerRevealHeadline>
-                          <StaggerRevealItem>
-                            <p className="text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
-                              {slide.subtitle || slide.description}
-                            </p>
-                          </StaggerRevealItem>
+                          </h2>
+                          <p className="text-xs sm:text-sm text-foreground/80 max-w-xl leading-relaxed">
+                            {slide.subtitle || slide.description}
+                          </p>
                         </div>
 
                         {slide.buttonText && slide.buttonUrl && (
-                          <StaggerRevealItem>
-                            <Link
-                              href={slide.buttonUrl}
-                              tabIndex={isCenter ? 0 : -1}
-                              onClick={(e) => e.stopPropagation()}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              className={cn(
-                                buttonVariants({ variant: "yellow", size: "sm" }),
-                                "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
-                              )}
-                            >
-                              <span>{slide.buttonText}</span>
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
-                          </StaggerRevealItem>
+                          <Link
+                            href={slide.buttonUrl}
+                            tabIndex={isCenter ? 0 : -1}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className={cn(
+                              buttonVariants({ variant: "yellow", size: "sm" }),
+                              "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                            )}
+                          >
+                            <span>{slide.buttonText}</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
                         )}
                       </div>
 
-                      <StaggerRevealItem>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                          {slide.data.champions?.map((champ: any) => (
-                            <div
-                              key={champ.id}
-                              className="rounded-xl border border-secondary/35 bg-card/75 backdrop-blur-md p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-md hover:border-secondary/60 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 shadow-sm">
-                                  <Crown className="h-5 w-5 text-secondary" />
-                                </div>
-                                <div>
-                                  <span className="text-xs font-mono uppercase text-secondary font-bold block">
-                                    👑 Champion
-                                  </span>
-                                  <span className="text-sm font-black text-foreground truncate block">
-                                    {champ.championName}
-                                  </span>
-                                </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                        {slide.data.champions?.map((champ: any) => (
+                          <div
+                            key={champ.id}
+                            className="rounded-xl border border-secondary/35 bg-card/75 backdrop-blur-md p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-md hover:border-secondary/60 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 shadow-sm">
+                                <Crown className="h-5 w-5 text-secondary" />
                               </div>
-
-                              <div className="text-right">
-                                <Badge variant="yellow" className="text-xs font-mono font-bold">
-                                  {champ.season}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground block truncate max-w-28 mt-0.5">
-                                  {champ.tournamentName}
+                              <div>
+                                <span className="text-xs font-mono uppercase text-secondary font-bold block">
+                                  👑 Champion
+                                </span>
+                                <span className="text-sm font-black text-foreground truncate block">
+                                  {champ.championName}
                                 </span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </StaggerRevealItem>
+
+                            <div className="text-right">
+                              <Badge variant="yellow" className="text-xs font-mono font-bold">
+                                {champ.season}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground block truncate max-w-28 mt-0.5">
+                                {champ.tournamentName}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -700,27 +660,21 @@ export default function NewsTrendingCarousel({
                   {/* 5. SEASON REGISTRATION AUTOMATED BULLETIN */}
                   {/* ========================================================================= */}
                   {slide.type === "REGISTRATION" && (
-                    <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                      <div className="space-y-3 text-left max-w-xl">
-                        <StaggerRevealItem>
-                          <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
-                            <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
-                            <span>OFFICIAL ATHLETE ENROLLMENT</span>
-                          </span>
-                        </StaggerRevealItem>
-                        <StaggerRevealHeadline className="carousel-headline">
+                    <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
+                      <div className="space-y-3 text-left max-w-xl w-full">
+                        <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
+                          <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
+                          <span>OFFICIAL ATHLETE ENROLLMENT</span>
+                        </span>
+                        <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
                           {slide.title}
-                        </StaggerRevealHeadline>
-                        <StaggerRevealItem>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                            {slide.description}
-                          </p>
-                        </StaggerRevealItem>
-                      </div>
+                        </h2>
+                        <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
+                          {slide.description}
+                        </p>
 
-                      {slide.buttonText && slide.buttonUrl && (
-                        <StaggerRevealItem>
-                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                        {slide.buttonText && slide.buttonUrl && (
+                          <div className="flex flex-wrap items-center gap-3 shrink-0 pt-1">
                             <Link
                               href={slide.buttonUrl}
                               tabIndex={isCenter ? 0 : -1}
@@ -735,8 +689,8 @@ export default function NewsTrendingCarousel({
                               <ArrowRight className="h-4 w-4" />
                             </Link>
                           </div>
-                        </StaggerRevealItem>
-                      )}
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -744,86 +698,76 @@ export default function NewsTrendingCarousel({
                   {/* 6. STANDARD NEWS ARTICLE (Admin Created or System Published) */}
                   {/* ========================================================================= */}
                   {(!slide.type || slide.type === "NEWS") && (
-                    <div className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                    <div className="w-full flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 my-auto">
                       {/* Left Column: Text & CTA */}
-                      <div className="space-y-3 text-left max-w-2xl flex-1">
-                        <StaggerRevealItem>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge
-                              variant="yellow"
-                              className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5"
-                            >
-                              <Newspaper className="h-3 w-3 mr-1" />
-                              <span>{slide.category}</span>
-                            </Badge>
-                            {formattedPublishDate && (
-                              <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{formattedPublishDate}</span>
-                              </span>
-                            )}
-                          </div>
-                        </StaggerRevealItem>
+                      <div className="space-y-3.5 text-left max-w-2xl flex-1 w-full">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <Badge
+                            variant="yellow"
+                            className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 shadow-sm"
+                          >
+                            <Newspaper className="h-3 w-3 mr-1" />
+                            <span>{slide.category}</span>
+                          </Badge>
+                          {formattedPublishDate && (
+                            <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5 font-semibold">
+                              <Calendar className="h-3.5 w-3.5 text-secondary" />
+                              <span>{formattedPublishDate}</span>
+                            </span>
+                          )}
+                        </div>
 
-                        <StaggerRevealHeadline className="carousel-headline">
+                        <h2 className="carousel-headline font-black text-foreground tracking-tight leading-tight drop-shadow-sm">
                           {slide.title}
-                        </StaggerRevealHeadline>
+                        </h2>
 
-                        <StaggerRevealItem>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 sm:line-clamp-4 whitespace-pre-line">
-                            {slide.description}
-                          </p>
-                        </StaggerRevealItem>
+                        <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4 whitespace-pre-line max-w-xl font-normal">
+                          {slide.description}
+                        </p>
 
                         {/* Optional CTA Button (Rendered only when configured) */}
                         {slide.buttonText && slide.buttonUrl && (
-                          <StaggerRevealItem>
-                            <div className="pt-2">
-                              <Link
-                                href={slide.buttonUrl}
-                                tabIndex={isCenter ? 0 : -1}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className={cn(
-                                  buttonVariants({ variant: "yellow", size: "default" }),
-                                  "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
-                                )}
-                              >
-                                <span>{slide.buttonText}</span>
-                                <ArrowRight className="h-4 w-4" />
-                              </Link>
-                            </div>
-                          </StaggerRevealItem>
+                          <div className="pt-2">
+                            <Link
+                              href={slide.buttonUrl}
+                              tabIndex={isCenter ? 0 : -1}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              className={cn(
+                                buttonVariants({ variant: "yellow", size: "default" }),
+                                "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                              )}
+                            >
+                              <span>{slide.buttonText}</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </div>
                         )}
                       </div>
 
                       {/* Right Column: Featured Image with auto ratio according to uploaded image */}
                       {slide.featuredImage && (
-                        <StaggerRevealItem>
-                          <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 backdrop-blur-md shadow-2xl shrink-0 max-h-56 sm:max-h-64 lg:max-h-72 max-w-full lg:max-w-md w-auto group/img flex items-center justify-center">
-                            <img
-                              src={slide.featuredImage}
-                              alt={slide.title}
-                              className="w-auto h-auto max-h-56 sm:max-h-64 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500"
-                              loading="lazy"
-                            />
-                          </div>
-                        </StaggerRevealItem>
+                        <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 max-h-52 sm:max-h-60 lg:max-h-72 max-w-full lg:max-w-md w-auto group/img flex items-center justify-center p-1.5">
+                          <img
+                            src={slide.featuredImage}
+                            alt={slide.title}
+                            className="w-auto h-auto max-h-48 sm:max-h-56 lg:max-h-68 max-w-full rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 shadow-md"
+                            loading="lazy"
+                          />
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
 
                 {/* BOTTOM ROW: League Branding & Verified Bulletins */}
-                <StaggerRevealItem>
-                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/70">
-                    <span className="truncate">eFootball Rwanda League • News &amp; Updates</span>
-                    <span className="uppercase tracking-widest hidden sm:inline-block">
-                      Official Broadcast
-                    </span>
-                  </div>
-                </StaggerRevealItem>
-              </HeroEditorialStagger>
+                <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/80 w-full mt-auto">
+                  <span className="truncate">eFootball Rwanda League • News &amp; Updates</span>
+                  <span className="uppercase tracking-widest hidden sm:inline-block font-semibold text-secondary">
+                    Official Broadcast
+                  </span>
+                </div>
+              </div>
 
               {/* Dynamic progress line on bottom of active card */}
               {isCenter && totalSlides > 1 && !isPaused && (
