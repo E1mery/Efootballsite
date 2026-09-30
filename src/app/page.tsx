@@ -5,7 +5,6 @@ import {
   Globe,
   LogIn,
   UserPlus,
-  CheckCircle2,
   Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,31 +102,7 @@ export default async function HomePage({
       {/* Animated eFootball Background */}
       <AnimatedEfootballBackground />
 
-      {/* Post-Logout Notification Banner */}
-      {loggedOutType && (
-        <div className="relative z-20 mx-auto max-w-5xl px-4 pt-6">
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-primary/40 bg-background/90 p-4 backdrop-blur-xl shadow-xl">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                  {loggedOutType === "admin" ? "Admin Office Logged Out" : "Player Account Logged Out"}
-                </h4>
-                <p className="text-xs text-foreground">
-                  You now have open access to all external resources, standings, match results, and community links below.
-                </p>
-              </div>
-            </div>
-            <Link href="/login">
-              <Button variant="outline" size="sm" className="border-primary/40 text-primary text-xs font-bold">
-                Sign In Again
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
+
 
       {/* ========================================================================= */}
       {/* TOP SPORTS RADAR / TRENDING SLIDER */}
