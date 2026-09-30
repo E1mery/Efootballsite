@@ -344,15 +344,24 @@ export default async function DashboardPage() {
   // Fetch all 3 division standings so reserve and active athletes can view all tables
   const [div1StandingsRaw, div2StandingsRaw, div3StandingsRaw, uclTournament, europaTournament, uclSlots, europaSlots] = await Promise.all([
     prisma.standing.findMany({
-      where: { division: "Division 1" },
+      where: {
+        division: "Division 1",
+        player: { division: "Division 1", status: { not: "RESERVED" } },
+      },
       include: { player: true },
     }),
     prisma.standing.findMany({
-      where: { division: "Division 2" },
+      where: {
+        division: "Division 2",
+        player: { division: "Division 2", status: { not: "RESERVED" } },
+      },
       include: { player: true },
     }),
     prisma.standing.findMany({
-      where: { division: "Division 3" },
+      where: {
+        division: "Division 3",
+        player: { division: "Division 3", status: { not: "RESERVED" } },
+      },
       include: { player: true },
     }),
     prisma.tournament.findFirst({ where: { type: "UCL" } }),
@@ -369,10 +378,19 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // Deterministic 5-level tiebreaker sorting function
+  // Deterministic 5-level tiebreaker sorting function with defensive deduplication
   const sortStandingsDeterministically = (list: any[]) => {
+    const seen = new Set<string>();
     return [...(list || [])]
-      .filter((s) => Boolean(s && s.player && s.player.status !== "RESERVED"))
+      .filter((s) => {
+        if (!s || !s.player || s.player.status === "RESERVED") return false;
+        const pId = s.playerId || s.player?.id;
+        if (pId) {
+          if (seen.has(pId)) return false;
+          seen.add(pId);
+        }
+        return true;
+      })
       .sort((a, b) => {
         if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
         if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);

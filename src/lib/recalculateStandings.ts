@@ -70,7 +70,24 @@ export async function recalculateStandings(tournamentId: string, division: strin
 
   const playerTags: Record<string, string> = {};
 
+  // For domestic divisions, clean up standings for players who left this division or are reserved
+  if (!isGroup && division.startsWith("Division")) {
+    const invalidStandings = standings.filter(
+      (s) => !s.player || s.player.division !== division || s.player.status === "RESERVED"
+    );
+    if (invalidStandings.length > 0) {
+      await prisma.standing.deleteMany({
+        where: { id: { in: invalidStandings.map((s) => s.id) } },
+      }).catch(() => {});
+    }
+  }
+
   for (const s of standings) {
+    if (!isGroup && division.startsWith("Division")) {
+      if (!s.player || s.player.division !== division || s.player.status === "RESERVED") {
+        continue;
+      }
+    }
     playerStats[s.playerId] = {
       played: 0,
       won: 0,

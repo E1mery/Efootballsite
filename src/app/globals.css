@@ -190,22 +190,22 @@ body {
 
 @media (max-width: 1024px) {
   .carousel-stage-container {
-    min-height: 460px;
-    height: clamp(460px, 50vh, 500px);
+    min-height: 480px;
+    height: clamp(480px, 52vh, 520px);
   }
 }
 
 @media (max-width: 768px) {
   .carousel-stage-container {
-    min-height: 490px;
-    height: clamp(490px, 62vh, 550px);
+    min-height: 520px;
+    height: clamp(520px, 68vh, 580px);
   }
 }
 
 @media (max-width: 480px) {
   .carousel-stage-container {
-    min-height: 500px;
-    height: clamp(500px, 70vh, 560px);
+    min-height: 550px;
+    height: clamp(550px, 76vh, 610px);
   }
 }
 
@@ -216,8 +216,9 @@ body {
   width: 78%;
   min-height: 440px;
   height: clamp(430px, 45vh, 480px);
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
+  background-color: oklch(var(--background));
   box-shadow: 0 20px 45px -15px oklch(0 0 0 / 0.5), 0 0 0 1px var(--border);
   display: flex;
   flex-direction: column;
@@ -230,27 +231,27 @@ body {
 @media (max-width: 1024px) {
   .carousel-slide-card {
     width: 85%;
-    min-height: 430px;
-    height: clamp(430px, 48vh, 470px);
-    border-radius: 18px;
+    min-height: 480px;
+    height: clamp(480px, 52vh, 520px);
+    border-radius: 22px;
   }
 }
 
 @media (max-width: 768px) {
   .carousel-slide-card {
     width: 90%;
-    min-height: 460px;
-    height: clamp(460px, 60vh, 520px);
-    border-radius: 16px;
+    min-height: 520px;
+    height: clamp(520px, 68vh, 580px);
+    border-radius: 20px;
   }
 }
 
 @media (max-width: 480px) {
   .carousel-slide-card {
-    width: 93%;
-    min-height: 480px;
-    height: clamp(480px, 67vh, 540px);
-    border-radius: 14px;
+    width: 94%;
+    min-height: 540px;
+    height: clamp(540px, 75vh, 600px);
+    border-radius: 20px;
   }
 }
 

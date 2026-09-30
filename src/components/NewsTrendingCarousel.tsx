@@ -171,29 +171,34 @@ const CoverflowCard = memo(function CoverflowCard({
     (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.uclTimeStr))
   );
 
-  const ambientBackgroundImage = isEuropaSlide
+  const isCustomFeaturedImage = Boolean(
+    slide.featuredImage &&
+    slide.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
+    slide.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
+    slide.featuredImage !== "/images/europa-stadium-bg.jpg"
+  );
+
+  const ambientBackgroundImage = isCustomFeaturedImage
+    ? slide.featuredImage
+    : isEuropaSlide
     ? "/images/europa-stadium-bg.jpg"
     : isUclSlide
     ? "/images/ucl-stadium-bg.jpg"
     : "/images/carousel-stadium-bg.jpg";
 
-  const effectiveFeaturedImage =
-    slide.featuredImage &&
-    slide.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
-    slide.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
-    slide.featuredImage !== "/images/europa-stadium-bg.jpg"
-      ? slide.featuredImage
-      : isEuropaSlide
-      ? "/images/europa-stadium-bg.jpg"
-      : isUclSlide
-      ? "/images/ucl-stadium-bg.jpg"
-      : slide.featuredImage || "/images/carousel-stadium-bg.jpg";
+  const effectiveFeaturedImage = isCustomFeaturedImage
+    ? slide.featuredImage
+    : isEuropaSlide
+    ? "/images/europa-stadium-bg.jpg"
+    : isUclSlide
+    ? "/images/ucl-stadium-bg.jpg"
+    : null;
 
   return (
     <motion.div
       key={slide.id || index}
       className={cn(
-        "carousel-slide-card absolute will-change-transform select-none cursor-pointer",
+        "carousel-slide-card absolute will-change-transform select-none cursor-pointer bg-background border border-border shadow-2xl rounded-3xl",
         isCenter && "carousel-card-active"
       )}
       /* eslint-disable shadcn/no-inline-styles -- framer-motion reactive 3D transform bindings */
@@ -213,22 +218,19 @@ const CoverflowCard = memo(function CoverflowCard({
         }
       }}
     >
-      {/* Cinematic Ambient Background Image */}
-      <div className="carousel-bg-layer overflow-hidden">
+      {/* Dynamic Background Image */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
         <img
           src={ambientBackgroundImage}
           alt=""
           aria-hidden="true"
-          className={cn("h-full w-full object-cover", isUclSlide ? "opacity-50" : "opacity-60")}
+          className="h-full w-full object-cover"
         />
       </div>
-      <div className="carousel-overlay-dark" />
-      <div className="carousel-overlay-gradient" />
-      <div className="carousel-overlay-vignette" />
-      <div className="carousel-overlay-glow" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
 
       {/* Top Brand Accent Line */}
-      <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-primary opacity-80 relative z-10" />
+      <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-primary relative z-10" />
 
       {/* Clickable Overlay for Preview / Inactive Cards */}
       {!isCenter && (
@@ -851,43 +853,43 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* 7. STANDARD NEWS ARTICLE (Admin Created or System Published) */}
           {/* ========================================================================= */}
           {(!slide.type || slide.type === "NEWS") && (
-            <div className="w-full flex-1 flex flex-row items-center justify-between gap-3 sm:gap-6 md:gap-8 my-auto h-full">
-              {/* Left Column: Text & CTA */}
+            <div className="w-full flex-1 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 my-auto">
+              {/* Text & CTA */}
               <div
                 className={cn(
-                  "space-y-2.5 sm:space-y-3.5 text-left",
+                  "space-y-2.5 sm:space-y-3 text-left w-full",
                   effectiveFeaturedImage
                     ? "flex-1 min-w-0 max-w-xl"
-                    : "w-full max-w-2xl flex-1"
+                    : "max-w-2xl flex-1"
                 )}
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge
                     variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
+                    className="text-xs font-mono font-bold uppercase tracking-wider"
                   >
                     <Newspaper className="h-3 w-3 mr-1" />
                     <span>{slide.category}</span>
                   </Badge>
                   {formattedPublishDate && (
-                    <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5 font-semibold">
-                      <Calendar className="h-3.5 w-3.5 text-secondary" />
+                    <span className="text-xs font-mono text-muted-foreground flex items-center gap-1 font-semibold">
+                      <Calendar className="h-3 w-3" />
                       <span>{formattedPublishDate}</span>
                     </span>
                   )}
                 </div>
 
-                <h2 className="carousel-headline font-black text-foreground tracking-tight leading-tight drop-shadow-sm">
+                <h2 className="text-xl sm:text-3xl font-black text-foreground uppercase tracking-tight leading-tight drop-shadow-sm">
                   {slide.title}
                 </h2>
 
-                <p className="text-xs sm:text-sm md:text-base text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4 whitespace-pre-line max-w-xl font-normal">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line line-clamp-3 sm:line-clamp-4">
                   {slide.description}
                 </p>
 
                 {/* Optional CTA Button (Rendered only when configured) */}
                 {slide.buttonText && slide.buttonUrl && (
-                  <div className="pt-1 sm:pt-2">
+                  <div className="pt-2">
                     <Link
                       href={slide.buttonUrl}
                       tabIndex={isCenter ? 0 : -1}
@@ -905,17 +907,15 @@ const CoverflowCard = memo(function CoverflowCard({
                 )}
               </div>
 
-              {/* Right Column: Featured Image - Large, prominent, properly positioned on the right */}
+              {/* Featured Image with auto ratio according to uploaded image */}
               {effectiveFeaturedImage && (
-                <div className="shrink-0 w-2/5 sm:w-5/12 max-w-xs sm:max-w-sm md:max-w-md h-full flex items-center justify-center p-1 sm:p-2">
-                  <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/60 backdrop-blur-md shadow-2xl p-1.5 sm:p-2.5 flex items-center justify-center w-full max-h-64 sm:max-h-80 md:max-h-96 group/img">
-                    <img
-                      src={effectiveFeaturedImage}
-                      alt={slide.title}
-                      className="w-auto h-auto max-h-60 sm:max-h-72 md:max-h-80 max-w-full rounded-xl object-contain aspect-auto group-hover/img:scale-105 transition-transform duration-500 drop-shadow-2xl"
-                      loading="lazy"
-                    />
-                  </div>
+                <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl shrink-0 max-h-48 sm:max-h-60 lg:max-h-72 max-w-full lg:max-w-md w-auto flex items-center justify-center mx-auto lg:mx-0">
+                  <img
+                    src={effectiveFeaturedImage}
+                    alt={slide.title}
+                    className="w-auto h-auto max-h-44 sm:max-h-56 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto"
+                    loading="lazy"
+                  />
                 </div>
               )}
             </div>
@@ -923,9 +923,9 @@ const CoverflowCard = memo(function CoverflowCard({
         </div>
 
         {/* BOTTOM ROW: League Branding & Verified Bulletins */}
-        <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-border/40 text-xs font-mono text-muted-foreground/80 w-full mt-auto shrink-0">
+        <div className="flex items-center justify-between pt-3 border-t border-border/40 text-xs font-mono text-muted-foreground w-full mt-auto shrink-0">
           <span className="truncate">
-            eFootball Rwanda League • Official
+            eFootball Rwanda League • Official News Bulletin
           </span>
           <span className="uppercase tracking-widest hidden sm:inline-block font-semibold text-secondary">
             Live Bulletin

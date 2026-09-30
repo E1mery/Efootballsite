@@ -14,6 +14,7 @@ export interface DuplicateReport {
   deletedUsers: string[];
   deletedPlayers: string[];
   standardizedPhones: number;
+  deletedDuplicateStandings: number;
 }
 
 export async function verifyAndCleanDuplicates(dryRun = false): Promise<DuplicateReport> {
@@ -25,6 +26,7 @@ export async function verifyAndCleanDuplicates(dryRun = false): Promise<Duplicat
     deletedUsers: [],
     deletedPlayers: [],
     standardizedPhones: 0,
+    deletedDuplicateStandings: 0,
   };
 
   // 1. Fetch all users and players with full activity relations
@@ -200,6 +202,50 @@ export async function verifyAndCleanDuplicates(dryRun = false): Promise<Duplicat
         });
       }
       report.standardizedPhones++;
+    }
+  }
+
+  // 5. Check and clean duplicate or mismatched Division Standings
+  const allDivisionStandings = await prisma.standing.findMany({
+    where: { tournament: { type: "DIVISION" } },
+    include: { player: true, tournament: true },
+  });
+
+  const playerDivisionStandings = new Map<string, typeof allDivisionStandings>();
+  for (const s of allDivisionStandings) {
+    // If standing is mismatched with player's registered division or wrong tournament name
+    const isMismatchedPlayer = s.player && s.player.division !== s.division;
+    const isWrongTournament = s.tournament && !s.tournament.name.toLowerCase().includes(s.division.toLowerCase());
+    const isReserved = s.player && s.player.status === "RESERVED";
+
+    if (isMismatchedPlayer || isWrongTournament || isReserved) {
+      console.log(`[Deduplicate] Removing invalid standing: ID ${s.id} (@${s.player?.gamerTag} in ${s.division} on tourn ${s.tournament?.name})`);
+      if (!dryRun) {
+        await prisma.standing.delete({ where: { id: s.id } }).catch(() => {});
+      }
+      report.deletedDuplicateStandings++;
+      continue;
+    }
+
+    const key = `${s.playerId}_${s.division}`;
+    if (!playerDivisionStandings.has(key)) {
+      playerDivisionStandings.set(key, []);
+    }
+    playerDivisionStandings.get(key)!.push(s);
+  }
+
+  // Remove duplicate standings for the same player in the same division
+  for (const [key, sList] of playerDivisionStandings.entries()) {
+    if (sList.length > 1) {
+      console.log(`[Deduplicate] Found ${sList.length} duplicate standings for ${key}`);
+      // Keep first, delete rest
+      const duplicates = sList.slice(1);
+      for (const dup of duplicates) {
+        if (!dryRun) {
+          await prisma.standing.delete({ where: { id: dup.id } }).catch(() => {});
+        }
+        report.deletedDuplicateStandings++;
+      }
     }
   }
 

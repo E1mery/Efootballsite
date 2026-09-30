@@ -56,10 +56,19 @@ export default function StandingsTable({
   currentUserId,
   userAlreadyViewed = false,
 }: StandingsTableProps) {
-  // Deterministic 5-level tiebreaker sorting: Points -> GD -> GF -> Won -> GamerTag
+  // Deterministic 5-level tiebreaker sorting: Points -> GD -> GF -> Won -> GamerTag with deduplication
   const sortedStandings = useMemo(() => {
+    const seen = new Set<string>();
     return [...(standings || [])]
-      .filter((row) => Boolean(row && row.player && (row.player as any).status !== "RESERVED"))
+      .filter((row) => {
+        if (!row || !row.player || (row.player as any).status === "RESERVED") return false;
+        const pId = row.player.id || (row as any).playerId;
+        if (pId) {
+          if (seen.has(pId)) return false;
+          seen.add(pId);
+        }
+        return true;
+      })
       .sort((a, b) => {
         // 1. Points (descending)
         if ((b.points ?? 0) !== (a.points ?? 0)) {

@@ -140,36 +140,77 @@ export async function POST(req: Request) {
       if (division === "RESERVE") {
         updateData.status = "RESERVED";
         await prisma.standing.deleteMany({ where: { playerId } }).catch(() => {});
-        const ongoingTournament = await prisma.tournament.findFirst({ where: { status: "ONGOING" } });
-        if (ongoingTournament) {
-          await recalculateStandings(ongoingTournament.id, player.division).catch(() => {});
+        const oldTournament = await prisma.tournament.findFirst({
+          where: {
+            OR: [
+              { name: { contains: player.division, mode: "insensitive" } },
+              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+            ],
+            type: "DIVISION",
+          },
+        });
+        if (oldTournament) {
+          await recalculateStandings(oldTournament.id, player.division).catch(() => {});
         }
       } else {
         if (player.status === "RESERVED") {
           updateData.status = "ACTIVE";
         }
-        const ongoingTournament = await prisma.tournament.findFirst({ where: { status: "ONGOING" } });
-        if (ongoingTournament) {
+        
+        // Find old division tournament
+        const oldTournament = await prisma.tournament.findFirst({
+          where: {
+            OR: [
+              { name: { contains: player.division, mode: "insensitive" } },
+              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+            ],
+            type: "DIVISION",
+          },
+        });
+
+        // Find target division tournament
+        const targetTournament = await prisma.tournament.findFirst({
+          where: {
+            OR: [
+              { name: { contains: division, mode: "insensitive" } },
+              { slug: { contains: division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+            ],
+            type: "DIVISION",
+          },
+        });
+
+        // Clean up any standing in any other division tournament to prevent cross-division duplication
+        await prisma.standing.deleteMany({
+          where: {
+            playerId: player.id,
+            tournament: { type: "DIVISION" },
+            ...(targetTournament ? { tournamentId: { not: targetTournament.id } } : {}),
+          },
+        }).catch(() => {});
+
+        if (targetTournament) {
           const existingStanding = await prisma.standing.findFirst({
-            where: { playerId, tournamentId: ongoingTournament.id },
+            where: { playerId: player.id, tournamentId: targetTournament.id },
           });
           if (existingStanding) {
             await prisma.standing.update({
               where: { id: existingStanding.id },
               data: { division: division },
             });
-            await recalculateStandings(ongoingTournament.id, player.division).catch(() => {});
-            await recalculateStandings(ongoingTournament.id, division).catch(() => {});
           } else {
             await prisma.standing.create({
               data: {
-                tournamentId: ongoingTournament.id,
+                tournamentId: targetTournament.id,
                 division: division,
                 playerId: player.id,
               },
             }).catch(() => {});
-            await recalculateStandings(ongoingTournament.id, division).catch(() => {});
           }
+          await recalculateStandings(targetTournament.id, division).catch(() => {});
+        }
+
+        if (oldTournament && oldTournament.id !== targetTournament?.id) {
+          await recalculateStandings(oldTournament.id, player.division).catch(() => {});
         }
       }
     } else if (avatar !== undefined) {

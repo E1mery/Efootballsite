@@ -26,7 +26,13 @@ export default async function StandingsPage(props: {
     try {
       const [st, cfg, upd] = await Promise.all([
         prisma.standing.findMany({
-          where: { division: currentDivision },
+          where: {
+            division: currentDivision,
+            player: {
+              division: currentDivision,
+              status: { not: "RESERVED" },
+            },
+          },
           include: {
             player: true,
           },
@@ -37,9 +43,18 @@ export default async function StandingsPage(props: {
           orderBy: { updatedAt: "desc" },
         }),
       ]);
-      // Defensively ensure only active (non-reserved) records with populated player relations are included and sorted deterministically
+      // Defensively ensure only active (non-reserved) records with matching division are included and deduplicated by player
+      const seenPlayers = new Set<string>();
       standings = (st || [])
-        .filter((s: any) => Boolean(s && s.player && s.player.status !== "RESERVED"))
+        .filter((s: any) => {
+          if (!s || !s.player || s.player.status === "RESERVED" || s.player.division !== currentDivision) return false;
+          const pId = s.playerId || s.player?.id;
+          if (pId) {
+            if (seenPlayers.has(pId)) return false;
+            seenPlayers.add(pId);
+          }
+          return true;
+        })
         .sort((a: any, b: any) => {
           if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
           if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);
