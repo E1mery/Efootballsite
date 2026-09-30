@@ -261,6 +261,7 @@ model HallOfFame {
   season           String   // e.g. "Season 2026", "Season 2025"
   championName     String   // Gamer Tag
   championRealName String?  // Optional real name
+  playerImage      String?  // Picture of that player who won the title
   runnerUp         String?  // Optional runner up
   prizeWon         String?  // e.g. "3,000,000 RWF + Trophy"
   trophyType       String   @default("GOLD") // "GOLD", "UCL", "EUROPA", "SILVER"

@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       season,
       championName,
       championRealName,
+      playerImage,
       trophyType = "GOLD",
     } = body;
 
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
         season: season.trim(),
         championName: championName.trim(),
         championRealName: championRealName?.trim() || null,
+        playerImage: playerImage?.trim() || null,
         trophyType: trophyType || "GOLD",
       },
     });

@@ -208,6 +208,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
 
     // Auto-update: Hall of Fame Champions (if records exist in DB)
     if (hallOfFameEntries.length > 0) {
+      const topChamp = hallOfFameEntries[0];
       slides.push({
         id: "hall-of-fame-slide",
         type: "HALL_OF_FAME",
@@ -217,7 +218,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         title: "Title Winners • Last Season Champions",
         subtitle: "Athletes who conquered Rwanda's official eFootball championships",
         description: "Official title winners from previous seasons immortalized in the league registry.",
-        featuredImage: "/images/carousel-stadium-bg.jpg",
+        featuredImage: (topChamp as any).playerImage || "/images/carousel-stadium-bg.jpg",
         buttonText: "Explore Hall of Fame",
         buttonUrl: "/#hall-of-fame",
         data: { champions: hallOfFameEntries },

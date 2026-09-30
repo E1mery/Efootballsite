@@ -15,6 +15,7 @@ import { getCarouselSlides } from "@/lib/carouselData";
 import NewsTrendingCarousel from "@/components/NewsTrendingCarousel";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import MatchCard from "@/components/MatchCard";
+import HallOfFameCarousel from "@/components/HallOfFameCarousel";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
@@ -219,7 +220,7 @@ export default async function HomePage({
       {/* ========================================================================= */}
       {/* HALL OF FAME: IMMORTALIZED CHAMPIONS */}
       {/* ========================================================================= */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+      <section id="hall-of-fame" className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-secondary/20 pb-4">
           <div>
             <div className="flex items-center gap-2.5">
@@ -240,67 +241,7 @@ export default async function HomePage({
           </Badge>
         </div>
 
-        {hallOfFame.length === 0 ? (
-          <div className="rounded-3xl border border-border/80 bg-background/60 p-10 text-center backdrop-blur-md">
-            <Crown className="h-10 w-10 text-secondary/40 mx-auto mb-2.5" />
-            <h4 className="text-sm font-bold text-white uppercase">Inaugural Season in Progress</h4>
-            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-              Championship winners across Division 1, Division 2, Division 3, UCL, and Europa League will be immortalized here upon tournament conclusion.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {hallOfFame.map((entry) => (
-              <div
-                key={entry.id}
-                className="relative group overflow-hidden rounded-3xl border border-secondary/20 bg-gradient-to-b from-card/90 to-background/90 p-6 space-y-4 shadow-xl hover:border-secondary/40 transition-all duration-300 backdrop-blur-md flex flex-col justify-between"
-              >
-                {/* Gold Glow decoration */}
-                <div className="absolute -top-10 -right-10 w-28 h-28 bg-secondary/10 rounded-full blur-2xl pointer-events-none group-hover:bg-secondary/20 transition-all" />
-
-                <div className="space-y-3 relative z-10">
-                  <div className="flex items-start justify-between gap-2">
-                    <Badge
-                      variant="yellow"
-                      className="text-xs uppercase font-bold tracking-wider"
-                    >
-                      {entry.season}
-                    </Badge>
-                    <div className="h-8 w-8 rounded-xl bg-secondary/10 border border-secondary/30 flex items-center justify-center shrink-0">
-                      <Trophy className="h-4 w-4 text-secondary" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-xs font-mono text-muted-foreground block uppercase tracking-wider">
-                      Tournament Title
-                    </span>
-                    <h3 className="text-sm font-bold text-foreground line-clamp-1">{entry.tournamentName}</h3>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-secondary/20 border border-secondary/20 space-y-1">
-                    <span className="text-xs font-mono uppercase text-secondary font-extrabold tracking-wider block">
-                      👑 Champion
-                    </span>
-                    <div className="text-xl font-black text-white tracking-wide">
-                      {entry.championName}
-                    </div>
-                    {entry.championRealName && (
-                      <div className="text-xs text-foreground font-medium">
-                        {entry.championRealName}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-border/80 flex items-center justify-between text-xs text-muted-foreground font-mono">
-                  <span>Honored</span>
-                  <span>{new Date(entry.createdAt).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <HallOfFameCarousel entries={hallOfFame} />
       </section>
 
 

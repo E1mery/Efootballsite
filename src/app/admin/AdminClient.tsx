@@ -50,8 +50,10 @@ import {
   Star,
   KeyRound,
   Newspaper,
+  Image as ImageIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
@@ -348,6 +350,9 @@ export default function AdminClient({
   const [hofSeason, setHofSeason] = useState("Season 2026");
   const [hofChampion, setHofChampion] = useState("");
   const [hofRealName, setHofRealName] = useState("");
+  const [hofPlayerImage, setHofPlayerImage] = useState("");
+  const [isUploadingHofImage, setIsUploadingHofImage] = useState(false);
+  const [hofImageError, setHofImageError] = useState<string | null>(null);
   const [hofTrophyType, setHofTrophyType] = useState("GOLD");
   const [submittingHof, setSubmittingHof] = useState(false);
 
@@ -585,6 +590,37 @@ export default function AdminClient({
     }
   };
 
+  // Handler: Upload Picture for Hall of Fame Champion
+  const handleHofImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingHofImage(true);
+    setHofImageError(null);
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      uploadData.append("folder", "hall-of-fame");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to upload champion photo.");
+      }
+
+      setHofPlayerImage(data.url);
+    } catch (err: any) {
+      setHofImageError(err.message || "Failed to upload champion photo.");
+    } finally {
+      setIsUploadingHofImage(false);
+    }
+  };
+
   // Handler: Add to Hall of Fame
   const handleAddHallOfFame = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -598,6 +634,7 @@ export default function AdminClient({
           season: hofSeason,
           championName: hofChampion,
           championRealName: hofRealName,
+          playerImage: hofPlayerImage || null,
           trophyType: hofTrophyType,
         }),
       });
@@ -611,6 +648,8 @@ export default function AdminClient({
       }
       setHofChampion("");
       setHofRealName("");
+      setHofPlayerImage("");
+      setHofImageError(null);
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -5884,10 +5923,82 @@ export default function AdminClient({
                 </div>
               </div>
 
+              {/* Picture Upload Space with Auto Ratio */}
+              <div className="space-y-3 pt-3 border-t border-border/80">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4" />
+                    <span>Champion Player Picture (Auto Ratio)</span>
+                  </label>
+                  {hofPlayerImage && (
+                    <button
+                      type="button"
+                      onClick={() => setHofPlayerImage("")}
+                      className="text-xs text-destructive hover:underline font-semibold"
+                    >
+                      Remove Picture
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="hofPlayerImageInput"
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      onChange={handleHofImageUpload}
+                      className="sr-only"
+                      disabled={isUploadingHofImage}
+                    />
+                    <label
+                      htmlFor="hofPlayerImageInput"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "cursor-pointer text-xs font-bold border-secondary/40 hover:bg-secondary/10 gap-2 rounded-xl text-white inline-flex items-center",
+                        isUploadingHofImage && "opacity-50 pointer-events-none"
+                      )}
+                    >
+                      <Upload className="h-3.5 w-3.5 text-secondary" />
+                      <span>{isUploadingHofImage ? "Uploading..." : hofPlayerImage ? "Change Player Picture" : "Upload Player Picture"}</span>
+                    </label>
+                  </div>
+
+                  <div className="flex-1 w-full">
+                    <Input
+                      placeholder="Or paste player photo image URL (e.g. https://...)"
+                      value={hofPlayerImage}
+                      onChange={(e) => setHofPlayerImage(e.target.value)}
+                      className="bg-card border-border text-xs"
+                    />
+                  </div>
+                </div>
+
+                {hofImageError && (
+                  <p className="text-xs text-destructive font-medium">{hofImageError}</p>
+                )}
+
+                {/* Auto Ratio Picture Preview */}
+                {hofPlayerImage && (
+                  <div className="mt-2 p-3 rounded-2xl border border-secondary/30 bg-card/60 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <span className="text-xs font-mono text-muted-foreground uppercase mb-2">
+                      Player Picture Preview (Auto Aspect Ratio)
+                    </span>
+                    <div className="relative max-h-60 max-w-md w-auto rounded-xl overflow-hidden border border-secondary/40 shadow-xl flex items-center justify-center bg-black/40 p-1">
+                      <img
+                        src={hofPlayerImage}
+                        alt="Champion Preview"
+                        className="w-auto h-auto max-h-56 max-w-full rounded-lg object-contain aspect-auto shadow-md"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end pt-2">
                 <Button
                   type="submit"
-                  disabled={submittingHof || !hofChampion.trim()}
+                  disabled={submittingHof || !hofChampion.trim() || isUploadingHofImage}
                   className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs px-6 py-2.5 shadow-lg"
                 >
                   <Crown className="h-4 w-4 mr-2" />
@@ -5929,6 +6040,17 @@ export default function AdminClient({
                           <Crown className="h-5 w-5 text-secondary" />
                         </div>
                       </div>
+
+                      {entry.playerImage && (
+                        <div className="relative w-full max-h-52 overflow-hidden rounded-xl border border-secondary/25 bg-black/40 flex items-center justify-center p-1.5 shadow-md">
+                          <img
+                            src={entry.playerImage}
+                            alt={entry.championName}
+                            className="w-auto h-auto max-h-48 max-w-full rounded-lg object-contain aspect-auto"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
 
                       <div className="p-3 rounded-xl bg-card/90 border border-secondary/10 space-y-1">
                         <span className="text-xs font-mono uppercase text-secondary font-bold block">
