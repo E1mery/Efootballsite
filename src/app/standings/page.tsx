@@ -138,14 +138,14 @@ export default async function StandingsPage(props: {
           {bothLeaguesUnlocked && (
             <>
               <a
-                href="/continental"
+                href="/continental?competition=UCL"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-primary hover:text-white hover:bg-primary/40 border border-primary/30"
               >
                 <Trophy className="h-4 w-4 text-primary" />
                 <span>eFootball UCL Groups</span>
               </a>
               <a
-                href="/continental"
+                href="/continental?competition=EUROPA"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-secondary hover:text-white hover:bg-secondary/40 border border-secondary/30"
               >
                 <Flame className="h-4 w-4 text-secondary" />

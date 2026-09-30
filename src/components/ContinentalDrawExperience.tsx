@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import { drawAudio } from "@/lib/drawAudio";
 
@@ -362,6 +363,36 @@ export default function ContinentalDrawExperience({
 
   return (
     <div className={`relative rounded-3xl border ${themeColors.border} bg-gradient-to-b ${themeColors.bgGrad} p-4 sm:p-8 backdrop-blur-2xl shadow-2xl text-white space-y-6 overflow-hidden`}>
+      {/* Official UCL Stadium Graphic Background */}
+      {isUcl && (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/ucl-stadium-bg.jpg"
+            alt="eFootball UCL Stadium"
+            fill
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover object-center opacity-25 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+          <div className="absolute inset-0 bg-hero-glow opacity-50" />
+        </div>
+      )}
+
+      {/* Official Europa League Stadium Graphic Background */}
+      {!isUcl && (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/europa-stadium-bg.jpg"
+            alt="eFootball Europa League Stadium"
+            fill
+            sizes="(max-width: 1200px) 100vw, 1200px"
+            className="object-cover object-center opacity-30 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+          <div className="absolute inset-0 bg-hero-glow opacity-60" />
+        </div>
+      )}
+
       {/* Decorative Background Glows */}
       <div className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-secondary/15 blur-3xl pointer-events-none" />

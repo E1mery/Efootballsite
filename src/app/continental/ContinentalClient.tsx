@@ -20,6 +20,7 @@ import {
   Clock,
   Play,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
@@ -38,6 +39,7 @@ export default function ContinentalClient({
   isDivisionSeasonFinished = false,
   currentPlayer,
   isAdmin = false,
+  initialCompetition = "UCL",
 }: {
   leagueConfig: any;
   uclQualified: any[];
@@ -51,6 +53,7 @@ export default function ContinentalClient({
   isDivisionSeasonFinished?: boolean;
   currentPlayer?: any;
   isAdmin?: boolean;
+  initialCompetition?: "UCL" | "EUROPA";
 }) {
   const router = useRouter();
   const [leagueConfig, setLeagueConfig] = useState(initialLeagueConfig);
@@ -80,7 +83,7 @@ export default function ContinentalClient({
       clearInterval(interval);
     };
   }, []);
-  const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">("UCL");
+  const [selectedCompetition, setSelectedCompetition] = useState<"UCL" | "EUROPA">(initialCompetition);
 
   const isUclDrawDone = Boolean(leagueConfig.uclDrawCompleted || uclSlots.length >= 16);
   const isEuropaDrawDone = Boolean(leagueConfig.europaDrawCompleted || europaSlots.length >= 16);
@@ -238,8 +241,41 @@ export default function ContinentalClient({
   const groups = ["Group A", "Group B", "Group C", "Group D"];
 
   return (
-    <div className="space-y-8">
-      {/* Navigation Switcher: UCL vs EUROPA */}
+    <div className="relative space-y-8 min-h-screen">
+      {/* Official UCL Stadium Graphic Background */}
+      {selectedCompetition === "UCL" && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/ucl-stadium-bg.jpg"
+            alt="eFootball UCL Stadium"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center opacity-30 scale-105 transition-opacity duration-700 fixed inset-0"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background/95" />
+          <div className="absolute inset-0 bg-hero-glow opacity-50" />
+        </div>
+      )}
+
+      {/* Official Europa League Stadium Graphic Background for all Europa tabs */}
+      {selectedCompetition === "EUROPA" && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/europa-stadium-bg.jpg"
+            alt="eFootball Europa League Stadium"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center opacity-35 scale-105 transition-opacity duration-700 fixed inset-0"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95" />
+          <div className="absolute inset-0 bg-hero-glow opacity-60" />
+        </div>
+      )}
+
+      <div className="relative z-10 space-y-8">
+        {/* Navigation Switcher: UCL vs EUROPA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth w-full sm:w-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
@@ -1210,6 +1246,7 @@ export default function ContinentalClient({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

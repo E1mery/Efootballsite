@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import MatchCard from "@/components/MatchCard";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
 import { Badge } from "@/components/ui/badge";
@@ -172,9 +173,42 @@ export default function FixturesClient({
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
-      {/* Match of the Day Showcase */}
-      {matchOfTheDay && (
+    <div className="relative min-h-screen">
+      {/* Official UCL Stadium Graphic Background */}
+      {divisionFilter === "UCL" && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/ucl-stadium-bg.jpg"
+            alt="eFootball UCL Stadium"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center opacity-30 scale-105 transition-opacity duration-700 fixed inset-0"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background/95" />
+          <div className="absolute inset-0 bg-hero-glow opacity-50" />
+        </div>
+      )}
+
+      {/* Official Europa League Stadium Graphic Background */}
+      {divisionFilter === "EUROPA" && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <Image
+            src="/images/europa-stadium-bg.jpg"
+            alt="eFootball Europa League Stadium"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center opacity-35 scale-105 transition-opacity duration-700 fixed inset-0"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95" />
+          <div className="absolute inset-0 bg-hero-glow opacity-60" />
+        </div>
+      )}
+
+      <div className="relative z-10 mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
+        {/* Match of the Day Showcase */}
+        {matchOfTheDay && (
         <section className="space-y-2">
           <MatchOfTheDayCard match={matchOfTheDay} />
         </section>
@@ -417,6 +451,7 @@ export default function FixturesClient({
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

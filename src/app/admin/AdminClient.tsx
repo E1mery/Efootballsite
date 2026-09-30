@@ -3780,8 +3780,19 @@ export default function AdminClient({
 
           {/* UCL Tables */}
           {tableSubTab === "UCL" && (
-            <div className="space-y-6">
-              {!leagueConfig.uclStarted ? (
+            <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-background/80 p-4 sm:p-6 space-y-6">
+              {/* Official UCL Stadium Graphic Background */}
+              <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                <img
+                  src="/images/ucl-stadium-bg.jpg"
+                  alt="eFootball UCL Stadium"
+                  className="w-full h-full object-cover object-center opacity-15 scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+              </div>
+
+              <div className="relative z-10 space-y-6">
+                {!leagueConfig.uclStarted ? (
                 <div className="rounded-3xl border border-border bg-background/90 p-8 text-center space-y-4">
                   <div className="inline-flex p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary">
                     <Lock className="h-8 w-8" />
@@ -3901,6 +3912,7 @@ export default function AdminClient({
                   </div>
                 </div>
               )}
+              </div>
             </div>
           )}
 
@@ -4459,8 +4471,19 @@ export default function AdminClient({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* UCL Card */}
-              <div className="rounded-2xl border border-primary/30 bg-card/60 p-6 space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-card/60 p-6 space-y-4">
+                {/* Official UCL Stadium Graphic Background */}
+                <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                  <img
+                    src="/images/ucl-stadium-bg.jpg"
+                    alt="eFootball UCL Stadium"
+                    className="w-full h-full object-cover object-center opacity-20 scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-card/85 via-card/75 to-card/95" />
+                </div>
+
+                <div className="relative z-10 space-y-4">
+                  <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-primary" />
                     <span className="font-black uppercase text-white">eFootball UCL</span>
@@ -4620,6 +4643,7 @@ export default function AdminClient({
                       4. Generate Final & Poll
                     </Button>
                   </div>
+                </div>
                 </div>
               </div>
 

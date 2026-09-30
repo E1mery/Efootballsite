@@ -7,8 +7,18 @@ import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
-export default async function ContinentalCupsPage() {
+export default async function ContinentalCupsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ competition?: string; tab?: string }>;
+}) {
   await redirectAdminToPortal();
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const initialCompetition: "UCL" | "EUROPA" =
+    resolvedParams?.competition?.toUpperCase() === "EUROPA" ||
+    resolvedParams?.tab?.toUpperCase() === "EUROPA"
+      ? "EUROPA"
+      : "UCL";
   const cookieStore = await cookies();
   const sessionUserId = cookieStore.get("efrl_session")?.value;
 
@@ -220,6 +230,7 @@ export default async function ContinentalCupsPage() {
         isDivisionSeasonFinished={isDivisionSeasonFinished}
         currentPlayer={currentPlayer}
         isAdmin={isAdmin}
+        initialCompetition={initialCompetition}
       />
     </div>
   );

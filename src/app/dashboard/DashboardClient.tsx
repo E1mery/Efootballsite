@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -78,39 +79,65 @@ function ContinentalGroupStandingsView({
 
   if (!isStarted) {
     return (
-      <div className="rounded-3xl border border-border bg-background/70 p-10 text-center space-y-4">
-        <div className={`inline-flex p-4 rounded-2xl ${isUcl ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"}`}>
-          <Lock className="h-8 w-8" />
-        </div>
-        <div className="space-y-1">
-          <Badge variant="destructive" className="font-mono text-xs uppercase">
-            COMPETITION LOCKED PENDING COMMISSIONER LAUNCH
-          </Badge>
-          <h4 className="text-lg font-black uppercase text-white">
-            {compTitle} Draws & Standings Locked
-          </h4>
-        </div>
-        <p className="text-xs text-muted-foreground max-w-md mx-auto">
-          The official {compTitle} draws and group stages will be unlocked by the League Commissioner after the domestic division regular season fixtures conclude.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <Button
-            type="button"
-            disabled
-            className="font-black text-xs gap-2 py-2 px-4 rounded-xl opacity-50 cursor-not-allowed bg-card border border-border text-muted-foreground"
-          >
-            <Lock className="h-3.5 w-3.5" />
-            <span>Draw Locked (Awaiting Launch)</span>
-          </Button>
-          <ButtonRollingText
-            href="/continental"
-            variant="outline"
-            text="View Continental Qualification Slots"
-            stagger
-            icon={<ChevronRight className="h-3.5 w-3.5" />}
-            iconPosition="right"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
-          />
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-background/70 p-10 text-center space-y-4">
+        {isUcl ? (
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+            <Image
+              src="/images/ucl-stadium-bg.jpg"
+              alt="eFootball UCL Stadium"
+              fill
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              className="object-cover object-center opacity-20 scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+          </div>
+        ) : (
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+            <Image
+              src="/images/europa-stadium-bg.jpg"
+              alt="eFootball Europa League Stadium"
+              fill
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              className="object-cover object-center opacity-25 scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+            <div className="absolute inset-0 bg-hero-glow opacity-50" />
+          </div>
+        )}
+        <div className="relative z-10 space-y-4">
+          <div className={`inline-flex p-4 rounded-2xl ${isUcl ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"}`}>
+            <Lock className="h-8 w-8" />
+          </div>
+          <div className="space-y-1">
+            <Badge variant="destructive" className="font-mono text-xs uppercase">
+              COMPETITION LOCKED PENDING COMMISSIONER LAUNCH
+            </Badge>
+            <h4 className="text-lg font-black uppercase text-white">
+              {compTitle} Draws & Standings Locked
+            </h4>
+          </div>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            The official {compTitle} draws and group stages will be unlocked by the League Commissioner after the domestic division regular season fixtures conclude.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button
+              type="button"
+              disabled
+              className="font-black text-xs gap-2 py-2 px-4 rounded-xl opacity-50 cursor-not-allowed bg-card border border-border text-muted-foreground"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span>Draw Locked (Awaiting Launch)</span>
+            </Button>
+            <ButtonRollingText
+              href="/continental"
+              variant="outline"
+              text="View Continental Qualification Slots"
+              stagger
+              icon={<ChevronRight className="h-3.5 w-3.5" />}
+              iconPosition="right"
+              className="px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
+            />
+          </div>
         </div>
       </div>
     );
@@ -118,13 +145,38 @@ function ContinentalGroupStandingsView({
 
   if (!hasAnyData) {
     return (
-      <div className="rounded-3xl border border-border bg-background/70 p-10 text-center space-y-4">
-        <div className={`inline-flex p-4 rounded-2xl ${isUcl ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"}`}>
-          {isUcl ? <Star className="h-8 w-8" /> : <Flame className="h-8 w-8" />}
-        </div>
-        <h4 className="text-lg font-black uppercase text-white">
-          {compTitle} Group Stage Standings
-        </h4>
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-background/70 p-10 text-center space-y-4">
+        {isUcl ? (
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+            <Image
+              src="/images/ucl-stadium-bg.jpg"
+              alt="eFootball UCL Stadium"
+              fill
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              className="object-cover object-center opacity-20 scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+          </div>
+        ) : (
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+            <Image
+              src="/images/europa-stadium-bg.jpg"
+              alt="eFootball Europa League Stadium"
+              fill
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              className="object-cover object-center opacity-25 scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+            <div className="absolute inset-0 bg-hero-glow opacity-50" />
+          </div>
+        )}
+        <div className="relative z-10 space-y-4">
+          <div className={`inline-flex p-4 rounded-2xl ${isUcl ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"}`}>
+            {isUcl ? <Star className="h-8 w-8" /> : <Flame className="h-8 w-8" />}
+          </div>
+          <h4 className="text-lg font-black uppercase text-white">
+            {compTitle} Group Stage Standings
+          </h4>
         <p className="text-xs text-muted-foreground max-w-md mx-auto">
           Group draws have not been finalized yet. Once qualified athletes are drawn into Groups A, B, C, and D, the live standings and qualification ladders will update automatically here.
         </p>
@@ -151,14 +203,28 @@ function ContinentalGroupStandingsView({
             className="px-4 py-2 rounded-xl text-xs font-bold text-primary hover:text-white bg-card border border-border transition-all"
           />
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Informative Header Banner */}
-      <div className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+    <div className="relative overflow-hidden rounded-3xl p-1 space-y-6">
+      {/* Official UCL Stadium Graphic Background */}
+      {isUcl && (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-3xl">
+          <img
+            src="/images/ucl-stadium-bg.jpg"
+            alt="eFootball UCL Stadium"
+            className="w-full h-full object-cover object-center opacity-20 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95 rounded-3xl" />
+        </div>
+      )}
+
+      <div className="relative z-10 space-y-6">
+        {/* Informative Header Banner */}
+        <div className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
         isUcl
           ? "border-primary/30 bg-primary/20"
           : "border-secondary/30 bg-secondary/20"
@@ -404,6 +470,7 @@ function ContinentalGroupStandingsView({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
@@ -1590,10 +1657,27 @@ export default function DashboardClient({
     );
   }
 
+  const isUclTabActive =
+    (activeTab === "STANDINGS" && standingsCategory === "UCL") ||
+    (activeTab === "DRAWS" && drawsTabComp === "UCL");
+
   return (
-    <div className="space-y-8">
-      {/* Top Welcome Bar */}
-      <div className="rounded-3xl border border-border bg-gradient-to-r from-card via-background to-card p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+    <div className="relative space-y-8 min-h-screen">
+      {/* Official UCL Stadium Graphic Background */}
+      {isUclTabActive && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <img
+            src="/images/ucl-stadium-bg.jpg"
+            alt="eFootball UCL Stadium"
+            className="w-full h-full object-cover object-center opacity-25 scale-105 transition-opacity duration-700"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background/95" />
+        </div>
+      )}
+
+      <div className="relative z-10 space-y-8">
+        {/* Top Welcome Bar */}
+        <div className="rounded-3xl border border-border bg-gradient-to-r from-card via-background to-card p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
         <div className="flex items-center gap-3 sm:gap-5 min-w-0">
           <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-1.5 sm:p-2 shadow-2xl overflow-hidden">
             {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
@@ -5264,6 +5348,7 @@ export default function DashboardClient({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
