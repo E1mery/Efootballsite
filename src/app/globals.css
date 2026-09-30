@@ -242,6 +242,10 @@ body {
   box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(var(--secondary) / 0.35);
 }
 
+.carousel-3d-stage {
+  transform-style: preserve-3d;
+}
+
 .carousel-hero-container {
   position: relative;
   width: 100%;
