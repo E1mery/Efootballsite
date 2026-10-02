@@ -106,6 +106,10 @@ export default function Navbar() {
           : []),
       ];
 
+  if (isAdminPortal) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-xl transition-all">
       {/* Sleek Cyan / Gold Esports Accent Line */}

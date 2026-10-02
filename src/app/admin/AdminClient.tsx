@@ -87,6 +87,23 @@ function toLocalDatetimeInput(dateInput: Date | string | null | undefined): stri
   return `${getPart("year")}-${getPart("month")}-${getPart("day")}T${hour}:${getPart("minute")}`;
 }
 
+export type AdminClientTab =
+  | "DASHBOARD"
+  | "NEWS"
+  | "PENDING_REGISTRATIONS"
+  | "RESERVE_POOL"
+  | "TABLES"
+  | "ALL_MATCHES"
+  | "CONTINENTAL"
+  | "RESULTS_QUEUE"
+  | "FORFEITS_QUEUE"
+  | "ANNOUNCEMENTS"
+  | "PLAYERS"
+  | "HALL_OF_FAME"
+  | "MESSAGES"
+  | "REVIEWS"
+  | "PASSWORD_RESETS";
+
 export default function AdminClient({
   matches,
   pendingSubmissions,
@@ -108,6 +125,8 @@ export default function AdminClient({
   initialReviews = [],
   initialPasswordResets = [],
   initialNews = [],
+  activeTab: controlledTab,
+  onTabChange,
 }: {
   matches: any[];
   pendingSubmissions: any[];
@@ -129,27 +148,14 @@ export default function AdminClient({
   initialReviews?: any[];
   initialPasswordResets?: any[];
   initialNews?: any[];
+  activeTab?: AdminClientTab;
+  onTabChange?: (tab: AdminClientTab) => void;
 }) {
   const router = useRouter();
 
-  type TabType =
-    | "DASHBOARD"
-    | "NEWS"
-    | "PENDING_REGISTRATIONS"
-    | "RESERVE_POOL"
-    | "TABLES"
-    | "ALL_MATCHES"
-    | "CONTINENTAL"
-    | "RESULTS_QUEUE"
-    | "FORFEITS_QUEUE"
-    | "ANNOUNCEMENTS"
-    | "PLAYERS"
-    | "HALL_OF_FAME"
-    | "MESSAGES"
-    | "REVIEWS"
-    | "PASSWORD_RESETS";
-
-  const [activeTab, setActiveTab] = useState<TabType>("DASHBOARD");
+  const [internalTab, setInternalTab] = useState<AdminClientTab>("DASHBOARD");
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = onTabChange ?? setInternalTab;
   const [tableSubTab, setTableSubTab] = useState<"DIV1" | "DIV2" | "DIV3" | "UCL" | "EUROPA">("DIV1");
 
   // Dynamic Lists State
@@ -1990,50 +1996,8 @@ export default function AdminClient({
 
   return (
     <div className="space-y-8">
-      {/* Top Commissioner Bar */}
-      <div className="rounded-3xl border border-border bg-card/80 p-6 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Badge variant="yellow" className="font-mono text-xs px-2 py-0.5 tracking-wider">
-              ADMIN OFFICE COMMISSIONER
-            </Badge>
-            <span className="text-xs font-mono text-muted-foreground">Logged in as: {adminEmail || "admin@efootball.rw"}</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight flex items-center gap-2">
-            <span>eFootball Rwanda Admin Office</span>
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Full commissioner control over league registration, one-way round robin schedules, score screenshot verification, automated promotions, and continental cups.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleRefreshPortal}
-            disabled={isRefreshingPortal}
-            variant="outline"
-            size="sm"
-            className="font-black uppercase tracking-wider text-xs gap-1.5 border-primary/50 text-white hover:bg-primary/20 shadow-md"
-            title="Refresh the whole portal to view updated scores, standings, and submissions"
-          >
-            <RefreshCw className={`h-4 w-4 text-primary ${isRefreshingPortal ? "animate-spin" : ""}`} />
-            <span>{isRefreshingPortal ? "Refreshing..." : "Refresh Portal"}</span>
-          </Button>
-
-          <Button
-            onClick={handleLogout}
-            variant="destructive"
-            size="sm"
-            className="font-black uppercase tracking-wider text-xs gap-1.5 shadow-lg"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Log Out</span>
-          </Button>
-        </div>
-      </div>
-
       {/* Primary Navigation Tabs - Mobile & Tablet Horizontally Scrollable */}
-      <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="hidden items-center gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab("DASHBOARD")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
@@ -2263,31 +2227,40 @@ export default function AdminClient({
       {/* TAB 1: CONTROL CENTER (REGISTRATION, SCHEDULE GENERATOR, 12 AM CYCLE) */}
       {/* ========================================================================= */}
       {activeTab === "DASHBOARD" && (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-1 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">League administration</p>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Season operations and competition status at a glance.</p>
+          </div>
           {/* Action Required Alert: Pending Registrations */}
           {pendingPlayers.length > 0 && (
-            <div className="rounded-3xl border border-secondary/50 bg-gradient-to-r from-secondary/40 via-background to-background p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-secondary/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/20 border border-secondary/40 text-secondary shrink-0">
                   <UserCheck className="h-6 w-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-black uppercase text-white">Action Required: Pending Registrations</h3>
+                    <h3 className="text-sm font-bold text-foreground">Pending registrations</h3>
                     <Badge variant="yellow" className="font-mono text-xs">
                       {pendingPlayers.length} Waiting
                     </Badge>
                   </div>
-                  <p className="text-xs text-foreground mt-0.5">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {pendingPlayers.length} new athlete{pendingPlayers.length > 1 ? "s have" : " has"} registered and {pendingPlayers.length > 1 ? "are" : "is"} awaiting commissioner review. Admit them to active divisions or place them in reserve.
                   </p>
                 </div>
               </div>
               <Button
+                rollingText={false}
+                size="sm"
                 onClick={() => setActiveTab("PENDING_REGISTRATIONS")}
-                className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg"
+                className="shrink-0 gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
               >
-                <span>Review Approvals</span>
+                <span>Review registrations</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -2295,69 +2268,73 @@ export default function AdminClient({
 
           {/* Action Required Alert: Password Reset Requests */}
           {passwordResets.filter((r) => r.status === "PENDING").length > 0 && (
-            <div className="rounded-3xl border border-destructive/40 bg-card/90 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/20 border border-destructive/40 text-destructive shrink-0">
                   <KeyRound className="h-6 w-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-black uppercase text-white">Action Required: Password Reset Requests</h3>
+                    <h3 className="text-sm font-bold text-foreground">Password reset requests</h3>
                     <Badge variant="destructive" className="font-mono text-xs">
                       {passwordResets.filter((r) => r.status === "PENDING").length} Waiting
                     </Badge>
                   </div>
-                  <p className="text-xs text-foreground mt-0.5">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {passwordResets.filter((r) => r.status === "PENDING").length} athlete(s) forgot their password and requested permission to reset it.
                   </p>
                 </div>
               </div>
               <Button
+                rollingText={false}
+                size="sm"
                 onClick={() => setActiveTab("PASSWORD_RESETS")}
-                className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg"
+                className="shrink-0 gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
               >
-                <span>Review Reset Requests</span>
+                <span>Review requests</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}
 
           {/* Quick Access: News & Carousel Hub */}
-          <div className="rounded-3xl border border-secondary/40 bg-card/90 p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-4 rounded-xl border border-secondary/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/20 border border-secondary/40 text-secondary shrink-0">
                 <Newspaper className="h-6 w-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black uppercase text-white">News &amp; Homepage Carousel Control</h3>
+                  <h3 className="text-sm font-bold text-foreground">News and homepage carousel</h3>
                   <Badge variant="yellow" className="font-mono text-xs">
                     {newsArticles.length} Article{newsArticles.length !== 1 ? "s" : ""}
                   </Badge>
                 </div>
-                <p className="text-xs text-foreground mt-0.5">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Publish official league news, schedule announcements, control carousel visibility, and manage article expiration dates.
                 </p>
               </div>
             </div>
             <Button
+              rollingText={false}
+              size="sm"
               onClick={() => setActiveTab("NEWS")}
               variant="yellow"
-              className="font-bold text-xs uppercase tracking-wider gap-2 shrink-0 shadow-lg"
+              className="shrink-0 gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
             >
-              <span>Manage News</span>
+              <span>Manage news</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Quick Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Registration Status</span>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Registration</span>
               <div className="flex items-center justify-between pt-1">
                 <span
-                  className={`text-xl font-black uppercase ${
-                    leagueConfig.registrationOpen ? "text-primary" : "text-secondary"
+                  className={`text-xl font-bold ${
+                    leagueConfig.registrationOpen ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   {leagueConfig.registrationOpen ? "Open" : "Closed"}
@@ -2368,19 +2345,19 @@ export default function AdminClient({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Current Matchday</span>
+            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current matchday</span>
               <div className="flex items-center justify-between pt-1">
-                <span className="text-2xl font-black text-primary">Matchday {leagueConfig.currentMatchday}</span>
+                <span className="text-xl font-bold text-primary">Matchday {leagueConfig.currentMatchday}</span>
                 <Clock className="h-5 w-5 text-primary" />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-muted-foreground">UCL Status</span>
+            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">UCL status</span>
               <div className="flex items-center justify-between pt-1">
                 <span
-                  className={`text-lg font-black uppercase ${
+                  className={`text-lg font-bold ${
                     leagueConfig.uclStarted ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
@@ -2394,11 +2371,11 @@ export default function AdminClient({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-background/80 p-5 space-y-1">
-              <span className="text-xs font-bold uppercase text-muted-foreground">Europa Status</span>
+            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Europa status</span>
               <div className="flex items-center justify-between pt-1">
                 <span
-                  className={`text-lg font-black uppercase ${
+                  className={`text-lg font-bold ${
                     leagueConfig.europaStarted ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
@@ -2414,12 +2391,13 @@ export default function AdminClient({
           </div>
 
           {/* Operation 1: Registration Controls */}
-          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
-                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <Sliders className="h-5 w-5 text-primary" />
-                  <span>League Registration Lifecycle Controller</span>
+                  <span>Registration</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   Start or end player registration. When ended, you can generate scheduled round-robin division fixtures.
@@ -2429,38 +2407,42 @@ export default function AdminClient({
               <div>
                 {leagueConfig.registrationOpen ? (
                   <Button
+                    rollingText={false}
+                    size="sm"
                     onClick={() => handleToggleRegistration(false)}
                     disabled={actionLoading}
                     variant="destructive"
-                    className="font-bold text-xs uppercase tracking-wider"
+                    className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    End / Close Registration
+                    Close registration
                   </Button>
                 ) : (
                   <Button
+                    rollingText={false}
+                    size="sm"
                     onClick={() => handleToggleRegistration(true)}
                     disabled={actionLoading}
                     variant="default"
-                    className="bg-primary hover:bg-primary font-bold text-xs uppercase tracking-wider"
+                    className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    Re-open League Registration
+                    Reopen registration
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-card/60 border border-border">
+              <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-background p-4">
                 <span className="text-xs font-bold text-primary block">Division 1 Registered</span>
                 <span className="text-2xl font-black text-white">{div1Standings.length} / {div1Max}</span>
                 <span className="text-xs text-muted-foreground block mt-1">Premiership Division</span>
               </div>
-              <div className="p-4 rounded-2xl bg-card/60 border border-border">
+              <div className="rounded-lg border border-border bg-background p-4">
                 <span className="text-xs font-bold text-secondary block">Division 2 Registered</span>
                 <span className="text-2xl font-black text-white">{div2Standings.length} / {div2Max}</span>
                 <span className="text-xs text-muted-foreground block mt-1">Championship Division</span>
               </div>
-              <div className="p-4 rounded-2xl bg-card/60 border border-border">
+              <div className="rounded-lg border border-border bg-background p-4">
                 <span className="text-xs font-bold text-primary block">Division 3 Registered</span>
                 <span className="text-2xl font-black text-white">{div3Standings.length} / {div3Max}</span>
                 <span className="text-xs text-muted-foreground block mt-1">National Academy</span>
@@ -2469,12 +2451,12 @@ export default function AdminClient({
           </div>
 
           {/* Operation 1B: Division Participant Capacity Controller */}
-          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
-                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  <span>Division Participant Capacity Settings</span>
+                  <span>Division capacities</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   Admins can extend the maximum participant capacity per division (default: 20 athletes). Continental UCL and Europa League remain fixed at 16 qualification slots.
@@ -2548,23 +2530,26 @@ export default function AdminClient({
                   UCL & Europa League: <strong>16 Fixed Slots</strong> (Top 8 Div 1 + Top 4 Div 2 + Top 4 Div 3 - Unchanged).
                 </span>
                 <Button
+                  rollingText={false}
+                  size="sm"
                   type="submit"
                   disabled={savingCapacity}
-                  className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider shadow-lg"
+                  className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
                 >
-                  {savingCapacity ? "Saving..." : "Save Division Capacity Limits"}
+                  {savingCapacity ? "Saving..." : "Save capacities"}
                 </Button>
               </div>
             </form>
           </div>
+          </div>
 
           {/* Operation 2: Official Match Scheduling & 12:00 AM Fixture Drop */}
-          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
-                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-secondary" />
-                  <span>Official Division Match Scheduling & Fixture Dropout Center (12:00 AM CAT Drop)</span>
+                  <span>Fixtures and scheduling</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   Set the official league kickoff date and confirm the schedule. On the confirmed kickoff date at 12:00 AM midnight (CAT / Rwandan Time), the system officially drops the first round fixtures for all active players.
@@ -2572,7 +2557,7 @@ export default function AdminClient({
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 bg-card border border-border p-1.5 rounded-xl">
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background p-2">
                   <span className="text-xs font-bold text-muted-foreground pl-1.5">Kickoff Date (CAT):</span>
                   <input
                     type="date"
@@ -2581,50 +2566,64 @@ export default function AdminClient({
                     className="bg-background border border-border rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:border-secondary focus:outline-none"
                   />
                   <Badge variant="outline" className="text-xs font-mono border-secondary/40 text-secondary bg-secondary/10">
-                    Dropout: 12:00 AM Midnight (CAT)
+                    00:00 CAT
                   </Badge>
                 </div>
 
                 <Button
+                  rollingText={false}
+                  size="sm"
                   onClick={() => handleGenerateSchedule("ALL")}
                   disabled={actionLoading || leagueConfig.registrationOpen}
                   variant="yellow"
-                  className="font-black text-xs uppercase tracking-wider text-secondary-foreground gap-1.5 shadow-lg"
+                  className="text-xs gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
                 >
                   <Calendar className="h-4 w-4" />
-                  <span>(Set) Confirm All Divisions Schedule (Drop at 12:00 AM CAT)</span>
+                  <span>Generate all fixtures</span>
                 </Button>
 
                 <Button
+                  rollingText={false}
+                  size="sm"
                   onClick={() => handleResetTournament("ALL")}
                   disabled={resettingTournament}
                   variant="destructive"
-                  className="font-bold text-xs uppercase tracking-wider gap-1.5 shadow-lg"
+                  className="text-xs gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
                 >
-                  <RotateCcw className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`} />
-                  {resettingTournament ? "Resetting..." : "Reset All Matches & Standings"}
+                  <RotateCcw
+                    className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`}
+                  />
+                  {resettingTournament ? "Resetting..." : "Reset matches and standings"}
                 </Button>
 
                 <Button
+                  rollingText={false}
+                  size="sm"
                   onClick={() => handleResetRealTeams("ALL")}
                   disabled={resettingTeams}
                   variant="outline"
-                  className="font-bold text-xs uppercase tracking-wider gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/20"
+                  className="text-xs gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   title="Clear all players real team assignments and avatars so they can select fresh"
                 >
-                  <RotateCcw className={`h-3.5 w-3.5 ${resettingTeams ? "animate-spin" : ""}`} />
-                  {resettingTeams ? "Resetting Clubs..." : "Reset All Real Team Choices"}
+                  <RotateCcw
+                    className={`h-3.5 w-3.5 ${resettingTeams ? "animate-spin" : ""}`}
+                  />
+                  {resettingTeams ? "Resetting Clubs..." : "Reset club choices"}
                 </Button>
 
                 <Button
+                  rollingText={false}
+                  size="sm"
                   onClick={handleAuditTeams}
                   disabled={auditingTeams}
                   variant="outline"
-                  className="font-bold text-xs uppercase tracking-wider gap-1.5 border-secondary/50 text-secondary hover:bg-secondary/20"
+                  className="text-xs gap-1.5 border-secondary/50 text-secondary hover:bg-secondary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   title="Check whether every athlete's assigned real team matches their division (Div 1 = Premier League, Div 2 = La Liga, Div 3 = Serie A)"
                 >
-                  <ShieldCheck className={`h-3.5 w-3.5 ${auditingTeams ? "animate-spin" : ""}`} />
-                  {auditingTeams ? "Auditing Teams..." : "Audit Team Divisions"}
+                  <ShieldCheck
+                    className={`h-3.5 w-3.5 ${auditingTeams ? "animate-spin" : ""}`}
+                  />
+                  {auditingTeams ? "Auditing Teams..." : "Audit clubs"}
                 </Button>
               </div>
             </div>
@@ -2633,7 +2632,7 @@ export default function AdminClient({
               <div className="rounded-xl border border-secondary/30 bg-secondary/30 p-3 text-xs text-secondary flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-secondary" />
                 <span>
-                  Please click <strong>&quot;End / Close Registration&quot;</strong> above first before setting and confirming the official tournament schedule.
+                  Please click <strong>&quot;Close registration&quot;</strong> above first before setting and confirming the official tournament schedule.
                 </span>
               </div>
             )}
@@ -2651,22 +2650,24 @@ export default function AdminClient({
                     ? `1 leg only: 10 matches/day, each player plays ${div1Standings.length - 1} matches with 0 intervals. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players (e.g. 20) so all players play every round with no intervals.`}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
+                    rollingText={false}
                     size="sm"
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 1")}
                     disabled={actionLoading || leagueConfig.registrationOpen}
-                    className="w-full text-xs font-bold border-primary/50 text-white hover:bg-primary/20"
+                    className="text-xs border-primary/50 hover:bg-primary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    (Set) Confirm Schedule
+                    Generate fixtures
                   </Button>
                   <Button
+                    rollingText={false}
                     size="sm"
                     variant="ghost"
                     onClick={() => handleResetTournament("Division 1")}
                     disabled={resettingTournament}
-                    className="w-full text-xs font-bold text-destructive hover:bg-destructive/30"
+                    className="text-xs text-destructive hover:bg-destructive/30 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
                     Reset
                   </Button>
@@ -2685,22 +2686,24 @@ export default function AdminClient({
                     ? `1 leg only: all players play every round, each plays ${div2Standings.length - 1} matches. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
+                    rollingText={false}
                     size="sm"
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 2")}
                     disabled={actionLoading || leagueConfig.registrationOpen}
-                    className="w-full text-xs font-bold border-secondary/50 text-white hover:bg-secondary/20"
+                    className="text-xs border-secondary/50 hover:bg-secondary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    (Set) Confirm Schedule
+                    Generate fixtures
                   </Button>
                   <Button
+                    rollingText={false}
                     size="sm"
                     variant="ghost"
                     onClick={() => handleResetTournament("Division 2")}
                     disabled={resettingTournament}
-                    className="w-full text-xs font-bold text-destructive hover:bg-destructive/30"
+                    className="text-xs text-destructive hover:bg-destructive/30 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
                     Reset
                   </Button>
@@ -2719,22 +2722,24 @@ export default function AdminClient({
                     ? `1 leg only: all players play every round, each plays ${div3Standings.length - 1} matches. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
+                    rollingText={false}
                     size="sm"
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 3")}
                     disabled={actionLoading || leagueConfig.registrationOpen}
-                    className="w-full text-xs font-bold border-primary/50 text-white hover:bg-primary/20"
+                    className="text-xs border-primary/50 hover:bg-primary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    (Set) Confirm Schedule
+                    Generate fixtures
                   </Button>
                   <Button
+                    rollingText={false}
                     size="sm"
                     variant="ghost"
                     onClick={() => handleResetTournament("Division 3")}
                     disabled={resettingTournament}
-                    className="w-full text-xs font-bold text-destructive hover:bg-destructive/30"
+                    className="text-xs text-destructive hover:bg-destructive/30 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
                     Reset
                   </Button>
@@ -2744,12 +2749,13 @@ export default function AdminClient({
           </div>
 
           {/* Operation 3: 12:00 AM Automated Daily Cycle Trigger */}
-          <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
-                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
-                  <span>12:00 AM Midnight (CAT / Rwandan Time) Matchday Fixture Advance Cycle</span>
+                  <span>Daily matchday cycle</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   At 12:00 AM midnight Rwandan Time (CAT, UTC+2), the system automatically drops next fixtures and marks expired unplayed matches (enforcing 3 missed matches disqualifications). You can also manually advance the cycle here.
@@ -2768,20 +2774,24 @@ export default function AdminClient({
                 </div>
 
                 <Button
+                  rollingText={false}
+                  size="sm"
                   onClick={handleTriggerReminders}
                   disabled={actionLoading}
                   variant="outline"
-                  className="border-secondary/50 text-secondary hover:bg-secondary/30 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+                  className="border-secondary/50 text-secondary hover:bg-secondary/30 text-xs flex items-center gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
                 >
                   <Bell className="h-3.5 w-3.5 text-secondary" />
-                  <span>Manual Check Reminders</span>
+                  <span>Check reminders</span>
                 </Button>
 
                 <Button
+                  rollingText={false}
+                  size="sm"
                   onClick={handleTriggerDailyCycle}
                   disabled={actionLoading}
                   variant="default"
-                  className="bg-primary hover:bg-primary text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5"
+                  className="text-xs flex items-center gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>Advance to Matchday {leagueConfig.currentMatchday + 1}</span>
@@ -2797,8 +2807,8 @@ export default function AdminClient({
           </div>
 
           {/* Operation 4: Table-Based Match of the Day Controller */}
-          <div className="rounded-3xl border border-secondary/30 bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Badge variant="yellow" className="text-xs font-mono">
@@ -2808,9 +2818,9 @@ export default function AdminClient({
                     Rule: Except on Round 1
                   </span>
                 </div>
-                <h3 className="text-lg font-black uppercase text-white flex items-center gap-2">
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-secondary" />
-                  <span>Match of the Day (MOTD) System</span>
+                  <span>Match of the Day</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   The system analyzes current league table standings (points, rank sums, proximity of top 4 contenders) to select the daily marquee clash. Round 1 is excluded as standings are not yet established.
@@ -2818,12 +2828,15 @@ export default function AdminClient({
               </div>
 
               <Button
+                rollingText={false}
+                size="sm"
                 onClick={async () => {
                   setActionLoading(true);
                   try {
                     const res = await fetch("/api/matches/motd", { method: "POST" });
                     const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || "Failed to sync Match of the Day");
+                    if (!res.ok)
+                      throw new Error(data.error || "Failed to sync Match of the Day");
                     alert(data.message);
                     router.refresh();
                   } catch (err: any) {
@@ -2834,9 +2847,9 @@ export default function AdminClient({
                 }}
                 disabled={actionLoading || leagueConfig.currentMatchday <= 1}
                 variant="yellow"
-                className="font-bold text-xs uppercase tracking-wider text-secondary-foreground"
+                className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
               >
-                Re-evaluate MOTD from Table
+                Refresh selection
               </Button>
             </div>
 
@@ -2861,55 +2874,29 @@ export default function AdminClient({
               )}
             </div>
           </div>
+          </div>
 
           {/* Operation 5: End Season Finale: Promotions & Relegations */}
-          <div className="rounded-3xl border border-secondary/30 bg-gradient-to-b from-background via-card to-background p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="rounded-xl border border-secondary/30 bg-card p-5 shadow-sm space-y-5">
+            <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
                 <div className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-secondary" />
-                  <h3 className="text-lg font-black uppercase text-white">
-                    Season Finale & Transition
+                  <h3 className="text-base font-semibold text-foreground">
+                    Season transition
                   </h3>
                   <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 font-mono text-xs">
                     Active: {leagueConfig?.season || "Season 1 (2026)"}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 max-w-3xl">
                   Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <Button
-                  onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
-                  disabled={actionLoading}
-                  className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider shadow-lg"
-                >
-                  <ArrowDown className="h-3.5 w-3.5 mr-1" />
-                  Relegate Bottom 3
-                </Button>
-                <Button
-                  onClick={() => handleExecuteSeasonTransition("ALL")}
-                  disabled={actionLoading}
-                  className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-lg"
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1" />
-                  Execute Promotions & Relegations
-                </Button>
-                <Button
-                  onClick={() => handleExecuteSeasonTransition("WIPE_FOR_NEW_SEASON")}
-                  disabled={actionLoading}
-                  className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider shadow-lg"
-                  title="Archive champions to Hall of Fame, wipe fixtures & standings, reset clubs to null, and advance season"
-                >
-                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                  Conclude Season & Wipe Data for New Season
-                </Button>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {/* Div 1 Bottom 3 Preview (Relegation to Div 2) */}
               <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
                 <div className="flex items-center justify-between">
@@ -3002,6 +2989,42 @@ export default function AdminClient({
                     <p className="text-xs text-muted-foreground italic">No Division 3 standings registered.</p>
                   )}
                 </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <p className="text-xs text-muted-foreground">Review the projected movement above before applying changes. Concluding a season clears its fixtures and standings after archiving winners.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  rollingText={false}
+                  size="sm"
+                  onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
+                  disabled={actionLoading}
+                  variant="destructive"
+                  className="gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
+                >
+                  <ArrowDown className="h-3.5 w-3.5" /> Relegate bottom 3
+                </Button>
+                <Button
+                  rollingText={false}
+                  size="sm"
+                  onClick={() => handleExecuteSeasonTransition("ALL")}
+                  disabled={actionLoading}
+                  variant="yellow"
+                  className="gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> Apply promotions & relegations
+                </Button>
+                <Button
+                  rollingText={false}
+                  size="sm"
+                  onClick={() => handleExecuteSeasonTransition("WIPE_FOR_NEW_SEASON")}
+                  disabled={actionLoading}
+                  className="gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
+                  title="Archive champions to Hall of Fame, wipe fixtures and standings, reset clubs, and advance season"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Conclude season & reset
+                </Button>
               </div>
             </div>
           </div>

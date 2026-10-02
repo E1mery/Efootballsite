@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import AdminClient from "./AdminClient";
+import AdminShell from "@/components/admin/AdminShell";
 import { ensurePasswordResetTable } from "@/lib/passwordReset";
 import { ensureNewsTable } from "@/lib/ensureNewsTable";
 import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
@@ -219,30 +219,28 @@ export default async function AdminPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      <AdminClient
-        matches={matches}
-        pendingSubmissions={pendingSubmissions}
-        pendingForfeits={pendingForfeits}
-        allPlayers={allPlayers}
-        announcements={announcements}
-        flaggedPlayers={flaggedPlayers}
-        leagueConfig={leagueConfig}
-        div1Standings={div1Standings}
-        div2Standings={div2Standings}
-        div3Standings={div3Standings}
-        uclSlots={uclSlots}
-        europaSlots={europaSlots}
-        adminEmail={user.email}
-        initialPendingPlayers={pendingPlayers}
-        initialReservePlayers={reservePlayers}
-        initialHallOfFame={hallOfFameEntries}
-        initialPlayerMessages={playerMessages}
-        initialReviews={reviews}
-        initialPasswordResets={enrichedPasswordResets}
-        initialNews={newsArticles}
-      />
-    </div>
+    <AdminShell
+      matches={matches}
+      pendingSubmissions={pendingSubmissions}
+      pendingForfeits={pendingForfeits}
+      allPlayers={allPlayers}
+      announcements={announcements}
+      flaggedPlayers={flaggedPlayers}
+      leagueConfig={leagueConfig}
+      div1Standings={div1Standings}
+      div2Standings={div2Standings}
+      div3Standings={div3Standings}
+      uclSlots={uclSlots}
+      europaSlots={europaSlots}
+      adminEmail={user.email}
+      initialPendingPlayers={pendingPlayers}
+      initialReservePlayers={reservePlayers}
+      initialHallOfFame={hallOfFameEntries}
+      initialPlayerMessages={playerMessages}
+      initialReviews={reviews}
+      initialPasswordResets={enrichedPasswordResets}
+      initialNews={newsArticles}
+    />
   );
 }
 
