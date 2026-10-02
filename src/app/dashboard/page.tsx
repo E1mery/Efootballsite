@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import DashboardClient from "./DashboardClient";
+import PlayerShell from "@/components/player/PlayerShell";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import { evaluateAllDivisionsMatchOfTheDay, evaluateContinentalGroupMotds } from "@/lib/matchOfTheDay";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
@@ -831,43 +832,41 @@ export default async function DashboardPage() {
   const europaGroupMotds = evaluateContinentalGroupMotds(europaGroupMatches, allDomesticStandings, "EUROPA");
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <DashboardClient
-        player={player}
-        user={user}
-        activeMatch={activeMatch}
-        allPlayerMatches={allPlayerMatches}
-        announcements={announcements}
-        recentMatches={recentMatches}
-        standing={activeStandingForStats || currentStanding}
-        leagueConfig={leagueConfig}
-        divisionalMotd={divisionalMotd}
-        uclGroupMotds={uclGroupMotds}
-        europaGroupMotds={europaGroupMotds}
-        div1Standings={div1Standings}
-        div2Standings={div2Standings}
-        div3Standings={div3Standings}
-        uclGroupStandings={uclGroupStandings}
-        europaGroupStandings={europaGroupStandings}
-        uclSlots={uclSlots}
-        europaSlots={europaSlots}
-        uclQualified={uclQualified}
-        europaQualified={europaQualified}
-        continentalStatus={continentalStatus}
-        continentalStanding={playerContinentalStanding}
-        hasStartedContinental={hasStartedContinental}
-        isDivisionsMatchEnded={isDivisionsMatchEnded}
-        initialReview={myReview}
-        isRestDayToday={isRestDayToday}
-        isWaitingForSub={isWaitingForSub}
-        isSuspendedForMissed={isSuspendedForMissed}
-        currentRoundName={currentRoundName}
-        opponentStanding={opponentStanding}
-        opponentPreviousMatches={opponentPreviousMatches}
-        isSeasonAwaitingKickoff={isSeasonAwaitingKickoff}
-        seasonKickoffDate={seasonKickoffDate}
-        standingsUpdatesMap={standingsUpdatesMap}
-      />
-    </div>
+    <PlayerShell
+      player={player}
+      user={user}
+      activeMatch={activeMatch}
+      allPlayerMatches={allPlayerMatches}
+      announcements={announcements}
+      recentMatches={recentMatches}
+      standing={activeStandingForStats || currentStanding}
+      leagueConfig={leagueConfig}
+      divisionalMotd={divisionalMotd}
+      uclGroupMotds={uclGroupMotds}
+      europaGroupMotds={europaGroupMotds}
+      div1Standings={div1Standings}
+      div2Standings={div2Standings}
+      div3Standings={div3Standings}
+      uclGroupStandings={uclGroupStandings}
+      europaGroupStandings={europaGroupStandings}
+      uclSlots={uclSlots}
+      europaSlots={europaSlots}
+      uclQualified={uclQualified}
+      europaQualified={europaQualified}
+      continentalStatus={continentalStatus}
+      continentalStanding={playerContinentalStanding}
+      hasStartedContinental={hasStartedContinental}
+      isDivisionsMatchEnded={isDivisionsMatchEnded}
+      initialReview={myReview}
+      isRestDayToday={isRestDayToday}
+      isWaitingForSub={isWaitingForSub}
+      isSuspendedForMissed={isSuspendedForMissed}
+      currentRoundName={currentRoundName}
+      opponentStanding={opponentStanding}
+      opponentPreviousMatches={opponentPreviousMatches}
+      isSeasonAwaitingKickoff={isSeasonAwaitingKickoff}
+      seasonKickoffDate={seasonKickoffDate}
+      standingsUpdatesMap={standingsUpdatesMap}
+    />
   );
 }

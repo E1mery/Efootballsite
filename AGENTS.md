@@ -9,4 +9,4 @@ This is efootball.rw official website.
 # Coding Workflow Principles
 
 - Donot use hardoced colors always use colors in `globals.css` run `npm run lint` to verify that no custom colors were used.This ensures consistency in the design.
-
+- Use badges sparingly for meaningful status or count indicators; use plain text for ordinary labels and headings.

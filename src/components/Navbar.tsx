@@ -106,7 +106,7 @@ export default function Navbar() {
           : []),
       ];
 
-  if (isAdminPortal) {
+  if (isAdminPortal || isUserPortal) {
     return null;
   }
 

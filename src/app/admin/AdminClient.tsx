@@ -2243,12 +2243,7 @@ export default function AdminClient({
                   <UserCheck className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-foreground">Pending registrations</h3>
-                    <Badge variant="yellow" className="font-mono text-xs">
-                      {pendingPlayers.length} Waiting
-                    </Badge>
-                  </div>
+                  <h3 className="text-sm font-bold text-foreground">Pending registrations</h3>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {pendingPlayers.length} new athlete{pendingPlayers.length > 1 ? "s have" : " has"} registered and {pendingPlayers.length > 1 ? "are" : "is"} awaiting commissioner review. Admit them to active divisions or place them in reserve.
                   </p>
@@ -2274,12 +2269,7 @@ export default function AdminClient({
                   <KeyRound className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-foreground">Password reset requests</h3>
-                    <Badge variant="destructive" className="font-mono text-xs">
-                      {passwordResets.filter((r) => r.status === "PENDING").length} Waiting
-                    </Badge>
-                  </div>
+                  <h3 className="text-sm font-bold text-foreground">Password reset requests</h3>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {passwordResets.filter((r) => r.status === "PENDING").length} athlete(s) forgot their password and requested permission to reset it.
                   </p>
@@ -2306,9 +2296,6 @@ export default function AdminClient({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-foreground">News and homepage carousel</h3>
-                  <Badge variant="yellow" className="font-mono text-xs">
-                    {newsArticles.length} Article{newsArticles.length !== 1 ? "s" : ""}
-                  </Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Publish official league news, schedule announcements, control carousel visibility, and manage article expiration dates.
@@ -2339,9 +2326,6 @@ export default function AdminClient({
                 >
                   {leagueConfig.registrationOpen ? "Open" : "Closed"}
                 </span>
-                <Badge variant={leagueConfig.registrationOpen ? "secondary" : "yellow"}>
-                  {leagueConfig.registrationOpen ? "ACCEPTING PLAYERS" : "SEASON ACTIVE"}
-                </Badge>
               </div>
             </div>
 
@@ -2565,9 +2549,6 @@ export default function AdminClient({
                     onChange={(e) => setLeagueStartDate(e.target.value)}
                     className="bg-background border border-border rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:border-secondary focus:outline-none"
                   />
-                  <Badge variant="outline" className="text-xs font-mono border-secondary/40 text-secondary bg-secondary/10">
-                    00:00 CAT
-                  </Badge>
                 </div>
 
                 <Button
@@ -2641,9 +2622,6 @@ export default function AdminClient({
               <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-primary block">Division 1 Schedule</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}`}>
-                    {div1Standings.length} Players {div1Standings.length % 2 === 0 && div1Standings.length >= 2 ? `(${div1Standings.length - 1} rounds)` : "(Odd: needs even)"}
-                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {div1Standings.length % 2 === 0 && div1Standings.length >= 2
@@ -2677,9 +2655,6 @@ export default function AdminClient({
               <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-secondary block">Division 2 Schedule</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}`}>
-                    {div2Standings.length} Players {div2Standings.length % 2 === 0 && div2Standings.length >= 2 ? `(${div2Standings.length - 1} rounds)` : "(Odd: needs even)"}
-                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {div2Standings.length % 2 === 0 && div2Standings.length >= 2
@@ -2713,9 +2688,6 @@ export default function AdminClient({
               <div className="p-4 rounded-2xl bg-card/60 border border-border space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-primary block">Division 3 Schedule</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}`}>
-                    {div3Standings.length} Players {div3Standings.length % 2 === 0 && div3Standings.length >= 2 ? `(${div3Standings.length - 1} rounds)` : "(Odd: needs even)"}
-                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {div3Standings.length % 2 === 0 && div3Standings.length >= 2
@@ -2811,9 +2783,6 @@ export default function AdminClient({
             <div className="flex flex-col gap-4 border-b border-border pb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="yellow" className="text-xs font-mono">
-                    AUTOMATIC SELECTION ENGINE
-                  </Badge>
                   <span className="text-xs font-bold text-secondary uppercase tracking-widest">
                     Rule: Except on Round 1
                   </span>
@@ -2885,9 +2854,6 @@ export default function AdminClient({
                   <h3 className="text-base font-semibold text-foreground">
                     Season transition
                   </h3>
-                  <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 font-mono text-xs">
-                    Active: {leagueConfig?.season || "Season 1 (2026)"}
-                  </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 max-w-3xl">
                   Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
@@ -2899,10 +2865,7 @@ export default function AdminClient({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {/* Div 1 Bottom 3 Preview (Relegation to Div 2) */}
               <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border border-destructive/40">
-                    RELEGATING TO DIV 2
-                  </Badge>
+                <div className="flex items-start justify-between gap-2">
                   <span className="text-xs text-muted-foreground font-mono">Div 1 (Bottom 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
@@ -2923,10 +2886,7 @@ export default function AdminClient({
 
               {/* Div 2 Bottom 3 Preview (Relegation to Div 3) */}
               <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border border-destructive/40">
-                    RELEGATING TO DIV 3
-                  </Badge>
+                <div className="flex items-start justify-between gap-2">
                   <span className="text-xs text-muted-foreground font-mono">Div 2 (Bottom 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
@@ -2947,10 +2907,7 @@ export default function AdminClient({
 
               {/* Div 2 Top 3 Preview (Promoting to Div 1) */}
               <div className="p-4 rounded-2xl bg-background border border-secondary/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="yellow" className="text-xs">
-                    PROMOTING TO DIV 1
-                  </Badge>
+                <div className="flex items-start justify-between gap-2">
                   <span className="text-xs text-muted-foreground font-mono">Div 2 (Top 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
@@ -2970,10 +2927,7 @@ export default function AdminClient({
 
               {/* Div 3 Top 3 Preview (Promoting to Div 2) */}
               <div className="p-4 rounded-2xl bg-background border border-primary/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs border-primary/40 text-primary">
-                    PROMOTING TO DIV 2
-                  </Badge>
+                <div className="flex items-start justify-between gap-2">
                   <span className="text-xs text-muted-foreground font-mono">Div 3 (Top 3)</span>
                 </div>
                 <div className="space-y-1.5 pt-1">
