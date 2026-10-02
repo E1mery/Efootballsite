@@ -60,8 +60,11 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       europaSlotsCount,
       uclKnockoutMatches,
       europaKnockoutMatches,
+      motdMatch,
+      latestFinishedMatch,
       maxPlayedStanding,
       hallOfFameEntries,
+      topInFormStandings,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
         where: { id: "default" },
@@ -98,12 +101,27 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         orderBy: [{ matchDate: "desc" }],
         take: 4,
       }),
+      prisma.match.findFirst({
+        where: { isMatchOfTheDay: true, status: { in: ["SCHEDULED", "LIVE"] } },
+        include: { homePlayer: true, awayPlayer: true },
+      }),
+      prisma.match.findFirst({
+        where: { isMatchOfTheDay: true, status: "FINISHED" },
+        include: { homePlayer: true, awayPlayer: true },
+        orderBy: { matchDate: "desc" },
+      }),
       prisma.standing.findFirst({
         orderBy: { played: "desc" },
       }),
       prisma.hallOfFame.findMany({
         orderBy: [{ season: "desc" }, { createdAt: "desc" }],
         take: 3,
+      }),
+      prisma.standing.findMany({
+        where: { played: { gte: 5 } },
+        include: { player: true },
+        orderBy: [{ points: "desc" }, { won: "desc" }, { goalDifference: "desc" }],
+        take: 4,
       }),
     ]);
 
@@ -411,6 +429,84 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         };
       }
 
+      // 8. Auto-update: In-Form Athletes
+      if (item.id === "sys-in-form-athletes" || item.id === "in-form-athletes-slide") {
+        const athletes = (topInFormStandings || []).map((s) => ({
+          gamerTag: s.player.gamerTag,
+          division: s.division,
+          realTeam: s.player.realTeam,
+          rank: s.rank,
+          played: s.played,
+          won: s.won,
+          points: s.points,
+          winRate: s.played > 0 ? Math.round((s.won / s.played) * 100) : 0,
+          form: s.form || "W",
+          goals: s.player.goals,
+          avatar: s.player.avatar,
+        }));
+
+        return {
+          id: item.id,
+          type: "IN_FORM",
+          badge: "IN-FORM ATHLETES",
+          category: item.category || "League News",
+          tabLabel: "In-Form Players",
+          title: item.title,
+          subtitle: item.description,
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Full Standings",
+          buttonUrl: item.buttonUrl || "/standings",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: { athletes },
+        };
+      }
+
+      // 9. Auto-update: Hall of Fame Champions
+      if (item.id === "sys-hall-of-fame" || item.id === "hall-of-fame-slide") {
+        const topChamp = (hallOfFameEntries || [])[0];
+        return {
+          id: item.id,
+          type: "HALL_OF_FAME",
+          badge: "HALL OF FAME",
+          category: item.category || "Competition",
+          tabLabel: "Reigning Champions",
+          title: item.title,
+          subtitle: item.description,
+          description: item.description,
+          featuredImage: item.featuredImage || (topChamp as any)?.playerImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "Explore Hall of Fame",
+          buttonUrl: item.buttonUrl || "/#hall-of-fame",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: { champions: hallOfFameEntries },
+        };
+      }
+
+      // 10. Auto-update: Active Matchday / Round Live Fixtures
+      if (item.id === "sys-announcement-matchday-active") {
+        return {
+          id: item.id,
+          type: "SYSTEM_ANNOUNCEMENT",
+          badge: "LIVE ROUND FIXTURES",
+          category: "Match",
+          tabLabel: "Round Live",
+          title: item.title,
+          subtitle: "24-Hour Match Window in Progress",
+          description: item.description,
+          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          buttonText: item.buttonText || "View Fixtures",
+          buttonUrl: item.buttonUrl || "/fixtures",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            subType: "MATCHDAY_ACTIVE",
+            currentMatchday: leagueConfig.currentMatchday || 1,
+          },
+        };
+      }
+
       // Standard Administrator-created News Article
       return {
         id: item.id,
@@ -429,68 +525,6 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         data: item,
       };
     });
-
-
-    // 8. Auto-update: In-Form Athletes (Only after at least 5 matches played)
-    const maxPlayed = maxPlayedStanding?.played || 0;
-    if (maxPlayed >= 5 && !slides.some((s) => s.id === "in-form-athletes-slide")) {
-      const topInFormStandings = await prisma.standing.findMany({
-        where: { played: { gte: 5 } },
-        include: { player: true },
-        orderBy: [{ points: "desc" }, { won: "desc" }, { goalDifference: "desc" }],
-        take: 4,
-      });
-
-      if (topInFormStandings.length > 0) {
-        const athletes = topInFormStandings.map((s) => ({
-          gamerTag: s.player.gamerTag,
-          division: s.division,
-          realTeam: s.player.realTeam,
-          rank: s.rank,
-          played: s.played,
-          won: s.won,
-          points: s.points,
-          winRate: s.played > 0 ? Math.round((s.won / s.played) * 100) : 0,
-          form: s.form || "W",
-          goals: s.player.goals,
-          avatar: s.player.avatar,
-        }));
-
-        slides.push({
-          id: "in-form-athletes-slide",
-          type: "IN_FORM",
-          badge: "IN-FORM ATHLETES",
-          category: "League News",
-          tabLabel: "In-Form Players",
-          title: "Form Leaders • Min 5 Matches Played",
-          subtitle: "Top-ranked contenders based on table standings & winning rate",
-          description: "Top-ranked contenders evaluated from official table standings, win rate & individual form.",
-          featuredImage: "/images/carousel-stadium-bg.jpg",
-          buttonText: "Full Standings",
-          buttonUrl: "/standings",
-          data: { athletes },
-        });
-      }
-    }
-
-    // 9. Auto-update: Hall of Fame Champions (if records exist in DB)
-    if (hallOfFameEntries.length > 0 && !slides.some((s) => s.id === "hall-of-fame-slide")) {
-      const topChamp = hallOfFameEntries[0];
-      slides.push({
-        id: "hall-of-fame-slide",
-        type: "HALL_OF_FAME",
-        badge: "HALL OF FAME",
-        category: "Competition",
-        tabLabel: "Reigning Champions",
-        title: "Title Winners • Last Season Champions",
-        subtitle: "Athletes who conquered Rwanda's official eFootball championships",
-        description: "Official title winners from previous seasons immortalized in the league registry.",
-        featuredImage: (topChamp as any).playerImage || "/images/carousel-stadium-bg.jpg",
-        buttonText: "Explore Hall of Fame",
-        buttonUrl: "/#hall-of-fame",
-        data: { champions: hallOfFameEntries },
-      });
-    }
 
     // Final safety check: guarantee no league standings reset or locked-competition news ever appears
     return slides.filter((slide) => {
