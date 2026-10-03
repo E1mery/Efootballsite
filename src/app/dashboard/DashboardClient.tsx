@@ -339,9 +339,6 @@ function ContinentalGroupStandingsView({
                   <span className={`w-2.5 h-2.5 rounded-full ${isUcl ? "bg-primary" : "bg-secondary"}`} />
                   <h5 className="text-sm font-black uppercase tracking-wide text-white">{grp}</h5>
                 </div>
-                <Badge variant="outline" className="text-xs font-bold text-primary border-primary/40 bg-primary/20">
-                  Top 2 → Quarter-Finals
-                </Badge>
               </div>
 
               {/* Table */}
@@ -1723,13 +1720,13 @@ export default function DashboardClient({
                 {currentPlayer.gamerTag}
               </h1>
               {currentPlayer.realTeam && (
-                <Badge variant="outline" className="text-xs sm:text-xs border-primary/40 text-primary bg-primary/20">
+                <span className="text-xs sm:text-xs text-primary">
                   {currentPlayer.realTeam}
-                </Badge>
+                </span>
               )}
-              <Badge variant={isReserved ? "outline" : "yellow"} className="text-xs sm:text-xs">
+              <span className="text-xs sm:text-xs font-bold text-secondary">
                 {isReserved ? "RESERVE POOL" : currentPlayer.division}
-              </Badge>
+              </span>
               {continentalStatus?.title && continentalStatus?.status === "QUALIFIED_UCL" && (
                 <Badge variant="default" className="text-xs sm:text-xs uppercase font-bold bg-primary/20 border-primary/40 text-primary">
                   Qualified for UCL
@@ -1741,13 +1738,10 @@ export default function DashboardClient({
                 </Badge>
               )}
               {continentalStatus?.title && continentalStatus?.isEliminated && (
-                <Badge variant="destructive" className="text-xs sm:text-xs uppercase font-bold">
+                <span className="text-xs sm:text-xs font-bold text-destructive uppercase">
                   Eliminated
-                </Badge>
+                </span>
               )}
-              <Badge variant="default" className="text-xs sm:text-xs uppercase font-mono">
-                {currentPlayer.platform}
-              </Badge>
             </div>
             <p className="text-xs sm:text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <span className="truncate w-40 sm:max-w-none">{currentPlayer.fullName}</span>
@@ -1794,9 +1788,6 @@ export default function DashboardClient({
               </div>
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-primary text-primary-foreground">
-                    🗓️ OFFICIAL SCHEDULE CONFIRMED
-                  </Badge>
                   <span className="text-xs font-mono font-bold text-primary">
                     First Fixtures Drop on {formattedSeasonKickoff || "Kickoff Date"} at 12:00 AM Midnight
                   </span>
@@ -1847,7 +1838,7 @@ export default function DashboardClient({
               }`}
             >
               <Smartphone className="h-4 w-4" />
-              <span>Today's 24-Hr Match</span>
+              <span>Today's Match</span>
               {isSeasonAwaitingKickoff ? (
                 <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-xs font-bold text-primary border border-primary/40 animate-pulse">
                   Drops 12 AM
@@ -1965,7 +1956,6 @@ export default function DashboardClient({
           <div className="rounded-2xl border border-border bg-background/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Badge variant="yellow">OFFICIAL TOURNAMENT TABLES</Badge>
                 <span className="text-xs font-bold text-primary uppercase tracking-widest">
                   Live Esports Rankings
                 </span>
@@ -2080,9 +2070,6 @@ export default function DashboardClient({
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-secondary/10 via-primary/10 to-transparent rounded-full blur-3xl pointer-events-none" />
             <div className="space-y-2 relative z-10">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="yellow" className="font-black text-xs tracking-wider uppercase px-2.5 py-0.5">
-                  OFFICIAL ESPORTS CONTINENTAL ARENA
-                </Badge>
                 <span className="px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/40 font-mono text-xs font-black animate-pulse flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-primary" />
                   BOTH LEAGUES UNLOCKED
@@ -2774,9 +2761,6 @@ export default function DashboardClient({
                   </div>
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="yellow" className="text-xs font-black uppercase tracking-wider bg-primary text-primary-foreground">
-                        🗓️ OFFICIAL SCHEDULE CONFIRMED
-                      </Badge>
                       <span className="text-xs font-mono font-bold text-white">
                         Drops on {new Date(activeMatch.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at 12:00 AM Midnight (CAT)
                       </span>
@@ -2857,9 +2841,9 @@ export default function DashboardClient({
                           RESULT SUBMITTED — STATUS: PENDING ADMIN APPROVAL
                         </Badge>
                       )}
-                      <Badge variant="outline" className="text-xs text-foreground border-border font-bold">
+                      <span className="text-xs text-muted-foreground font-bold">
                         Uploaded by: @{submitterGamerTag} {isMySubmission ? "(You)" : "(Opponent)"}
-                      </Badge>
+                      </span>
                     </div>
                     <span className="text-xs font-mono text-muted-foreground">
                       Submitted: {sharedSubmission?.createdAt ? new Date(sharedSubmission.createdAt).toLocaleString() : "Recently"}
@@ -2912,9 +2896,9 @@ export default function DashboardClient({
                         <ShieldAlert className="h-3.5 w-3.5" />
                         FORFEIT CLAIM — UNDER ADMIN ARBITRATION
                       </Badge>
-                      <Badge variant="outline" className="text-xs text-foreground border-border font-bold">
+                      <span className="text-xs text-muted-foreground font-bold">
                         Lodged by: @{claimantGamerTag} {isMyClaim ? "(You)" : "(Opponent)"}
-                      </Badge>
+                      </span>
                     </div>
                     <span className="text-xs font-mono text-muted-foreground">
                       Lodged: {sharedForfeit?.createdAt ? new Date(sharedForfeit.createdAt).toLocaleString() : "Recently"}
@@ -3326,9 +3310,6 @@ export default function DashboardClient({
                   Match of the Day ({player.division})
                 </h3>
               </div>
-              <Badge variant="yellow" className="text-xs font-mono font-bold w-fit">
-                {player.division} Exclusive
-              </Badge>
             </div>
 
             {isSeasonAwaitingKickoff ? (
@@ -3881,12 +3862,6 @@ export default function DashboardClient({
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-background/80 shadow-xl">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="yellow">SEASON CALENDAR</Badge>
-                <Badge variant={isSeasonAwaitingKickoff ? "outline" : "secondary"}>
-                  {isSeasonAwaitingKickoff ? "FIXTURES SEALED" : `${allPlayerMatches.length} Matches`}
-                </Badge>
-              </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
                 <Calendar className="h-6 w-6 text-primary" />
                 <span>My Season Match Calendar</span>
@@ -3920,9 +3895,6 @@ export default function DashboardClient({
                 <Lock className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
               </div>
               <div className="space-y-2">
-                <Badge variant="yellow" className="text-xs font-mono font-black uppercase tracking-wider px-3 py-1 bg-primary text-primary-foreground">
-                  SEASON FIXTURES SEALED • KICKOFF SCHEDULED
-                </Badge>
                 <h3 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight">
                   Match Calendar Unlocks on {formattedSeasonKickoff || "Kickoff Date"} at 12:00 AM (Midnight)
                 </h3>
@@ -4014,12 +3986,9 @@ export default function DashboardClient({
                     <div className="space-y-2 border-b border-border/80 pb-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <Badge variant={isCurrentActive ? "yellow" : "secondary"} className="text-xs font-mono font-bold">
-                            {m.round}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {m.division}
-                          </Badge>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {m.round} • {m.division}
+                          </span>
                         </div>
                         <span className="text-xs font-mono text-muted-foreground">
                           {new Date(m.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali", month: "short", day: "numeric" })}
@@ -4040,9 +4009,9 @@ export default function DashboardClient({
                           </Badge>
                         )}
                         {isFinished && (
-                          <Badge variant="green" className="text-xs font-black">
+                          <span className="text-xs font-bold text-muted-foreground">
                             COMPLETED
-                          </Badge>
+                          </span>
                         )}
                         {isForfeit && (
                           <Badge variant="destructive" className="text-xs font-black">
@@ -4060,15 +4029,9 @@ export default function DashboardClient({
                           </Badge>
                         )}
                         {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && !isForfeitPending && !isMatchPastDeadline && (
-                          <Badge variant="outline" className="text-xs text-muted-foreground border-border gap-1">
-                            <Lock className="h-3 w-3 text-secondary" />
+                          <span className="text-xs text-muted-foreground">
                             LOCKED (1 MATCH/DAY)
-                          </Badge>
-                        )}
-                        {!isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && !isFutureDivisionMatch && !isMatchPastDeadline && (
-                          <Badge variant="secondary" className="text-xs text-muted-foreground">
-                            UPCOMING
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>

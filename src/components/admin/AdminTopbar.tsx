@@ -2,6 +2,7 @@
 
 import { Bell, Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import UserAvatarMenu from "@/components/UserAvatarMenu";
 
 export default function AdminTopbar({
   title,
@@ -12,6 +13,9 @@ export default function AdminTopbar({
   onToggleCollapse,
   collapsed,
   onRefresh,
+  onSettings,
+  onSignOut,
+  signingOut = false,
 }: {
   title: string;
   totalAlerts: number;
@@ -21,6 +25,9 @@ export default function AdminTopbar({
   onToggleCollapse: () => void;
   collapsed: boolean;
   onRefresh: () => void;
+  onSettings: () => void;
+  onSignOut: () => void;
+  signingOut?: boolean;
 }) {
   const initial = (adminEmail || "A").trim().charAt(0).toUpperCase();
   const shortName = (adminEmail || "admin").split("@")[0];
@@ -77,17 +84,16 @@ export default function AdminTopbar({
         )}
       </button>
 
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted px-2 py-1">
-        <span
-          aria-hidden="true"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-black text-primary-foreground"
-        >
-          {initial}
-        </span>
-        <span className="hidden max-w-28 truncate text-sm font-semibold text-foreground sm:block">
-          {shortName}
-        </span>
-      </div>
+      <UserAvatarMenu
+        fallbackInitial={initial}
+        triggerLabel={shortName}
+        displayName={shortName}
+        subtitle={adminEmail}
+        settingsLabel="Settings"
+        onSettings={onSettings}
+        onSignOut={onSignOut}
+        signingOut={signingOut}
+      />
     </header>
   );
 }

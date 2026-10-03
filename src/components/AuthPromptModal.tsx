@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { ShieldCheck, LogIn, UserPlus, X, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -65,11 +64,6 @@ export default function AuthPromptModal({
           </div>
 
           <div>
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Badge variant="outline" className="text-xs border-primary/40 text-primary font-mono uppercase">
-                AUTHENTICATION REQUIRED
-              </Badge>
-            </div>
             <h3 id="auth-modal-title" className="text-xl font-black uppercase text-foreground tracking-tight">
               {actionTitle}
             </h3>

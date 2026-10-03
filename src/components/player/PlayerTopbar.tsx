@@ -2,27 +2,55 @@
 
 import { Bell, Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import UserAvatarMenu from "@/components/UserAvatarMenu";
+import { findTeam } from "@/lib/teams";
+
+type PlayerTopbarPlayer = {
+  gamerTag?: string;
+  division?: string;
+  realTeam?: string | null;
+  avatar?: string | null;
+};
+
+function resolveTopbarAvatar(player?: PlayerTopbarPlayer | null): string | null {
+  if (player?.avatar && player.avatar.startsWith("http")) return player.avatar;
+  if (player?.realTeam) {
+    const team = findTeam(player.realTeam);
+    if (team) return team.logo;
+  }
+  return null;
+}
 
 export default function PlayerTopbar({
   title,
   unreadCount,
   gamerTag,
+  player,
   refreshing,
   onMenuClick,
   onToggleCollapse,
   collapsed,
   onRefresh,
+  onSettings,
+  onSignOut,
+  signingOut = false,
 }: {
   title: string;
   unreadCount: number;
   gamerTag?: string;
+  player?: PlayerTopbarPlayer | null;
   refreshing: boolean;
   onMenuClick: () => void;
   onToggleCollapse: () => void;
   collapsed: boolean;
   onRefresh: () => void;
+  onSettings: () => void;
+  onSignOut: () => void;
+  signingOut?: boolean;
 }) {
-  const initial = (gamerTag || "P").trim().charAt(0).toUpperCase();
+  const resolvedGamerTag = player?.gamerTag || gamerTag || "Player";
+  const initial = resolvedGamerTag.trim().charAt(0).toUpperCase() || "P";
+  const avatarImageUrl = resolveTopbarAvatar(player ?? (gamerTag ? { gamerTag } : null));
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-4">
@@ -76,19 +104,18 @@ export default function PlayerTopbar({
         )}
       </button>
 
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted px-2 py-1">
-        <span
-          aria-hidden="true"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-black text-primary-foreground"
-        >
-          {initial}
-        </span>
-        {gamerTag && (
-          <span className="hidden max-w-28 truncate text-sm font-semibold text-foreground sm:block">
-            {gamerTag}
-          </span>
-        )}
-      </div>
+      <UserAvatarMenu
+        avatarImageUrl={avatarImageUrl}
+        avatarAlt={player?.realTeam || resolvedGamerTag}
+        fallbackInitial={initial}
+        triggerLabel={resolvedGamerTag}
+        displayName={resolvedGamerTag}
+        subtitle={player?.division || player?.realTeam || undefined}
+        settingsLabel="Profile & Settings"
+        onSettings={onSettings}
+        onSignOut={onSignOut}
+        signingOut={signingOut}
+      />
     </header>
   );
 }

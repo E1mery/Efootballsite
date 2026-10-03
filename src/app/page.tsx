@@ -210,10 +210,6 @@ export default async function HomePage({
               Honoring the legendary esports champions who conquered Rwanda&apos;s most competitive eFootball tournaments.
             </p>
           </div>
-
-          <Badge variant="yellow" className="self-start sm:self-auto font-mono text-xs tracking-wider uppercase">
-            🏆 Championship Heritage
-          </Badge>
         </div>
 
         <HallOfFameCarousel entries={hallOfFame} />

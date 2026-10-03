@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
@@ -95,13 +94,8 @@ export function PlayerSidebarBody({
   onSignOut: () => void;
   signingOut: boolean;
 }) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    Matchday: true,
-    Competition: true,
-    Inbox: true,
-    Account: true,
-  });
   const groups = buildPlayerNav(counts);
+  const items = groups.flatMap((group) => group.items);
 
   return (
     <div className="flex h-full flex-col">
@@ -129,42 +123,15 @@ export function PlayerSidebarBody({
       )}
 
       {/* Nav */}
-      <nav aria-label="Player sections" className="flex-1 space-y-4 overflow-y-auto p-3">
-        {groups.map((group) => (
-          <div key={group.label} className="space-y-1">
-            {collapsed ? (
-              <div className="mx-2 border-t border-border" role="separator" />
-            ) : (
-              <button
-                onClick={() =>
-                  setOpenGroups((prev) => ({ ...prev, [group.label]: !prev[group.label] }))
-                }
-                aria-expanded={!!openGroups[group.label]}
-                className="flex w-full items-center justify-between px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
-              >
-                <span>{group.label}</span>
-                <ChevronDown
-                  className={cn(
-                    "h-3 w-3 transition-transform",
-                    openGroups[group.label] ? "" : "-rotate-90"
-                  )}
-                />
-              </button>
-            )}
-            {(collapsed || openGroups[group.label]) && (
-              <div className="space-y-1">
-                {group.items.map((item) => (
-                  <NavButton
-                    key={item.id}
-                    item={item}
-                    isActive={activeTab === item.id}
-                    collapsed={collapsed}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+      <nav aria-label="Player sections" className="flex-1 space-y-1 overflow-y-auto p-3">
+        {items.map((item) => (
+          <NavButton
+            key={item.id}
+            item={item}
+            isActive={activeTab === item.id}
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
         ))}
       </nav>
 

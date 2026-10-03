@@ -4039,13 +4039,9 @@ export default function AdminClient({
           {/* Header Card */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="yellow">SEASON FIXTURES HUB</Badge>
-                <Badge variant="secondary">{matches.length} Total Matches Generated</Badge>
-              </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
                 <Calendar className="h-6 w-6 text-primary" />
-                <span>All Generated Matches & Schedule Controls</span>
+                <span>All Generated Matches & Schedule Controls ({matches.length})</span>
               </h2>
               <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
                 Browse every fixture generated for the league. Reset generated matches, extend late submission deadlines, inspect score proofs, and trigger table updates.
@@ -6499,13 +6495,9 @@ export default function AdminClient({
         <div className="space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="yellow">FULL TOURNAMENT SCHEDULE</Badge>
-                <Badge variant="secondary">{matches.length} Total Matches</Badge>
-              </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
                 <Calendar className="h-6 w-6 text-primary" />
-                <span>All Generated Tournament Matches</span>
+                <span>All Generated Tournament Matches ({matches.length})</span>
               </h2>
               <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
                 Browse, search, and manage all scheduled and finished matches across all matchday rounds and divisions. You can extend deadlines to permit late submissions or directly enter verified scores.
@@ -6811,13 +6803,9 @@ export default function AdminClient({
           {/* Header Card */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="yellow">COMMUNITY FEEDBACK</Badge>
-                <Badge variant="secondary">{reviewsList.length} Total Reviews</Badge>
-              </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
                 <Star className="h-6 w-6 text-secondary" />
-                <span>Player Ratings & Feedback Reviews</span>
+                <span>Player Ratings & Feedback Reviews ({reviewsList.length})</span>
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Read direct player feedback, ratings, and league satisfaction reviews submitted from player dashboards.

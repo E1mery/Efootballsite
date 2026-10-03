@@ -4,7 +4,6 @@ import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Globe, ArrowUp, ArrowDown, Minus, AlertTriangle, ShieldAlert, Smartphone, MessageSquare, Shield } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface StandingRow {
@@ -370,13 +369,12 @@ export default function StandingsTable({
                             </span>
 
                             {realTeam && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs py-0 px-1.5 font-bold border-primary/40 text-primary bg-primary/20"
+                              <span
+                                className="text-xs py-0 px-1.5 font-bold text-primary"
                                 title={`Official Representation: ${realTeam}`}
                               >
                                 {teamObj?.shortName || realTeam}
-                              </Badge>
+                              </span>
                             )}
 
                             {missed >= 3 ? (

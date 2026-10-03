@@ -325,9 +325,6 @@ export default function ContinentalClient({
               <strong>Regular Division Season Active:</strong> UCL and Europa continental cups unlock upon the conclusion of Division 1, 2, and 3 season matches.
             </span>
           </div>
-          <Badge variant="secondary" className="font-mono text-xs shrink-0">
-            Division Season in Play
-          </Badge>
         </div>
       )}
 
@@ -430,9 +427,6 @@ export default function ContinentalClient({
               </div>
 
               <div className="space-y-2">
-                <Badge variant="yellow" className="text-xs font-black tracking-widest uppercase">
-                  Official Draws Event Countdown
-                </Badge>
                 <h2 className="text-3xl sm:text-4xl font-black uppercase text-white tracking-tight">
                   eFootball {selectedCompetition} Group Draws Broadcast
                 </h2>
@@ -531,9 +525,9 @@ export default function ContinentalClient({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-mono font-black text-primary">#{idx + 1}</span>
-                      <Badge variant="secondary" className="text-xs">
+                      <span className="text-xs text-muted-foreground">
                         {s.seedLabel}
-                      </Badge>
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-3 min-w-0">
@@ -563,18 +557,9 @@ export default function ContinentalClient({
                     </div>
 
                     <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                      <Badge
-                        variant={
-                          s.player.division === "Division 1"
-                            ? "secondary"
-                            : s.player.division === "Division 2"
-                            ? "yellow"
-                            : "live"
-                        }
-                        className="text-xs px-1 py-0"
-                      >
+                      <span className="text-xs text-muted-foreground">
                         {s.player.division}
-                      </Badge>
+                      </span>
                       <span className="font-bold text-secondary">{s.points} Pts</span>
                     </div>
                   </div>
@@ -612,9 +597,6 @@ export default function ContinentalClient({
                 Each fixture consists of Home and Away legs played in the same session. Players upload 2 screenshot proofs and enter aggregate goals. Top 2 in each group advance to Quarter-Finals.
               </span>
             </div>
-            <Badge variant="yellow" className="self-start sm:self-center font-mono">
-              Top 2 Advance to QF
-            </Badge>
           </div>
 
           {/* Group Tables */}
@@ -640,9 +622,6 @@ export default function ContinentalClient({
                       <span className={`w-2.5 h-2.5 rounded-full ${theme.dot} animate-pulse`} />
                       <span className={`font-black uppercase text-sm ${theme.title}`}>{grp} Standings</span>
                     </div>
-                    <Badge variant="outline" className="text-xs text-primary border-primary/40 bg-primary/10 font-mono">
-                      Top 2 → QF
-                    </Badge>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -891,9 +870,6 @@ export default function ContinentalClient({
                 <Shield className="h-4 w-4 text-primary" />
                 <span>Quarter-Finals (2 Legs at Once • Aggregate Decider)</span>
               </h3>
-              <Badge variant="secondary" className="text-xs">
-                8 Players
-              </Badge>
             </div>
 
             {qfMatches.length === 0 ? (
@@ -962,9 +938,6 @@ export default function ContinentalClient({
                 <Flame className="h-4 w-4 text-secondary" />
                 <span>Semi-Finals (2 Legs at Once • Aggregate Decider)</span>
               </h3>
-              <Badge variant="yellow" className="text-xs">
-                4 Players
-              </Badge>
             </div>
 
             {sfMatches.length === 0 ? (
@@ -1042,9 +1015,6 @@ export default function ContinentalClient({
               <p className="text-xs text-muted-foreground py-4">Grand Final will be unlocked once Semi-Finals conclude.</p>
             ) : (
               <div className="rounded-3xl border border-secondary/40 bg-gradient-to-b from-secondary/20 via-background to-background p-6 sm:p-8 text-center space-y-6 shadow-2xl">
-                <Badge variant="yellow" className="font-black tracking-widest text-xs uppercase px-3 py-1">
-                  OFFICIAL GRAND FINAL
-                </Badge>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-6">
                   <div className="space-y-2 text-center sm:text-right">
@@ -1064,9 +1034,6 @@ export default function ContinentalClient({
                     {finalMatch.homePlayer.realTeam && (
                       <span className="text-xs font-bold text-primary block">{finalMatch.homePlayer.realTeam}</span>
                     )}
-                    <Badge variant="secondary" className="text-xs">
-                      {finalMatch.homePlayer.division}
-                    </Badge>
                   </div>
 
                   <div className="space-y-2">
@@ -1099,9 +1066,6 @@ export default function ContinentalClient({
                     {finalMatch.awayPlayer.realTeam && (
                       <span className="text-xs font-bold text-secondary block">{finalMatch.awayPlayer.realTeam}</span>
                     )}
-                    <Badge variant="secondary" className="text-xs">
-                      {finalMatch.awayPlayer.division}
-                    </Badge>
                   </div>
                 </div>
 
@@ -1174,9 +1138,6 @@ export default function ContinentalClient({
                       : "border-border bg-card/60"
                   }`}
                 >
-                  <Badge variant="secondary" className="text-xs">
-                    Finalist 1 • {pollData.finalist1.division}
-                  </Badge>
                   <h3 className="text-2xl font-black text-white">{pollData.finalist1.gamerTag}</h3>
                   <p className="text-xs text-muted-foreground">{pollData.finalist1.fullName}</p>
 
@@ -1212,9 +1173,6 @@ export default function ContinentalClient({
                       : "border-border bg-card/60"
                   }`}
                 >
-                  <Badge variant="secondary" className="text-xs">
-                    Finalist 2 • {pollData.finalist2.division}
-                  </Badge>
                   <h3 className="text-2xl font-black text-white">{pollData.finalist2.gamerTag}</h3>
                   <p className="text-xs text-muted-foreground">{pollData.finalist2.fullName}</p>
 

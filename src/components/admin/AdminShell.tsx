@@ -191,6 +191,9 @@ export default function AdminShell({
           onToggleCollapse={() => setCollapsed((v) => !v)}
           collapsed={collapsed}
           onRefresh={handleRefresh}
+          onSettings={() => handleNavigate("DASHBOARD")}
+          onSignOut={handleSignOut}
+          signingOut={signingOut}
         />
         <main className="flex-1 p-4 sm:p-6">
           <div className="mx-auto max-w-6xl">

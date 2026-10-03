@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { Trophy, Shield, Menu, X, ShieldAlert, Globe, User, LogIn, ExternalLink, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonRollingText } from "@/components/ui/button-rolling-text";
-import { Badge } from "@/components/ui/badge";
 import EfootballGamingLogo from "@/components/EfootballGamingLogo";
 
 export default function Navbar() {
@@ -125,11 +124,6 @@ export default function Navbar() {
             <Trophy className="h-3 w-3 text-secondary shrink-0" />
             <span>{currentSeason}</span>
           </div>
-          {isAdminPortal && (
-            <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-2 py-0.5 ml-1 hidden sm:inline-flex font-bold">
-              COMMISSIONER OFFICE
-            </Badge>
-          )}
         </div>
 
         {/* Desktop Navigation Links (HIDDEN in Admin and User Portals) */}
@@ -162,11 +156,7 @@ export default function Navbar() {
         <div className="hidden sm:flex items-center gap-2.5">
           {isAdminPortal ? (
             /* Inside Admin Portal: Clean Header without any public portal links */
-            <div className="flex items-center gap-2">
-              <Badge variant="yellow" className="font-mono text-xs tracking-wider uppercase px-3 py-1 font-bold shadow-md">
-                COMMISSIONER CONSOLE
-              </Badge>
-            </div>
+            <div className="flex items-center gap-2" />
           ) : session?.authenticated ? (
             session.user?.role === "ADMIN" ? (
               <ButtonRollingText

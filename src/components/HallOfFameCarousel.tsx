@@ -174,13 +174,9 @@ export default function HallOfFameCarousel({
                     <span>{activeEntry.season}</span>
                   </Badge>
 
-                  <Badge
-                    variant="outline"
-                    className="text-xs font-mono font-bold uppercase tracking-wider text-secondary border-secondary/35 bg-secondary/10 px-2.5 py-0.5"
-                  >
-                    <Sparkles className="h-3 w-3 mr-1 text-secondary" />
-                    <span>👑 {activeEntry.trophyType === "UCL" ? "UCL Champion" : activeEntry.trophyType === "EUROPA" ? "Europa Champion" : "Title Champion"}</span>
-                  </Badge>
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-secondary">
+                    👑 {activeEntry.trophyType === "UCL" ? "UCL Champion" : activeEntry.trophyType === "EUROPA" ? "Europa Champion" : "Title Champion"}
+                  </span>
                 </div>
 
                 {/* Tournament title */}
