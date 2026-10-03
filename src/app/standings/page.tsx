@@ -89,6 +89,20 @@ export default async function StandingsPage(props: {
       (s) => Boolean(s && s.player && ((s.consecutiveMissed || 0) >= 3 || s.isDisqualified))
     );
 
+    // Dynamic division capacity set by admin (default: 20)
+    const divisionCapacity = (() => {
+      if (currentDivision === "Division 1" || currentDivision === "1") {
+        return (leagueConfig?.div1MaxPlayers && leagueConfig.div1MaxPlayers > 0) ? leagueConfig.div1MaxPlayers : 20;
+      }
+      if (currentDivision === "Division 2" || currentDivision === "2") {
+        return (leagueConfig?.div2MaxPlayers && leagueConfig.div2MaxPlayers > 0) ? leagueConfig.div2MaxPlayers : 20;
+      }
+      if (currentDivision === "Division 3" || currentDivision === "3") {
+        return (leagueConfig?.div3MaxPlayers && leagueConfig.div3MaxPlayers > 0) ? leagueConfig.div3MaxPlayers : 20;
+      }
+      return 20;
+    })();
+
     return (
       <div className="relative min-h-screen overflow-hidden pb-16">
         <AnimatedEfootballBackground />
@@ -106,7 +120,7 @@ export default async function StandingsPage(props: {
           <div className="flex items-center gap-3">
             <div className="rounded-xl border border-border bg-card/80 px-4 py-2 text-right">
               <span className="text-xs uppercase font-bold text-muted-foreground block">Division Athletes</span>
-              <span className="text-lg font-black text-primary">{standings.length} / 20 Max</span>
+              <span className="text-lg font-black text-primary">{standings.length} / {divisionCapacity} Max</span>
             </div>
             <div className="rounded-xl border border-border bg-card/80 px-4 py-2 text-right">
               <span className="text-xs uppercase font-bold text-muted-foreground block">Division Goals</span>
