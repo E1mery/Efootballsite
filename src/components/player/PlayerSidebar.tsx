@@ -174,7 +174,7 @@ export default function PlayerSidebar({
       aria-label="Player dashboard sidebar"
       className={cn(
         "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-card lg:flex",
-        collapsed ? "w-16" : "w-72"
+        collapsed ? "w-14" : "w-64"
       )}
     >
       <PlayerSidebarBody

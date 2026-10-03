@@ -1736,7 +1736,8 @@ export default function DashboardClient({
       )}
 
       <div className="relative z-10 space-y-8">
-        {/* Top Welcome Bar */}
+        {/* Top Welcome Bar — shown only on Today's Match (OVERVIEW) */}
+        {activeTab === "OVERVIEW" && (
         <div className="rounded-3xl border border-border bg-gradient-to-r from-card via-background to-card p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
         <div className="flex items-center gap-3 sm:gap-5 min-w-0">
           <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-1.5 sm:p-2 shadow-2xl overflow-hidden">
@@ -1805,6 +1806,7 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
+        )}
 
       {/* Reserve Athlete Status Banner */}
       {isReserved && (
