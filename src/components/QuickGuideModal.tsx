@@ -211,10 +211,10 @@ export default function QuickGuideModal({
                 1. Take a screenshot of your unanswered WhatsApp chat showing you reached out to your opponent with sufficient time.
               </li>
               <li>
-                2. Click the red <strong>&quot;Claim Forfeit&quot;</strong> button on your match card.
+                2. <strong>15-Minute Protocol Rule:</strong> The <strong>&quot;Claim Forfeit&quot;</strong> button and proof upload unlock strictly <strong>15 minutes before the match deadline</strong>. Prior to that, claims are locked to give both players ample time to arrange and play.
               </li>
               <li>
-                3. Upload the screenshot proof and submit. The commissioner desk reviews the chat proof and must approve the claim before the <strong className="text-destructive">3-0 Forfeit Win (+3 Points pass over)</strong> is awarded.
+                3. During the final 15 minutes before deadline, click <strong>&quot;Claim Forfeit&quot;</strong>, upload your chat proof, and submit. The Commissioner reviews the chat proof and must approve the claim before the <strong className="text-destructive">3-0 Forfeit Win (+3 Points pass over)</strong> is awarded.
               </li>
             </ul>
           </div>

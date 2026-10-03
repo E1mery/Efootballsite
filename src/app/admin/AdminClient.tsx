@@ -227,6 +227,12 @@ export default function AdminClient({
   const [resetStatusFilter, setResetStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "COMPLETED">("ALL");
   const [resetActionLoading, setResetActionLoading] = useState<string | null>(null);
 
+  // Registered players search & filters
+  const [playersSearch, setPlayersSearch] = useState<string>("");
+  const [playersDivisionFilter, setPlayersDivisionFilter] = useState<string>("ALL");
+  const [playersStatusFilter, setPlayersStatusFilter] = useState<string>("ALL");
+  const [playersClubFilter, setPlayersClubFilter] = useState<string>("ALL");
+
   // Sync state when props update from server actions / router.refresh()
   useEffect(() => {
     setPendingPlayers(initialPendingPlayers);
@@ -339,6 +345,50 @@ export default function AdminClient({
     }
     return true;
   });
+
+  // Filtered registered players based on division, status, club assignment, and search query
+  const filteredRegisteredPlayers = useMemo(() => {
+    return playersList.filter((p) => {
+      // Division filter
+      if (playersDivisionFilter !== "ALL" && p.division !== playersDivisionFilter) {
+        return false;
+      }
+
+      // Status filter
+      if (playersStatusFilter !== "ALL") {
+        if (playersStatusFilter === "FLAGGED") {
+          if (p.consecutiveMissed < 2 && !p.isDisqualified) return false;
+        } else if (playersStatusFilter === "DISQUALIFIED") {
+          if (!p.isDisqualified && p.consecutiveMissed < 3) return false;
+        } else if (playersStatusFilter === "ACTIVE") {
+          if (p.status !== "ACTIVE" || p.isDisqualified || p.consecutiveMissed >= 3) return false;
+        } else if (playersStatusFilter === "WARNING") {
+          if (p.status !== "WARNING" && p.consecutiveMissed !== 2) return false;
+        }
+      }
+
+      // Official Club filter
+      if (playersClubFilter !== "ALL") {
+        if (playersClubFilter === "ASSIGNED" && !p.realTeam) return false;
+        if (playersClubFilter === "UNASSIGNED" && p.realTeam) return false;
+      }
+
+      // Search query
+      if (playersSearch.trim()) {
+        const q = playersSearch.toLowerCase().trim();
+        const matchTag = p.gamerTag?.toLowerCase().includes(q);
+        const matchName = p.fullName?.toLowerCase().includes(q);
+        const matchEfId = p.efootballId?.toLowerCase().includes(q);
+        const matchWa = p.whatsapp?.toLowerCase().includes(q);
+        const matchClub = p.realTeam?.toLowerCase().includes(q);
+        const matchDiv = p.division?.toLowerCase().includes(q);
+        const matchEmail = p.user?.email?.toLowerCase().includes(q);
+        return Boolean(matchTag || matchName || matchEfId || matchWa || matchClub || matchDiv || matchEmail);
+      }
+
+      return true;
+    });
+  }, [playersList, playersDivisionFilter, playersStatusFilter, playersClubFilter, playersSearch]);
 
   // Player replace modal state
   const [replaceTargetPlayer, setReplaceTargetPlayer] = useState<any | null>(null);
@@ -2161,7 +2211,7 @@ export default function AdminClient({
           }`}
         >
           <Users className="h-4 w-4" />
-          <span>Athletes Directory ({playersList.length})</span>
+          <span>Registered Players ({playersList.length})</span>
         </button>
 
         <button
@@ -5725,28 +5775,237 @@ export default function AdminClient({
           )}
 
           <div className="rounded-3xl border border-border bg-background/90 overflow-hidden shadow-xl">
-            <div className="p-5 border-b border-border flex items-center justify-between">
-              <h3 className="text-lg font-black uppercase text-white">Registered Athletes Directory</h3>
-              <span className="text-xs font-mono text-muted-foreground">{playersList.length} Total</span>
+            {/* Header */}
+            <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/40">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="yellow" className="text-xs font-mono font-bold">
+                    ROSTER
+                  </Badge>
+                  <span className="text-xs font-mono text-muted-foreground">Official League Registry</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black uppercase text-white flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  <span>Registered Players</span>
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-muted-foreground px-3 py-1.5 rounded-xl bg-card border border-border">
+                  {filteredRegisteredPlayers.length} of {playersList.length} Players
+                </span>
+              </div>
             </div>
 
-            <div className="overflow-x-auto no-scrollbar scroll-smooth">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-card/80 text-xs font-black uppercase text-muted-foreground border-b border-border">
-                  <tr>
-                    <th className="px-4 py-3">Athlete</th>
-                    <th className="px-4 py-3">Official Club</th>
-                    <th className="px-4 py-3">Full Name</th>
-                    <th className="px-4 py-3">eFootball ID</th>
-                    <th className="px-4 py-3">WhatsApp Number</th>
-                    <th className="px-4 py-3">Division</th>
-                    <th className="px-4 py-3 text-center">Missed</th>
-                    <th className="px-4 py-3 text-center">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {playersList.map((p) => {
+            {/* Search & Filter Toolbar */}
+            <div className="p-4 sm:p-5 border-b border-border bg-card/60 space-y-3.5 backdrop-blur-md">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                {/* Search Input */}
+                <div className="relative flex-1 min-w-56">
+                  <Search className="h-4 w-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
+                    placeholder="Search by gamer tag, name, Konami ID, WhatsApp, club..."
+                    value={playersSearch}
+                    onChange={(e) => setPlayersSearch(e.target.value)}
+                    className="pl-10 pr-9 h-10 text-xs sm:text-sm rounded-xl bg-background/80 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary"
+                  />
+                  {playersSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setPlayersSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white p-0.5 rounded transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Division Filter */}
+                  <select
+                    value={playersDivisionFilter}
+                    onChange={(e) => setPlayersDivisionFilter(e.target.value)}
+                    className="h-10 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="ALL">All Divisions ({playersList.length})</option>
+                    <option value="Division 1">Division 1 ({activeDiv1Count})</option>
+                    <option value="Division 2">Division 2 ({activeDiv2Count})</option>
+                    <option value="Division 3">Division 3 ({activeDiv3Count})</option>
+                  </select>
+
+                  {/* Status Filter */}
+                  <select
+                    value={playersStatusFilter}
+                    onChange={(e) => setPlayersStatusFilter(e.target.value)}
+                    className="h-10 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTIVE">Active (Clean Attendance)</option>
+                    <option value="WARNING">Disciplinary Warning (2 Missed)</option>
+                    <option value="DISQUALIFIED">Disqualified / Sub Needed</option>
+                    {flaggedPlayers.length > 0 && (
+                      <option value="FLAGGED">All Flagged ({flaggedPlayers.length})</option>
+                    )}
+                  </select>
+
+                  {/* Official Club Filter */}
+                  <select
+                    value={playersClubFilter}
+                    onChange={(e) => setPlayersClubFilter(e.target.value)}
+                    className="h-10 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="ALL">All Club Statuses</option>
+                    <option value="ASSIGNED">Club Assigned</option>
+                    <option value="UNASSIGNED">No Club Assigned</option>
+                  </select>
+
+                  {/* Reset Filters */}
+                  {(playersSearch || playersDivisionFilter !== "ALL" || playersStatusFilter !== "ALL" || playersClubFilter !== "ALL") && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setPlayersSearch("");
+                        setPlayersDivisionFilter("ALL");
+                        setPlayersStatusFilter("ALL");
+                        setPlayersClubFilter("ALL");
+                      }}
+                      className="h-10 px-3 text-xs text-muted-foreground hover:text-white rounded-xl border border-border hover:bg-muted"
+                      title="Reset all filters"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                      <span>Reset</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Filter Pill Buttons */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 text-xs">
+                <span className="text-xs font-mono text-muted-foreground shrink-0 flex items-center gap-1 mr-1">
+                  <Filter className="h-3 w-3" />
+                  <span>Division:</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPlayersDivisionFilter("ALL")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-mono text-xs transition-colors shrink-0 cursor-pointer border",
+                    playersDivisionFilter === "ALL"
+                      ? "bg-primary text-white font-bold border-primary shadow-sm"
+                      : "bg-background/80 text-muted-foreground hover:text-white border-border"
+                  )}
+                >
+                  All ({playersList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayersDivisionFilter("Division 1")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-mono text-xs transition-colors shrink-0 cursor-pointer border",
+                    playersDivisionFilter === "Division 1"
+                      ? "bg-secondary text-secondary-foreground font-bold border-secondary shadow-sm"
+                      : "bg-background/80 text-muted-foreground hover:text-white border-border"
+                  )}
+                >
+                  Div 1 ({activeDiv1Count})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayersDivisionFilter("Division 2")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-mono text-xs transition-colors shrink-0 cursor-pointer border",
+                    playersDivisionFilter === "Division 2"
+                      ? "bg-secondary text-secondary-foreground font-bold border-secondary shadow-sm"
+                      : "bg-background/80 text-muted-foreground hover:text-white border-border"
+                  )}
+                >
+                  Div 2 ({activeDiv2Count})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayersDivisionFilter("Division 3")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-mono text-xs transition-colors shrink-0 cursor-pointer border",
+                    playersDivisionFilter === "Division 3"
+                      ? "bg-secondary text-secondary-foreground font-bold border-secondary shadow-sm"
+                      : "bg-background/80 text-muted-foreground hover:text-white border-border"
+                  )}
+                >
+                  Div 3 ({activeDiv3Count})
+                </button>
+
+                {flaggedPlayers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlayersStatusFilter(playersStatusFilter === "FLAGGED" ? "ALL" : "FLAGGED");
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg font-mono text-xs transition-colors shrink-0 cursor-pointer border flex items-center gap-1 ml-auto",
+                      playersStatusFilter === "FLAGGED"
+                        ? "bg-destructive text-white font-bold border-destructive shadow-sm"
+                        : "bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/30"
+                    )}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Disciplinary Warning ({flaggedPlayers.length})</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Players Table or Empty State */}
+            {filteredRegisteredPlayers.length === 0 ? (
+              <div className="py-16 px-6 text-center space-y-4">
+                <div className="h-16 w-16 mx-auto rounded-3xl bg-muted/40 border border-border flex items-center justify-center text-muted-foreground shadow-inner">
+                  <Users className="h-8 w-8" />
+                </div>
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    No Registered Players Found
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    {playersSearch
+                      ? `No registered players matched your search "${playersSearch}". `
+                      : "No players found matching the selected filter criteria. "}
+                    Try adjusting your search keywords, division, or status filters.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPlayersSearch("");
+                    setPlayersDivisionFilter("ALL");
+                    setPlayersStatusFilter("ALL");
+                    setPlayersClubFilter("ALL");
+                  }}
+                  className="rounded-xl font-bold text-xs gap-1.5 cursor-pointer border-border"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Reset Filters &amp; Search</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto no-scrollbar scroll-smooth">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-card/80 text-xs font-black uppercase text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="px-4 py-3">Player</th>
+                      <th className="px-4 py-3">Official Club</th>
+                      <th className="px-4 py-3">Full Name</th>
+                      <th className="px-4 py-3">eFootball ID</th>
+                      <th className="px-4 py-3">WhatsApp Number</th>
+                      <th className="px-4 py-3">Division</th>
+                      <th className="px-4 py-3 text-center">Missed</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredRegisteredPlayers.map((p) => {
                     const avatarUrl = p.avatar || resolvePlayerAvatar(p);
                     const teamObj = p.realTeam ? findTeam(p.realTeam) : null;
                     return (
@@ -5905,6 +6164,7 @@ export default function AdminClient({
                 </tbody>
               </table>
             </div>
+          )}
           </div>
         </div>
       )}

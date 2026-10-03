@@ -36,6 +36,14 @@ export async function ensureNewsTable() {
       )
     `);
 
+    // 1c. Create EditedSystemNews table to preserve admin edits on auto-sync items
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "EditedSystemNews" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "editedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // 2. Create indexes
     const indexes = [
       { name: "News_status_idx", col: "status" },

@@ -1364,6 +1364,33 @@ export default function DashboardClient({
     !isAdminPermissionGranted && (isMatchLocked || hasSubmittedResult || hasClaimedForfeit || timeLeft.isExpired)
   );
 
+  // STRICT 15-MINUTE FORFEIT CLAIM PROTOCOL:
+  // Players are able to claim for forfeit (including screenshot upload) 15 minutes before the deadline only,
+  // else the forfeit claim button must be locked.
+  const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+  const isWithin15MinutesOfDeadline = Boolean(
+    !timeLeft.isExpired &&
+    timeLeft.hours === 0 &&
+    (timeLeft.minutes < 15 || (timeLeft.minutes === 15 && timeLeft.seconds === 0))
+  );
+
+  const isForfeitWindowOpen = Boolean(
+    isAdminPermissionGranted ||
+    (activeMatch?.deadlineDate && isWithin15MinutesOfDeadline && !isDeadlineExpired)
+  );
+
+  const forfeitUnlockTimeFormatted = useMemo(() => {
+    if (!activeMatch?.deadlineDate) return null;
+    const deadlineMs = new Date(activeMatch.deadlineDate).getTime();
+    if (isNaN(deadlineMs)) return null;
+    const unlockDate = new Date(deadlineMs - FIFTEEN_MINUTES_MS);
+    return unlockDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }, [activeMatch?.deadlineDate]);
+
   const isOneHourWarning = Boolean(
     activeMatch &&
     !isMatchLocked &&
@@ -1558,6 +1585,21 @@ export default function DashboardClient({
 
     if (isForfeitDeadlineExpired) {
       alert("Deadline Reached: The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer claim forfeit for this match.");
+      setSubmittingForfeit(false);
+      return;
+    }
+
+    // STRICT 15-MINUTE PROTOCOL CHECK:
+    const targetDeadline = targetMatch.deadlineDate ? new Date(targetMatch.deadlineDate).getTime() : 0;
+    const timeUntilTargetDeadline = targetDeadline - Date.now();
+    const isTargetReopened = Boolean(
+      targetMatch.allowLateSubmission ||
+      targetMatch.notes?.includes("ADMIN_REOPENED") ||
+      isAdminPermissionGranted
+    );
+
+    if (targetDeadline > 0 && timeUntilTargetDeadline > 15 * 60 * 1000 && !isTargetReopened) {
+      alert("Forfeit Protocol: Forfeit claims (including screenshot upload) can only be submitted 15 minutes before the deadline cutoff. Please continue trying to contact your opponent on WhatsApp.");
       setSubmittingForfeit(false);
       return;
     }
@@ -2798,7 +2840,7 @@ export default function DashboardClient({
                       </span>
                     </div>
                     <p className="text-xs text-secondary/90 leading-relaxed">
-                      You have not uploaded a match result screenshot or submitted a forfeit claim. Message <strong className="text-white">@{opponent?.gamerTag}</strong> on WhatsApp right now to play. If your opponent is unreachable, submit your forfeit claim proof before the timer reaches 00:00:00!
+                      You have not uploaded a match result screenshot or submitted a forfeit claim. Message <strong className="text-white">@{opponent?.gamerTag}</strong> on WhatsApp right now to play. If your opponent is unreachable, forfeit claims unlock strictly 15 minutes before cutoff{forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.
                     </p>
                   </div>
                 </div>
@@ -3071,19 +3113,41 @@ export default function DashboardClient({
                     <Button
                       variant="outline"
                       size="lg"
-                      disabled={isDeadlineExpired && !isAdminPermissionGranted}
+                      disabled={(!isForfeitWindowOpen || isDeadlineExpired) && !isAdminPermissionGranted}
                       onClick={() => {
                         if (isDeadlineExpired && !isAdminPermissionGranted) {
-                          alert("Deadline Reached: The deadline for this fixture has elapsed.");
+                          alert("Deadline Reached: The deadline for this fixture has elapsed (12:00 AM cutoff). You can no longer claim forfeit.");
+                          return;
+                        }
+                        if (!isForfeitWindowOpen && !isAdminPermissionGranted) {
+                          alert(`Forfeit Protocol: Forfeit claims unlock strictly 15 minutes before the match deadline${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}. Please continue to message your opponent on WhatsApp to arrange and play the match.`);
                           return;
                         }
                         setActionMatch(activeMatch);
                         setShowForfeitModal(true);
                       }}
-                      className="font-bold text-xs sm:text-sm gap-2 border-destructive/40 text-destructive hover:bg-destructive/20 w-full sm:w-auto"
+                      className={`font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto transition-all ${
+                        !isForfeitWindowOpen && !isAdminPermissionGranted
+                          ? "border-border text-muted-foreground bg-muted/20 opacity-75 cursor-not-allowed"
+                          : "border-destructive/40 text-destructive hover:bg-destructive/20"
+                      }`}
+                      title={
+                        !isForfeitWindowOpen && !isAdminPermissionGranted
+                          ? `Protocol: Forfeit claims unlock 15 minutes before deadline${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.`
+                          : "Claim 3-0 forfeit walkover by uploading WhatsApp chat proof."
+                      }
                     >
-                      <ShieldAlert className="h-4 w-4" />
-                      Claim Opponent Forfeit (Proof)
+                      {!isForfeitWindowOpen && !isAdminPermissionGranted ? (
+                        <>
+                          <Lock className="h-4 w-4 shrink-0" />
+                          Claim Forfeit (Unlocks 15m Before Deadline)
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert className="h-4 w-4 shrink-0" />
+                          Claim Opponent Forfeit (Proof)
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
@@ -4991,6 +5055,34 @@ export default function DashboardClient({
           !isAdminPermissionGranted
         );
 
+        const modalDeadline = modalMatch?.deadlineDate
+          ? new Date(modalMatch.deadlineDate).getTime()
+          : 0;
+        const modalTimeUntilDeadline = modalDeadline ? modalDeadline - Date.now() : 0;
+        const isModalReopened = Boolean(
+          modalMatch?.allowLateSubmission ||
+          modalMatch?.notes?.includes("ADMIN_REOPENED") ||
+          isAdminPermissionGranted
+        );
+        const isModalForfeitWindowOpen = Boolean(
+          isModalReopened ||
+          (modalDeadline > 0 &&
+            modalTimeUntilDeadline <= 15 * 60 * 1000 &&
+            modalTimeUntilDeadline > 0)
+        );
+
+        const modalUnlockTimeFormatted = modalDeadline
+          ? new Date(modalDeadline - 15 * 60 * 1000).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : null;
+        const modalMinutesToUnlock = Math.max(
+          1,
+          Math.ceil((modalTimeUntilDeadline - 15 * 60 * 1000) / (60 * 1000))
+        );
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="relative w-full max-w-lg max-h-screen overflow-y-auto rounded-3xl border border-destructive/40 bg-background p-5 sm:p-8 shadow-2xl space-y-5">
@@ -5065,6 +5157,41 @@ export default function DashboardClient({
                       League Admin approval is required before the 3-0 walkover (+3 points pass over) can be claimed.
                     </p>
                   </div>
+                  <Button variant="outline" size="sm" onClick={() => { setShowForfeitModal(false); setActionMatch(null); }} className="text-xs">
+                    Close Window
+                  </Button>
+                </div>
+              ) : !isModalForfeitWindowOpen ? (
+                <div className="p-6 rounded-2xl bg-muted/30 border border-border text-center space-y-4">
+                  <div className="p-3.5 rounded-2xl bg-muted/40 border border-border w-fit mx-auto text-muted-foreground">
+                    <Lock className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2">
+                    <Badge variant="outline" className="text-xs font-mono font-bold uppercase tracking-wider">
+                      PROTOCOL LOCK • 15-MINUTE RULE
+                    </Badge>
+                    <h4 className="text-base font-black text-foreground uppercase tracking-tight">
+                      Forfeit Claims Currently Locked
+                    </h4>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      Athletes are permitted to lodge a forfeit claim and upload screenshot evidence strictly <strong>15 minutes before the match deadline</strong>.
+                    </p>
+                  </div>
+                  {modalUnlockTimeFormatted && (
+                    <div className="p-3.5 rounded-xl bg-card border border-border text-xs space-y-1">
+                      <div className="text-muted-foreground">
+                        Claim Window Opens At: <strong className="text-foreground">{modalUnlockTimeFormatted} (CAT)</strong>
+                      </div>
+                      {modalMinutesToUnlock > 0 && (
+                        <div className="text-secondary font-bold font-mono">
+                          Unlocks in ~{modalMinutesToUnlock} minute{modalMinutesToUnlock === 1 ? "" : "s"}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Please use this time to message your opponent on WhatsApp and coordinate playing your fixture.
+                  </p>
                   <Button variant="outline" size="sm" onClick={() => { setShowForfeitModal(false); setActionMatch(null); }} className="text-xs">
                     Close Window
                   </Button>

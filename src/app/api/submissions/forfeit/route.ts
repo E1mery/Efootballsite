@@ -82,6 +82,31 @@ export async function POST(req: Request) {
       );
     }
 
+    // STRICT 15-MINUTE FORFEIT CLAIM PROTOCOL:
+    // Players are able to claim for forfeit (including screenshot upload) 15 minutes before the deadline only.
+    if (match.deadlineDate && !isReopenedByAdmin) {
+      const deadlineTime = new Date(match.deadlineDate).getTime();
+      const timeUntilDeadline = deadlineTime - now.getTime();
+      const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+
+      if (timeUntilDeadline > FIFTEEN_MINUTES_MS) {
+        const unlockTime = new Date(deadlineTime - FIFTEEN_MINUTES_MS);
+        const unlockTimeFormatted = unlockTime.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Africa/Kigali",
+        });
+        const minutesRemaining = Math.ceil((timeUntilDeadline - FIFTEEN_MINUTES_MS) / (60 * 1000));
+        return NextResponse.json(
+          {
+            error: `Forfeit Protocol: Forfeit claims and proof upload are locked until 15 minutes before the match deadline (unlocks at ${unlockTimeFormatted} CAT, in ~${minutesRemaining} min). Please continue reaching out to your opponent on WhatsApp to arrange and play your fixture.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // STRICT FIXTURE DROP TIME ENFORCEMENT:
     // When the schedule is set by Admin, first fixtures and future matchdays only drop at 12:00 AM on their kickoff date.
     if (match.matchDate && now < new Date(match.matchDate) && !isReopenedByAdmin) {

@@ -110,6 +110,12 @@ export async function syncSystemNewsToCarousel() {
     ).catch(() => [])) as any[]) || [];
     const dismissedSet = new Set<string>(dismissedRows.map((r: any) => r.id));
 
+    // Query edited system news IDs to avoid overwriting admin customizations
+    const editedRows = ((await prisma.$queryRawUnsafe(
+      `SELECT id FROM "EditedSystemNews"`
+    ).catch(() => [])) as any[]) || [];
+    const editedSet = new Set<string>(editedRows.map((r: any) => r.id));
+
     const [
       leagueConfig,
       earliestDivMatch,
@@ -119,6 +125,9 @@ export async function syncSystemNewsToCarousel() {
       europaKnockoutMatches,
       motdMatch,
       latestFinishedMatch,
+      maxPlayedStanding,
+      hallOfFameEntries,
+      activeRoundMatch,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
         where: { id: "default" },
@@ -163,6 +172,20 @@ export async function syncSystemNewsToCarousel() {
         where: { isMatchOfTheDay: true, status: "FINISHED" },
         include: { homePlayer: true, awayPlayer: true },
         orderBy: { matchDate: "desc" },
+      }),
+      prisma.standing.findFirst({
+        orderBy: { played: "desc" },
+      }),
+      prisma.hallOfFame.findMany({
+        orderBy: [{ season: "desc" }, { createdAt: "desc" }],
+        take: 3,
+      }),
+      prisma.match.findFirst({
+        where: {
+          division: { in: ["Division 1", "Division 2", "Division 3"] },
+          status: { in: ["SCHEDULED", "LIVE"] },
+        },
+        orderBy: [{ round: "desc" }, { matchDate: "asc" }],
       }),
     ]);
 
@@ -666,6 +689,121 @@ export async function syncSystemNewsToCarousel() {
         },
         data: { isPinned: false },
       }).catch(() => {});
+    }
+
+    // =========================================================================
+    // 10. Auto-update: In-Form Athletes (Only after at least 5 matches played)
+    // =========================================================================
+    const inFormId = "sys-in-form-athletes";
+    const maxPlayed = maxPlayedStanding?.played || 0;
+    if (maxPlayed >= 5) {
+      if (!dismissedSet.has(inFormId)) {
+        const existing = await prisma.news.findUnique({ where: { id: inFormId } });
+        if (!existing) {
+          const item = await prisma.news.create({
+            data: {
+              id: inFormId,
+              title: "Form Leaders • Min 5 Matches Played",
+              category: "League News",
+              description: "Top-ranked contenders evaluated from official table standings, win rate & individual form.",
+              featuredImage: "/images/carousel-stadium-bg.jpg",
+              buttonText: "Full Standings",
+              buttonUrl: "/standings",
+              status: "PUBLISHED",
+              publishDate: now,
+              expirationDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+              showOnCarousel: true,
+            },
+          });
+          synced.push(item);
+        }
+      }
+    } else {
+      // Under 5 matches played -> hide from carousel if existing and not customized by admin
+      const existing = await prisma.news.findUnique({ where: { id: inFormId } });
+      if (existing && existing.showOnCarousel && !editedSet.has(inFormId)) {
+        await prisma.news.update({
+          where: { id: inFormId },
+          data: { showOnCarousel: false },
+        });
+      }
+    }
+
+    // =========================================================================
+    // 11. Auto-update: Hall of Fame Champions (if records exist in DB)
+    // =========================================================================
+    const hofId = "sys-hall-of-fame";
+    if (hallOfFameEntries.length > 0) {
+      if (!dismissedSet.has(hofId)) {
+        const topChamp = hallOfFameEntries[0];
+        const existing = await prisma.news.findUnique({ where: { id: hofId } });
+        const hofImg = (topChamp as any)?.playerImage || "/images/carousel-stadium-bg.jpg";
+        if (!existing) {
+          const item = await prisma.news.create({
+            data: {
+              id: hofId,
+              title: "Title Winners • Last Season Champions",
+              category: "Competition",
+              description: "Official title winners from previous seasons immortalized in the league registry.",
+              featuredImage: hofImg,
+              buttonText: "Explore Hall of Fame",
+              buttonUrl: "/#hall-of-fame",
+              status: "PUBLISHED",
+              publishDate: now,
+              expirationDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+              showOnCarousel: true,
+            },
+          });
+          synced.push(item);
+        }
+      }
+    } else {
+      const existing = await prisma.news.findUnique({ where: { id: hofId } });
+      if (existing && existing.showOnCarousel && !editedSet.has(hofId)) {
+        await prisma.news.update({
+          where: { id: hofId },
+          data: { showOnCarousel: false },
+        });
+      }
+    }
+
+    // =========================================================================
+    // 12. Active Matchday / Round Live Fixtures
+    // =========================================================================
+    const matchdayActiveId = "sys-announcement-matchday-active";
+    if (activeRoundMatch) {
+      if (!dismissedSet.has(matchdayActiveId)) {
+        const roundName = activeRoundMatch.round || `Matchday ${leagueConfig.currentMatchday || 1}`;
+        const activeTitle = `⚡ ${roundName} Fixtures Now LIVE (24-Hour Cycle)`;
+        const activeDesc = `All Division 1, Division 2, and Division 3 fixtures for ${roundName} are active. Coordinate with your opponent on WhatsApp and conclude matches before 12:00 AM midnight (CAT / Rwandan Time).`;
+        const existing = await prisma.news.findUnique({ where: { id: matchdayActiveId } });
+        if (!existing) {
+          const item = await prisma.news.create({
+            data: {
+              id: matchdayActiveId,
+              title: activeTitle,
+              category: "Match",
+              description: activeDesc,
+              featuredImage: "/images/carousel-stadium-bg.jpg",
+              buttonText: "View Fixtures",
+              buttonUrl: "/fixtures",
+              status: "PUBLISHED",
+              publishDate: now,
+              expirationDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
+              showOnCarousel: true,
+            },
+          });
+          synced.push(item);
+        } else if (!editedSet.has(matchdayActiveId) && existing.showOnCarousel && !existing.title.includes(roundName)) {
+          await prisma.news.update({
+            where: { id: matchdayActiveId },
+            data: {
+              title: activeTitle,
+              description: activeDesc,
+            },
+          });
+        }
+      }
     }
   } catch (err) {
     console.error("[syncSystemNewsToCarousel] Error:", err);

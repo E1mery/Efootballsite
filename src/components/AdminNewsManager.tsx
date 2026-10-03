@@ -423,9 +423,12 @@ export default function AdminNewsManager({
         categoryFilter === "ALL" || item.category === categoryFilter;
 
       const compStatus = getComputedStatus(item);
+      const isSystem = item.id.startsWith("sys-");
       const matchesStatus =
         statusFilter === "ALL" ||
         (statusFilter === "ON_CAROUSEL" && item.showOnCarousel && compStatus === "PUBLISHED") ||
+        (statusFilter === "AUTO_SYNC" && isSystem) ||
+        (statusFilter === "ADMIN_MANUAL" && !isSystem) ||
         statusFilter === compStatus;
 
       return matchesSearch && matchesCategory && matchesStatus;
@@ -438,6 +441,7 @@ export default function AdminNewsManager({
     let drafts = 0;
     let expired = 0;
     let onCarousel = 0;
+    let autoSync = 0;
 
     for (const item of newsList) {
       const comp = getComputedStatus(item);
@@ -445,6 +449,7 @@ export default function AdminNewsManager({
       if (comp === "DRAFT") drafts++;
       if (comp === "EXPIRED") expired++;
       if (item.showOnCarousel && comp === "PUBLISHED") onCarousel++;
+      if (item.id.startsWith("sys-")) autoSync++;
     }
 
     return {
@@ -453,6 +458,7 @@ export default function AdminNewsManager({
       drafts,
       expired,
       onCarousel,
+      autoSync,
     };
   }, [newsList]);
 
@@ -466,7 +472,7 @@ export default function AdminNewsManager({
             <span>News &amp; Carousel Management</span>
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
-            Create, schedule, draft, publish, and control news articles appearing on the homepage News &amp; Trending carousel. Only verified administrator-created records are displayed.
+            Manage all homepage carousel published contents — including real-time Auto-Sync System updates and administrator-created news articles. Full control to edit headlines, change carousel visibility, schedule, or delete.
           </p>
         </div>
 
@@ -496,24 +502,67 @@ export default function AdminNewsManager({
       </div>
 
       {/* Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="rounded-2xl border border-border bg-card/60 p-3.5 space-y-1 backdrop-blur-md">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div
+          onClick={() => setStatusFilter("ALL")}
+          className={cn(
+            "rounded-2xl border p-3.5 space-y-1 backdrop-blur-md cursor-pointer transition-all hover:border-primary/50",
+            statusFilter === "ALL" ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card/60"
+          )}
+        >
           <span className="text-xs font-mono text-muted-foreground uppercase">Total Articles</span>
           <p className="text-lg sm:text-xl font-black text-foreground">{metrics.total}</p>
         </div>
-        <div className="rounded-2xl border border-primary/30 bg-primary/10 p-3.5 space-y-1 backdrop-blur-md">
+        <div
+          onClick={() => setStatusFilter("PUBLISHED")}
+          className={cn(
+            "rounded-2xl border p-3.5 space-y-1 backdrop-blur-md cursor-pointer transition-all hover:border-primary/60",
+            statusFilter === "PUBLISHED" ? "border-primary bg-primary/20 shadow-md" : "border-primary/30 bg-primary/10"
+          )}
+        >
           <span className="text-xs font-mono text-primary uppercase">Published Active</span>
           <p className="text-lg sm:text-xl font-black text-primary">{metrics.published}</p>
         </div>
-        <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-3.5 space-y-1 backdrop-blur-md">
+        <div
+          onClick={() => setStatusFilter("ON_CAROUSEL")}
+          className={cn(
+            "rounded-2xl border p-3.5 space-y-1 backdrop-blur-md cursor-pointer transition-all hover:border-secondary/60",
+            statusFilter === "ON_CAROUSEL" ? "border-secondary bg-secondary/20 shadow-md" : "border-secondary/30 bg-secondary/10"
+          )}
+        >
           <span className="text-xs font-mono text-secondary uppercase">Live On Carousel</span>
           <p className="text-lg sm:text-xl font-black text-secondary">{metrics.onCarousel}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-muted/30 p-3.5 space-y-1 backdrop-blur-md">
+        <div
+          onClick={() => setStatusFilter("AUTO_SYNC")}
+          className={cn(
+            "rounded-2xl border p-3.5 space-y-1 backdrop-blur-md cursor-pointer transition-all hover:border-secondary/60",
+            statusFilter === "AUTO_SYNC" ? "border-secondary bg-secondary/25 shadow-md" : "border-border bg-card/60"
+          )}
+        >
+          <span className="text-xs font-mono text-secondary uppercase flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            <span>Auto-Sync</span>
+          </span>
+          <p className="text-lg sm:text-xl font-black text-secondary">{metrics.autoSync}</p>
+        </div>
+        <div
+          onClick={() => setStatusFilter("DRAFT")}
+          className={cn(
+            "rounded-2xl border p-3.5 space-y-1 backdrop-blur-md cursor-pointer transition-all hover:border-muted-foreground/50",
+            statusFilter === "DRAFT" ? "border-muted-foreground bg-muted/40 shadow-md" : "border-border bg-muted/30"
+          )}
+        >
           <span className="text-xs font-mono text-muted-foreground uppercase">Drafts</span>
           <p className="text-lg sm:text-xl font-black text-muted-foreground">{metrics.drafts}</p>
         </div>
-        <div className="col-span-2 sm:col-span-1 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 space-y-1 backdrop-blur-md">
+        <div
+          onClick={() => setStatusFilter("EXPIRED")}
+          className={cn(
+            "rounded-2xl border p-3.5 space-y-1 backdrop-blur-md cursor-pointer transition-all hover:border-destructive/60",
+            statusFilter === "EXPIRED" ? "border-destructive bg-destructive/20 shadow-md" : "border-destructive/30 bg-destructive/10"
+          )}
+        >
           <span className="text-xs font-mono text-destructive uppercase">Expired</span>
           <p className="text-lg sm:text-xl font-black text-destructive">{metrics.expired}</p>
         </div>
@@ -552,9 +601,11 @@ export default function AdminNewsManager({
             onChange={(e) => setStatusFilter(e.target.value)}
             className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="ALL">All Statuses</option>
+            <option value="ALL">All Content</option>
             <option value="PUBLISHED">Published (Active)</option>
             <option value="ON_CAROUSEL">Live on Carousel (ON)</option>
+            <option value="AUTO_SYNC">⚡ Auto-Sync System Updates</option>
+            <option value="ADMIN_MANUAL">📝 Admin-Created News</option>
             <option value="DRAFT">Drafts</option>
             <option value="SCHEDULED">Scheduled</option>
             <option value="EXPIRED">Expired</option>
@@ -658,8 +709,9 @@ export default function AdminNewsManager({
                                   {item.category}
                                 </span>
                                 {item.id.startsWith("sys-") && (
-                                  <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
-                                    System
+                                  <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0 flex items-center gap-1">
+                                    <Sparkles className="h-3 w-3" />
+                                    <span>Auto-Sync</span>
                                   </Badge>
                                 )}
                               </div>
@@ -841,8 +893,9 @@ export default function AdminNewsManager({
                             {item.category}
                           </span>
                           {item.id.startsWith("sys-") && (
-                            <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
-                              System
+                            <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0 flex items-center gap-1">
+                              <Sparkles className="h-3 w-3" />
+                              <span>Auto-Sync</span>
                             </Badge>
                           )}
                         </div>
@@ -957,6 +1010,20 @@ export default function AdminNewsManager({
               <div className="p-3.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>{formSuccess}</span>
+              </div>
+            )}
+
+            {editingItem?.id.startsWith("sys-") && (
+              <div className="p-3.5 rounded-xl bg-secondary/10 border border-secondary/30 text-foreground text-xs flex items-start gap-2.5">
+                <Sparkles className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-secondary font-mono uppercase tracking-wider block">
+                    Auto-Sync System Carousel Content
+                  </span>
+                  <p className="text-muted-foreground leading-relaxed">
+                    You are editing an automated system carousel update. Your customized headline, description, image, schedule, and carousel visibility will be saved and protected from being overwritten by automated background cycles.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1441,6 +1508,18 @@ export default function AdminNewsManager({
               <div className="p-2.5 rounded-xl bg-muted/40 border border-border font-bold text-xs text-foreground mt-2 truncate">
                 &ldquo;{deletingItem.title}&rdquo;
               </div>
+
+              {deletingItem.id.startsWith("sys-") && (
+                <div className="p-3 rounded-xl bg-secondary/10 border border-secondary/30 text-xs text-left text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-secondary font-mono">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Auto-Sync Carousel Update</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Deleting this system update permanently removes it from the carousel and database, and records it as dismissed so automated cycles will not recreate it.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-center gap-2 pt-2">

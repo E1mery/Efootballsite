@@ -187,6 +187,13 @@ export async function PUT(
       data: dataToUpdate,
     });
 
+    if (id.startsWith("sys-")) {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "EditedSystemNews" ("id") VALUES ($1) ON CONFLICT ("id") DO UPDATE SET "editedAt" = CURRENT_TIMESTAMP`,
+        id
+      ).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, news: updated });
   } catch (error: any) {
     console.error("[PUT /api/admin/news/[id]] Error:", error);

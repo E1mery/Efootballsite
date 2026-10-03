@@ -863,7 +863,7 @@ const CoverflowCard = memo(function CoverflowCard({
 
         {/* BOTTOM ROW: League Branding & Verified Bulletins */}
         <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between pt-3 border-t border-border/40 text-xs font-mono text-muted-foreground w-full mt-auto shrink-0">
-          <span className="text-[11px] leading-snug sm:text-xs">
+          <span className="text-xs leading-snug">
             eFootball Rwanda League • Official News Bulletin
           </span>
           <span className="uppercase tracking-widest hidden sm:inline-block font-semibold text-secondary">
