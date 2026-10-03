@@ -254,6 +254,25 @@ export default function AdminClient({
     setPasswordResets(initialPasswordResets);
   }, [initialPasswordResets]);
 
+  // Check if league division matches have concluded
+  const divisionMatches = useMemo(() => {
+    return (matches || []).filter(
+      (m: any) => m.division && m.division.startsWith("Division")
+    );
+  }, [matches]);
+
+  const unplayedDivisionMatchesCount = useMemo(() => {
+    return divisionMatches.filter(
+      (m: any) => m.status !== "FINISHED" && m.status !== "FORFEIT"
+    ).length;
+  }, [divisionMatches]);
+
+  const isLeagueEnded = useMemo(() => {
+    if (leagueConfig?.uclStarted || leagueConfig?.europaStarted) return true;
+    if (divisionMatches.length === 0) return false;
+    return unplayedDivisionMatchesCount === 0;
+  }, [divisionMatches.length, unplayedDivisionMatchesCount, leagueConfig?.uclStarted, leagueConfig?.europaStarted]);
+
   // Direct Inquiries & Reply State
   const [replyingMessageId, setReplyingMessageId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -1927,6 +1946,7 @@ export default function AdminClient({
                   const isTop8Ucl = rank <= 8 && s.division === "Division 1";
                   const isTop4Ucl = rank <= 4 && (s.division === "Division 2" || s.division === "Division 3");
                   const isRelegation =
+                    isLeagueEnded &&
                     (s.division === "Division 1" || s.division === "Division 2") &&
                     standings.length >= 4 &&
                     rank > standings.length - 3;
@@ -2896,142 +2916,189 @@ export default function AdminClient({
           </div>
 
           {/* Operation 5: End Season Finale: Promotions & Relegations */}
-          <div className="rounded-xl border border-secondary/30 bg-card p-5 shadow-sm space-y-5">
-            <div className="flex flex-col gap-4 border-b border-border pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-secondary" />
-                  <h3 className="text-base font-semibold text-foreground">
-                    Season transition
-                  </h3>
+          {!isLeagueEnded ? (
+            <div className="rounded-3xl border border-border bg-card/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-lg font-black uppercase text-white">
+                      Season Finale &amp; Transition
+                    </h3>
+                    <Badge variant="outline" className="border-border text-muted-foreground font-mono text-xs">
+                      Active: {leagueConfig?.season || "Season 1 (2026)"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 max-w-3xl">
-                  Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
-                </p>
+
+                <Badge variant="yellow" className="font-mono text-xs uppercase px-3 py-1 self-start sm:self-auto">
+                  {divisionMatches.length === 0 ? "FIXTURES NOT GENERATED" : "LEAGUE IN PROGRESS"}
+                </Badge>
               </div>
 
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {/* Div 1 Bottom 3 Preview (Relegation to Div 2) */}
-              <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs text-muted-foreground font-mono">Div 1 (Bottom 3)</span>
+              <div className="p-5 rounded-2xl bg-muted/20 border border-border flex items-center gap-3.5">
+                <div className="h-10 w-10 rounded-xl bg-muted/40 border border-border flex items-center justify-center shrink-0 text-muted-foreground">
+                  <Lock className="h-5 w-5" />
                 </div>
-                <div className="space-y-1.5 pt-1">
-                  {div1Standings.length >= 4 ? (
-                    div1Standings.slice(-3).map((s, idx) => (
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-bold text-white">
+                    Promotions, Relegations &amp; Season Finale Previews Locked
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {divisionMatches.length === 0
+                      ? "Division fixtures have not been generated yet. Generate schedule in Operation 2 to start the season. Season finale previews unlock once all division fixtures conclude."
+                      : `Division matches are currently active (${unplayedDivisionMatchesCount} fixture${unplayedDivisionMatchesCount === 1 ? "" : "s"} remaining). Official promotion and relegation previews will unlock automatically when the league ends.`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-secondary/30 bg-gradient-to-b from-background via-card to-background p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-secondary" />
+                    <h3 className="text-lg font-black uppercase text-white">
+                      Season Finale &amp; Transition
+                    </h3>
+                    <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 font-mono text-xs">
+                      Active: {leagueConfig?.season || "Season 1 (2026)"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Promote/relegate division athletes or conclude the entire season, archiving winners to Hall of Fame, wiping season fixtures, and resetting for a fresh club draft.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <Button
+                    onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
+                    disabled={actionLoading}
+                    className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider shadow-lg"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5 mr-1" />
+                    Relegate Bottom 3
+                  </Button>
+                  <Button
+                    onClick={() => handleExecuteSeasonTransition("ALL")}
+                    disabled={actionLoading}
+                    className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider shadow-lg"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />
+                    Execute Promotions &amp; Relegations
+                  </Button>
+                  <Button
+                    onClick={() => handleExecuteSeasonTransition("WIPE_FOR_NEW_SEASON")}
+                    disabled={actionLoading}
+                    className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider shadow-lg"
+                    title="Archive champions to Hall of Fame, wipe fixtures &amp; standings, reset clubs to null, and advance season"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    Conclude Season &amp; Wipe Data for New Season
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Div 1 Bottom 3 Preview (Relegation to Div 2) */}
+                <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border border-destructive/40">
+                      RELEGATING TO DIV 2
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono">Div 1 (Bottom 3)</span>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {div1Standings.length >= 4 ? (
+                      div1Standings.slice(-3).map((s, idx) => (
+                        <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
+                          <span className="font-bold text-white truncate w-32">
+                            #{div1Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
+                          </span>
+                          <span className="font-mono text-destructive font-black">{s.points} Pts</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Need at least 4 Division 1 players.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Div 2 Bottom 3 Preview (Relegation to Div 3) */}
+                <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="destructive" className="text-xs bg-destructive/20 text-destructive border border-destructive/40">
+                      RELEGATING TO DIV 3
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono">Div 2 (Bottom 3)</span>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {div2Standings.length >= 4 ? (
+                      div2Standings.slice(-3).map((s, idx) => (
+                        <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
+                          <span className="font-bold text-white truncate w-32">
+                            #{div2Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
+                          </span>
+                          <span className="font-mono text-destructive font-black">{s.points} Pts</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Need at least 4 Division 2 players.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Div 2 Top 3 Preview (Promoting to Div 1) */}
+                <div className="p-4 rounded-2xl bg-background border border-secondary/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="yellow" className="text-xs">
+                      PROMOTING TO DIV 1
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono">Div 2 (Top 3)</span>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {div2Standings.slice(0, 3).map((s, idx) => (
                       <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
                         <span className="font-bold text-white truncate w-32">
-                          #{div1Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
+                          #{idx + 1} {s.player?.gamerTag || "Unknown"}
                         </span>
-                        <span className="font-mono text-destructive font-black">{s.points} Pts</span>
+                        <span className="font-mono text-secondary font-black">{s.points} Pts</span>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">Need at least 4 Division 1 players.</p>
-                  )}
+                    ))}
+                    {div2Standings.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">No Division 2 standings registered.</p>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Div 2 Bottom 3 Preview (Relegation to Div 3) */}
-              <div className="p-4 rounded-2xl bg-background border border-destructive/30 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs text-muted-foreground font-mono">Div 2 (Bottom 3)</span>
-                </div>
-                <div className="space-y-1.5 pt-1">
-                  {div2Standings.length >= 4 ? (
-                    div2Standings.slice(-3).map((s, idx) => (
+                {/* Div 3 Top 3 Preview (Promoting to Div 2) */}
+                <div className="p-4 rounded-2xl bg-background border border-primary/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                      PROMOTING TO DIV 2
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono">Div 3 (Top 3)</span>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {div3Standings.slice(0, 3).map((s, idx) => (
                       <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
                         <span className="font-bold text-white truncate w-32">
-                          #{div2Standings.length - 3 + idx + 1} {s.player?.gamerTag || "Unknown"}
+                          #{idx + 1} {s.player?.gamerTag || "Unknown"}
                         </span>
-                        <span className="font-mono text-destructive font-black">{s.points} Pts</span>
+                        <span className="font-mono text-primary font-black">{s.points} Pts</span>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">Need at least 4 Division 2 players.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Div 2 Top 3 Preview (Promoting to Div 1) */}
-              <div className="p-4 rounded-2xl bg-background border border-secondary/30 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs text-muted-foreground font-mono">Div 2 (Top 3)</span>
-                </div>
-                <div className="space-y-1.5 pt-1">
-                  {div2Standings.slice(0, 3).map((s, idx) => (
-                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
-                      <span className="font-bold text-white truncate w-32">
-                        #{idx + 1} {s.player?.gamerTag || "Unknown"}
-                      </span>
-                      <span className="font-mono text-secondary font-black">{s.points} Pts</span>
-                    </div>
-                  ))}
-                  {div2Standings.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">No Division 2 standings registered.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Div 3 Top 3 Preview (Promoting to Div 2) */}
-              <div className="p-4 rounded-2xl bg-background border border-primary/30 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs text-muted-foreground font-mono">Div 3 (Top 3)</span>
-                </div>
-                <div className="space-y-1.5 pt-1">
-                  {div3Standings.slice(0, 3).map((s, idx) => (
-                    <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-border/60">
-                      <span className="font-bold text-white truncate w-32">
-                        #{idx + 1} {s.player?.gamerTag || "Unknown"}
-                      </span>
-                      <span className="font-mono text-primary font-black">{s.points} Pts</span>
-                    </div>
-                  ))}
-                  {div3Standings.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">No Division 3 standings registered.</p>
-                  )}
+                    ))}
+                    {div3Standings.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">No Division 3 standings registered.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div className="flex flex-col gap-3 border-t border-border pt-4">
-              <p className="text-xs text-muted-foreground">Review the projected movement above before applying changes. Concluding a season clears its fixtures and standings after archiving winners.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  rollingText={false}
-                  size="sm"
-                  onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
-                  disabled={actionLoading}
-                  variant="destructive"
-                  className="gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
-                >
-                  <ArrowDown className="h-3.5 w-3.5" /> Relegate bottom 3
-                </Button>
-                <Button
-                  rollingText={false}
-                  size="sm"
-                  onClick={() => handleExecuteSeasonTransition("ALL")}
-                  disabled={actionLoading}
-                  variant="yellow"
-                  className="gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
-                >
-                  <Sparkles className="h-3.5 w-3.5" /> Apply promotions & relegations
-                </Button>
-                <Button
-                  rollingText={false}
-                  size="sm"
-                  onClick={() => handleExecuteSeasonTransition("WIPE_FOR_NEW_SEASON")}
-                  disabled={actionLoading}
-                  className="gap-2 text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
-                  title="Archive champions to Hall of Fame, wipe fixtures and standings, reset clubs, and advance season"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Conclude season & reset
-                </Button>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -3695,45 +3762,72 @@ export default function AdminClient({
           </div>
 
           {/* Relegations & Promotions Commissioner Trigger Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card/80 shadow-xl">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="yellow" className="text-xs font-black">
-                  RELEGATION & PROMOTION DISPATCH
-                </Badge>
-                <span className="text-xs font-mono text-muted-foreground">Commissioner Authority</span>
+          {!isLeagueEnded ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border/60 bg-card/40 shadow-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs font-mono text-muted-foreground border-border/60">
+                    LOCKED • LEAGUE IN PROGRESS
+                  </Badge>
+                  <span className="text-xs font-mono text-muted-foreground">Commissioner Authority</span>
+                </div>
+                <h3 className="text-base font-black uppercase text-muted-foreground flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span>Division Relegations & Promotions Dispatch Locked</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Official promotion and relegation dispatch activates only when the league regular season ends (all division fixtures completed or continental tournament started). Currently <strong className="text-secondary">{unplayedDivisionMatchesCount}</strong> division match{unplayedDivisionMatchesCount === 1 ? "" : "es"} remaining.
+                </p>
               </div>
-              <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
-                <ArrowDown className="h-4 w-4 text-secondary" />
-                <span>Trigger Official Division Relegations & Promotions</span>
-              </h3>
-              <p className="text-xs text-foreground">
-                • <strong>Div 1</strong>: Bottom 3 relegated to Div 2 &bull; <strong>Div 2</strong>: Bottom 3 relegated to Div 3, Top 3 promoted to Div 1 &bull; <strong>Div 3</strong>: Top 3 promoted to Div 2.<br />
-                Relegated players automatically transition their portal and calendar access to their new division.
-              </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <Button
-                onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
-                disabled={actionLoading}
-                className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
-                title="Move bottom 3 players in Division 1 to Division 2, and bottom 3 in Division 2 to Division 3"
-              >
-                <ArrowDown className="h-3.5 w-3.5 mr-1" />
-                Relegate Bottom 3
-              </Button>
-              <Button
-                onClick={() => handleExecuteSeasonTransition("ALL")}
-                disabled={actionLoading}
-                className="bg-gradient-to-r from-secondary to-secondary hover:from-secondary hover:to-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
-                title="Execute both promotions and relegations in one transaction"
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1" />
-                Full Season Transition
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border/60 bg-muted/20 text-xs text-muted-foreground font-mono">
+                  <Lock className="h-3.5 w-3.5" />
+                  <span>Locked until season concludes</span>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card/80 shadow-xl">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="yellow" className="text-xs font-black">
+                    RELEGATION & PROMOTION DISPATCH
+                  </Badge>
+                  <span className="text-xs font-mono text-muted-foreground">Commissioner Authority</span>
+                </div>
+                <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
+                  <ArrowDown className="h-4 w-4 text-secondary" />
+                  <span>Trigger Official Division Relegations & Promotions</span>
+                </h3>
+                <p className="text-xs text-foreground">
+                  • <strong>Div 1</strong>: Bottom 3 relegated to Div 2 &bull; <strong>Div 2</strong>: Bottom 3 relegated to Div 3, Top 3 promoted to Div 1 &bull; <strong>Div 3</strong>: Top 3 promoted to Div 2.<br />
+                  Relegated players automatically transition their portal and calendar access to their new division.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <Button
+                  onClick={() => handleExecuteSeasonTransition("RELEGATE_ONLY")}
+                  disabled={actionLoading}
+                  className="bg-destructive hover:bg-destructive text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
+                  title="Move bottom 3 players in Division 1 to Division 2, and bottom 3 in Division 2 to Division 3"
+                >
+                  <ArrowDown className="h-3.5 w-3.5 mr-1" />
+                  Relegate Bottom 3
+                </Button>
+                <Button
+                  onClick={() => handleExecuteSeasonTransition("ALL")}
+                  disabled={actionLoading}
+                  className="bg-gradient-to-r from-secondary to-secondary hover:from-secondary hover:to-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
+                  title="Execute both promotions and relegations in one transaction"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  Full Season Transition
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Table Sub-Navigation */}
           <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">

@@ -78,7 +78,7 @@ function ContinentalGroupStandingsView({
 
   if (!isStarted) {
     return (
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-background/70 p-10 text-center space-y-4">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card/40 backdrop-blur-xl p-8 sm:p-10 text-center space-y-4 shadow-2xl">
         {isUcl ? (
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
             <Image
@@ -86,9 +86,10 @@ function ContinentalGroupStandingsView({
               alt="eFootball UCL Stadium"
               fill
               sizes="(max-width: 1200px) 100vw, 1200px"
-              className="object-cover object-center opacity-20 scale-105"
+              className="object-cover object-center opacity-30 md:opacity-35 scale-105"
+              priority
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90" />
           </div>
         ) : (
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
@@ -97,10 +98,11 @@ function ContinentalGroupStandingsView({
               alt="eFootball Europa League Stadium"
               fill
               sizes="(max-width: 1200px) 100vw, 1200px"
-              className="object-cover object-center opacity-25 scale-105"
+              className="object-cover object-center opacity-30 md:opacity-35 scale-105"
+              priority
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
-            <div className="absolute inset-0 bg-hero-glow opacity-50" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90" />
+            <div className="absolute inset-0 bg-hero-glow opacity-40" />
           </div>
         )}
         <div className="relative z-10 space-y-4">
@@ -144,7 +146,7 @@ function ContinentalGroupStandingsView({
 
   if (!hasAnyData) {
     return (
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-background/70 p-10 text-center space-y-4">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card/40 backdrop-blur-xl p-8 sm:p-10 text-center space-y-4 shadow-2xl">
         {isUcl ? (
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
             <Image
@@ -152,9 +154,9 @@ function ContinentalGroupStandingsView({
               alt="eFootball UCL Stadium"
               fill
               sizes="(max-width: 1200px) 100vw, 1200px"
-              className="object-cover object-center opacity-20 scale-105"
+              className="object-cover object-center opacity-30 md:opacity-35 scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90" />
           </div>
         ) : (
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
@@ -163,10 +165,10 @@ function ContinentalGroupStandingsView({
               alt="eFootball Europa League Stadium"
               fill
               sizes="(max-width: 1200px) 100vw, 1200px"
-              className="object-cover object-center opacity-25 scale-105"
+              className="object-cover object-center opacity-30 md:opacity-35 scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
-            <div className="absolute inset-0 bg-hero-glow opacity-50" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90" />
+            <div className="absolute inset-0 bg-hero-glow opacity-40" />
           </div>
         )}
         <div className="relative z-10 space-y-4">
@@ -217,9 +219,9 @@ function ContinentalGroupStandingsView({
             alt="eFootball UCL Stadium"
             fill
             sizes="(max-width: 1200px) 100vw, 1200px"
-            className="object-cover object-center opacity-20 scale-105"
+            className="object-cover object-center opacity-25 scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95 rounded-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95 rounded-3xl" />
         </div>
       ) : (
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-3xl" aria-hidden="true">
@@ -230,8 +232,8 @@ function ContinentalGroupStandingsView({
             sizes="(max-width: 1200px) 100vw, 1200px"
             className="object-cover object-center opacity-25 scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95 rounded-3xl" />
-          <div className="absolute inset-0 bg-hero-glow opacity-50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95 rounded-3xl" />
+          <div className="absolute inset-0 bg-hero-glow opacity-40" />
         </div>
       )}
 
@@ -1717,27 +1719,10 @@ export default function DashboardClient({
     );
   }
 
-  const isUclTabActive =
-    (activeTab === "STANDINGS" && standingsCategory === "UCL") ||
-    (activeTab === "DRAWS" && drawsTabComp === "UCL");
-
   return (
-    <div className="relative space-y-8 min-h-screen">
-      {/* Official UCL Stadium Graphic Background */}
-      {isUclTabActive && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <img
-            src="/images/ucl-stadium-bg.jpg"
-            alt="eFootball UCL Stadium"
-            className="w-full h-full object-cover object-center opacity-25 scale-105 transition-opacity duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background/95" />
-        </div>
-      )}
-
-      <div className="relative z-10 space-y-8">
-        {/* Top Welcome Bar — shown only on Today's Match (OVERVIEW) */}
-        {activeTab === "OVERVIEW" && (
+    <div className="space-y-8">
+      {/* Top Welcome Bar — shown only on Today's Match (OVERVIEW) */}
+      {activeTab === "OVERVIEW" && (
         <div className="rounded-3xl border border-border bg-gradient-to-r from-card via-background to-card p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
         <div className="flex items-center gap-3 sm:gap-5 min-w-0">
           <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 shrink-0 aspect-square items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-1.5 sm:p-2 shadow-2xl overflow-hidden">
@@ -5379,7 +5364,6 @@ export default function DashboardClient({
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
