@@ -81,12 +81,9 @@ export default function MatchCard({ match }: MatchProps) {
       <div className="flex flex-wrap items-center justify-between border-b border-border/80 pb-2.5 mb-3 gap-2 text-xs">
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-muted-foreground">
           <Smartphone className="h-3.5 w-3.5 text-primary shrink-0" />
-          <Badge variant="outline" className="text-xs font-mono px-2 py-0 border-border">
-            {match.division || "eFootball"}
-          </Badge>
-          <Badge variant="yellow" className="text-xs font-mono px-2 py-0">
-            {match.round}
-          </Badge>
+          <span className="font-mono text-xs text-muted-foreground">
+            {match.division || "eFootball"} • {match.round}
+          </span>
           {isTwoLegged && (
             <span className="text-primary text-xs font-bold hidden xs:inline">
               2-Legs
@@ -107,9 +104,9 @@ export default function MatchCard({ match }: MatchProps) {
             </Badge>
           )}
           {isFinished && (
-            <Badge variant="secondary" className="text-xs text-foreground bg-muted/90 font-bold">
+            <span className="text-xs font-bold text-muted-foreground font-mono">
               COMPLETED
-            </Badge>
+            </span>
           )}
           {isForfeit && (
             <Badge variant="destructive" className="text-xs gap-1 font-bold">

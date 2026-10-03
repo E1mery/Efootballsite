@@ -402,9 +402,6 @@ export default function ContinentalDrawExperience({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-primary animate-ping" />
-            <Badge className={`${themeColors.badge} font-black text-xs tracking-wider uppercase`}>
-              Official Live Draw Broadcast
-            </Badge>
             <span className="text-xs text-muted-foreground font-mono">
               Progress: {totalDrawn}/{expectedSlots} Athletes
             </span>
@@ -486,9 +483,9 @@ export default function ContinentalDrawExperience({
                 </Button>
               </>
             ) : (
-              <Badge variant="secondary" className="text-xs font-mono py-1 px-3 border border-border">
-                Official Draw Controlled by Commissioner
-              </Badge>
+              <span className="text-xs font-mono text-muted-foreground py-1 px-3">
+                Draw controlled by Commissioner
+              </span>
             )
           ) : (
             <div className="flex items-center gap-2">
@@ -574,18 +571,9 @@ export default function ContinentalDrawExperience({
                         {athlete.gamerTag}
                       </span>
                     </div>
-                    <Badge
-                      variant={
-                        athlete.division === "Division 1"
-                          ? "secondary"
-                          : athlete.division === "Division 2"
-                          ? "yellow"
-                          : "live"
-                      }
-                      className="text-xs px-1 py-0 shrink-0"
-                    >
+                    <span className="text-xs text-muted-foreground shrink-0">
                       {athlete.division.replace("Division ", "D")}
-                    </Badge>
+                    </span>
                   </div>
                 );
               })
@@ -653,18 +641,9 @@ export default function ContinentalDrawExperience({
                   </span>
                 )}
 
-                <Badge
-                  variant={
-                    currentDrawnAthlete.division === "Division 1"
-                      ? "secondary"
-                      : currentDrawnAthlete.division === "Division 2"
-                      ? "yellow"
-                      : "live"
-                  }
-                  className="text-xs mt-2"
-                >
+                <span className="text-xs text-muted-foreground mt-2">
                   {currentDrawnAthlete.division}
-                </Badge>
+                </span>
               </div>
 
               {/* Destination Tag */}
@@ -800,18 +779,9 @@ export default function ContinentalDrawExperience({
                         </div>
                       </div>
 
-                      <Badge
-                        variant={
-                          athlete.division === "Division 1"
-                            ? "secondary"
-                            : athlete.division === "Division 2"
-                            ? "yellow"
-                            : "live"
-                        }
-                        className="text-xs px-1 py-0 shrink-0"
-                      >
+                      <span className="text-xs text-muted-foreground shrink-0">
                         {athlete.division.replace("Division ", "D")}
-                      </Badge>
+                      </span>
                     </div>
                   );
                 })}

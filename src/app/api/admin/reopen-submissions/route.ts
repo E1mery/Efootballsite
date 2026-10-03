@@ -94,7 +94,7 @@ export async function POST(req: Request) {
 
     // Notify the players
     const notifyTitle = `🔓 Match Result Submissions Reopened!`;
-    const notifyContent = `The League Commissioner has granted permission to upload or re-upload your match scores and screenshot proof for ${match.homePlayer.gamerTag} vs ${match.awayPlayer.gamerTag}. The submission buttons on your "Today's 24-Hr Match" page are now active until ${formatRwandanDateTime(newDeadline)} (CAT / Rwandan Time).`;
+    const notifyContent = `The League Commissioner has granted permission to upload or re-upload your match scores and screenshot proof for ${match.homePlayer.gamerTag} vs ${match.awayPlayer.gamerTag}. The submission buttons on your "Today's Match" page are now active until ${formatRwandanDateTime(newDeadline)} (CAT / Rwandan Time).`;
 
     const recipients = targetPlayerId
       ? [targetPlayerId]

@@ -17,7 +17,6 @@ import {
   Zap,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   motion,
   useMotionValue,
@@ -259,17 +258,8 @@ const CoverflowCard = memo(function CoverflowCard({
             <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
-                  <Badge
-                    variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    <span>
-                      {slide.data.division} • {slide.data.round}
-                    </span>
-                  </Badge>
                   <span className="text-xs font-mono text-muted-foreground font-semibold">
-                    Match of the Day
+                    Match of the Day • {slide.data.division} • {slide.data.round}
                   </span>
                 </div>
 
@@ -361,15 +351,9 @@ const CoverflowCard = memo(function CoverflowCard({
             <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
-                  <Badge
-                    variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
-                  >
-                    <Award className="h-3 w-3 mr-1" />
-                    <span>
-                      {slide.data.division} • {slide.data.round} Final
-                    </span>
-                  </Badge>
+                  <span className="text-xs font-mono text-muted-foreground font-semibold">
+                    Final Result • {slide.data.division} • {slide.data.round}
+                  </span>
                 </div>
 
                 <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
@@ -469,12 +453,9 @@ const CoverflowCard = memo(function CoverflowCard({
                     className="rounded-xl border border-border/80 bg-card/75 backdrop-blur-md p-2 sm:p-3 space-y-1.5 sm:space-y-2 shadow-md hover:border-secondary/40 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <Badge
-                        variant="outline"
-                        className="text-xs font-mono font-bold text-secondary border-secondary/30 bg-secondary/10 px-1.5 py-0"
-                      >
+                      <span className="text-xs font-mono font-bold text-secondary px-1.5 py-0">
                         #{ath.rank}
-                      </Badge>
+                      </span>
                       <span className="text-xs font-mono font-bold text-primary truncate max-w-20">
                         {ath.division}
                       </span>
@@ -576,12 +557,9 @@ const CoverflowCard = memo(function CoverflowCard({
                     </div>
 
                     <div className="text-right shrink-0">
-                      <Badge
-                        variant="yellow"
-                        className="text-xs font-mono font-bold px-1.5 py-0"
-                      >
+                      <span className="text-xs font-mono font-bold text-secondary px-1.5 py-0">
                         {champ.season}
-                      </Badge>
+                      </span>
                       <span className="text-xs text-muted-foreground block truncate max-w-24 mt-0.5">
                         {champ.tournamentName}
                       </span>
@@ -638,13 +616,6 @@ const CoverflowCard = memo(function CoverflowCard({
               {/* Left Column: Text & CTA */}
               <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-xl flex-1 w-full">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge
-                    variant="yellow"
-                    className="text-xs font-mono font-bold uppercase tracking-wider px-2 py-0.5 shadow-sm"
-                  >
-                    <Megaphone className="h-3 w-3 mr-1" />
-                    <span>System Announcement</span>
-                  </Badge>
                   {slide.subtitle && (
                     <span className="text-xs font-mono text-secondary font-semibold">
                       {slide.data?.subType === "LEAGUE_START"
@@ -697,9 +668,6 @@ const CoverflowCard = memo(function CoverflowCard({
                         <Calendar className="h-3.5 w-3.5 text-secondary" />
                         <span>Official Kickoff (CAT)</span>
                       </span>
-                      <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/30 px-1.5 py-0">
-                        12:00 AM
-                      </Badge>
                     </div>
 
                     <div className="space-y-0.5">
@@ -709,18 +677,6 @@ const CoverflowCard = memo(function CoverflowCard({
                       <span className="text-xs sm:text-sm font-black text-foreground block">
                         {slide.data?.formattedKickoffFull || slide.data?.formattedKickoffDate || "Confirmed by Admin"}
                       </span>
-                    </div>
-
-                    <div className="pt-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
-                        Division 1
-                      </Badge>
-                      <Badge variant="outline" className="text-xs font-mono font-bold border-secondary/40 text-secondary px-1.5 py-0">
-                        Division 2
-                      </Badge>
-                      <Badge variant="outline" className="text-xs font-mono font-bold border-primary/40 text-primary px-1.5 py-0">
-                        Division 3
-                      </Badge>
                     </div>
                   </div>
                 )}
@@ -733,9 +689,6 @@ const CoverflowCard = memo(function CoverflowCard({
                         <Trophy className="h-3.5 w-3.5 text-secondary" />
                         <span>Live Draws</span>
                       </span>
-                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
-                        Scheduled
-                      </Badge>
                     </div>
 
                     <div className="space-y-2 text-xs font-mono">
@@ -769,9 +722,6 @@ const CoverflowCard = memo(function CoverflowCard({
                         <Trophy className="h-3.5 w-3.5 text-secondary" />
                         <span>Draw Complete</span>
                       </span>
-                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
-                        4 Groups Locked
-                      </Badge>
                     </div>
 
                     <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center text-xs font-mono">
@@ -803,9 +753,6 @@ const CoverflowCard = memo(function CoverflowCard({
                         <Zap className="h-3.5 w-3.5 text-secondary" />
                         <span>Knockout Phase</span>
                       </span>
-                      <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0">
-                        Both Active
-                      </Badge>
                     </div>
 
                     <div className="space-y-1.5 sm:space-y-2 text-xs font-mono">
@@ -814,9 +761,9 @@ const CoverflowCard = memo(function CoverflowCard({
                           <Crown className="h-3.5 w-3.5 text-secondary shrink-0" />
                           <span>UCL</span>
                         </span>
-                        <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0 shrink-0">
+                        <span className="text-xs font-mono font-bold text-secondary px-1.5 py-0 shrink-0">
                           {slide.data?.uclStageLabel || "Quarter-Finals"}
-                        </Badge>
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between p-2 rounded-lg sm:rounded-xl bg-background/70 border border-primary/30 gap-2">
@@ -824,9 +771,9 @@ const CoverflowCard = memo(function CoverflowCard({
                           <Award className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span>Europa</span>
                         </span>
-                        <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/40 px-1.5 py-0 shrink-0">
+                        <span className="text-xs font-mono font-bold text-primary px-1.5 py-0 shrink-0">
                           {slide.data?.europaStageLabel || "Quarter-Finals"}
-                        </Badge>
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -364,9 +364,11 @@ export default function QuickActionHubModal({
                         <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-secondary transition-colors">
                           {item.title}
                         </h4>
-                        <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60">
-                          {item.badge}
-                        </span>
+                        {item.badge === "EXPIRED" && (
+                          <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-destructive/20 text-destructive border border-destructive/30">
+                            EXPIRED
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {item.description}

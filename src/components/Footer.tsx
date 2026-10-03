@@ -10,6 +10,10 @@ export default function Footer() {
   const isAdminPortal = pathname?.startsWith("/admin");
   const isDashboard = pathname?.startsWith("/dashboard");
 
+  if (isDashboard) {
+    return null;
+  }
+
   if (isAdminPortal) {
     return (
       <footer className="border-t border-border bg-background text-muted-foreground py-6 px-4 mt-auto">

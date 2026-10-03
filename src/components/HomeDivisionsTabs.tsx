@@ -40,22 +40,16 @@ export default function HomeDivisionsTabs({
   const divisionData = {
     "Division 1": {
       name: "Division 1 (Premiership)",
-      badge: "TIER 1 PREMIERSHIP",
-      color: "text-primary border-primary/30 bg-primary/10",
       description: "Elite Mobile Athletes. 1st-8th advance to UCL (1st Champion), 9th-16th to Europa League, Mid-Table safe, Bottom 3 relegated to Division 2.",
       standings: div1Standings,
     },
     "Division 2": {
       name: "Division 2 (Championship)",
-      badge: "TIER 2 CHAMPIONSHIP",
-      color: "text-secondary border-secondary/30 bg-secondary/10",
       description: "Championship Mobile Athletes. Top 3 PROMOTED to Division 1 & UCL, 4th to UCL, 5th-8th to Europa League, Mid-Table safe, Bottom 3 relegated to Division 3.",
       standings: div2Standings,
     },
     "Division 3": {
       name: "Division 3 (Academy)",
-      badge: "TIER 3 ACADEMY",
-      color: "text-primary border-primary/30 bg-primary/10",
       description: "National Academy Mobile Athletes. Top 3 PROMOTED to Division 2 & UCL, 4th to UCL, 5th-8th to Europa League, Mid-Table Academy (no relegation).",
       standings: div3Standings,
     },
@@ -91,9 +85,6 @@ export default function HomeDivisionsTabs({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card/60 border border-border">
         <div>
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-mono font-black uppercase px-2.5 py-0.5 rounded-full border ${current.color}`}>
-              {current.badge}
-            </span>
             <h3 className="text-base font-black uppercase text-white">{current.name}</h3>
           </div>
           <p className="text-xs text-muted-foreground mt-1">{current.description}</p>

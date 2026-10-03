@@ -1,7 +1,6 @@
 "use client";
 
 import { Award, Flame, Zap, Shield, Smartphone } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface PlayerProps {
@@ -48,14 +47,10 @@ export default function PlayerCard({ player, rank }: PlayerProps) {
               #{rank}
             </span>
           )}
-          <Badge variant="secondary" className="font-mono text-xs font-bold text-primary">
+          <span className="font-mono text-xs font-bold text-primary">
             {player.position || "CF"}
-          </Badge>
-          {player.division && (
-            <Badge variant="yellow" className="text-xs">
-              {player.division}
-            </Badge>
-          )}
+            {player.division ? ` • ${player.division}` : ""}
+          </span>
         </div>
 
         {/* eFootball Card OVR Rating */}

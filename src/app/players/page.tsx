@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import PlayerCard from "@/components/PlayerCard";
 import { Award, Zap, Smartphone, MessageSquare } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
@@ -39,7 +38,6 @@ export default async function PlayersPage() {
       {/* Header */}
       <div className="border-b border-border pb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Badge variant="yellow">EFRL MOBILE STATS</Badge>
           <span className="text-xs font-bold text-primary uppercase tracking-widest">
             eFootball Mobile Leaderboards 2026
           </span>

@@ -67,28 +67,21 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
               <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-secondary">
                 OFFICIAL MATCH OF THE DAY
               </span>
-              <Badge variant="yellow" className="text-xs font-mono">
-                TABLE SELECTED
-              </Badge>
             </div>
             <p className="text-xs sm:text-sm text-foreground font-semibold mt-0.5">{headline}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="font-mono text-xs text-foreground border border-border">
+          <span className="font-mono text-xs text-muted-foreground">
             {match.division} • {match.round}
-          </Badge>
+          </span>
           {isLive ? (
             <Badge variant="live" className="text-xs gap-1.5">
               <span className="h-2 w-2 rounded-full bg-destructive animate-ping" />
               LIVE NOW
             </Badge>
-          ) : isFinished ? (
-            <Badge variant="secondary" className="text-xs">
-              FINISHED
-            </Badge>
-          ) : (
+          ) : isFinished ? null : (
             <Badge variant="default" className="text-xs text-secondary border border-secondary/30 bg-secondary/20">
               ⚡ 24-HR CYCLE ACTIVE
             </Badge>
@@ -101,9 +94,9 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
         {/* Home Contender */}
         <div className="lg:col-span-5 rounded-2xl border border-primary/30 bg-background/70 p-5 space-y-3 relative shadow-lg hover:border-primary/60 transition-all">
           <div className="flex items-center justify-between">
-            <Badge variant="default" className="text-xs font-mono font-bold bg-primary/20 text-primary border-primary/30">
+            <span className="text-xs font-mono font-bold text-primary">
               RANK #{homeRank} • {homePoints} PTS
-            </Badge>
+            </span>
             <span className="text-xs font-mono font-bold text-primary">HOME ATHLETE</span>
           </div>
 
@@ -129,9 +122,9 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   {match.homePlayer?.gamerTag}
                 </h3>
                 {match.homePlayer?.realTeam && (
-                  <Badge variant="outline" className="text-xs py-0 px-2 font-bold border-primary/40 text-primary bg-primary/30 truncate">
+                  <span className="text-xs py-0 px-2 font-bold text-primary truncate">
                     {findTeam(match.homePlayer.realTeam)?.name || match.homePlayer.realTeam}
-                  </Badge>
+                  </span>
                 )}
               </div>
               <p className="text-xs text-foreground truncate mt-0.5">{match.homePlayer?.fullName}</p>
@@ -177,9 +170,9 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
         <div className="lg:col-span-5 rounded-2xl border border-primary/30 bg-background/70 p-5 space-y-3 relative shadow-lg hover:border-primary/60 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-primary">AWAY ATHLETE</span>
-            <Badge variant="green" className="text-xs font-mono font-bold">
+            <span className="text-xs font-mono font-bold text-primary">
               RANK #{awayRank} • {awayPoints} PTS
-            </Badge>
+            </span>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -204,9 +197,9 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   {match.awayPlayer?.gamerTag}
                 </h3>
                 {match.awayPlayer?.realTeam && (
-                  <Badge variant="outline" className="text-xs py-0 px-2 font-bold border-primary/40 text-primary bg-primary/30">
+                  <span className="text-xs py-0 px-2 font-bold text-primary">
                     {findTeam(match.awayPlayer.realTeam)?.name || match.awayPlayer.realTeam}
-                  </Badge>
+                  </span>
                 )}
               </div>
               <p className="text-xs text-foreground truncate mt-0.5">{match.awayPlayer?.fullName}</p>

@@ -18,7 +18,6 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface QuickGuideModalProps {
   isOpen: boolean;
@@ -330,11 +329,8 @@ export default function QuickGuideModal({
         {/* Top Controls: Step counter and close button */}
         <div className="flex items-center justify-between border-b border-border/80 pb-3">
           <div className="flex items-center gap-2">
-            <Badge variant={current.badgeVariant} className="text-xs font-mono font-bold tracking-wider">
-              {current.badge}
-            </Badge>
             <span className="text-xs font-mono text-muted-foreground">
-              {currentStep + 1} of {steps.length}
+              Step {currentStep + 1} of {steps.length}
             </span>
           </div>
 

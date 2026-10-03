@@ -467,12 +467,6 @@ export default function AdminNewsManager({
       {/* Header & Quick Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl bg-card/80 border border-border backdrop-blur-xl shadow-xl">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Badge variant="yellow" className="text-xs font-mono font-bold tracking-wider">
-              ADMIN CONTROL
-            </Badge>
-            <span className="text-xs font-mono text-muted-foreground">Official Communications</span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
             <Newspaper className="h-6 w-6 text-primary" />
             <span>News &amp; Carousel Management</span>
@@ -711,21 +705,13 @@ export default function AdminNewsManager({
                             {/* Text Info */}
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs font-mono font-medium border-border/80 bg-muted/30 px-1.5 py-0"
-                                >
+                                <span className="text-xs font-mono text-muted-foreground">
                                   {item.category}
-                                </Badge>
+                                </span>
                                 {item.id.startsWith("sys-") && (
                                   <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0 flex items-center gap-1">
                                     <Sparkles className="h-3 w-3" />
                                     <span>Auto-Sync</span>
-                                  </Badge>
-                                )}
-                                {isCarouselEligible && (
-                                  <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/40 bg-secondary/10 px-1.5 py-0">
-                                    Live on Carousel
                                   </Badge>
                                 )}
                               </div>
@@ -903,18 +889,13 @@ export default function AdminNewsManager({
 
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <Badge variant="outline" className="text-xs font-mono font-medium border-border/80 px-1.5 py-0">
+                          <span className="text-xs font-mono text-muted-foreground">
                             {item.category}
-                          </Badge>
+                          </span>
                           {item.id.startsWith("sys-") && (
                             <Badge variant="yellow" className="text-xs font-mono font-bold px-1.5 py-0 flex items-center gap-1">
                               <Sparkles className="h-3 w-3" />
                               <span>Auto-Sync</span>
-                            </Badge>
-                          )}
-                          {isCarouselEligible && (
-                            <Badge variant="outline" className="text-xs font-mono font-bold text-secondary border-secondary/40 px-1.5 py-0">
-                              Live
                             </Badge>
                           )}
                         </div>
@@ -1005,9 +986,6 @@ export default function AdminNewsManager({
           <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl my-auto space-y-5">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div className="space-y-1">
-                <Badge variant="yellow" className="text-xs font-mono font-bold">
-                  {editingItem ? "EDIT NEWS ARTICLE" : "NEW NEWS ARTICLE"}
-                </Badge>
                 <h3 className="text-lg sm:text-xl font-black text-foreground">
                   {editingItem ? "Update News Details" : "Publish New League News"}
                 </h3>
@@ -1390,9 +1368,6 @@ export default function AdminNewsManager({
           <div className="relative w-full max-w-4xl rounded-3xl border border-secondary/40 bg-card p-6 sm:p-8 shadow-2xl my-auto space-y-6">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
-                <Badge variant="yellow" className="text-xs font-mono font-bold">
-                  CAROUSEL LIVE PREVIEW
-                </Badge>
                 <span className="text-xs font-mono text-muted-foreground">
                   Exact visitor experience on the homepage
                 </span>
