@@ -84,7 +84,7 @@ Our system records confirm you have NOT:
 REQUIRED ACTION NOW:
 1. Message ${match.awayPlayer.gamerTag} immediately on WhatsApp at ${match.awayPlayer.whatsapp} to play your eFootball Mobile match.
 2. Once finished, upload the post-game score screenshot in your Dashboard before the cutoff.
-3. If your opponent does not respond or cannot be reached, submit "Claim Opponent Forfeit" with your chat proof BEFORE the 1-hour window expires.
+3. If your opponent does not respond or cannot be reached, submit "Claim Opponent Forfeit" with your chat proof during the final 15 minutes before cutoff.
 
 ⚠️ IMPORTANT: If the deadline passes without an uploaded score or forfeit claim, this fixture is registered as an unplayed forfeit, counting toward your 3-match disqualification limit.`,
             type: "INDIVIDUAL",
@@ -121,7 +121,7 @@ Our system records confirm you have NOT:
 REQUIRED ACTION NOW:
 1. Message ${match.homePlayer.gamerTag} immediately on WhatsApp at ${match.homePlayer.whatsapp} to play your eFootball Mobile match.
 2. Once finished, upload the post-game score screenshot in your Dashboard before the cutoff.
-3. If your opponent does not respond or cannot be reached, submit "Claim Opponent Forfeit" with your chat proof BEFORE the 1-hour window expires.
+3. If your opponent does not respond or cannot be reached, submit "Claim Opponent Forfeit" with your chat proof during the final 15 minutes before cutoff.
 
 ⚠️ IMPORTANT: If the deadline passes without an uploaded score or forfeit claim, this fixture is registered as an unplayed forfeit, counting toward your 3-match disqualification limit.`,
             type: "INDIVIDUAL",
