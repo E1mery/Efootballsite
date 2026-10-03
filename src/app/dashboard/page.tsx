@@ -489,7 +489,16 @@ export default async function DashboardPage() {
       : div3Standings;
 
   const uclCutoff = player.division === "Division 1" ? 8 : 4;
-  const europaCutoff = player.division === "Division 1" ? 16 : 8;
+
+  // Europa cutoff: top qualifiers after UCL, excluding relegation zone
+  // Div 1: max 8 to UCL (1-8), next up to 8 to Europa (9-16). But bottom 3 are relegated!
+  // Div 2: max 4 to UCL (1-4), next up to 4 to Europa (5-8). Bottom 3 are relegated!
+  // Div 3: max 4 to UCL (1-4), next up to 4 to Europa (5-8). No relegation in Div 3!
+  const relegationZoneCount = player.division === "Division 3" ? 0 : 3;
+  const maxSafeRank = Math.max(0, divStandings.length - relegationZoneCount);
+  const rawEuropaCutoff = player.division === "Division 1" ? 16 : 8;
+  const europaCutoff = Math.min(rawEuropaCutoff, maxSafeRank);
+  const hasEuropaSlots = europaCutoff > uclCutoff;
 
   // Unplayed matches in this division
   const unplayedDivisionMatches = await prisma.match.findMany({
@@ -503,6 +512,8 @@ export default async function DashboardPage() {
   const totalDivisionMatchesCount = await prisma.match.count({
     where: { division: player.division },
   });
+  const finishedDivisionMatchesCount = totalDivisionMatchesCount - unplayedDivisionMatches.length;
+
   const isDivisionsMatchEnded =
     (totalDivisionMatchesCount > 0 && unplayedDivisionMatches.length === 0) ||
     Boolean(leagueConfig.uclStarted || leagueConfig.europaStarted);
@@ -525,27 +536,55 @@ export default async function DashboardPage() {
   const myStanding = divStandings.find((s: any) => s.playerId === player.id) || currentStanding;
   const myCurrentPoints = myStanding?.points ?? 0;
   const myRemainingMatches = remainingMatchesPerPlayer[player.id] ?? 0;
+  const myRankIdx = divStandings.findIndex((s: any) => s.playerId === player.id);
+
+  // ENDING PHASE CHECK:
+  // Mathematical qualification notifications must only activate during the endings of division leagues:
+  // 1. Division fixtures must have been generated and active (totalDivisionMatchesCount > 0)
+  // 2. Either the regular season has fully concluded, OR the division is in its final matchdays / closing stretch:
+  //    - at least 70% of division fixtures are completed,
+  //    - OR the player has 3 or fewer matches remaining AND has played at least 5 matches.
+  const isDivisionInEndingPhase = Boolean(
+    totalDivisionMatchesCount > 0 &&
+      (isDivisionsMatchEnded ||
+        (finishedDivisionMatchesCount / totalDivisionMatchesCount) >= 0.70 ||
+        (myRemainingMatches <= 3 && (myStanding?.played ?? 0) >= 5))
+  );
 
   // MATHEMATICAL QUALIFICATION CHECK:
-  // "validated if the player will be qualified at all cost (even if he can lose the rest of matches)"
+  // "validated if the player will be qualified at all costs (even if he can lose the rest of matches)"
   // Worst-case for player: loses all remaining matches (final points = myCurrentPoints)
   // Best-case for other players: win all remaining matches (maxPoints = points + remaining * 3)
-  const otherPlayersMax = divStandings
-    .filter((s: any) => s.playerId !== player.id)
-    .map((s: any) => ({
-      playerId: s.playerId,
-      maxPossiblePoints: (s.points || 0) + ((remainingMatchesPerPlayer[s.playerId] || 0) * 3),
-    }));
+  const canEvaluateMathematicalClinched = Boolean(
+    isDivisionInEndingPhase &&
+      myStanding &&
+      (myStanding.played ?? 0) > 0 &&
+      myCurrentPoints > 0
+  );
 
-  const countCanSurpassMe = otherPlayersMax.filter(
-    (p: any) => p.maxPossiblePoints >= myCurrentPoints
-  ).length;
+  const otherPlayersMax = canEvaluateMathematicalClinched
+    ? divStandings
+        .filter((s: any) => s.playerId !== player.id)
+        .map((s: any) => ({
+          playerId: s.playerId,
+          maxPossiblePoints: (s.points || 0) + ((remainingMatchesPerPlayer[s.playerId] || 0) * 3),
+        }))
+    : [];
+
+  const countCanSurpassMe = canEvaluateMathematicalClinched
+    ? otherPlayersMax.filter((p: any) => p.maxPossiblePoints >= myCurrentPoints).length
+    : 999;
 
   // Mathematically guaranteed for UCL at all costs (worst-case finish is <= uclCutoff):
-  const isGuaranteedUcl = Boolean(myStanding && countCanSurpassMe < uclCutoff);
+  const isGuaranteedUcl = Boolean(canEvaluateMathematicalClinched && countCanSurpassMe < uclCutoff);
 
-  // Mathematically guaranteed for Europa League at all costs:
-  const isGuaranteedEuropa = Boolean(myStanding && !isGuaranteedUcl && countCanSurpassMe < europaCutoff);
+  // Mathematically guaranteed for Europa League at all costs (worst-case finish is <= europaCutoff):
+  const isGuaranteedEuropa = Boolean(
+    canEvaluateMathematicalClinched &&
+      !isGuaranteedUcl &&
+      hasEuropaSlots &&
+      countCanSurpassMe < europaCutoff
+  );
 
   // Mathematical elimination check:
   // Best-case for player: wins all remaining matches
@@ -555,8 +594,10 @@ export default async function DashboardPage() {
   ).length;
 
   const isGuaranteedEliminatedFromDiv = Boolean(
-    myStanding &&
-    (countAlreadyAheadOfMe >= europaCutoff || (isDivisionsMatchEnded && !isGuaranteedUcl && !isGuaranteedEuropa))
+    isDivisionInEndingPhase &&
+      myStanding &&
+      (countAlreadyAheadOfMe >= europaCutoff ||
+        (isDivisionsMatchEnded && !isGuaranteedUcl && !isGuaranteedEuropa))
   );
 
   // Check finished continental matches for this player
@@ -709,7 +750,11 @@ export default async function DashboardPage() {
       competition: continentalElimination.competition,
       isEliminated: true,
     };
-  } else if (inUclSlots || isGuaranteedUcl) {
+  } else if (
+    inUclSlots ||
+    (isDivisionInEndingPhase &&
+      (isGuaranteedUcl || (isDivisionsMatchEnded && myRankIdx >= 0 && myRankIdx < uclCutoff)))
+  ) {
     continentalStatus = {
       status: "QUALIFIED_UCL",
       title: "Qualified for UCL",
@@ -719,7 +764,12 @@ export default async function DashboardPage() {
       competition: "UCL",
       isEliminated: false,
     };
-  } else if (inEuropaSlots || isGuaranteedEuropa) {
+  } else if (
+    inEuropaSlots ||
+    (isDivisionInEndingPhase &&
+      (isGuaranteedEuropa ||
+        (isDivisionsMatchEnded && hasEuropaSlots && myRankIdx >= uclCutoff && myRankIdx < europaCutoff)))
+  ) {
     continentalStatus = {
       status: "QUALIFIED_EUROPA",
       title: "Qualified for Europa League",
@@ -729,7 +779,7 @@ export default async function DashboardPage() {
       competition: "Europa League",
       isEliminated: false,
     };
-  } else if (isGuaranteedEliminatedFromDiv) {
+  } else if (isDivisionInEndingPhase && isGuaranteedEliminatedFromDiv) {
     continentalStatus = {
       status: "ELIMINATED",
       title: "You are eliminated",
@@ -748,7 +798,6 @@ export default async function DashboardPage() {
     europaGroupStandings.find((s: any) => s.playerId === player.id) ||
     null;
 
-  const myRankIdx = divStandings.findIndex((s: any) => s.playerId === player.id);
   const resolvedCurrentStanding = currentStanding
     ? { ...currentStanding, rank: myRankIdx >= 0 ? myRankIdx + 1 : currentStanding.rank || 1 }
     : null;
