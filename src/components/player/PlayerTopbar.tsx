@@ -1,11 +1,12 @@
 "use client";
 
-import { Bell, Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
 import UserAvatarMenu from "@/components/UserAvatarMenu";
+import Notification, { type NotificationItem } from "@/components/notification";
 import { findTeam } from "@/lib/teams";
 
 type PlayerTopbarPlayer = {
+  id?: string;
   gamerTag?: string;
   division?: string;
   realTeam?: string | null;
@@ -26,11 +27,13 @@ export default function PlayerTopbar({
   unreadCount,
   gamerTag,
   player,
+  announcements = [],
   refreshing,
   onMenuClick,
   onToggleCollapse,
   collapsed,
   onRefresh,
+  onViewAllNotifications,
   onSettings,
   onSignOut,
   signingOut = false,
@@ -39,11 +42,13 @@ export default function PlayerTopbar({
   unreadCount: number;
   gamerTag?: string;
   player?: PlayerTopbarPlayer | null;
+  announcements?: NotificationItem[];
   refreshing: boolean;
   onMenuClick: () => void;
   onToggleCollapse: () => void;
   collapsed: boolean;
   onRefresh: () => void;
+  onViewAllNotifications?: () => void;
   onSettings: () => void;
   onSignOut: () => void;
   signingOut?: boolean;
@@ -88,21 +93,12 @@ export default function PlayerTopbar({
         <RefreshCw className={refreshing ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
       </button>
 
-      <button
-        aria-label="Announcements"
-        title="Unread announcements"
-        className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-      >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <Badge
-            variant="destructive"
-            className="absolute right-1 top-1 px-1 py-0 text-xs font-bold"
-          >
-            {unreadCount}
-          </Badge>
-        )}
-      </button>
+      <Notification
+        playerId={player?.id}
+        initialAnnouncements={announcements}
+        unreadCount={unreadCount}
+        onViewAll={onViewAllNotifications}
+      />
 
       <UserAvatarMenu
         avatarImageUrl={avatarImageUrl}

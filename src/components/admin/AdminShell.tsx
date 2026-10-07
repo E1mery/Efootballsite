@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { KeyRound, MessageSquare, ShieldAlert, Upload, UserCheck, X } from "lucide-react";
 import AdminSidebar, { AdminSidebarBody } from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
 import AdminClient from "@/app/admin/AdminClient";
+import type { AdminAlertItem } from "@/components/admin-alerts";
 import {
   ADMIN_TAB_TITLES,
   type AdminSidebarCounts,
@@ -113,6 +114,47 @@ export default function AdminShell({
     counts.pendingMessages +
     counts.pendingResets;
 
+  const alerts: AdminAlertItem[] = useMemo(
+    () => [
+      {
+        id: "PENDING_REGISTRATIONS",
+        title: "Pending Approvals",
+        description: "New athlete registrations awaiting review",
+        count: counts.pendingPlayers,
+        icon: UserCheck,
+      },
+      {
+        id: "RESULTS_QUEUE",
+        title: "Score Verification",
+        description: "Match result submissions to verify",
+        count: counts.pendingSubmissions,
+        icon: Upload,
+      },
+      {
+        id: "FORFEITS_QUEUE",
+        title: "Forfeit Claims",
+        description: "Forfeit claims needing a decision",
+        count: counts.pendingForfeits,
+        icon: ShieldAlert,
+      },
+      {
+        id: "MESSAGES",
+        title: "Player Inquiries",
+        description: "Unreplied messages from players",
+        count: counts.pendingMessages,
+        icon: MessageSquare,
+      },
+      {
+        id: "PASSWORD_RESETS",
+        title: "Password Resets",
+        description: "Password reset requests to handle",
+        count: counts.pendingResets,
+        icon: KeyRound,
+      },
+    ],
+    [counts]
+  );
+
   const handleNavigate = (tab: AdminTab) => {
     setActiveTab(tab);
     setMobileOpen(false);
@@ -185,12 +227,15 @@ export default function AdminShell({
         <AdminTopbar
           title={ADMIN_TAB_TITLES[activeTab]}
           totalAlerts={totalAlerts}
+          alerts={alerts}
           adminEmail={adminEmail}
           refreshing={refreshing}
           onMenuClick={() => setMobileOpen(true)}
           onToggleCollapse={() => setCollapsed((v) => !v)}
           collapsed={collapsed}
           onRefresh={handleRefresh}
+          onNavigateAlerts={handleNavigate}
+          onViewAllAlerts={() => handleNavigate("DASHBOARD")}
           onSettings={() => handleNavigate("DASHBOARD")}
           onSignOut={handleSignOut}
           signingOut={signingOut}

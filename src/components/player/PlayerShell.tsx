@@ -174,11 +174,13 @@ export default function PlayerShell(props: PlayerShellProps) {
           unreadCount={unreadCount}
           gamerTag={player?.gamerTag}
           player={player}
+          announcements={announcements}
           refreshing={refreshing}
           onMenuClick={() => setMobileOpen(true)}
           onToggleCollapse={() => setCollapsed((v) => !v)}
           collapsed={collapsed}
           onRefresh={handleRefresh}
+          onViewAllNotifications={() => handleNavigate("INBOX")}
           onSettings={() => handleNavigate("PROFILE")}
           onSignOut={handleSignOut}
           signingOut={signingOut}

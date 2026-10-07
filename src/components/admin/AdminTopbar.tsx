@@ -1,30 +1,37 @@
 "use client";
 
-import { Bell, Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
+import AdminAlerts, { type AdminAlertItem } from "@/components/admin-alerts";
 import UserAvatarMenu from "@/components/UserAvatarMenu";
+import type { AdminTab } from "@/components/admin/admin-nav";
 
 export default function AdminTopbar({
   title,
   totalAlerts,
+  alerts = [],
   adminEmail,
   refreshing,
   onMenuClick,
   onToggleCollapse,
   collapsed,
   onRefresh,
+  onNavigateAlerts,
+  onViewAllAlerts,
   onSettings,
   onSignOut,
   signingOut = false,
 }: {
   title: string;
   totalAlerts: number;
+  alerts?: AdminAlertItem[];
   adminEmail?: string;
   refreshing: boolean;
   onMenuClick: () => void;
   onToggleCollapse: () => void;
   collapsed: boolean;
   onRefresh: () => void;
+  onNavigateAlerts?: (tab: AdminTab) => void;
+  onViewAllAlerts?: () => void;
   onSettings: () => void;
   onSignOut: () => void;
   signingOut?: boolean;
@@ -68,21 +75,12 @@ export default function AdminTopbar({
         <RefreshCw className={refreshing ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
       </button>
 
-      <button
-        aria-label="Notifications"
-        title="Items needing review"
-        className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-      >
-        <Bell className="h-5 w-5" />
-        {totalAlerts > 0 && (
-          <Badge
-            variant="destructive"
-            className="absolute right-1 top-1 px-1 py-0 text-xs font-bold"
-          >
-            {totalAlerts}
-          </Badge>
-        )}
-      </button>
+      <AdminAlerts
+        totalAlerts={totalAlerts}
+        alerts={alerts}
+        onNavigate={onNavigateAlerts}
+        onViewAll={onViewAllAlerts}
+      />
 
       <UserAvatarMenu
         fallbackInitial={initial}
