@@ -1,20 +1,16 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import {
-  Trophy,
   Globe,
   LogIn,
   UserPlus,
-  Crown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cookies } from "next/headers";
 import { getCarouselSlides } from "@/lib/carouselData";
 import NewsTrendingCarousel from "@/components/NewsTrendingCarousel";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import MatchCard from "@/components/MatchCard";
-import HallOfFameCarousel from "@/components/HallOfFameCarousel";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +29,6 @@ export default async function HomePage({
 
   let liveMatches: any[] = [];
   let recentMatches: any[] = [];
-  let hallOfFame: any[] = [];
   let leagueConfig: any = { registrationOpen: true, currentMatchday: 1 };
   let carouselSlides: any[] = [];
   let userSession: any = null;
@@ -46,7 +41,6 @@ export default async function HomePage({
       liveResults,
       recentResults,
       cfgResult,
-      hofResults,
       slidesResult,
       userResult,
     ] = await Promise.all([
@@ -66,10 +60,6 @@ export default async function HomePage({
         update: {},
         create: { id: "default", registrationOpen: true, currentMatchday: 1 },
       }),
-      prisma.hallOfFame.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 12,
-      }),
       getCarouselSlides(),
       sessionUserId
         ? prisma.user.findUnique({
@@ -82,7 +72,6 @@ export default async function HomePage({
     liveMatches = liveResults;
     recentMatches = recentResults;
     leagueConfig = cfgResult;
-    hallOfFame = hofResults || [];
     carouselSlides = slidesResult;
     if (userResult) {
       userSession = {
@@ -192,28 +181,7 @@ export default async function HomePage({
       )}
 
 
-      {/* ========================================================================= */}
-      {/* HALL OF FAME: IMMORTALIZED CHAMPIONS */}
-      {/* ========================================================================= */}
-      <section id="hall-of-fame" className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-secondary/20 pb-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/10 border border-secondary/30">
-                <Crown className="h-5 w-5" />
-              </div>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight">
-                EFRL Hall of Fame
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Honoring the legendary esports champions who conquered Rwanda&apos;s most competitive eFootball tournaments.
-            </p>
-          </div>
-        </div>
 
-        <HallOfFameCarousel entries={hallOfFame} />
-      </section>
 
 
     </div>

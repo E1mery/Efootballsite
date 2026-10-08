@@ -747,7 +747,7 @@ export async function syncSystemNewsToCarousel() {
               description: "Official title winners from previous seasons immortalized in the league registry.",
               featuredImage: hofImg,
               buttonText: "Explore Hall of Fame",
-              buttonUrl: "/#hall-of-fame",
+              buttonUrl: "/hall-of-fame",
               status: "PUBLISHED",
               publishDate: now,
               expirationDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),

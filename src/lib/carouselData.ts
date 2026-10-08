@@ -477,7 +477,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           description: item.description,
           featuredImage: item.featuredImage || (topChamp as any)?.playerImage || "/images/carousel-stadium-bg.jpg",
           buttonText: item.buttonText || "Explore Hall of Fame",
-          buttonUrl: item.buttonUrl || "/#hall-of-fame",
+          buttonUrl: item.buttonUrl || "/hall-of-fame",
           publishDate: item.publishDate,
           expirationDate: item.expirationDate,
           data: { champions: hallOfFameEntries },

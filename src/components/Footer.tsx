@@ -125,8 +125,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/fixtures" className="hover:text-secondary transition-colors">
-                  Daily Matchday Fixtures
+                <Link href="/hall-of-fame" className="hover:text-secondary transition-colors">
+                  EFRL Hall of Fame
                 </Link>
               </li>
             </ul>
