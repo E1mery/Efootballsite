@@ -291,8 +291,85 @@ model HallOfFame {
   prizeWon         String?  // e.g. "3,000,000 RWF + Trophy"
   trophyType       String   @default("GOLD") // "GOLD", "UCL", "EUROPA", "SILVER"
   notes            String?
+  playerId         String?  // Link to Player model if matching gamer tag
+  isInducted       Boolean  @default(true) // Officially inducted
+  isFeatured       Boolean  @default(false) // Selected for featured showcase
+  sourceType       String   @default("AUTOMATIC") // "AUTOMATIC" | "MANUAL"
+  inductionYear    Int?     // Calendar year of induction
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([championName])
+  @@index([season])
+}
+
+model HallOfFameSettings {
+  id                     String    @id @default("default")
+  minMatchesForRecords   Int       @default(10) // Minimum matches for win rate and all-time records
+  minMatchesForInduction Int       @default(10)
+  minSeasonsForInduction Int       @default(1)
+  lastCalculatedAt       DateTime?
+  calculationStatus      String    @default("IDLE") // IDLE, PROCESSING, SUCCESS, ERROR
+  totalMatchesProcessed  Int       @default(0)
+  totalGoalsProcessed    Int       @default(0)
+  totalPlayersAnalyzed   Int       @default(0)
+  totalSeasonsAnalyzed   Int       @default(0)
+  totalCompsAnalyzed     Int       @default(0)
+  updatedAt              DateTime  @updatedAt
+}
+
+model ManualHistoricalRecord {
+  id                 String    @id @default(cuid())
+  recordName         String    // e.g. "All-Time Highest Goals in One Match"
+  playerName         String
+  playerId           String?
+  value              String    // e.g. "9 Goals"
+  numericValue       Float?
+  recordDate         DateTime?
+  season             String?
+  competition        String?
+  description        String?
+  supportingImageUrl String?
+  sourceType         String    @default("MANUAL") // Clearly marked as MANUAL
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([recordName])
+  @@index([playerName])
+}
+
+model HistoricalSeasonSnapshot {
+  id             String    @id @default(cuid())
+  season         String    // e.g. "Season 0 (2026)"
+  competition    String    // e.g. "Division 1"
+  gamerTag       String
+  playerId       String?
+  fullName       String?
+  rank           Int?
+  matchesPlayed  Int       @default(0)
+  wins           Int       @default(0)
+  draws          Int       @default(0)
+  losses         Int       @default(0)
+  goalsScored    Int       @default(0)
+  goalsConceded  Int       @default(0)
+  goalDifference Int       @default(0)
+  cleanSheets    Int       @default(0)
+  points         Int       @default(0)
+  isChampion     Boolean   @default(false)
+  isRunnerUp     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([season, competition, gamerTag])
+  @@index([season])
+  @@index([gamerTag])
+}
+
+model HallOfFameStatsCache {
+  id          String   @id @default("stats_cache")
+  data        Json
+  lastUpdated DateTime @default(now())
+  version     Int      @default(1)
 }
 
 model MotdPollVote {
@@ -399,6 +476,16 @@ model News {
   @@index([publishDate])
   @@index([expirationDate])
   @@index([showOnCarousel])
+}
+
+model DismissedSystemNews {
+  id          String   @id
+  dismissedAt DateTime @default(now())
+}
+
+model EditedSystemNews {
+  id       String   @id
+  editedAt DateTime @default(now())
 }
 
 

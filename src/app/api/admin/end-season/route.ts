@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { executeSeasonTransition } from "@/lib/seasonPromotion";
+import { snapshotCurrentSeason, invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
 
 export async function POST(req: Request) {
   try {
@@ -95,6 +96,14 @@ export async function POST(req: Request) {
         }
       } catch (err) {
         console.error("Hall of fame archive warning:", err);
+      }
+
+      // 1b. Preserve Historical Season Snapshot before match purge (Requirement 08)
+      try {
+        await snapshotCurrentSeason(currentSeason);
+        await invalidateHallOfFameCache();
+      } catch (snapErr) {
+        console.error("Historical season snapshot warning:", snapErr);
       }
 
       // 2. Delete all season matches, submissions, forfeit claims, and slots

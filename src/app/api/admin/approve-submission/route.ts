@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
+import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
 
 export async function POST(req: Request) {
   try {
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
           ? `${updatedMatch.division} ${updatedMatch.groupName}`
           : updatedMatch.division;
         await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+        await invalidateHallOfFameCache().catch(() => {});
 
         // Notify participating players and broadcast standings update to all platform users
         const matchSummary = officialAggHome !== null
@@ -160,6 +162,7 @@ export async function POST(req: Request) {
               ? `${revertedMatch.division} ${revertedMatch.groupName}`
               : revertedMatch.division;
           await recalculateStandings(revertedMatch.tournamentId, divToRecalc);
+          await invalidateHallOfFameCache().catch(() => {});
 
           await notifyStandingsUpdate({
             tournamentType: revertedMatch.division,
@@ -229,6 +232,7 @@ export async function POST(req: Request) {
         ? `${updatedMatch.division} ${updatedMatch.groupName}`
         : updatedMatch.division;
       await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+      await invalidateHallOfFameCache().catch(() => {});
 
       await notifyStandingsUpdate({
         tournamentType: updatedMatch.division,
@@ -336,6 +340,7 @@ export async function POST(req: Request) {
           ? `${updatedMatch.division} ${updatedMatch.groupName}`
           : updatedMatch.division;
         await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
+        await invalidateHallOfFameCache().catch(() => {});
 
         await notifyStandingsUpdate({
           tournamentType: updatedMatch.division,

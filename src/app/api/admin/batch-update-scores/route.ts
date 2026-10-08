@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
+import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
 
 export async function POST(req: Request) {
   try {
@@ -128,6 +129,8 @@ export async function POST(req: Request) {
         matchSummary: matchdayName || "Batch verified results",
       });
     }
+
+    await invalidateHallOfFameCache().catch(() => {});
 
     return NextResponse.json({
       success: true,

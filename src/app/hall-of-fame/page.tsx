@@ -4,24 +4,31 @@ import { redirectAdminToPortal } from "@/lib/adminGuard";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
 import HallOfFameClient from "./HallOfFameClient";
 import { Crown } from "lucide-react";
+import { getHallOfFameStats } from "@/lib/hallOfFameStatsService";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Hall of Fame | eFootball Rwanda League",
   description:
-    "Honoring the immortalized champions and legendary esports athletes of eFootball Rwanda League.",
+    "Official museum, historical records, and immortalized champions of the eFootball Rwanda League.",
 };
 
 export default async function HallOfFamePage() {
   await redirectAdminToPortal();
 
   let hallOfFameEntries: any[] = [];
+  let stats: any = null;
 
   try {
-    hallOfFameEntries = await prisma.hallOfFame.findMany({
-      orderBy: [{ season: "desc" }, { createdAt: "desc" }],
-    });
+    const [entriesData, statsData] = await Promise.all([
+      prisma.hallOfFame.findMany({
+        orderBy: [{ season: "desc" }, { createdAt: "desc" }],
+      }),
+      getHallOfFameStats(false),
+    ]);
+    hallOfFameEntries = entriesData;
+    stats = statsData;
   } catch (error) {
     console.error("HallOfFame fetch error:", error);
   }
@@ -43,14 +50,14 @@ export default async function HallOfFamePage() {
                 EFRL Hall of Fame
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                Honoring the legendary esports champions who conquered Rwanda&apos;s most competitive eFootball tournaments.
+                Official museum and statistical record of Rwandan eFootball champions, all-time record holders, and legendary esports athletes.
               </p>
             </div>
           </div>
         </div>
 
         {/* Client Interactive View */}
-        <HallOfFameClient entries={hallOfFameEntries} />
+        <HallOfFameClient entries={hallOfFameEntries} stats={stats} />
       </main>
     </div>
   );
