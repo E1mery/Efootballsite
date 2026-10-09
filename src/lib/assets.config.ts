@@ -28,6 +28,7 @@ export const BRANDING_ASSETS = {
   trophyCabinetBg: "/images/trophy-cabinet-bg.jpg",
   heroGoldenTrophy: "/images/hall-of-fame-emblem.png",
   hallOfFameEmblem: "/images/hall-of-fame-emblem.png",
+  todayMatchBg: "/images/today-match-bg.png",
 };
 
 export const COMPETITION_TROPHIES: Record<string, TrophyAsset> = {

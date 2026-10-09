@@ -91,14 +91,37 @@ export async function POST(req: Request) {
       const team = findTeam(realTeam);
       if (team) {
         // Strict Division-to-League Verification:
-        // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+        // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A & Serie B (when competitors exceed 20)
         if (effectiveDivision && effectiveDivision !== "RESERVE" && team.division !== effectiveDivision) {
           return NextResponse.json(
             {
-              error: `Invalid Club: "${team.name}" belongs to ${team.division} (${team.league}), but this athlete is in ${effectiveDivision}. Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A.`,
+              error: `Invalid Club: "${team.name}" belongs to ${team.division} (${team.league}), but this athlete is in ${effectiveDivision}. Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A / Serie B.`,
             },
             { status: 400 }
           );
+        }
+
+        // Serie B teams: strictly for Division 3 when competitors exceed 20
+        if (team.league === "Serie B") {
+          if (effectiveDivision !== "Division 3") {
+            return NextResponse.json(
+              {
+                error: `Invalid Club: Serie B clubs can only be assigned in Division 3.`,
+              },
+              { status: 400 }
+            );
+          }
+          const div3Count = await prisma.player.count({
+            where: { division: "Division 3", status: { not: "REJECTED" } },
+          });
+          if (div3Count <= 20) {
+            return NextResponse.json(
+              {
+                error: `Invalid Club: Serie B clubs are only available when Division 3 exceeds 20 competitors (currently ${div3Count}).`,
+              },
+              { status: 400 }
+            );
+          }
         }
 
         const existingClaim = await prisma.player.findFirst({

@@ -48,9 +48,33 @@ export async function GET(req: Request) {
       }
     });
 
+    const divisionCountsRaw = await prisma.player.groupBy({
+      by: ["division"],
+      where: {
+        status: { not: "REJECTED" },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const divisionCounts: Record<string, number> = {
+      "Division 1": 0,
+      "Division 2": 0,
+      "Division 3": 0,
+    };
+
+    divisionCountsRaw.forEach((g) => {
+      divisionCounts[g.division] = g._count._all;
+    });
+
+    const isDivision3Exceeded = (divisionCounts["Division 3"] || 0) > 20;
+
     return NextResponse.json({
       success: true,
       takenTeams,
+      divisionCounts,
+      isDivision3Exceeded,
     });
   } catch (error: any) {
     return NextResponse.json(

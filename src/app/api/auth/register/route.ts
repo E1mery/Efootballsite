@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     const selectedClub = realTeam ? findTeam(realTeam) : undefined;
     if (selectedClub || realTeam) {
       // Strict Division-to-League Verification:
-      // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+      // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A & Serie B (when competitors exceed 20)
       if (selectedClub && preferredDivision && preferredDivision !== "RESERVE") {
         if (selectedClub.division !== preferredDivision) {
           return NextResponse.json(
@@ -109,6 +109,29 @@ export async function POST(req: Request) {
             },
             { status: 400 }
           );
+        }
+
+        // Serie B teams: restricted strictly to Division 3, and only accessible when Division 3 exceeds 20 players
+        if (selectedClub.league === "Serie B") {
+          if (preferredDivision !== "Division 3") {
+            return NextResponse.json(
+              {
+                error: `Invalid Club Selection: Serie B clubs can only be chosen in Division 3.`,
+              },
+              { status: 400 }
+            );
+          }
+          const div3Count = await prisma.player.count({
+            where: { division: "Division 3", status: { not: "REJECTED" } },
+          });
+          if (div3Count <= 20) {
+            return NextResponse.json(
+              {
+                error: `Invalid Club Selection: Serie B clubs are only available when Division 3 exceeds 20 competitors (currently ${div3Count}).`,
+              },
+              { status: 400 }
+            );
+          }
         }
       }
 

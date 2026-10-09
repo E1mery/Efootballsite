@@ -7578,25 +7578,45 @@ export default function AdminClient({
               </button>
             </div>
 
-            <div className="text-xs text-foreground bg-card/80 p-3 rounded-xl border border-border flex items-center justify-between">
-              <span>
-                Eligible League:{" "}
-                <strong className="text-primary uppercase">
-                  {editingClubPlayer.division === "Division 1"
-                    ? "Premier League (England)"
-                    : editingClubPlayer.division === "Division 2"
-                    ? "La Liga (Spain)"
-                    : "Serie A (Italy)"}
-                </strong>
-              </span>
-              <Badge variant="secondary" className="text-xs">
-                {getTeamsForDivision(editingClubPlayer.division).length} Clubs Available
-              </Badge>
-            </div>
+            {(() => {
+              const isDiv3Exceeded =
+                (playersList || []).filter(
+                  (p) => p.division === "Division 3" && p.status !== "REJECTED"
+                ).length > 20;
+              const availableClubs = getTeamsForDivision(
+                editingClubPlayer.division,
+                editingClubPlayer.division === "Division 3" ? isDiv3Exceeded : false
+              );
 
-            {/* Grid of clubs */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 overflow-y-auto p-1 max-h-96">
-              {getTeamsForDivision(editingClubPlayer.division).map((team) => {
+              return (
+                <>
+                  <div className="text-xs text-foreground bg-card/80 p-3 rounded-xl border border-border flex items-center justify-between">
+                    <span>
+                      Eligible League:{" "}
+                      <strong className="text-primary uppercase">
+                        {editingClubPlayer.division === "Division 1"
+                          ? "Premier League (England)"
+                          : editingClubPlayer.division === "Division 2"
+                          ? "La Liga (Spain)"
+                          : isDiv3Exceeded
+                          ? "Serie A & Serie B (Italy)"
+                          : "Serie A (Italy)"}
+                      </strong>
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {availableClubs.length} Clubs Available
+                    </Badge>
+                  </div>
+
+                  {editingClubPlayer.division === "Division 3" && isDiv3Exceeded && (
+                    <div className="text-xs text-primary font-medium p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+                      Division 3 has exceeded 20 athletes ({playersList?.filter(p => p.division === "Division 3" && p.status !== "REJECTED").length} athletes). Serie B clubs are unlocked alongside Serie A.
+                    </div>
+                  )}
+
+                  {/* Grid of clubs */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 overflow-y-auto p-1 max-h-96">
+                    {availableClubs.map((team) => {
                 const isSelected = selectedClubName === team.name;
                 const otherPlayer = (playersList || []).find(
                   (p) =>
@@ -7653,6 +7673,9 @@ export default function AdminClient({
                 );
               })}
             </div>
+          </>
+        );
+      })()}
 
             <div className="flex items-center justify-between pt-3 border-t border-border">
               <Button
@@ -7751,8 +7774,18 @@ export default function AdminClient({
                   {
                     id: "Division 3",
                     name: "Division 3",
-                    league: "Serie A (Italy)",
-                    desc: "20 Serie A clubs. Promotion to Div 2 and Europa League spots.",
+                    league:
+                      (playersList || []).filter(
+                        (p) => p.division === "Division 3" && p.status !== "REJECTED"
+                      ).length > 20
+                        ? "Serie A & Serie B (Italy)"
+                        : "Serie A (Italy)",
+                    desc:
+                      (playersList || []).filter(
+                        (p) => p.division === "Division 3" && p.status !== "REJECTED"
+                      ).length > 20
+                        ? "Serie A & Serie B clubs (unlocked for 20+ competitors). Promotion to Div 2 and Europa League spots."
+                        : "20 Serie A clubs. Promotion to Div 2 and Europa League spots.",
                     color: "border-accent hover:border-accent-foreground bg-accent/20 text-accent-foreground",
                     activeRing: "ring-2 ring-accent-foreground bg-accent/40",
                   },

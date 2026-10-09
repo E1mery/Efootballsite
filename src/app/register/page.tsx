@@ -44,6 +44,7 @@ export default function RegisterPage() {
   const [takenTeams, setTakenTeams] = useState<
     Record<string, { gamerTag: string; division: string }>
   >({});
+  const [divisionCounts, setDivisionCounts] = useState<Record<string, number>>({});
 
   // Check if registration is open and fetch already claimed teams
   useEffect(() => {
@@ -62,9 +63,14 @@ export default function RegisterPage() {
         if (data.takenTeams) {
           setTakenTeams(data.takenTeams);
         }
+        if (data.divisionCounts) {
+          setDivisionCounts(data.divisionCounts);
+        }
       })
       .catch((err) => console.error("Failed to load taken teams", err));
   }, []);
+
+  const isDiv3Exceeded = (divisionCounts["Division 3"] || 0) > 20;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,7 +255,9 @@ export default function RegisterPage() {
               >
                 <option value="Division 1">Division 1 (Premiership - Premier League Teams)</option>
                 <option value="Division 2">Division 2 (Championship - La Liga Teams)</option>
-                <option value="Division 3">Division 3 (National Academy - Serie A Teams)</option>
+                <option value="Division 3">
+                  Division 3 (National Academy - {isDiv3Exceeded ? "Serie A & Serie B" : "Serie A"} Teams)
+                </option>
               </select>
               <span className="text-xs text-muted-foreground mt-1 block">
                 The League Administrator will review your account to either approve your division placement or place you in the official Standby Reserve Pool.
@@ -267,9 +275,17 @@ export default function RegisterPage() {
                     ? "Premier League"
                     : formData.preferredDivision === "Division 2"
                     ? "La Liga"
+                    : isDiv3Exceeded
+                    ? "Serie A & Serie B"
                     : "Serie A"}
                 </Badge>
               </div>
+
+              {formData.preferredDivision === "Division 3" && isDiv3Exceeded && (
+                <div className="text-xs text-primary font-medium p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+                  Division 3 has exceeded 20 competitors. Serie B clubs are unlocked for selection alongside Serie A!
+                </div>
+              )}
 
               {formData.realTeam ? (
                 <div className="p-3 rounded-2xl bg-primary/30 border border-primary/40 flex items-center justify-between">
@@ -303,7 +319,7 @@ export default function RegisterPage() {
                     onChange={(e) => setFormData({ ...formData, realTeam: e.target.value })}
                   >
                     <option value="">Select your real football club (optional)</option>
-                    {getTeamsForDivision(formData.preferredDivision).map((t) => {
+                    {getTeamsForDivision(formData.preferredDivision, isDiv3Exceeded).map((t) => {
                       const taken = takenTeams[t.name.trim().toLowerCase()];
                       return (
                         <option
@@ -320,7 +336,7 @@ export default function RegisterPage() {
 
                   {/* Visual Grid Picker with Live Availability */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1.5 border border-border rounded-xl bg-background/60">
-                    {getTeamsForDivision(formData.preferredDivision).map((t) => {
+                    {getTeamsForDivision(formData.preferredDivision, isDiv3Exceeded).map((t) => {
                       const taken = takenTeams[t.name.trim().toLowerCase()];
                       const isSelected = formData.realTeam === t.name;
                       return (

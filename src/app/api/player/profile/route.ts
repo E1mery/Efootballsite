@@ -132,7 +132,7 @@ export async function PUT(req: Request) {
       const team = findTeam(realTeam);
       if (team) {
         // Strict Division-to-League Verification:
-        // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A
+        // Division 1 = Premier League, Division 2 = La Liga, Division 3 = Serie A & Serie B (when competitors exceed 20)
         if (user.player.division && user.player.division !== "RESERVE" && team.division !== user.player.division) {
           return NextResponse.json(
             {
@@ -140,6 +140,29 @@ export async function PUT(req: Request) {
             },
             { status: 400 }
           );
+        }
+
+        // Serie B teams: restricted strictly to Division 3, and only when competitors exceed 20
+        if (team.league === "Serie B") {
+          if (user.player.division !== "Division 3") {
+            return NextResponse.json(
+              {
+                error: `Invalid Club: Serie B clubs can only be chosen in Division 3.`,
+              },
+              { status: 400 }
+            );
+          }
+          const div3Count = await prisma.player.count({
+            where: { division: "Division 3", status: { not: "REJECTED" } },
+          });
+          if (div3Count <= 20) {
+            return NextResponse.json(
+              {
+                error: `Invalid Club: Serie B clubs are only available when Division 3 exceeds 20 competitors (currently ${div3Count}).`,
+              },
+              { status: 400 }
+            );
+          }
         }
 
         // Validate that no other athlete has claimed this club

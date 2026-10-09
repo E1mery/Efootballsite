@@ -4,7 +4,7 @@ export interface RealFootballTeam {
   shortName: string;
   short?: string;
   division: "Division 1" | "Division 2" | "Division 3";
-  league: "Premier League" | "La Liga" | "Serie A" | "Ligue 1";
+  league: "Premier League" | "La Liga" | "Serie A" | "Ligue 1" | "Serie B";
   country: string;
   logo: string;
   primaryColor: string;
@@ -683,6 +683,230 @@ export const SERIE_A_TEAMS: RealFootballTeam[] = [
   },
 ];
 
+// 20 Serie B Teams for Division 3 (Available when Division 3 competitors exceed 20)
+export const SERIE_B_TEAMS: RealFootballTeam[] = [
+  {
+    id: "sassuolo",
+    name: "US Sassuolo Calcio",
+    shortName: "SAS",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/471.svg",
+    primaryColor: "#00A850",
+    secondaryColor: "#000000",
+  },
+  {
+    id: "salernitana",
+    name: "US Salernitana 1919",
+    shortName: "SAL",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/455.svg",
+    primaryColor: "#8A151B",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "frosinone",
+    name: "Frosinone Calcio",
+    shortName: "FRO",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/470.svg",
+    primaryColor: "#FFD700",
+    secondaryColor: "#0055A5",
+  },
+  {
+    id: "palermo",
+    name: "Palermo FC",
+    shortName: "PAL",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/114.png",
+    primaryColor: "#F8A3BC",
+    secondaryColor: "#000000",
+  },
+  {
+    id: "sampdoria",
+    name: "UC Sampdoria",
+    shortName: "SAM",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/584.svg",
+    primaryColor: "#003D7C",
+    secondaryColor: "#E30613",
+  },
+  {
+    id: "spezia",
+    name: "Spezia Calcio",
+    shortName: "SPE",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/488.svg",
+    primaryColor: "#FFFFFF",
+    secondaryColor: "#000000",
+  },
+  {
+    id: "cremonese",
+    name: "US Cremonese",
+    shortName: "CRE",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/466.svg",
+    primaryColor: "#8B1C1D",
+    secondaryColor: "#9E9E9E",
+  },
+  {
+    id: "pisa",
+    name: "Pisa Sporting Club",
+    shortName: "PIS",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/588.svg",
+    primaryColor: "#003DA5",
+    secondaryColor: "#000000",
+  },
+  {
+    id: "brescia",
+    name: "Brescia Calcio",
+    shortName: "BSC",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/449.svg",
+    primaryColor: "#003366",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "bari",
+    name: "SSC Bari",
+    shortName: "BRI",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/453.png",
+    primaryColor: "#E30613",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "cesena",
+    name: "Cesena FC",
+    shortName: "CES",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/1109.png",
+    primaryColor: "#000000",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "modena",
+    name: "Modena FC 2018",
+    shortName: "MOD",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/460.png",
+    primaryColor: "#FFD700",
+    secondaryColor: "#003399",
+  },
+  {
+    id: "reggiana",
+    name: "AC Reggiana 1919",
+    shortName: "REG",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/1137.svg",
+    primaryColor: "#7B1113",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "juve-stabia",
+    name: "SS Juve Stabia",
+    shortName: "JST",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/1138.svg",
+    primaryColor: "#FFD700",
+    secondaryColor: "#002060",
+  },
+  {
+    id: "carrarese",
+    name: "Carrarese Calcio 1908",
+    shortName: "CAR",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/1132.svg",
+    primaryColor: "#FFD700",
+    secondaryColor: "#003399",
+  },
+  {
+    id: "cosenza",
+    name: "Cosenza Calcio",
+    shortName: "COS",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/1152.png",
+    primaryColor: "#C8102E",
+    secondaryColor: "#002F6C",
+  },
+  {
+    id: "cittadella",
+    name: "AS Cittadella",
+    shortName: "CIT",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://crests.football-data.org/585.svg",
+    primaryColor: "#800000",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "mantova",
+    name: "Mantova 1911",
+    shortName: "MAN",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_Mantova_1911.svg",
+    primaryColor: "#CC0000",
+    secondaryColor: "#FFFFFF",
+  },
+  {
+    id: "catanzaro",
+    name: "US Catanzaro 1929",
+    shortName: "CAT",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://upload.wikimedia.org/wikipedia/it/c/c5/Stemma_US_Catanzaro_1929.svg",
+    primaryColor: "#FFD700",
+    secondaryColor: "#CC0000",
+  },
+  {
+    id: "sudtirol",
+    name: "FC Südtirol",
+    shortName: "SUD",
+    division: "Division 3",
+    league: "Serie B",
+    country: "Italy",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/1/14/Logo_prime_stagioni_fc_sudtirol.png",
+    primaryColor: "#FFFFFF",
+    secondaryColor: "#CC0000",
+  },
+];
+
 // Alias for backwards compatibility
 export const LIGUE_1_TEAMS = SERIE_A_TEAMS;
 
@@ -690,12 +914,18 @@ export const ALL_REAL_TEAMS: RealFootballTeam[] = [
   ...PREMIER_LEAGUE_TEAMS,
   ...LA_LIGA_TEAMS,
   ...SERIE_A_TEAMS,
+  ...SERIE_B_TEAMS,
 ];
 
 /**
  * Returns available real football teams for a player's division.
+ * For Division 3, Serie B teams become available when competitor count exceeds 20.
+ * NB: Division 3 only - Division 1 and 2 exclusively feature Premier League and La Liga.
  */
-export function getTeamsForDivision(division: string): RealFootballTeam[] {
+export function getTeamsForDivision(
+  division: string,
+  includeSerieBOrCount?: boolean | number
+): RealFootballTeam[] {
   if (division === "Division 1") {
     return PREMIER_LEAGUE_TEAMS;
   }
@@ -703,7 +933,14 @@ export function getTeamsForDivision(division: string): RealFootballTeam[] {
     return LA_LIGA_TEAMS;
   }
   if (division === "Division 3") {
-    return SERIE_A_TEAMS;
+    const shouldIncludeSerieB =
+      typeof includeSerieBOrCount === "number"
+        ? includeSerieBOrCount > 20
+        : Boolean(includeSerieBOrCount);
+
+    return shouldIncludeSerieB
+      ? [...SERIE_A_TEAMS, ...SERIE_B_TEAMS]
+      : SERIE_A_TEAMS;
   }
   return ALL_REAL_TEAMS;
 }
