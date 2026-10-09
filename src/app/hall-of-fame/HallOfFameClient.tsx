@@ -117,10 +117,38 @@ export default function HallOfFameClient({
     });
   }, [stats?.players, searchQuery, selectedSeason, selectedCompetition]);
 
+  // Hall of Fame Players - strictly players who have won any trophy
+  const trophyWinningPlayers = useMemo(() => {
+    const all = stats?.players || [];
+    const inducted = stats?.inductedLegends || [];
+    const combined = [...inducted, ...all];
+
+    const map = new Map<string, PlayerCareerStats>();
+    for (const p of combined) {
+      if ((p.totalTrophies ?? 0) > 0) {
+        const key = p.gamerTag.trim().toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, p);
+        } else {
+          const existing = map.get(key)!;
+          if ((p.totalTrophies ?? 0) > (existing.totalTrophies ?? 0)) {
+            map.set(key, p);
+          }
+        }
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.totalTrophies !== a.totalTrophies) return b.totalTrophies - a.totalTrophies;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return b.goalsScored - a.goalsScored;
+    });
+  }, [stats?.players, stats?.inductedLegends]);
+
   // Hero computed stats from database
   const heroMetrics = {
     totalChampions: trophyCabinet.reduce((acc, c) => acc + c.winnersCount, 0),
-    totalLegends: stats?.metrics?.totalInductedLegends ?? entries.length,
+    totalLegends: trophyWinningPlayers.length,
     totalSeasons: stats?.metrics?.totalSeasonsAnalyzed ?? 0,
     allTimeGoals: stats?.metrics?.totalGoalsProcessed ?? 0,
   };
@@ -209,9 +237,9 @@ export default function HallOfFameClient({
             onViewAllRecords={() => setActiveTab("RECORDS")}
           />
 
-          {/* Section 6: Hall of Fame Players (Carousel) */}
+          {/* Section 6: Hall of Fame Players (Carousel - Trophy Winners Only) */}
           <HallOfFamePlayers
-            players={stats?.inductedLegends?.length ? stats.inductedLegends : stats?.players || []}
+            players={trophyWinningPlayers}
             onViewAll={() => setActiveTab("LEADERBOARD")}
             onSelectPlayer={(p) => setSelectedPlayerForAudit(p)}
           />

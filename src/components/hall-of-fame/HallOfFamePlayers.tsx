@@ -28,6 +28,9 @@ export default function HallOfFamePlayers({
 }: HallOfFamePlayersProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Strictly filter to players who have won any trophy
+  const trophyWinningPlayers = players.filter((p) => (p.totalTrophies ?? 0) > 0);
+
   const scrollLeft = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: -320, behavior: "smooth" });
@@ -68,7 +71,7 @@ export default function HallOfFamePlayers({
             </button>
           )}
 
-          {players.length > 0 && (
+          {trophyWinningPlayers.length > 0 && (
             <div className="flex items-center gap-1.5">
               <button
                 onClick={scrollLeft}
@@ -89,14 +92,14 @@ export default function HallOfFamePlayers({
         </div>
       </div>
 
-      {players.length === 0 ? (
+      {trophyWinningPlayers.length === 0 ? (
         <div className="text-center p-8 sm:p-12 rounded-2xl hof-navy-surface border border-border/60">
           <Crown className="w-12 h-12 text-secondary/40 mx-auto mb-3" />
           <h3 className="text-lg font-bold text-foreground uppercase tracking-wide">
             No Inductees Yet
           </h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-            Players who win championships or achieve hall of fame eligibility will appear here in the inducted gallery.
+            This section is reserved exclusively for athletes who have won an official championship trophy. Inductees will appear here once titles are claimed.
           </p>
         </div>
       ) : (
@@ -104,7 +107,7 @@ export default function HallOfFamePlayers({
           ref={scrollRef}
           className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 snap-x scrollbar-none"
         >
-          {players.map((p) => {
+          {trophyWinningPlayers.map((p) => {
             const inductionLabel = p.seasonsParticipated && p.seasonsParticipated.length > 0
               ? p.seasonsParticipated[0]
               : "Inducted Legend";
