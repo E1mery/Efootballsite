@@ -1,24 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import {
   Crown,
   Trophy,
-  Award,
-  Search,
-  Calendar,
-  User,
-  Medal,
-  Sparkles,
-  ArrowRight,
-  Shield,
-  Flame,
-  CheckCircle2,
-  TrendingUp,
   X,
   History,
-  Layers,
 } from "lucide-react";
 
 import HeroStats from "@/components/hall-of-fame/HeroStats";
@@ -33,7 +20,6 @@ import { HallOfFameEntry } from "@/components/HallOfFameCarousel";
 import {
   HallOfFameStatsResult,
   PlayerCareerStats,
-  AllTimeRecord,
 } from "@/lib/hallOfFameStatsService";
 
 interface HallOfFameClientProps {
@@ -50,19 +36,8 @@ export default function HallOfFameClient({
   currentSeasonName = "Current Season",
 }: HallOfFameClientProps) {
   // Navigation & View State
-  const [activeTab, setActiveTab] = useState<"SHOWCASE" | "RECORDS" | "LEADERBOARD">("SHOWCASE");
-  const [selectedSeason, setSelectedSeason] = useState<string>("ALL");
-  const [selectedCompetition, setSelectedCompetition] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"SHOWCASE" | "RECORDS">("SHOWCASE");
   const [selectedPlayerForAudit, setSelectedPlayerForAudit] = useState<PlayerCareerStats | null>(null);
-
-  // Available seasons
-  const seasons = useMemo(() => {
-    const list = new Set<string>();
-    entries.forEach((e) => e.season && list.add(e.season));
-    stats?.players?.forEach((p) => p.seasonsParticipated?.forEach((s) => list.add(s)));
-    return ["ALL", ...Array.from(list)];
-  }, [entries, stats]);
 
   // Combined records: automatic + manual
   const allRecords = useMemo(() => {
@@ -95,27 +70,6 @@ export default function HallOfFameClient({
       .filter((p) => p.totalTrophies === maxTrophies)
       .sort((a, b) => b.wins - a.wins || b.goalsScored - a.goalsScored);
   }, [stats]);
-
-  // Filtered Players for All-Time Leaderboard
-  const filteredPlayers = useMemo(() => {
-    const all = stats?.players || [];
-    return all.filter((p) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchQuery =
-        !q ||
-        p.gamerTag.toLowerCase().includes(q) ||
-        (p.fullName && p.fullName.toLowerCase().includes(q));
-
-      const matchSeason =
-        selectedSeason === "ALL" || p.seasonsParticipated.includes(selectedSeason);
-
-      const matchCompetition =
-        selectedCompetition === "ALL" ||
-        p.divisionsParticipated.some((d) => d.toLowerCase().includes(selectedCompetition.toLowerCase()));
-
-      return matchQuery && matchSeason && matchCompetition;
-    });
-  }, [stats?.players, searchQuery, selectedSeason, selectedCompetition]);
 
   // Hall of Fame Players - strictly players who have won any trophy
   const trophyWinningPlayers = useMemo(() => {
@@ -184,33 +138,7 @@ export default function HallOfFameClient({
             <span>All-Time Records ({allRecords.length})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("LEADERBOARD")}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === "LEADERBOARD"
-                ? "bg-secondary text-secondary-foreground shadow-md font-black"
-                : "bg-card/70 border border-border text-muted-foreground hover:text-foreground hover:bg-card"
-            }`}
-          >
-            <TrendingUp className="h-4 w-4" />
-            <span>Player Leaderboard</span>
-          </button>
         </div>
-
-        {/* Search Input when in Leaderboard or Records tab */}
-        {activeTab !== "SHOWCASE" && (
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search athlete, record..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-card/80 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-secondary transition-colors"
-            />
-          </div>
-        )}
       </div>
 
       {/* TAB 1: MUSEUM SHOWCASE (Matches User Design Specification) */}
@@ -225,9 +153,8 @@ export default function HallOfFameClient({
           {/* Section 4: Trophy Cabinet */}
           <TrophyCabinet
             competitions={trophyCabinet}
-            onSelectCompetition={(comp) => {
-              setSelectedCompetition(comp);
-              setActiveTab("LEADERBOARD");
+            onSelectCompetition={() => {
+              setActiveTab("RECORDS");
             }}
           />
 
@@ -240,7 +167,7 @@ export default function HallOfFameClient({
           {/* Section 6: Hall of Fame Players (Carousel - Trophy Winners Only) */}
           <HallOfFamePlayers
             players={trophyWinningPlayers}
-            onViewAll={() => setActiveTab("LEADERBOARD")}
+            onViewAll={() => setActiveTab("RECORDS")}
             onSelectPlayer={(p) => setSelectedPlayerForAudit(p)}
           />
 
@@ -323,139 +250,6 @@ export default function HallOfFameClient({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* TAB 3: STATISTICAL LEADERBOARD & CAREER AUDIT */}
-      {activeTab === "LEADERBOARD" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
-                All-Time Career Statistical Roster
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Aggregated career totals across all official competitions. Click any athlete to open their full transparency audit.
-              </p>
-            </div>
-
-            {/* Filter controls */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-              <select
-                value={selectedSeason}
-                onChange={(e) => setSelectedSeason(e.target.value)}
-                className="bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-bold text-foreground"
-              >
-                <option value="ALL">All Seasons</option>
-                {seasons.filter((s) => s !== "ALL").map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-
-              <select
-                value={selectedCompetition}
-                onChange={(e) => setSelectedCompetition(e.target.value)}
-                className="bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-bold text-foreground"
-              >
-                <option value="ALL">All Competitions</option>
-                <option value="Division 1">Division 1</option>
-                <option value="UCL">Champions League</option>
-                <option value="EUROPA">Europa League</option>
-                <option value="Division 2">Division 2</option>
-                <option value="Division 3">Division 3</option>
-              </select>
-            </div>
-          </div>
-
-          {filteredPlayers.length === 0 ? (
-            <div className="text-center p-12 rounded-2xl hof-navy-surface border border-border">
-              <User className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-              <h3 className="text-sm font-bold uppercase text-foreground">No Athletes Found</h3>
-              <p className="text-xs text-muted-foreground mt-1">No athletes match the current search or filters.</p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-border/80 overflow-hidden hof-navy-surface">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/40 uppercase font-mono text-muted-foreground border-b border-border/70">
-                    <tr>
-                      <th className="py-3 px-4">Rank / Player</th>
-                      <th className="py-3 px-4 text-center">Division</th>
-                      <th className="py-3 px-4 text-center">Matches</th>
-                      <th className="py-3 px-4 text-center">W-D-L</th>
-                      <th className="py-3 px-4 text-center">Goals (GD)</th>
-                      <th className="py-3 px-4 text-center">Win Rate</th>
-                      <th className="py-3 px-4 text-center">Trophies</th>
-                      <th className="py-3 px-4 text-right">Audit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {filteredPlayers.map((player, idx) => (
-                      <tr
-                        key={player.gamerTag}
-                        onClick={() => setSelectedPlayerForAudit(player)}
-                        className="hover:bg-muted/30 cursor-pointer transition-colors"
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono font-bold text-muted-foreground w-5 text-center">
-                              #{idx + 1}
-                            </span>
-                            <div>
-                              <div className="font-bold text-foreground uppercase flex items-center gap-1.5">
-                                <span>{player.gamerTag}</span>
-                                {player.isInducted && (
-                                  <Crown className="w-3 h-3 text-secondary inline" />
-                                )}
-                              </div>
-                              {player.fullName && (
-                                <div className="text-xs text-muted-foreground">
-                                  {player.fullName}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono text-muted-foreground">
-                          {player.currentDivision || "Division 1"}
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono font-bold text-foreground">
-                          {player.matchesPlayed}
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono text-muted-foreground">
-                          {player.wins}W - {player.draws}D - {player.losses}L
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono">
-                          <span className="font-bold text-secondary">{player.goalsScored}</span>
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({player.goalDifference > 0 ? `+${player.goalDifference}` : player.goalDifference})
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono font-bold text-foreground">
-                          {player.winPercentage.toFixed(1)}%
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono font-bold text-secondary">
-                          🏆 {player.totalTrophies}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPlayerForAudit(player);
-                            }}
-                            className="px-2.5 py-1 rounded bg-secondary/15 hover:bg-secondary/25 border border-secondary/30 text-secondary text-xs font-bold uppercase transition-colors"
-                          >
-                            Inspect
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
