@@ -113,7 +113,7 @@ export default function HallOfFamePlayers({
               <div
                 key={p.gamerTag}
                 onClick={() => onSelectPlayer?.(p)}
-                className="w-72 sm:w-80 shrink-0 snap-start hof-navy-surface rounded-2xl p-5 border border-border/60 hover:border-secondary/60 transition-all flex flex-col justify-between cursor-pointer group"
+                className="w-72 sm:w-80 shrink-0 snap-start hof-card-texture rounded-2xl p-5 flex flex-col justify-between cursor-pointer group"
               >
                 <div>
                   {/* Card Header: Avatar & Badge */}

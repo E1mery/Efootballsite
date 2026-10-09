@@ -102,6 +102,35 @@ body {
   color: oklch(var(--secondary));
 }
 
+.timeline-horizon-beam {
+  background: linear-gradient(90deg, transparent 0%, oklch(var(--primary) / 0.35) 20%, oklch(var(--secondary) / 0.5) 50%, oklch(var(--primary) / 0.35) 80%, transparent 100%);
+  box-shadow: 0 0 25px 2px oklch(var(--primary) / 0.25);
+}
+
+.hof-card-texture {
+  background: 
+    radial-gradient(circle at 50% 12%, oklch(var(--primary) / 0.32) 0%, transparent 60%),
+    radial-gradient(circle at 50% 95%, oklch(var(--primary) / 0.22) 0%, transparent 55%),
+    radial-gradient(circle at 5% 5%, oklch(var(--secondary) / 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 95% 5%, oklch(var(--secondary) / 0.25) 0%, transparent 40%),
+    linear-gradient(135deg, oklch(0.10 0.03 260) 0%, oklch(0.13 0.035 258) 50%, oklch(0.08 0.02 260) 100%);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid oklch(var(--primary) / 0.35);
+  box-shadow: 
+    inset 0 0 45px oklch(0.05 0.01 260 / 0.9),
+    0 12px 36px -10px oklch(var(--primary) / 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hof-card-texture:hover {
+  border-color: oklch(var(--secondary) / 0.6);
+  box-shadow: 
+    inset 0 0 45px oklch(0.05 0.01 260 / 0.85),
+    0 16px 40px -10px oklch(var(--primary) / 0.45);
+  transform: translateY(-2px);
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 7px;

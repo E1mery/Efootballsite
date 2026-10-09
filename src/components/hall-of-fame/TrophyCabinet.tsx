@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Trophy, Crown, Award, Shield, ChevronRight } from "lucide-react";
-import { getTrophyForCompetition } from "@/lib/assets.config";
+import { BRANDING_ASSETS, getTrophyForCompetition } from "@/lib/assets.config";
 
 export interface CompetitionTrophyCardData {
   competition: string;
@@ -35,9 +35,27 @@ export default function TrophyCabinet({
   };
 
   return (
-    <section className="py-8 sm:py-12 border-b border-border/40">
+    <section className="relative rounded-3xl overflow-hidden border border-border/60 bg-card/30 p-6 sm:p-10 my-6 sm:my-8">
+      {/* Trophy Cabinet Atmospheric Stadium Background */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <Image
+          src={BRANDING_ASSETS.trophyCabinetBg}
+          alt="Trophy Cabinet Atmosphere Background"
+          fill
+          className="object-cover object-center opacity-40 mix-blend-luminosity"
+          sizes="(max-width: 1280px) 100vw, 1280px"
+        />
+        {/* Navy Vignette Gradients for clear text and trophy visibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/85 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-transparent to-background/90" />
+      </div>
+
+      {/* Subtle ambient glow */}
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-primary/10 blur-3xl pointer-events-none -z-10" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-secondary/10 blur-3xl pointer-events-none -z-10" />
+
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-secondary" />
@@ -55,7 +73,7 @@ export default function TrophyCabinet({
       </div>
 
       {competitions.length === 0 ? (
-        <div className="text-center p-8 sm:p-12 rounded-2xl hof-navy-surface border border-border/60">
+        <div className="relative z-10 text-center p-8 sm:p-12 rounded-2xl hof-navy-surface border border-border/60">
           <Trophy className="w-12 h-12 text-secondary/40 mx-auto mb-3" />
           <h3 className="text-lg font-bold text-foreground uppercase tracking-wide">
             Trophy Cabinet Empty
@@ -65,7 +83,7 @@ export default function TrophyCabinet({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {competitions.map((item) => {
             const meta = getTrophyForCompetition(item.competition);
             const FallbackIcon = getIcon(meta.fallbackIcon);
@@ -73,7 +91,7 @@ export default function TrophyCabinet({
             return (
               <div
                 key={item.competition}
-                className="hof-navy-surface rounded-2xl p-5 border border-border/60 hover:border-secondary/50 flex flex-col justify-between transition-all group"
+                className="hof-navy-surface rounded-2xl p-5 border border-border/60 hover:border-secondary/50 flex flex-col justify-between transition-all group backdrop-blur-md"
               >
                 {/* Trophy Graphic Top */}
                 <div className="flex flex-col items-center text-center pt-2 pb-4">

@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1120" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Background Base Gradient: Almost-black midnight navy -->
+    <linearGradient id="hof-base" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050814" />
+      <stop offset="45%" stop-color="#070d1e" />
+      <stop offset="70%" stop-color="#040713" />
+      <stop offset="100%" stop-color="#02040a" />
+    </linearGradient>
+
+    <!-- Top Stadium Floodlight / Halo Beam (Subtle illumination for player silhouette) -->
+    <radialGradient id="hof-top-spotlight" cx="50%" cy="10%" r="65%">
+      <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.35" />
+      <stop offset="35%" stop-color="#0f172a" stop-opacity="0.15" />
+      <stop offset="80%" stop-color="#050814" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Bottom Pedestal Uplight (Heroic low-angle ambient glow) -->
+    <radialGradient id="hof-bottom-glow" cx="50%" cy="95%" r="55%">
+      <stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.22" />
+      <stop offset="40%" stop-color="#0284c7" stop-opacity="0.08" />
+      <stop offset="80%" stop-color="#02040a" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Electric-Blue Left Rim Lighting -->
+    <linearGradient id="hof-rim-left" x1="0%" y1="20%" x2="25%" y2="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.45" />
+      <stop offset="40%" stop-color="#2563eb" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#050814" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Electric-Blue Right Rim Lighting -->
+    <linearGradient id="hof-rim-right" x1="100%" y1="20%" x2="75%" y2="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4" />
+      <stop offset="40%" stop-color="#1d4ed8" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#050814" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Metallic Gold Corner Glow: Top-Left -->
+    <radialGradient id="gold-glow-tl" cx="0%" cy="0%" r="40%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32" />
+      <stop offset="30%" stop-color="#d97706" stop-opacity="0.12" />
+      <stop offset="80%" stop-color="#050814" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Metallic Gold Corner Glow: Top-Right -->
+    <radialGradient id="gold-glow-tr" cx="100%" cy="0%" r="40%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.3" />
+      <stop offset="35%" stop-color="#b45309" stop-opacity="0.1" />
+      <stop offset="80%" stop-color="#050814" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Metallic Gold Corner Glow: Bottom-Right -->
+    <radialGradient id="gold-glow-br" cx="100%" cy="100%" r="35%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25" />
+      <stop offset="40%" stop-color="#78350f" stop-opacity="0.08" />
+      <stop offset="80%" stop-color="#02040a" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Subtle Esports Geometric Lattice Pattern (Angled Facets) -->
+    <pattern id="hof-esports-mesh" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <path d="M 0 0 L 30 60 M 30 0 L 0 60 M 0 30 L 60 30" stroke="#38bdf8" stroke-width="0.75" stroke-opacity="0.035" fill="none" />
+      <polygon points="15,15 30,30 15,45 0,30" fill="#1e3a8a" fill-opacity="0.018" />
+      <polygon points="45,15 60,30 45,45 30,30" fill="#f59e0b" fill-opacity="0.015" />
+    </pattern>
+
+    <!-- Clean Vignette Mask to keep central 75% dark & low-contrast -->
+    <radialGradient id="center-shadow-vignette" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#030712" stop-opacity="0.88" />
+      <stop offset="60%" stop-color="#030712" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#030712" stop-opacity="0.05" />
+    </radialGradient>
+
+    <!-- Glow blur filter -->
+    <filter id="soft-shimmer" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- 1. Base Layer -->
+  <rect width="800" height="1120" fill="url(#hof-base)" />
+
+  <!-- 2. Esports Geometric Sub-Texture -->
+  <rect width="800" height="1120" fill="url(#hof-esports-mesh)" />
+
+  <!-- 3. Stadium Light Beams & Pedestal Atmosphere -->
+  <rect width="800" height="1120" fill="url(#hof-top-spotlight)" />
+  <rect width="800" height="1120" fill="url(#hof-bottom-glow)" />
+
+  <!-- 4. Corner Golden Accents (Atmospheric Auras) -->
+  <rect width="800" height="1120" fill="url(#gold-glow-tl)" />
+  <rect width="800" height="1120" fill="url(#gold-glow-tr)" />
+  <rect width="800" height="1120" fill="url(#gold-glow-br)" />
+
+  <!-- 5. Electric-Blue Rim Lighting (Outer Perimeter Flares) -->
+  <!-- Left Rim Flare -->
+  <path d="M 0,160 Q 25,360 0,680 L 0,160 Z" fill="url(#hof-rim-left)" />
+  <line x1="2" y1="200" x2="2" y2="580" stroke="#00f0ff" stroke-width="2.5" stroke-opacity="0.35" filter="url(#soft-shimmer)" />
+  <line x1="4" y1="260" x2="4" y2="480" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.6" />
+
+  <!-- Right Rim Flare -->
+  <path d="M 800,220 Q 775,440 800,740 L 800,220 Z" fill="url(#hof-rim-right)" />
+  <line x1="798" y1="240" x2="798" y2="620" stroke="#38bdf8" stroke-width="2.5" stroke-opacity="0.3" filter="url(#soft-shimmer)" />
+  <line x1="796" y1="300" x2="796" y2="520" stroke="#00f0ff" stroke-width="1.2" stroke-opacity="0.5" />
+
+  <!-- 6. Metallic Gold Particles & Star Dust (Subtle dispersion near corners) -->
+  <g id="gold-particles" filter="url(#soft-shimmer)">
+    <!-- Top-Left Cluster -->
+    <circle cx="36" cy="48" r="1.5" fill="#fef08a" opacity="0.85" />
+    <circle cx="52" cy="76" r="2.2" fill="#fbbf24" opacity="0.75" />
+    <circle cx="88" cy="42" r="1.2" fill="#f59e0b" opacity="0.6" />
+    <circle cx="112" cy="98" r="1.8" fill="#fde047" opacity="0.5" />
+    <circle cx="44" cy="120" r="1.0" fill="#f59e0b" opacity="0.6" />
+    <circle cx="140" cy="56" r="1.4" fill="#fbbf24" opacity="0.4" />
+    <circle cx="78" cy="144" r="1.6" fill="#fef08a" opacity="0.35" />
+    <circle cx="28" cy="180" r="1.2" fill="#d97706" opacity="0.45" />
+
+    <!-- Top-Right Cluster -->
+    <circle cx="754" cy="52" r="2.0" fill="#fde047" opacity="0.8" />
+    <circle cx="720" cy="80" r="1.4" fill="#fbbf24" opacity="0.65" />
+    <circle cx="688" cy="44" r="1.8" fill="#f59e0b" opacity="0.55" />
+    <circle cx="762" cy="118" r="1.2" fill="#fef08a" opacity="0.7" />
+    <circle cx="654" cy="92" r="1.5" fill="#fbbf24" opacity="0.45" />
+    <circle cx="738" cy="162" r="1.6" fill="#d97706" opacity="0.4" />
+    <circle cx="692" cy="136" r="1.1" fill="#fde047" opacity="0.35" />
+
+    <!-- Bottom-Left Cluster (Very Faint) -->
+    <circle cx="42" cy="1040" r="1.5" fill="#fbbf24" opacity="0.5" />
+    <circle cx="78" cy="1064" r="2.0" fill="#f59e0b" opacity="0.45" />
+    <circle cx="116" cy="1020" r="1.2" fill="#fde047" opacity="0.35" />
+    <circle cx="56" cy="980" r="1.0" fill="#d97706" opacity="0.3" />
+
+    <!-- Bottom-Right Cluster -->
+    <circle cx="748" cy="1030" r="2.2" fill="#fde047" opacity="0.7" />
+    <circle cx="712" cy="1060" r="1.4" fill="#fbbf24" opacity="0.55" />
+    <circle cx="678" cy="1016" r="1.8" fill="#f59e0b" opacity="0.45" />
+    <circle cx="756" cy="970" r="1.2" fill="#fef08a" opacity="0.5" />
+    <circle cx="640" cy="1048" r="1.3" fill="#d97706" opacity="0.35" />
+  </g>
+
+  <!-- 7. Center Shadow & Vignette (Ensures central 75% is clean, dark, and low-contrast) -->
+  <rect width="800" height="1120" fill="url(#center-shadow-vignette)" />
+
+  <!-- 8. Subtle Outer Card Rim Shimmer (Ultra-delicate edge definition) -->
+  <rect x="1" y="1" width="798" height="1118" rx="28" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.12" fill="none" />
+</svg>
