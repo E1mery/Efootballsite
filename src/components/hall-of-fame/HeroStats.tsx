@@ -73,37 +73,20 @@ export default function HeroStats({ metrics }: HeroStatsProps) {
 
         {/* Right Column: Hero Trophy Artwork */}
         <div className="lg:col-span-5 flex justify-center lg:justify-end relative">
-          <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center">
-            {/* Glowing ring backdrop */}
-            <div className="absolute inset-4 rounded-full bg-secondary/15 blur-2xl animate-pulse" />
-            <div className="absolute inset-8 rounded-full border border-secondary/30" />
+          <div className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 flex items-center justify-center">
+            {/* Ambient golden glow behind emblem */}
+            <div className="absolute inset-4 rounded-full bg-secondary/20 blur-3xl animate-pulse pointer-events-none" />
 
-            {/* Stadium light vignette */}
-            <div className="absolute inset-0 rounded-2xl overflow-hidden -z-10 opacity-30">
+            {/* Official Hall of Fame Crest Artwork */}
+            <div className="relative z-10 w-full h-full rounded-3xl overflow-hidden drop-shadow-2xl flex items-center justify-center">
               <Image
-                src={BRANDING_ASSETS.heroStadiumBg}
-                alt="Stadium background"
+                src={BRANDING_ASSETS.heroGoldenTrophy}
+                alt="Rwanda eFootball League Official Hall of Fame Crest"
                 fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 400px"
+                className="object-contain"
+                priority
+                sizes="(max-width: 768px) 320px, 420px"
               />
-            </div>
-
-            {/* Central Trophy Image */}
-            <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
-              <div className="relative w-32 h-32 sm:w-44 sm:h-44 rounded-2xl overflow-hidden flex items-center justify-center drop-shadow-2xl">
-                <Image
-                  src={BRANDING_ASSETS.heroGoldenTrophy}
-                  alt="Hall of Fame Championship Trophy"
-                  fill
-                  className="object-contain"
-                  priority
-                  sizes="(max-width: 768px) 140px, 180px"
-                />
-              </div>
-              <span className="mt-2 text-xs uppercase font-extrabold tracking-wider text-secondary/90">
-                Official Hall of Fame
-              </span>
             </div>
           </div>
         </div>
