@@ -869,7 +869,12 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
 
   // Inducted Legends vs Featured Legends
   const inductedLegends = allPlayersList.filter((p) => p.isInducted);
-  const featuredLegends = allPlayersList.filter((p) => p.isFeatured);
+
+  // All-Time Legend rule: The All-Time Legend must be the one who has the most official trophies only
+  const maxCareerTrophies = Math.max(...allPlayersList.map((p) => p.totalTrophies), 0);
+  const featuredLegends = maxCareerTrophies > 0
+    ? allPlayersList.filter((p) => p.totalTrophies === maxCareerTrophies)
+    : allPlayersList.filter((p) => p.isFeatured && p.totalTrophies > 0);
 
   // Sort players by trophies, wins, win rate, goals
   allPlayersList.sort((a, b) => {

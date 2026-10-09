@@ -31,7 +31,7 @@ export default function LegendSpotlight({ legends = [] }: LegendSpotlightProps) 
             Legend Spotlight
           </h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-            No players have been officially inducted into the spotlight yet. Records will appear here as championships are confirmed.
+            No player with official championship trophies found yet. The All-Time Legend spotlight is reserved exclusively for the player who holds the most official titles.
           </p>
         </div>
       </section>
@@ -59,12 +59,15 @@ export default function LegendSpotlight({ legends = [] }: LegendSpotlightProps) 
           <div className="flex items-center gap-2">
             <Crown className="w-4 h-4 text-secondary" />
             <span className="text-xs font-bold tracking-widest uppercase text-secondary">
-              LEGEND SPOTLIGHT
+              LEGEND SPOTLIGHT • MOST DECORATED
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black uppercase text-foreground tracking-tight">
             All-Time Legend of Rwanda
           </h2>
+          <p className="text-xs text-muted-foreground">
+            Crowned exclusively to the athlete holding the most official league & tournament championships.
+          </p>
         </div>
 
         {/* Carousel controls */}

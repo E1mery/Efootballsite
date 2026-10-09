@@ -71,17 +71,29 @@ export default function HallOfFameClient({
     return [...auto, ...man];
   }, [stats]);
 
-  // Spotlight Legends (featured first, or inducted players with trophies)
+  // Spotlight Legends (The All-Time Legend of Rwanda must be the one who has many trophies only)
   const spotlightLegends = useMemo(() => {
-    const featured = stats?.featuredLegends || [];
-    if (featured.length > 0) return featured;
-
-    const inducted = stats?.inductedLegends || [];
-    if (inducted.length > 0) return inducted;
-
-    // Fallback: top players by total trophies or goals
     const players = stats?.players || [];
-    return [...players].sort((a, b) => b.totalTrophies - a.totalTrophies || b.goalsScored - a.goalsScored).slice(0, 5);
+    // Only consider players who have won official trophies
+    const playersWithTrophies = players.filter((p) => p.totalTrophies > 0);
+
+    if (playersWithTrophies.length === 0) {
+      // If no player has won trophies yet, check inducted legends who may have recorded titles
+      const inductedWithTrophies = (stats?.inductedLegends || []).filter((p) => p.totalTrophies > 0);
+      if (inductedWithTrophies.length > 0) {
+        const maxTitles = Math.max(...inductedWithTrophies.map((p) => p.totalTrophies));
+        return inductedWithTrophies.filter((p) => p.totalTrophies === maxTitles);
+      }
+      return [];
+    }
+
+    // Find the maximum number of trophies won by any player
+    const maxTrophies = Math.max(...playersWithTrophies.map((p) => p.totalTrophies));
+
+    // The All-Time Legend(s) MUST be the one(s) with the highest trophy count only
+    return playersWithTrophies
+      .filter((p) => p.totalTrophies === maxTrophies)
+      .sort((a, b) => b.wins - a.wins || b.goalsScored - a.goalsScored);
   }, [stats]);
 
   // Filtered Players for All-Time Leaderboard
