@@ -22,6 +22,7 @@ export const BRANDING_ASSETS = {
   carouselStadiumBg: "/images/carousel-stadium-bg.jpg",
   uclStadiumBg: "/images/ucl-stadium-bg.jpg",
   europaStadiumBg: "/images/europa-stadium-bg.jpg",
+  hallOfFameBg: "/images/hall-of-fame-bg.png",
   hofCtaStadiumBg: "/images/hof-cta-bg.jpg",
   hofTimelineStadiumBg: "/images/timeline-stadium-bg.jpg",
   trophyCabinetBg: "/images/trophy-cabinet-bg.jpg",

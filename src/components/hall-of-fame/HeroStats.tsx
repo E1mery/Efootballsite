@@ -44,7 +44,7 @@ export default function HeroStats({ metrics }: HeroStatsProps) {
   return (
     <section className="relative overflow-hidden pt-8 pb-12 sm:pt-12 sm:pb-16 border-b border-border/40">
       {/* Background ambient lighting */}
-      <div className="absolute inset-0 pointer-events-none -z-10 bg-gradient-to-b from-primary/10 via-background to-background" />
+      <div className="absolute inset-0 pointer-events-none -z-10 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
       <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-secondary/5 blur-3xl pointer-events-none -z-10" />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">

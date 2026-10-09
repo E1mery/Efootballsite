@@ -1,7 +1,9 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
 import { getHallOfFameStats } from "@/lib/hallOfFameStatsService";
+import { BRANDING_ASSETS } from "@/lib/assets.config";
 import HallOfFameClient from "./HallOfFameClient";
 
 export const dynamic = "force-dynamic";
@@ -108,14 +110,35 @@ export default async function HallOfFamePage() {
   const currentSeasonName = leagueConfig?.season || "Current Season";
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground pb-20 selection:bg-secondary/30 selection:text-secondary">
-      {/* Client Component with all designed sections */}
-      <HallOfFameClient
-        entries={hallOfFameEntries}
-        stats={stats}
-        trophyCabinet={competitionCabinetData}
-        currentSeasonName={currentSeasonName}
-      />
+    <div className="relative min-h-screen bg-background text-foreground pb-20 selection:bg-secondary/30 selection:text-secondary overflow-hidden">
+      {/* Hall of Fame Esports Arena & Trophy Background */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <Image
+          src={BRANDING_ASSETS.hallOfFameBg}
+          alt="Rwanda eFootball Hall of Fame Arena Background"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-top sm:object-center opacity-35 sm:opacity-45 scale-105"
+        />
+        {/* Cinematic Vignette & Ambient Gradient Overlays for readable contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/95" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80" />
+        <div className="absolute inset-0 bg-hero-glow opacity-50" />
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10">
+        <HallOfFameClient
+          entries={hallOfFameEntries}
+          stats={stats}
+          trophyCabinet={competitionCabinetData}
+          currentSeasonName={currentSeasonName}
+        />
+      </div>
     </div>
   );
 }
