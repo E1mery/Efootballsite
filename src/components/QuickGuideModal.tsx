@@ -66,7 +66,7 @@ export default function QuickGuideModal({
                 <strong className="text-white">Division 2:</strong> Represented by official <span className="text-secondary font-semibold">La Liga</span> teams &amp; badges.
               </li>
               <li>
-                <strong className="text-white">Division 3:</strong> Represented by official <span className="text-primary font-semibold">Serie A</span> teams &amp; badges.
+                <strong className="text-white">Division 3:</strong> Represented by official <span className="text-primary font-semibold">Serie A</span> teams (&amp; <span className="text-primary font-semibold">Serie B</span> when exceeding 20 competitors).
               </li>
               <li className="text-xs text-secondary font-semibold">
                 🔒 <strong>Strict Club Uniqueness Protocol:</strong> Each football team can only be selected by one athlete. Once a club is claimed, no other player can choose it!

@@ -920,7 +920,7 @@ export default function AdminClient({
           `✅ Perfect Alignment!\nAll ${data.validCount} assigned clubs correctly match their respective division:\n` +
           `• Division 1: Premier League\n` +
           `• Division 2: La Liga\n` +
-          `• Division 3: Serie A\n\nNo mismatches found!`
+          `• Division 3: Serie A / Serie B\n\nNo mismatches found!`
         );
         return;
       }
@@ -2670,7 +2670,7 @@ export default function AdminClient({
                   disabled={auditingTeams}
                   variant="outline"
                   className="text-xs gap-1.5 border-secondary/50 text-secondary hover:bg-secondary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
-                  title="Check whether every athlete's assigned real team matches their division (Div 1 = Premier League, Div 2 = La Liga, Div 3 = Serie A)"
+                  title="Check whether every athlete's assigned real team matches their division (Div 1 = Premier League, Div 2 = La Liga, Div 3 = Serie A / Serie B)"
                 >
                   <ShieldCheck
                     className={`h-3.5 w-3.5 ${auditingTeams ? "animate-spin" : ""}`}
