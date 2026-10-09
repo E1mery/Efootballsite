@@ -92,20 +92,35 @@ export default async function HallOfFamePage() {
     }
   });
 
-  const competitionCabinetData = Array.from(competitionMap.entries()).map(([comp, data]) => ({
-    competition: comp,
-    displayName:
-      comp === "Division 1"
-        ? "Division 1 (Premiership)"
-        : comp === "UCL"
-        ? "Champions League (UCL)"
-        : comp === "EUROPA"
-        ? "Europa League"
-        : comp,
-    winnersCount: data.winners.size,
-    seasonsCount: data.seasons.size,
-    latestChampion: data.latestChampion || null,
-  }));
+  // Canonical display order requested: Division 1, Division 2, Division 3, Europa, UCL
+  const orderedKeys = ["Division 1", "Division 2", "Division 3", "EUROPA", "UCL"];
+
+  const competitionCabinetData = Array.from(competitionMap.entries())
+    .map(([comp, data]) => ({
+      competition: comp,
+      displayName:
+        comp === "Division 1"
+          ? "Division 1 (Premiership)"
+          : comp === "Division 2"
+          ? "Division 2"
+          : comp === "Division 3"
+          ? "Division 3"
+          : comp === "EUROPA"
+          ? "Europa League"
+          : comp === "UCL"
+          ? "Champions League (UCL)"
+          : comp,
+      winnersCount: data.winners.size,
+      seasonsCount: data.seasons.size,
+      latestChampion: data.latestChampion || null,
+    }))
+    .sort((a, b) => {
+      const indexA = orderedKeys.indexOf(a.competition);
+      const indexB = orderedKeys.indexOf(b.competition);
+      const posA = indexA === -1 ? 99 : indexA;
+      const posB = indexB === -1 ? 99 : indexB;
+      return posA - posB;
+    });
 
   const currentSeasonName = leagueConfig?.season || "Current Season";
 
