@@ -55,21 +55,16 @@ export default function TrophyCabinet({
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-secondary/10 blur-3xl pointer-events-none -z-10" />
 
       {/* Section Header */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-secondary" />
-            <span className="text-xs font-bold tracking-widest uppercase text-secondary">
-              TROPHY CABINET
-            </span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black uppercase text-foreground tracking-tight">
-            Official Competitions & Silverware
-          </h2>
+      <div className="relative z-10 mb-8 space-y-1">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-secondary" />
+          <span className="text-xs font-bold tracking-widest uppercase text-secondary">
+            TROPHY CABINET
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground sm:text-right max-w-xs">
-          Loaded dynamically from official league competition registries.
-        </p>
+        <h2 className="text-xl sm:text-2xl font-black uppercase text-foreground tracking-tight">
+          Official Competitions & Silverware
+        </h2>
       </div>
 
       {competitions.length === 0 ? (

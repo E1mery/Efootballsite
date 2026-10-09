@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Trophy, Zap, Sparkles } from "lucide-react";
+import { ArrowRight, Trophy, Sparkles } from "lucide-react";
 import { BRANDING_ASSETS } from "@/lib/assets.config";
 
 interface CtaBannerProps {
@@ -64,14 +64,6 @@ export default function CtaBanner({
               <Trophy className="w-4 h-4" />
               <span>View {currentSeasonName}</span>
               <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              href="/fixtures"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-card/80 hover:bg-card border border-border/80 hover:border-secondary/50 text-foreground font-bold uppercase text-xs tracking-wider transition-all"
-            >
-              <Zap className="w-4 h-4 text-secondary" />
-              <span>Fixtures & Results</span>
             </Link>
           </div>
         </div>
