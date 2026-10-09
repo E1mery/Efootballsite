@@ -89,12 +89,19 @@ export default function HeroStats({ metrics }: HeroStatsProps) {
               />
             </div>
 
-            {/* Central Trophy Icon or Image */}
+            {/* Central Trophy Image */}
             <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-secondary/10 border border-secondary/40 flex items-center justify-center shadow-2xl shadow-secondary/20">
-                <Trophy className="w-16 h-16 sm:w-20 sm:h-20 text-secondary" />
+              <div className="relative w-32 h-32 sm:w-44 sm:h-44 rounded-2xl overflow-hidden flex items-center justify-center drop-shadow-2xl">
+                <Image
+                  src={BRANDING_ASSETS.heroGoldenTrophy}
+                  alt="Hall of Fame Championship Trophy"
+                  fill
+                  className="object-contain"
+                  priority
+                  sizes="(max-width: 768px) 140px, 180px"
+                />
               </div>
-              <span className="mt-3 text-xs uppercase font-extrabold tracking-wider text-secondary/90">
+              <span className="mt-2 text-xs uppercase font-extrabold tracking-wider text-secondary/90">
                 Official Hall of Fame
               </span>
             </div>

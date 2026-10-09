@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Trophy, Crown, Award, Shield, ChevronRight } from "lucide-react";
 import { getTrophyForCompetition } from "@/lib/assets.config";
 
@@ -76,8 +77,18 @@ export default function TrophyCabinet({
               >
                 {/* Trophy Graphic Top */}
                 <div className="flex flex-col items-center text-center pt-2 pb-4">
-                  <div className="w-20 h-20 rounded-2xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform shadow-lg shadow-secondary/5">
-                    <FallbackIcon className="w-10 h-10 text-secondary" />
+                  <div className="relative w-24 h-24 rounded-2xl bg-secondary/5 border border-secondary/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform p-2 shadow-lg shadow-secondary/5">
+                    {meta.imagePath ? (
+                      <Image
+                        src={meta.imagePath}
+                        alt={item.displayName}
+                        fill
+                        className="object-contain p-1.5"
+                        sizes="96px"
+                      />
+                    ) : (
+                      <FallbackIcon className="w-10 h-10 text-secondary" />
+                    )}
                   </div>
                   <h3 className="text-sm font-bold uppercase tracking-wide text-foreground line-clamp-1">
                     {item.displayName}
