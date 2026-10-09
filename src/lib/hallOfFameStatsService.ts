@@ -5,6 +5,8 @@ export interface PlayerCareerStats {
   gamerTag: string;
   fullName?: string | null;
   avatar?: string | null;
+  country?: string;
+  quote?: string | null;
   currentDivision?: string;
   divisionsParticipated: string[];
   seasonsParticipated: string[];
@@ -262,6 +264,8 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
       p.avatar,
       p.division
     );
+    stats.country = (p as any).country || "RW";
+    stats.quote = (p as any).quote || null;
     if (p.division && !stats.divisionsParticipated.includes(p.division)) {
       stats.divisionsParticipated.push(p.division);
     }

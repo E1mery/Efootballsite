@@ -60,6 +60,8 @@ model Player {
   isDisqualified         Boolean      @default(false)
   disqualificationReason String?
   status                 String       @default("ACTIVE") // ACTIVE, WARNING, DISQUALIFIED
+  quote                  String?      // Inspirational player quote / motto
+  country                String       @default("RW") // ISO 2-letter country code
   
   homeMatches            Match[]      @relation("HomePlayer")
   awayMatches            Match[]      @relation("AwayPlayer")

@@ -1,17 +1,15 @@
 import { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
-import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
-import HallOfFameClient from "./HallOfFameClient";
-import { Crown } from "lucide-react";
 import { getHallOfFameStats } from "@/lib/hallOfFameStatsService";
+import HallOfFameClient from "./HallOfFameClient";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Hall of Fame | eFootball Rwanda League",
+  title: "Hall of Fame | Rwanda eFootball League",
   description:
-    "Official museum, historical records, and immortalized champions of the eFootball Rwanda League.",
+    "Official museum and statistical record of Rwandan eFootball champions, all-time record holders, and legendary esports athletes.",
 };
 
 export default async function HallOfFamePage() {
@@ -19,46 +17,105 @@ export default async function HallOfFamePage() {
 
   let hallOfFameEntries: any[] = [];
   let stats: any = null;
+  let leagueConfig: any = null;
+  let tournaments: any[] = [];
 
   try {
-    const [entriesData, statsData] = await Promise.all([
+    const [entriesData, statsData, configData, tournamentsData] = await Promise.all([
       prisma.hallOfFame.findMany({
         orderBy: [{ season: "desc" }, { createdAt: "desc" }],
       }),
       getHallOfFameStats(false),
+      prisma.leagueConfig.findUnique({
+        where: { id: "default" },
+      }),
+      prisma.tournament.findMany({
+        select: { id: true, name: true, season: true, format: true, type: true },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
+
     hallOfFameEntries = entriesData;
     stats = statsData;
+    leagueConfig = configData;
+    tournaments = tournamentsData;
   } catch (error) {
-    console.error("HallOfFame fetch error:", error);
+    console.error("HallOfFame page data fetch error:", error);
   }
 
+  // Calculate dynamic trophy cabinet data from real DB entries & tournaments
+  const competitionMap = new Map<string, { winners: Set<string>; seasons: Set<string>; latestChampion?: string }>();
+
+  // Ensure primary canonical competitions exist
+  const defaultComps = ["Division 1", "UCL", "EUROPA", "Division 2", "Division 3"];
+  defaultComps.forEach((c) => {
+    competitionMap.set(c, { winners: new Set(), seasons: new Set() });
+  });
+
+  // Track tournaments from DB
+  tournaments.forEach((t) => {
+    let compKey = t.name;
+    const upper = t.name.toUpperCase();
+    if (upper.includes("DIVISION 1") || upper.includes("PREMIER")) compKey = "Division 1";
+    else if (upper.includes("DIVISION 2")) compKey = "Division 2";
+    else if (upper.includes("DIVISION 3")) compKey = "Division 3";
+    else if (upper.includes("UCL") || upper.includes("CHAMPIONS")) compKey = "UCL";
+    else if (upper.includes("EUROPA")) compKey = "EUROPA";
+
+    if (!competitionMap.has(compKey)) {
+      competitionMap.set(compKey, { winners: new Set(), seasons: new Set() });
+    }
+    const item = competitionMap.get(compKey)!;
+    if (t.season) item.seasons.add(t.season);
+  });
+
+  // Populate winners from HallOfFame table
+  hallOfFameEntries.forEach((entry) => {
+    let compKey = entry.tournamentName;
+    const upper = entry.tournamentName.toUpperCase();
+    if (upper.includes("DIVISION 1") || upper.includes("PREMIER")) compKey = "Division 1";
+    else if (upper.includes("DIVISION 2")) compKey = "Division 2";
+    else if (upper.includes("DIVISION 3")) compKey = "Division 3";
+    else if (upper.includes("UCL") || upper.includes("CHAMPIONS")) compKey = "UCL";
+    else if (upper.includes("EUROPA")) compKey = "EUROPA";
+
+    if (!competitionMap.has(compKey)) {
+      competitionMap.set(compKey, { winners: new Set(), seasons: new Set() });
+    }
+    const item = competitionMap.get(compKey)!;
+    item.winners.add(entry.championName);
+    if (entry.season) item.seasons.add(entry.season);
+    if (!item.latestChampion) {
+      item.latestChampion = entry.championName;
+    }
+  });
+
+  const competitionCabinetData = Array.from(competitionMap.entries()).map(([comp, data]) => ({
+    competition: comp,
+    displayName:
+      comp === "Division 1"
+        ? "Division 1 (Premiership)"
+        : comp === "UCL"
+        ? "Champions League (UCL)"
+        : comp === "EUROPA"
+        ? "Europa League"
+        : comp,
+    winnersCount: data.winners.size,
+    seasonsCount: data.seasons.size,
+    latestChampion: data.latestChampion || null,
+  }));
+
+  const currentSeasonName = leagueConfig?.season || "Current Season";
+
   return (
-    <div className="relative min-h-screen pb-20 overflow-hidden">
-      {/* Animated Background */}
-      <AnimatedEfootballBackground />
-
-      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 space-y-8">
-        {/* Page Header */}
-        <div className="border-b border-border pb-6 space-y-2">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 border border-secondary/30">
-              <Crown className="h-5 w-5 text-secondary" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black uppercase text-foreground tracking-tight">
-                EFRL Hall of Fame
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                Official museum and statistical record of Rwandan eFootball champions, all-time record holders, and legendary esports athletes.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Client Interactive View */}
-        <HallOfFameClient entries={hallOfFameEntries} stats={stats} />
-      </main>
+    <div className="relative min-h-screen bg-background text-foreground pb-20 selection:bg-secondary/30 selection:text-secondary">
+      {/* Client Component with all designed sections */}
+      <HallOfFameClient
+        entries={hallOfFameEntries}
+        stats={stats}
+        trophyCabinet={competitionCabinetData}
+        currentSeasonName={currentSeasonName}
+      />
     </div>
   );
 }

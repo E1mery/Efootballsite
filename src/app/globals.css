@@ -71,6 +71,37 @@ body {
   box-shadow: 0 0 25px -5px oklch(var(--secondary) / 0.35);
 }
 
+/* Hall of Fame Theme Helpers */
+.hof-navy-surface {
+  background-color: oklch(0.12 0.035 258 / 0.85);
+  border: 1px solid oklch(var(--primary) / 0.25);
+  backdrop-filter: blur(16px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hof-navy-surface:hover {
+  border-color: oklch(var(--primary) / 0.55);
+  box-shadow: 0 10px 30px -10px oklch(var(--primary) / 0.35);
+}
+
+.hof-gold-card {
+  background: linear-gradient(145deg, oklch(0.15 0.04 260 / 0.95), oklch(0.18 0.05 92 / 0.15));
+  border: 1px solid oklch(var(--secondary) / 0.45);
+  box-shadow: 0 0 30px -8px oklch(var(--secondary) / 0.25);
+}
+
+.hof-gold-glow {
+  box-shadow: 0 0 35px -5px oklch(var(--secondary) / 0.4);
+}
+
+.hof-blue-glow {
+  box-shadow: 0 0 35px -5px oklch(var(--primary) / 0.35);
+}
+
+.hof-gold-text {
+  color: oklch(var(--secondary));
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 7px;
