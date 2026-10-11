@@ -14,9 +14,21 @@ export async function POST(req: Request) {
     if (actionType === "RESULT_SUBMISSION") {
       const sub = await prisma.matchSubmission.findUnique({
         where: { id: submissionId },
-        include: { match: true },
+        include: { match: { include: { tournament: true } } },
       });
       if (!sub) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+
+      if (sub.match?.tournament?.season) {
+        const isArchived = await prisma.archivedSeason.findUnique({
+          where: { seasonName: sub.match.tournament.season },
+        });
+        if (isArchived) {
+          return NextResponse.json(
+            { error: "This season is officially archived and read-only. Historical results cannot be altered." },
+            { status: 403 }
+          );
+        }
+      }
 
       if (decision === "APPROVE") {
         const {
@@ -195,8 +207,23 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Match ID and valid scores are required." }, { status: 400 });
       }
 
-      const match = await prisma.match.findUnique({ where: { id: matchId } });
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: { tournament: true },
+      });
       if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+
+      if (match.tournament?.season) {
+        const isArchived = await prisma.archivedSeason.findUnique({
+          where: { seasonName: match.tournament.season },
+        });
+        if (isArchived) {
+          return NextResponse.json(
+            { error: "This season is officially archived and read-only. Historical results cannot be altered." },
+            { status: 403 }
+          );
+        }
+      }
 
       const officialLeg2Home = typeof leg2HomeScore === "number" ? leg2HomeScore : null;
       const officialLeg2Away = typeof leg2AwayScore === "number" ? leg2AwayScore : null;
@@ -250,8 +277,23 @@ export async function POST(req: Request) {
     // 1c. Reopen Match / Allow Late Submission
     if (actionType === "REOPEN_MATCH") {
       const { matchId, allowLate } = body;
-      const match = await prisma.match.findUnique({ where: { id: matchId } });
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: { tournament: true },
+      });
       if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+
+      if (match.tournament?.season) {
+        const isArchived = await prisma.archivedSeason.findUnique({
+          where: { seasonName: match.tournament.season },
+        });
+        if (isArchived) {
+          return NextResponse.json(
+            { error: "This season is officially archived and read-only. Historical matches cannot be reopened." },
+            { status: 403 }
+          );
+        }
+      }
 
       await prisma.match.update({
         where: { id: matchId },
@@ -275,9 +317,21 @@ export async function POST(req: Request) {
     if (actionType === "FORFEIT_CLAIM") {
       const claim = await prisma.forfeitClaim.findUnique({
         where: { id: claimId },
-        include: { match: true, claimantPlayer: true, accusedPlayer: true },
+        include: { match: { include: { tournament: true } }, claimantPlayer: true, accusedPlayer: true },
       });
       if (!claim) return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+
+      if (claim.match?.tournament?.season) {
+        const isArchived = await prisma.archivedSeason.findUnique({
+          where: { seasonName: claim.match.tournament.season },
+        });
+        if (isArchived) {
+          return NextResponse.json(
+            { error: "This season is officially archived and read-only. Historical results cannot be altered." },
+            { status: 403 }
+          );
+        }
+      }
 
       if (decision === "APPROVE") {
         await prisma.forfeitClaim.update({

@@ -44,11 +44,25 @@ export async function POST(req: Request) {
           where: { status: { not: "REJECTED" } },
           include: { claimantPlayer: true },
         },
+        tournament: true,
       },
     });
 
     if (!match) {
       return NextResponse.json({ error: "Match fixture not found." }, { status: 404 });
+    }
+
+    // Verify fixture does not belong to an officially archived season (Requirement 05)
+    if (match.tournament?.season) {
+      const isArchived = await prisma.archivedSeason.findUnique({
+        where: { seasonName: match.tournament.season },
+      });
+      if (isArchived) {
+        return NextResponse.json(
+          { error: "This season has concluded and been officially archived. Historical records are strictly read-only." },
+          { status: 403 }
+        );
+      }
     }
 
     // Verify player is a participant in this fixture

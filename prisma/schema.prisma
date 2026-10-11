@@ -367,6 +367,45 @@ model HistoricalSeasonSnapshot {
   @@index([gamerTag])
 }
 
+model ArchivedSeason {
+  id              String   @id @default(cuid())
+  seasonName      String   @unique // e.g. "Season 1 (2026)"
+  archivedAt      DateTime @default(now())
+  archivedByEmail String?
+  notes           String?
+  matchesCount    Int      @default(0)
+  standingsCount  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ArchivedMatch {
+  id                 String   @id @default(cuid())
+  season             String   // e.g. "Season 1 (2026)"
+  division           String   // e.g. "Division 1", "UCL", "EUROPA"
+  round              String   // e.g. "Matchday 1", "FINAL"
+  stage              String   @default("DIVISION")
+  groupName          String?
+  homeGamerTag       String
+  awayGamerTag       String
+  homePlayerName     String?
+  awayPlayerName     String?
+  homeScore          Int?
+  awayScore          Int?
+  leg2HomeScore      Int?
+  leg2AwayScore      Int?
+  aggregateHomeScore Int?
+  aggregateAwayScore Int?
+  status             String   @default("FINISHED")
+  matchDate          DateTime?
+  winnerGamerTag     String?
+  createdAt          DateTime @default(now())
+
+  @@index([season])
+  @@index([division])
+  @@index([season, division])
+}
+
 model HallOfFameStatsCache {
   id          String   @id @default("stats_cache")
   data        Json

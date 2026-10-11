@@ -98,12 +98,13 @@ export async function POST(req: Request) {
         console.error("Hall of fame archive warning:", err);
       }
 
-      // 1b. Preserve Historical Season Snapshot before match purge (Requirement 08)
+      // 1b. Preserve Official Season Archive & Snapshots before match purge (Requirement 03 & 05)
       try {
-        await snapshotCurrentSeason(currentSeason);
+        const { archiveOfficialSeason } = await import("@/lib/seasonArchiveService");
+        await archiveOfficialSeason(currentSeason, user.email, `Official season archival upon advancing to ${nextSeasonName}`);
         await invalidateHallOfFameCache();
       } catch (snapErr) {
-        console.error("Historical season snapshot warning:", snapErr);
+        console.error("Historical season archive warning:", snapErr);
       }
 
       // 2. Delete all season matches, submissions, forfeit claims, and slots
