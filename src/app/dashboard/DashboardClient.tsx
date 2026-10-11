@@ -50,6 +50,9 @@ import QuickGuideModal from "@/components/QuickGuideModal";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import type { PlayerDashboardTab } from "@/components/player/player-nav";
+import ChampionsLeagueView from "@/components/competitions/ChampionsLeagueView";
+import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
+import SuperCupView from "@/components/competitions/SuperCupView";
 
 interface ContinentalGroupStandingsViewProps {
   competition: "UCL" | "EUROPA";
@@ -258,7 +261,15 @@ function ContinentalGroupStandingsView({
             </span>
           </div>
           <h4 className="text-base sm:text-lg font-black uppercase text-white flex items-center gap-2">
-            {isUcl ? <Star className="h-5 w-5 text-primary" /> : <Flame className="h-5 w-5 text-secondary" />}
+            <div className="relative h-6 w-6 shrink-0">
+              <Image
+                src={isUcl ? "/assets/trophies/champions-league.png" : "/assets/trophies/europa-league.png"}
+                alt={`${compTitle} Trophy`}
+                fill
+                sizes="24px"
+                className="object-contain drop-shadow"
+              />
+            </div>
             <span>{compTitle} Official Group Standings</span>
           </h4>
           <p className="text-xs text-foreground">
@@ -337,8 +348,17 @@ function ContinentalGroupStandingsView({
             >
               {/* Group Header */}
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-card/50">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${isUcl ? "bg-primary" : "bg-secondary"}`} />
+                <div className="flex items-center gap-2.5">
+                  <div className="relative h-5 w-5 shrink-0">
+                    <Image
+                      src={isUcl ? "/assets/trophies/champions-league.png" : "/assets/trophies/europa-league.png"}
+                      alt={`${compTitle} Trophy`}
+                      fill
+                      sizes="20px"
+                      className="object-contain drop-shadow"
+                    />
+                  </div>
+                  <span className={`w-2 h-2 rounded-full ${isUcl ? "bg-primary" : "bg-secondary"}`} />
                   <h5 className="text-sm font-black uppercase tracking-wide text-white">{grp}</h5>
                 </div>
               </div>
@@ -523,6 +543,14 @@ export default function DashboardClient({
   isSeasonAwaitingKickoff = false,
   seasonKickoffDate = null,
   standingsUpdatesMap = {},
+  uclMatches = [],
+  europaMatches = [],
+  uclChampion = null,
+  europaChampion = null,
+  superCupMatch = null,
+  pastSuperCupWinners = [],
+  pastChampionsUcl = [],
+  pastChampionsEuropa = [],
   activeTab: controlledTab,
   onTabChange,
   onOpenSidebar,
@@ -561,6 +589,14 @@ export default function DashboardClient({
   isSeasonAwaitingKickoff?: boolean;
   seasonKickoffDate?: string | null;
   standingsUpdatesMap?: Record<string, { updateKey: string; userAlreadyViewed: boolean }>;
+  uclMatches?: any[];
+  europaMatches?: any[];
+  uclChampion?: any;
+  europaChampion?: any;
+  superCupMatch?: any;
+  pastSuperCupWinners?: any[];
+  pastChampionsUcl?: any[];
+  pastChampionsEuropa?: any[];
   activeTab?: PlayerDashboardTab;
   onTabChange?: (tab: PlayerDashboardTab) => void;
   onOpenSidebar?: () => void;
@@ -2018,31 +2054,47 @@ export default function DashboardClient({
             )}
           </div>
 
-          {/* Category Switcher Tabs: Divisions, UCL, Europa */}
+          {/* Category Switcher Tabs: Divisions, UCL, Europa, Super Cup */}
           <div className="flex items-center gap-2 bg-background p-1.5 rounded-2xl border border-border w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
             <button
               type="button"
               onClick={() => setStandingsCategory("DIVISIONS")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 standingsCategory === "DIVISIONS"
                   ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-muted/60"
               }`}
             >
-              <Trophy className="h-4 w-4" />
+              <div className="relative h-4 w-4 shrink-0">
+                <Image
+                  src="/assets/trophies/league.png"
+                  alt="Domestic League Trophy"
+                  fill
+                  sizes="16px"
+                  className="object-contain drop-shadow"
+                />
+              </div>
               <span>3 Domestic Divisions</span>
             </button>
 
             <button
               type="button"
               onClick={() => setStandingsCategory("UCL")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 standingsCategory === "UCL"
                   ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-muted/60"
               }`}
             >
-              <Star className="h-4 w-4 text-primary" />
+              <div className="relative h-4 w-4 shrink-0">
+                <Image
+                  src="/assets/trophies/champions-league.png"
+                  alt="Champions League Trophy"
+                  fill
+                  sizes="16px"
+                  className="object-contain drop-shadow"
+                />
+              </div>
               <span>eFootball UCL Groups</span>
               <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-primary border border-primary/30">
                 16 Players
@@ -2052,17 +2104,42 @@ export default function DashboardClient({
             <button
               type="button"
               onClick={() => setStandingsCategory("EUROPA")}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 standingsCategory === "EUROPA"
                   ? "bg-secondary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-muted/60"
               }`}
             >
-              <Flame className="h-4 w-4 text-secondary" />
+              <div className="relative h-4 w-4 shrink-0">
+                <Image
+                  src="/assets/trophies/europa-league.png"
+                  alt="Europa League Trophy"
+                  fill
+                  sizes="16px"
+                  className="object-contain drop-shadow"
+                />
+              </div>
               <span>eFootball Europa Groups</span>
               <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-card text-secondary border border-secondary/30">
                 12 Players
               </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("SUPER_CUP")}
+              className="flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap text-foreground hover:text-white hover:bg-muted/60 border border-border"
+            >
+              <div className="relative h-4 w-4 shrink-0">
+                <Image
+                  src="/assets/trophies/super-cup.png"
+                  alt="Super Cup Trophy"
+                  fill
+                  sizes="16px"
+                  className="object-contain drop-shadow"
+                />
+              </div>
+              <span>Super Cup</span>
             </button>
           </div>
 
@@ -2095,6 +2172,58 @@ export default function DashboardClient({
             />
           )}
         </div>
+      )}
+
+      {/* TAB: UEFA CHAMPIONS LEAGUE (UCL) */}
+      {activeTab === "UCL" && (
+        <ChampionsLeagueView
+          season={leagueConfig?.season || "Season 1 (2026)"}
+          currentPlayer={player}
+          leagueConfig={leagueConfig}
+          qualifiedPlayers={uclQualified}
+          groupSlots={uclSlots}
+          matches={uclMatches}
+          standings={uclGroupStandings}
+          pastChampions={pastChampionsUcl}
+          onOpenSubmitResult={(m) => {
+            setActionMatch(m);
+            setShowResultModal(true);
+          }}
+        />
+      )}
+
+      {/* TAB: UEFA EUROPA LEAGUE */}
+      {activeTab === "EUROPA" && (
+        <EuropaLeagueView
+          season={leagueConfig?.season || "Season 1 (2026)"}
+          currentPlayer={player}
+          leagueConfig={leagueConfig}
+          qualifiedPlayers={europaQualified}
+          groupSlots={europaSlots}
+          matches={europaMatches}
+          standings={europaGroupStandings}
+          pastChampions={pastChampionsEuropa}
+          onOpenSubmitResult={(m) => {
+            setActionMatch(m);
+            setShowResultModal(true);
+          }}
+        />
+      )}
+
+      {/* TAB: UEFA SUPER CUP */}
+      {activeTab === "SUPER_CUP" && (
+        <SuperCupView
+          season={leagueConfig?.season || "Season 1 (2026)"}
+          currentPlayer={player}
+          uclChampion={uclChampion}
+          europaChampion={europaChampion}
+          superCupMatch={superCupMatch}
+          pastSuperCupWinners={pastSuperCupWinners}
+          onOpenSubmitResult={(m) => {
+            setActionMatch(m);
+            setShowResultModal(true);
+          }}
+        />
       )}
 
       {/* TAB: UCL & EUROPA DRAWS PAGE (DISPLAYED ONLY WHEN BOTH LEAGUES ARE UNLOCKED BY ADMIN) */}

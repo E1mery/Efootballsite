@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,19 @@ function NavButton({
           className="absolute left-0 h-6 w-1 rounded-full bg-secondary"
         />
       )}
-      <Icon className="h-4 w-4 shrink-0" />
+      {item.trophyImage ? (
+        <div className="relative h-4 w-4 shrink-0">
+          <Image
+            src={item.trophyImage}
+            alt=""
+            fill
+            className="object-contain"
+            sizes="16px"
+          />
+        </div>
+      ) : (
+        <Icon className="h-4 w-4 shrink-0" />
+      )}
       {!collapsed && <span className="flex-1 truncate text-left">{item.title}</span>}
       {!collapsed && typeof item.count === "number" && item.count > 0 && (
         <Badge

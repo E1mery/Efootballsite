@@ -1,9 +1,11 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import StandingsTable from "@/components/StandingsTable";
 import { Trophy, ShieldCheck, Flame, Info, AlertTriangle, ArrowDown, ArrowUp, Gamepad2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AnimatedEfootballBackground from "@/components/AnimatedEfootballBackground";
+import { getTrophyForCompetition } from "@/lib/assets.config";
 
 export const dynamic = "force-dynamic";
 
@@ -139,7 +141,15 @@ export default async function StandingsPage(props: {
                 : "text-muted-foreground hover:text-white"
             }`}
           >
-            <Trophy className="h-4 w-4" />
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/league.png"
+                alt="Division 1 Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
             <span>1st Division (Premiership)</span>
           </a>
           <a
@@ -150,7 +160,15 @@ export default async function StandingsPage(props: {
                 : "text-muted-foreground hover:text-white"
             }`}
           >
-            <Gamepad2 className="h-4 w-4" />
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/d2.png"
+                alt="Division 2 Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
             <span>2nd Division (Championship)</span>
           </a>
           <a
@@ -161,7 +179,15 @@ export default async function StandingsPage(props: {
                 : "text-muted-foreground hover:text-white"
             }`}
           >
-            <ShieldCheck className="h-4 w-4" />
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/d3.png"
+                alt="Division 3 Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
             <span>3rd Division (National Academy)</span>
           </a>
           {bothLeaguesUnlocked && (
@@ -170,18 +196,49 @@ export default async function StandingsPage(props: {
                 href="/continental?competition=UCL"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-primary hover:text-white hover:bg-primary/40 border border-primary/30"
               >
-                <Trophy className="h-4 w-4 text-primary" />
+                <div className="relative h-5 w-5 shrink-0">
+                  <Image
+                    src="/assets/trophies/champions-league.png"
+                    alt="Champions League Trophy"
+                    fill
+                    sizes="20px"
+                    className="object-contain drop-shadow"
+                  />
+                </div>
                 <span>eFootball UCL Groups</span>
               </a>
               <a
                 href="/continental?competition=EUROPA"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-secondary hover:text-white hover:bg-secondary/40 border border-secondary/30"
               >
-                <Flame className="h-4 w-4 text-secondary" />
+                <div className="relative h-5 w-5 shrink-0">
+                  <Image
+                    src="/assets/trophies/europa-league.png"
+                    alt="Europa League Trophy"
+                    fill
+                    sizes="20px"
+                    className="object-contain drop-shadow"
+                  />
+                </div>
                 <span>eFootball Europa Groups</span>
               </a>
             </>
           )}
+          <a
+            href="/continental?competition=SUPER_CUP"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap text-foreground hover:text-white hover:bg-card border border-border"
+          >
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/super-cup.png"
+                alt="UEFA Super Cup Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
+            <span>Super Cup</span>
+          </a>
         </div>
       </div>
 
@@ -206,6 +263,29 @@ export default async function StandingsPage(props: {
 
       {/* Standings Table Component */}
       <div className="rounded-2xl border border-border bg-card/60 p-2 sm:p-4 shadow-xl">
+        <div className="flex items-center justify-between gap-4 pb-3 mb-2 border-b border-border/60 px-2 sm:px-3">
+          <div className="flex items-center gap-3">
+            {getTrophyForCompetition(currentDivision) && (
+              <div className="relative h-10 w-10 sm:h-12 sm:w-12 shrink-0">
+                <Image
+                  src={getTrophyForCompetition(currentDivision)!.imagePath}
+                  alt={`${currentDivision} Official Trophy`}
+                  fill
+                  sizes="48px"
+                  className="object-contain drop-shadow-md"
+                />
+              </div>
+            )}
+            <div>
+              <h2 className="text-base sm:text-lg font-black uppercase text-white tracking-wide flex items-center gap-2">
+                <span>{currentDivision} Official Table</span>
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Official Season League Standings & Trophy Qualification Path
+              </p>
+            </div>
+          </div>
+        </div>
         <StandingsTable
           standings={standings}
           divisionName={currentDivision}

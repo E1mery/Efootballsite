@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import StandingsTable from "@/components/StandingsTable";
 import { LoaderSkeleton, StandingsTableSkeleton } from "@/components/ui/loader-skeleton";
 import { Trophy, Shield, Award, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { getTrophyForCompetition } from "@/lib/assets.config";
 
 interface HomeDivisionsTabsProps {
   div1Standings: any[];
@@ -56,6 +58,7 @@ export default function HomeDivisionsTabs({
   };
 
   const current = divisionData[activeDivision] || divisionData["Division 1"];
+  const activeTrophy = getTrophyForCompetition(activeDivision);
 
   return (
     <div className="space-y-6">
@@ -63,18 +66,27 @@ export default function HomeDivisionsTabs({
       <div className="flex items-center gap-2 bg-background p-1.5 rounded-2xl border border-border w-full sm:w-fit overflow-x-auto no-scrollbar scroll-smooth">
         {(["Division 1", "Division 2", "Division 3"] as const).map((div) => {
           const isActive = activeDivision === div;
+          const trophy = getTrophyForCompetition(div);
           return (
             <button
               key={div}
               type="button"
               onClick={() => handleTabChange(div)}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shrink-0 whitespace-nowrap ${
                 isActive
                   ? "bg-primary text-white font-black shadow-lg"
                   : "text-muted-foreground hover:text-white hover:bg-muted/60"
               }`}
             >
-              <Trophy className={`h-4 w-4 ${isActive ? "text-white" : "text-muted-foreground"}`} />
+              <div className="relative h-4 w-4 shrink-0">
+                <Image
+                  src={trophy.imagePath}
+                  alt={div}
+                  fill
+                  className="object-contain"
+                  sizes="16px"
+                />
+              </div>
               <span>{div}</span>
             </button>
           );
@@ -83,11 +95,22 @@ export default function HomeDivisionsTabs({
 
       {/* Active Division Summary Card */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card/60 border border-border">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-black uppercase text-white">{current.name}</h3>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative h-12 w-12 shrink-0 rounded-xl bg-card border border-border p-1 flex items-center justify-center shadow-md">
+            <Image
+              src={activeTrophy.imagePath}
+              alt={activeDivision}
+              fill
+              className="object-contain p-1"
+              sizes="48px"
+            />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">{current.description}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-black uppercase text-white truncate">{current.name}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{current.description}</p>
+          </div>
         </div>
 
         <Link

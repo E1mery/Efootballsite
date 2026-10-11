@@ -85,6 +85,9 @@ export default function FixturesClient({
             if (m.division !== "UCL" && !m.division?.includes("UCL")) return false;
           } else if (divisionFilter === "EUROPA") {
             if (m.division !== "EUROPA" && !m.division?.toLowerCase().includes("europa")) return false;
+          } else if (divisionFilter === "SUPER_CUP") {
+            const divLower = (m.division || "").toLowerCase();
+            if (!divLower.includes("super") && !divLower.includes("super_cup")) return false;
           } else if (m.division !== divisionFilter) {
             return false;
           }
@@ -264,12 +267,13 @@ export default function FixturesClient({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth -mx-2 px-2 sm:mx-0 sm:px-0">
               {[
-                { id: "ALL", label: "All Competitions", icon: Trophy },
-                { id: "Division 1", label: "Division 1", icon: null },
-                { id: "Division 2", label: "Division 2", icon: null },
-                { id: "Division 3", label: "Division 3", icon: null },
-                { id: "UCL", label: "eFootball UCL", icon: Globe },
-                { id: "EUROPA", label: "Europa League", icon: Globe },
+                { id: "ALL", label: "All Competitions", trophy: null, icon: Trophy },
+                { id: "Division 1", label: "Division 1", trophy: "/assets/trophies/league.png", icon: null },
+                { id: "Division 2", label: "Division 2", trophy: "/assets/trophies/d2.png", icon: null },
+                { id: "Division 3", label: "Division 3", trophy: "/assets/trophies/d3.png", icon: null },
+                { id: "UCL", label: "eFootball UCL", trophy: "/assets/trophies/champions-league.png", icon: null },
+                { id: "EUROPA", label: "Europa League", trophy: "/assets/trophies/europa-league.png", icon: null },
+                { id: "SUPER_CUP", label: "Super Cup", trophy: "/assets/trophies/super-cup.png", icon: null },
               ].map((div) => {
                 const isSelected = divisionFilter === div.id;
                 const Icon = div.icon;
@@ -278,13 +282,25 @@ export default function FixturesClient({
                     key={div.id}
                     type="button"
                     onClick={() => setDivisionFilter(div.id)}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
                       isSelected
                         ? "bg-primary text-white shadow-lg font-black"
                         : "text-muted-foreground hover:text-white bg-card/60 border border-border hover:border-border"
                     }`}
                   >
-                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {div.trophy ? (
+                      <div className="relative h-4 w-4 shrink-0">
+                        <Image
+                          src={div.trophy}
+                          alt={`${div.label} Trophy`}
+                          fill
+                          sizes="16px"
+                          className="object-contain drop-shadow"
+                        />
+                      </div>
+                    ) : Icon ? (
+                      <Icon className="h-3.5 w-3.5" />
+                    ) : null}
                     <span>{div.label}</span>
                   </button>
                 );

@@ -78,7 +78,7 @@ export default function TrophyCabinet({
           </p>
         </div>
       ) : (
-        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {competitions.map((item) => {
             const meta = getTrophyForCompetition(item.competition);
             const FallbackIcon = getIcon(meta.fallbackIcon);

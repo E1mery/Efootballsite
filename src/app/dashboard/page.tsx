@@ -6,10 +6,32 @@ import PlayerShell from "@/components/player/PlayerShell";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import { evaluateAllDivisionsMatchOfTheDay, evaluateContinentalGroupMotds } from "@/lib/matchOfTheDay";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
+import { getSuperCupOverview } from "@/lib/superCupService";
+import type { PlayerDashboardTab } from "@/components/player/player-nav";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const rawTab = resolvedSearchParams?.tab?.toUpperCase();
+  const initialTab: PlayerDashboardTab | undefined =
+    rawTab === "OVERVIEW" ||
+    rawTab === "CALENDAR" ||
+    rawTab === "STANDINGS" ||
+    rawTab === "UCL" ||
+    rawTab === "EUROPA" ||
+    rawTab === "SUPER_CUP" ||
+    rawTab === "DRAWS" ||
+    rawTab === "INBOX" ||
+    rawTab === "HISTORY" ||
+    rawTab === "PROFILE"
+      ? (rawTab as PlayerDashboardTab)
+      : undefined;
+
   const cookieStore = await cookies();
   const sessionUserId = cookieStore.get("efrl_session")?.value;
 
@@ -880,6 +902,54 @@ export default async function DashboardPage() {
   });
   const europaGroupMotds = evaluateContinentalGroupMotds(europaGroupMatches, allDomesticStandings, "EUROPA");
 
+  // Fetch UCL matches, Europa matches, Super Cup overview, and past championship archives
+  const [
+    uclMatches,
+    europaMatches,
+    superCupOverview,
+    pastChampionsUcl,
+    pastChampionsEuropa,
+  ] = await Promise.all([
+    prisma.match.findMany({
+      where: { division: "UCL" },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        submissions: true,
+      },
+      orderBy: [{ stage: "asc" }, { matchDate: "asc" }],
+    }),
+    prisma.match.findMany({
+      where: { division: "EUROPA" },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        submissions: true,
+      },
+      orderBy: [{ stage: "asc" }, { matchDate: "asc" }],
+    }),
+    getSuperCupOverview(leagueConfig.season),
+    prisma.hallOfFame.findMany({
+      where: {
+        OR: [
+          { tournamentName: { contains: "Champions League", mode: "insensitive" } },
+          { tournamentName: { contains: "UCL", mode: "insensitive" } },
+          { trophyType: "UCL" },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.hallOfFame.findMany({
+      where: {
+        OR: [
+          { tournamentName: { contains: "Europa", mode: "insensitive" } },
+          { trophyType: "EUROPA" },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
   return (
     <PlayerShell
       player={player}
@@ -916,6 +986,15 @@ export default async function DashboardPage() {
       isSeasonAwaitingKickoff={isSeasonAwaitingKickoff}
       seasonKickoffDate={seasonKickoffDate}
       standingsUpdatesMap={standingsUpdatesMap}
+      initialTab={initialTab}
+      uclMatches={uclMatches}
+      europaMatches={europaMatches}
+      uclChampion={superCupOverview.uclChampion}
+      europaChampion={superCupOverview.europaChampion}
+      superCupMatch={superCupOverview.superCupMatch}
+      pastSuperCupWinners={superCupOverview.pastSuperCupWinners}
+      pastChampionsUcl={pastChampionsUcl}
+      pastChampionsEuropa={pastChampionsEuropa}
     />
   );
 }

@@ -49,7 +49,7 @@ export default async function HallOfFamePage() {
   const competitionMap = new Map<string, { winners: Set<string>; seasons: Set<string>; latestChampion?: string }>();
 
   // Ensure primary canonical competitions exist
-  const defaultComps = ["Division 1", "UCL", "EUROPA", "Division 2", "Division 3"];
+  const defaultComps = ["Division 1", "UCL", "EUROPA", "Division 2", "Division 3", "SUPER_CUP"];
   defaultComps.forEach((c) => {
     competitionMap.set(c, { winners: new Set(), seasons: new Set() });
   });
@@ -63,6 +63,7 @@ export default async function HallOfFamePage() {
     else if (upper.includes("DIVISION 3")) compKey = "Division 3";
     else if (upper.includes("UCL") || upper.includes("CHAMPIONS")) compKey = "UCL";
     else if (upper.includes("EUROPA")) compKey = "EUROPA";
+    else if (upper.includes("SUPER")) compKey = "SUPER_CUP";
 
     if (!competitionMap.has(compKey)) {
       competitionMap.set(compKey, { winners: new Set(), seasons: new Set() });
@@ -80,6 +81,7 @@ export default async function HallOfFamePage() {
     else if (upper.includes("DIVISION 3")) compKey = "Division 3";
     else if (upper.includes("UCL") || upper.includes("CHAMPIONS")) compKey = "UCL";
     else if (upper.includes("EUROPA")) compKey = "EUROPA";
+    else if (upper.includes("SUPER")) compKey = "SUPER_CUP";
 
     if (!competitionMap.has(compKey)) {
       competitionMap.set(compKey, { winners: new Set(), seasons: new Set() });
@@ -92,8 +94,8 @@ export default async function HallOfFamePage() {
     }
   });
 
-  // Canonical display order requested: Division 1, Division 2, Division 3, Europa, UCL
-  const orderedKeys = ["Division 1", "Division 2", "Division 3", "EUROPA", "UCL"];
+  // Canonical display order requested: Division 1, Division 2, Division 3, Europa, UCL, Super Cup
+  const orderedKeys = ["Division 1", "Division 2", "Division 3", "EUROPA", "UCL", "SUPER_CUP"];
 
   const competitionCabinetData = Array.from(competitionMap.entries())
     .map(([comp, data]) => ({
@@ -109,6 +111,8 @@ export default async function HallOfFamePage() {
           ? "Europa League"
           : comp === "UCL"
           ? "Champions League (UCL)"
+          : comp === "SUPER_CUP"
+          ? "UEFA Super Cup"
           : comp,
       winnersCount: data.winners.size,
       seasonsCount: data.seasons.size,

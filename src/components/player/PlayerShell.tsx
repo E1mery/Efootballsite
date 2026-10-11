@@ -14,21 +14,35 @@ import {
 
 type DashboardClientProps = React.ComponentProps<typeof DashboardClient>;
 
-type PlayerShellProps = Omit<DashboardClientProps, "activeTab" | "onTabChange">;
+type PlayerShellProps = Omit<DashboardClientProps, "activeTab" | "onTabChange"> & {
+  initialTab?: PlayerDashboardTab;
+};
 
 export default function PlayerShell(props: PlayerShellProps) {
   const { player, announcements = [], allPlayerMatches = [] } = props as any;
   const router = useRouter();
 
   const isReserved = player?.status === "RESERVED";
+  const initialActiveTab = (props as any).initialTab as PlayerDashboardTab | undefined;
 
   const [internalTab, setInternalTab] = useState<PlayerDashboardTab>(
-    isReserved ? "STANDINGS" : "OVERVIEW"
+    initialActiveTab && !isReserved
+      ? initialActiveTab
+      : isReserved
+      ? "STANDINGS"
+      : "OVERVIEW"
   );
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+
+  // Sync internalTab when initialTab prop updates
+  useEffect(() => {
+    if (initialActiveTab && !isReserved) {
+      setInternalTab(initialActiveTab);
+    }
+  }, [initialActiveTab, isReserved]);
 
   // Keep reserved athletes off match tabs if status changes
   useEffect(() => {
@@ -92,6 +106,13 @@ export default function PlayerShell(props: PlayerShellProps) {
   const handleNavigate = (tab: PlayerDashboardTab) => {
     setInternalTab(tab);
     setMobileOpen(false);
+    if (tab === "UCL" || tab === "EUROPA" || tab === "SUPER_CUP") {
+      router.replace(`/dashboard?tab=${tab}`, { scroll: false });
+    } else if (tab === "DRAWS") {
+      router.replace("/dashboard?tab=DRAWS", { scroll: false });
+    } else {
+      router.replace("/dashboard", { scroll: false });
+    }
   };
 
   const handleRefresh = () => {

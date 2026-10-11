@@ -126,9 +126,11 @@ export async function POST(req: Request) {
           const homeTotal = officialAggHome ?? officialHomeScore;
           const awayTotal = officialAggAway ?? officialAwayScore;
           const eliminatedPlayerId = homeTotal < awayTotal ? updatedMatch.homePlayerId : awayTotal < homeTotal ? updatedMatch.awayPlayerId : null;
+          const winnerPlayerId = homeTotal > awayTotal ? updatedMatch.homePlayerId : awayTotal > homeTotal ? updatedMatch.awayPlayerId : null;
+
           if (eliminatedPlayerId) {
             const stageLabel = updatedMatch.stage === "QUARTER_FINAL" ? "Quarter-Finals" : updatedMatch.stage === "SEMI_FINAL" ? "Semi-Finals" : "Grand Final";
-            const compLabel = updatedMatch.division === "EUROPA" ? "Europa League" : "UCL";
+            const compLabel = updatedMatch.division === "SUPER_CUP" ? "UEFA Super Cup" : updatedMatch.division === "EUROPA" ? "Europa League" : "UCL";
             await prisma.announcement.create({
               data: {
                 title: `⚠️ Tournament Elimination Notice: ${compLabel} (${stageLabel})`,
@@ -138,6 +140,41 @@ export async function POST(req: Request) {
                 isPinned: true,
               },
             }).catch(() => {});
+          }
+
+          // If UEFA Super Cup Final is concluded, induct champion into Hall of Fame
+          if (updatedMatch.division === "SUPER_CUP" && winnerPlayerId) {
+            const winnerPlayer = await prisma.player.findUnique({ where: { id: winnerPlayerId } });
+            const runnerPlayer = await prisma.player.findUnique({
+              where: { id: winnerPlayerId === updatedMatch.homePlayerId ? updatedMatch.awayPlayerId : updatedMatch.homePlayerId },
+            });
+            if (winnerPlayer) {
+              const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+              const currentSeason = config?.season || "Season 1 (2026)";
+              await prisma.hallOfFame.create({
+                data: {
+                  tournamentName: "UEFA Super Cup",
+                  season: currentSeason,
+                  championName: winnerPlayer.gamerTag,
+                  championRealName: winnerPlayer.fullName,
+                  playerImage: winnerPlayer.avatar,
+                  runnerUp: runnerPlayer?.gamerTag,
+                  trophyType: "SUPER_CUP",
+                  prizeWon: "1,500,000 RWF + Super Cup Trophy",
+                  notes: `Winner of the ${currentSeason} UEFA Super Cup`,
+                  playerId: winnerPlayer.id,
+                },
+              }).catch(() => {});
+
+              await prisma.announcement.create({
+                data: {
+                  title: `🏆 @${winnerPlayer.gamerTag} HAS WON THE UEFA SUPER CUP!`,
+                  content: `Congratulations to @${winnerPlayer.gamerTag} on lifting the prestigious UEFA Super Cup after a thrilling championship clash against @${runnerPlayer?.gamerTag || "opponent"}!`,
+                  type: "BROADCAST",
+                  isPinned: true,
+                },
+              }).catch(() => {});
+            }
           }
         }
 

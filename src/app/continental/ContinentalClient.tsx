@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 import { Badge } from "@/components/ui/badge";
+import TournamentPlayoffBracket from "@/components/competitions/TournamentPlayoffBracket";
 
 export default function ContinentalClient({
   leagueConfig: initialLeagueConfig,
@@ -275,7 +276,7 @@ export default function ContinentalClient({
       )}
 
       <div className="relative z-10 space-y-8">
-        {/* Navigation Switcher: UCL vs EUROPA */}
+        {/* Navigation Switcher: UCL vs EUROPA vs SUPER_CUP */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth w-full sm:w-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
@@ -284,13 +285,21 @@ export default function ContinentalClient({
               setVoteError(null);
               setVoteSuccess(null);
             }}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
               selectedCompetition === "UCL"
                 ? "bg-primary text-white shadow-lg"
-                : "text-muted-foreground hover:text-white hover:bg-card"
+                : "text-muted-foreground hover:text-white hover:bg-card border border-transparent hover:border-border"
             }`}
           >
-            <Trophy className="h-4 w-4 text-secondary" />
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/champions-league.png"
+                alt="eFootball Champions League Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
             <span>eFootball Champions League (UCL)</span>
             {!isUclStarted && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
           </button>
@@ -301,16 +310,40 @@ export default function ContinentalClient({
               setVoteError(null);
               setVoteSuccess(null);
             }}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap ${
               selectedCompetition === "EUROPA"
                 ? "bg-secondary text-white shadow-lg"
-                : "text-muted-foreground hover:text-white hover:bg-card"
+                : "text-muted-foreground hover:text-white hover:bg-card border border-transparent hover:border-border"
             }`}
           >
-            <Globe className="h-4 w-4 text-secondary" />
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/europa-league.png"
+                alt="eFootball Europa League Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
             <span>eFootball Europa League (UEL)</span>
             {!isEuropaStarted && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
           </button>
+
+          <Link
+            href="/dashboard?tab=SUPER_CUP"
+            className="flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap text-muted-foreground hover:text-white hover:bg-card border border-transparent hover:border-border"
+          >
+            <div className="relative h-5 w-5 shrink-0">
+              <Image
+                src="/assets/trophies/super-cup.png"
+                alt="UEFA Super Cup Trophy"
+                fill
+                sizes="20px"
+                className="object-contain drop-shadow"
+              />
+            </div>
+            <span>UEFA Super Cup</span>
+          </Link>
         </div>
 
         {/* Qualification Status for Current Player */}
@@ -618,8 +651,21 @@ export default function ContinentalClient({
                   className={`rounded-2xl border ${theme.border} bg-background/90 p-5 space-y-3 shadow-xl backdrop-blur-xl`}
                 >
                   <div className="flex items-center justify-between border-b border-border pb-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${theme.dot} animate-pulse`} />
+                    <div className="flex items-center gap-2.5">
+                      <div className="relative h-6 w-6 shrink-0">
+                        <Image
+                          src={
+                            selectedCompetition === "UCL"
+                              ? "/assets/trophies/champions-league.png"
+                              : "/assets/trophies/europa-league.png"
+                          }
+                          alt={`${selectedCompetition} Trophy`}
+                          fill
+                          sizes="24px"
+                          className="object-contain drop-shadow"
+                        />
+                      </div>
+                      <span className={`w-2 h-2 rounded-full ${theme.dot} animate-pulse`} />
                       <span className={`font-black uppercase text-sm ${theme.title}`}>{grp} Standings</span>
                     </div>
                   </div>
@@ -849,238 +895,33 @@ export default function ContinentalClient({
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 3: KNOCKOUT STAGE (QF, SF, FINAL) */}
+      {/* TAB 3: KNOCKOUT STAGE (REDESIGNED PLAYOFF BRACKET) */}
       {/* ===================================================================== */}
       {activeTab === "KNOCKOUT" && (
-        <div className="space-y-8">
-          <div className="rounded-2xl border border-border bg-background/80 p-4 text-xs text-foreground space-y-1">
-            <span className="font-bold text-white block">Knockout Stage Progression:</span>
-            <p className="text-muted-foreground">
-              • <strong>Quarter-Finals & Semi-Finals:</strong> 2 legs played simultaneously. Aggregate scores decide who advances.
-            </p>
-            <p className="text-muted-foreground">
-              • <strong>Grand Final:</strong> Single-match showdown (1 leg). Winner lifts the {selectedCompetition} Trophy!
-            </p>
-          </div>
-
-          {/* Quarter Finals */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span>Quarter-Finals (2 Legs at Once • Aggregate Decider)</span>
-              </h3>
-            </div>
-
-            {qfMatches.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">Quarter-Finals will be generated once group stage concludes.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {qfMatches.map((m) => {
-                  const isFinished = m.status === "FINISHED";
-                  const aggHome = m.aggregateHomeScore ?? (isFinished ? (m.homeScore || 0) + (m.leg2HomeScore || 0) : null);
-                  const aggAway = m.aggregateAwayScore ?? (isFinished ? (m.awayScore || 0) + (m.leg2AwayScore || 0) : null);
-
-                  return (
-                    <div key={m.id} className="rounded-xl border border-border bg-background/80 p-4 space-y-2">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-bold text-primary">{m.round}</span>
-                        <span>{isFinished ? "FINISHED" : "SCHEDULED"}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
-                            <img
-                              src={resolvePlayerAvatar(m.homePlayer)}
-                              alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
-                              }}
-                            />
-                          </div>
-                          <span className="truncate">{m.homePlayer.gamerTag}</span>
-                        </div>
-                        {isFinished ? (
-                          <span className="font-mono text-secondary shrink-0 text-xs sm:text-sm">
-                            Agg: {aggHome} - {aggAway}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground shrink-0">vs</span>
-                        )}
-                        <div className="flex items-center gap-2 min-w-0 justify-end">
-                          <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
-                            <img
-                              src={resolvePlayerAvatar(m.awayPlayer)}
-                              alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        <div className="space-y-6">
+          <TournamentPlayoffBracket
+            competition={selectedCompetition}
+            matches={currentMatches.filter(
+              (m) =>
+                m.stage === "QUARTER_FINAL" ||
+                m.stage === "SEMI_FINAL" ||
+                m.stage === "FINAL" ||
+                m.round?.includes("Quarter") ||
+                m.round?.includes("Semi") ||
+                m.round?.includes("Final")
             )}
-          </div>
+          />
 
-          {/* Semi-Finals */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Flame className="h-4 w-4 text-secondary" />
-                <span>Semi-Finals (2 Legs at Once • Aggregate Decider)</span>
-              </h3>
+          {finalMatch && (
+            <div className="text-center pt-2">
+              <Button
+                onClick={() => setActiveTab("TROPHY_POLL")}
+                className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider"
+              >
+                🏆 Grand Final Trophy Prediction Poll
+              </Button>
             </div>
-
-            {sfMatches.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4">Semi-Finals will be generated once Quarter-Finals conclude.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sfMatches.map((m) => {
-                  const isFinished = m.status === "FINISHED";
-                  const aggHome = m.aggregateHomeScore ?? (isFinished ? (m.homeScore || 0) + (m.leg2HomeScore || 0) : null);
-                  const aggAway = m.aggregateAwayScore ?? (isFinished ? (m.awayScore || 0) + (m.leg2AwayScore || 0) : null);
-
-                  return (
-                    <div key={m.id} className="rounded-xl border border-border bg-background/80 p-4 space-y-2">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-bold text-secondary">{m.round}</span>
-                        <span>{isFinished ? "FINISHED" : "SCHEDULED"}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 text-sm font-bold text-white">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
-                            <img
-                              src={resolvePlayerAvatar(m.homePlayer)}
-                              alt={m.homePlayer.realTeam || m.homePlayer.gamerTag}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
-                              }}
-                            />
-                          </div>
-                          <span className="truncate">{m.homePlayer.gamerTag}</span>
-                        </div>
-                        {isFinished ? (
-                          <span className="font-mono text-secondary shrink-0 text-xs sm:text-sm">
-                            Agg: {aggHome} - {aggAway}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground shrink-0">vs</span>
-                        )}
-                        <div className="flex items-center gap-2 min-w-0 justify-end">
-                          <span className="truncate">{m.awayPlayer.gamerTag}</span>
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-card border border-border p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
-                            <img
-                              src={resolvePlayerAvatar(m.awayPlayer)}
-                              alt={m.awayPlayer.realTeam || m.awayPlayer.gamerTag}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Grand Final */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-secondary" />
-                <span>The Grand Final (Single Match Showdown • 1 Leg Only)</span>
-              </h3>
-              <Badge variant="live" className="text-xs">
-                CHAMPIONSHIP MATCH
-              </Badge>
-            </div>
-
-            {!finalMatch ? (
-              <p className="text-xs text-muted-foreground py-4">Grand Final will be unlocked once Semi-Finals conclude.</p>
-            ) : (
-              <div className="rounded-3xl border border-secondary/40 bg-gradient-to-b from-secondary/20 via-background to-background p-6 sm:p-8 text-center space-y-6 shadow-2xl">
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-6">
-                  <div className="space-y-2 text-center sm:text-right">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card border border-border p-2 mx-auto sm:ml-auto sm:mr-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
-                      <img
-                        src={resolvePlayerAvatar(finalMatch.homePlayer)}
-                        alt={finalMatch.homePlayer.realTeam || finalMatch.homePlayer.gamerTag}
-                        className="h-full w-full object-contain"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.homePlayer?.gamerTag || "player")}`;
-                        }}
-                      />
-                    </div>
-                    <h4 className="text-xl font-black text-white">{finalMatch.homePlayer.gamerTag}</h4>
-                    <p className="text-xs text-muted-foreground">{finalMatch.homePlayer.fullName}</p>
-                    {finalMatch.homePlayer.realTeam && (
-                      <span className="text-xs font-bold text-primary block">{finalMatch.homePlayer.realTeam}</span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Trophy className="h-12 w-12 text-secondary mx-auto animate-bounce" />
-                    {finalMatch.status === "FINISHED" ? (
-                      <span className="text-3xl font-black text-secondary font-mono">
-                        {finalMatch.homeScore} - {finalMatch.awayScore}
-                      </span>
-                    ) : (
-                      <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest block">
-                        Single Match Final
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 text-center sm:text-left">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card border border-border p-2 mx-auto sm:mr-auto sm:ml-0 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-xl">
-                      <img
-                        src={resolvePlayerAvatar(finalMatch.awayPlayer)}
-                        alt={finalMatch.awayPlayer.realTeam || finalMatch.awayPlayer.gamerTag}
-                        className="h-full w-full object-contain"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalMatch.awayPlayer?.gamerTag || "player")}`;
-                        }}
-                      />
-                    </div>
-                    <h4 className="text-xl font-black text-white">{finalMatch.awayPlayer.gamerTag}</h4>
-                    <p className="text-xs text-muted-foreground">{finalMatch.awayPlayer.fullName}</p>
-                    {finalMatch.awayPlayer.realTeam && (
-                      <span className="text-xs font-bold text-secondary block">{finalMatch.awayPlayer.realTeam}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Trophy Poll button link */}
-                <div className="pt-4 border-t border-border">
-                  <Button
-                    onClick={() => setActiveTab("TROPHY_POLL")}
-                    className="bg-secondary hover:bg-secondary text-secondary-foreground font-black text-xs uppercase tracking-wider"
-                  >
-                    🏆 Vote in the Grand Final Trophy Prediction Poll
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
 

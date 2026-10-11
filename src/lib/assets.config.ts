@@ -72,6 +72,30 @@ export const COMPETITION_TROPHIES: Record<string, TrophyAsset> = {
     fallbackIcon: "shield",
     description: "The grassroots championship trophy celebrating rising talents.",
   },
+  "SUPER_CUP": {
+    id: "super-cup",
+    name: "UEFA Super Cup Trophy",
+    competition: "SUPER_CUP",
+    imagePath: "/assets/trophies/super-cup.png",
+    fallbackIcon: "trophy",
+    description: "The definitive clash of champions between the UCL and Europa League title winners.",
+  },
+  "Super Cup": {
+    id: "super-cup",
+    name: "UEFA Super Cup Trophy",
+    competition: "Super Cup",
+    imagePath: "/assets/trophies/super-cup.png",
+    fallbackIcon: "trophy",
+    description: "The definitive clash of champions between the UCL and Europa League title winners.",
+  },
+  "UEFA Super Cup": {
+    id: "super-cup",
+    name: "UEFA Super Cup Trophy",
+    competition: "UEFA Super Cup",
+    imagePath: "/assets/trophies/super-cup.png",
+    fallbackIcon: "trophy",
+    description: "The definitive clash of champions between the UCL and Europa League title winners.",
+  },
 };
 
 /**
@@ -83,6 +107,7 @@ export function getTrophyForCompetition(competition: string): TrophyAsset {
     return COMPETITION_TROPHIES[norm];
   }
   const upper = norm.toUpperCase();
+  if (upper.includes("SUPER")) return COMPETITION_TROPHIES["SUPER_CUP"];
   if (upper.includes("1") || upper.includes("PREMIER")) return COMPETITION_TROPHIES["Division 1"];
   if (upper.includes("2")) return COMPETITION_TROPHIES["Division 2"];
   if (upper.includes("3")) return COMPETITION_TROPHIES["Division 3"];

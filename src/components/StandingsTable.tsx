@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, Globe, ArrowUp, ArrowDown, Minus, AlertTriangle, ShieldAlert, Smartphone, MessageSquare, Shield } from "lucide-react";
+import { Trophy, Globe, ArrowUp, ArrowDown, Minus, AlertTriangle, ShieldAlert, Shield } from "lucide-react";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
 
 interface StandingRow {
@@ -157,7 +157,6 @@ export default function StandingsTable({
           <TableRow>
             <TableHead className={`${showMovement ? "w-20" : "w-14"} text-center transition-all`}>Pos</TableHead>
             <TableHead>eFootball Mobile Athlete (Gamer Tag)</TableHead>
-            {!compact && <TableHead className="hidden lg:table-cell">WhatsApp Contact</TableHead>}
             <TableHead className="text-center">MP</TableHead>
             <TableHead className="text-center">W</TableHead>
             <TableHead className="text-center">D</TableHead>
@@ -181,7 +180,7 @@ export default function StandingsTable({
         <TableBody>
           {sortedStandings.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={compact ? 8 : 12} className="text-center py-10 text-muted-foreground italic text-xs">
+              <TableCell colSpan={compact ? 8 : 11} className="text-center py-10 text-muted-foreground italic text-xs">
                 No active athlete standings available for {divisionName} yet.
               </TableCell>
             </TableRow>
@@ -246,8 +245,6 @@ export default function StandingsTable({
                 if (rank <= 2) isUcl = true;
                 else isMidTable = true;
               }
-
-              const cleanWa = row.player?.whatsapp?.replace(/[^0-9]/g, "") || "";
 
             return (
               <TableRow
@@ -402,21 +399,6 @@ export default function StandingsTable({
                     );
                   })()}
                 </TableCell>
-
-                {/* WhatsApp Direct Link */}
-                {!compact && (
-                  <TableCell className="hidden lg:table-cell text-xs">
-                    <a
-                      href={`https://wa.me/${cleanWa}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:text-primary font-mono text-xs"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      <span>{row.player?.whatsapp || "N/A"}</span>
-                    </a>
-                  </TableCell>
-                )}
 
                 {/* Match Stats */}
                 <TableCell className="text-center font-medium text-foreground">

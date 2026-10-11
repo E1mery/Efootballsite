@@ -193,6 +193,61 @@ export default function AdminClient({
   const [europaDrawInput, setEuropaDrawInput] = useState<string>(
     toLocalDatetimeInput(leagueConfig?.europaDrawTime)
   );
+  const [superCupDateInput, setSuperCupDateInput] = useState<string>("");
+  const [generatingSuperCup, setGeneratingSuperCup] = useState(false);
+  const [superCupStatusData, setSuperCupStatusData] = useState<any>(null);
+
+  const fetchSuperCupStatus = async () => {
+    try {
+      const res = await fetch("/api/admin/super-cup");
+      if (res.ok) {
+        const data = await res.json();
+        setSuperCupStatusData(data);
+      }
+    } catch (e) {}
+  };
+
+  const handleGenerateSuperCup = async () => {
+    if (!confirm("Generate official UEFA Super Cup fixture between UCL Champion and Europa League Champion?")) return;
+    setGeneratingSuperCup(true);
+    try {
+      const res = await fetch("/api/admin/super-cup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "GENERATE_FIXTURE", scheduledDate: superCupDateInput || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate Super Cup");
+      alert(data.message || "Super Cup fixture generated successfully!");
+      fetchSuperCupStatus();
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setGeneratingSuperCup(false);
+    }
+  };
+
+  const handleScheduleSuperCup = async () => {
+    if (!superCupDateInput) {
+      alert("Please choose a kickoff date and time.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/super-cup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SCHEDULE_MATCH", scheduledDate: superCupDateInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to schedule Super Cup");
+      alert(data.message || "Super Cup kickoff date scheduled successfully!");
+      fetchSuperCupStatus();
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   // Club Assignment / Edit State
   const [editingClubPlayer, setEditingClubPlayer] = useState<any | null>(null);
@@ -4958,6 +5013,86 @@ export default function AdminClient({
                     </Button>
                   </div>
                 </div>
+                </div>
+              </div>
+            </div>
+
+            {/* UEFA SUPER CUP COMMISSIONER HUB */}
+            <div className="pt-6 border-t border-border">
+              <div className="rounded-3xl border border-secondary/40 bg-card/60 p-6 space-y-4 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-black uppercase text-white flex items-center gap-2">
+                      <Crown className="h-5 w-5 text-secondary" />
+                      <span>UEFA Super Cup Commissioner Controls</span>
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Mandatory Participation Rule: Contested strictly between the official UCL Champion and Europa League Champion from {leagueConfig?.season || "this season"}.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={fetchSuperCupStatus}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs font-bold gap-1 self-start sm:self-auto"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Refresh Status
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-3.5 rounded-xl bg-background/80 border border-primary/30 space-y-1">
+                    <span className="text-xs font-bold uppercase text-primary block">
+                      1. Champions League Winner
+                    </span>
+                    <p className="text-sm font-black text-white">
+                      {superCupStatusData?.uclChampion
+                        ? `@${superCupStatusData.uclChampion.gamerTag}`
+                        : "Awaiting UCL Final Conclusion"}
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-background/80 border border-secondary/30 space-y-1">
+                    <span className="text-xs font-bold uppercase text-secondary block">
+                      2. Europa League Winner
+                    </span>
+                    <p className="text-sm font-black text-white">
+                      {superCupStatusData?.europaChampion
+                        ? `@${superCupStatusData.europaChampion.gamerTag}`
+                        : "Awaiting Europa Final Conclusion"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-background/80 border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase text-muted-foreground block">
+                      Super Cup Match Kickoff (CAT)
+                    </span>
+                    <Input
+                      type="datetime-local"
+                      value={superCupDateInput}
+                      onChange={(e) => setSuperCupDateInput(e.target.value)}
+                      className="text-xs h-8 bg-card border-border font-mono w-full sm:w-64"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      onClick={handleGenerateSuperCup}
+                      disabled={generatingSuperCup || !superCupStatusData?.bothConfirmed}
+                      className="text-xs font-black bg-secondary hover:bg-secondary text-secondary-foreground"
+                    >
+                      {generatingSuperCup ? "Generating..." : "Generate Official Super Cup Fixture"}
+                    </Button>
+                    <Button
+                      onClick={handleScheduleSuperCup}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs font-bold"
+                    >
+                      Update Schedule
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

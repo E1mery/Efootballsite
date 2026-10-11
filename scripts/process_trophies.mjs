@@ -13,7 +13,8 @@ async function main() {
     { name: 'd2.png', yMax: 436, fillCavities: true },
     { name: 'd3.png', yMax: 436, fillCavities: true },
     { name: 'europa-league.png', yMax: 495, fillCavities: true },
-    { name: 'champions-league.png', yMax: 480, fillCavities: true }
+    { name: 'champions-league.png', yMax: 480, fillCavities: true },
+    { name: 'super-cup.png', yMax: 458, fillCavities: true }
   ];
 
   const originalsDir = path.join('public/assets/trophies/originals');

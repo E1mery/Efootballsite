@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { getTrophyForCompetition } from "@/lib/assets.config";
 import {
   Archive,
   Trophy,
@@ -384,21 +386,35 @@ export default function SeasonArchiveClient({
             <div className="space-y-6 animate-fade-in">
               {/* Competition Selector */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {selectedSeasonData.competitionsList.map((comp) => (
-                  <button
-                    key={comp}
-                    type="button"
-                    onClick={() => setSelectedComp(comp)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      (selectedComp === "ALL" && comp === selectedSeasonData.competitionsList[0]) ||
-                      selectedComp === comp
-                        ? "bg-secondary text-secondary-foreground font-black shadow-sm"
-                        : "bg-card/70 border border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {comp}
-                  </button>
-                ))}
+                {selectedSeasonData.competitionsList.map((comp) => {
+                  const compTrophy = getTrophyForCompetition(comp);
+                  return (
+                    <button
+                      key={comp}
+                      type="button"
+                      onClick={() => setSelectedComp(comp)}
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                        (selectedComp === "ALL" && comp === selectedSeasonData.competitionsList[0]) ||
+                        selectedComp === comp
+                          ? "bg-secondary text-secondary-foreground font-black shadow-sm"
+                          : "bg-card/70 border border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {compTrophy && (
+                        <div className="relative h-4 w-4 shrink-0">
+                          <Image
+                            src={compTrophy.imagePath}
+                            alt={`${comp} Trophy`}
+                            fill
+                            sizes="16px"
+                            className="object-contain drop-shadow"
+                          />
+                        </div>
+                      )}
+                      <span>{comp}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {(() => {
@@ -407,6 +423,7 @@ export default function SeasonArchiveClient({
                     ? selectedSeasonData.competitionsList[0] || "Division 1"
                     : selectedComp;
                 const rows = selectedSeasonData.standings[currentComp] || [];
+                const tableTrophy = getTrophyForCompetition(currentComp);
 
                 if (rows.length === 0) {
                   return (
@@ -419,8 +436,20 @@ export default function SeasonArchiveClient({
                 return (
                   <div className="rounded-2xl border border-border/80 bg-card/70 overflow-hidden shadow-lg">
                     <div className="p-4 border-b border-border/60 flex items-center justify-between bg-card/90">
-                      <h4 className="text-sm font-black text-foreground flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-secondary" />
+                      <h4 className="text-sm font-black text-foreground flex items-center gap-2.5">
+                        {tableTrophy ? (
+                          <div className="relative h-6 w-6 shrink-0">
+                            <Image
+                              src={tableTrophy.imagePath}
+                              alt={`${currentComp} Trophy`}
+                              fill
+                              sizes="24px"
+                              className="object-contain drop-shadow"
+                            />
+                          </div>
+                        ) : (
+                          <Trophy className="h-4 w-4 text-secondary" />
+                        )}
                         <span>Official Final Table: {currentComp}</span>
                       </h4>
                       <span className="text-xs font-bold text-muted-foreground uppercase">
@@ -787,7 +816,22 @@ export default function SeasonArchiveClient({
                         <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-secondary/20 text-secondary border border-secondary/30">
                           {c.trophyType || "CHAMPION"}
                         </span>
-                        <Trophy className="h-6 w-6 text-secondary" />
+                        {(() => {
+                          const trophyMeta = getTrophyForCompetition(c.tournamentName);
+                          return trophyMeta.imagePath ? (
+                            <div className="relative w-8 h-8 shrink-0">
+                              <Image
+                                src={trophyMeta.imagePath}
+                                alt={c.tournamentName}
+                                fill
+                                className="object-contain"
+                                sizes="32px"
+                              />
+                            </div>
+                          ) : (
+                            <Trophy className="h-6 w-6 text-secondary" />
+                          );
+                        })()}
                       </div>
 
                       <div className="space-y-1">

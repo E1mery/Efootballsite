@@ -1,7 +1,10 @@
 import {
   Bell,
   CalendarDays,
+  Crown,
+  Flame,
   History,
+  Shield,
   Trophy,
   User,
   Zap,
@@ -12,6 +15,9 @@ export type PlayerDashboardTab =
   | "OVERVIEW"
   | "CALENDAR"
   | "STANDINGS"
+  | "UCL"
+  | "EUROPA"
+  | "SUPER_CUP"
   | "DRAWS"
   | "INBOX"
   | "HISTORY"
@@ -29,6 +35,7 @@ export type PlayerNavItem = {
   id: PlayerDashboardTab;
   title: string;
   icon: LucideIcon;
+  trophyImage?: string;
   count?: number;
   alert?: number;
   badgeVariant?: "yellow" | "destructive" | "live" | "secondary";
@@ -45,6 +52,9 @@ export const PLAYER_TAB_TITLES: Record<PlayerDashboardTab, string> = {
   OVERVIEW: "Today's Match",
   CALENDAR: "Match Calendar",
   STANDINGS: "All Division Tables",
+  UCL: "UEFA Champions League",
+  EUROPA: "UEFA Europa League",
+  SUPER_CUP: "UEFA Super Cup",
   DRAWS: "UCL & Europa Draws",
   INBOX: "Announcements & Inbox",
   HISTORY: "Match History & Proof",
@@ -73,6 +83,25 @@ export function buildPlayerNav(counts: PlayerSidebarCounts): PlayerNavGroup[] {
       id: "STANDINGS",
       title: "All Division Tables",
       icon: Trophy,
+      trophyImage: "/assets/trophies/league.png",
+    },
+    {
+      id: "UCL",
+      title: "Champions League",
+      icon: Shield,
+      trophyImage: "/assets/trophies/champions-league.png",
+    },
+    {
+      id: "EUROPA",
+      title: "Europa League",
+      icon: Flame,
+      trophyImage: "/assets/trophies/europa-league.png",
+    },
+    {
+      id: "SUPER_CUP",
+      title: "Super Cup",
+      icon: Crown,
+      trophyImage: "/assets/trophies/super-cup.png",
     },
   ];
   if (counts.drawsLive) {
