@@ -59,7 +59,8 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
     // 1. Ensure system announcements and live updates are synchronized in database
     await syncSystemNewsToCarousel();
 
-    const now = new Date();
+    // Add a 60-second buffer to allow newly published articles to appear immediately regardless of minor client-server clock drift
+    const now = new Date(Date.now() + 60 * 1000);
 
     // 2. Fetch live league state to enforce lock & reset constraints
     const [
@@ -273,8 +274,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           explicit === "/images/carousel-stadium-bg.jpg" ||
           explicit === "/images/ucl-stadium-bg.jpg" ||
           explicit === "/images/europa-stadium-bg.jpg" ||
-          explicit === "/images/motw-stadium-bg.jpg" ||
-          explicit.includes("/api/files/uploads/")
+          explicit === "/images/motw-stadium-bg.jpg"
         ) {
           return "/images/super-cup-bg.jpg";
         }
@@ -777,18 +777,13 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         };
       }
 
-      const isSuperCup =
+      const isSystemSuperCupFixture =
         item.id?.startsWith("sys-announcement-super-cup") ||
         (item as any).data?.competition === "SUPER_CUP" ||
         (item as any).data?.division === "SUPER_CUP" ||
-        (item.buttonUrl || "").toLowerCase().includes("super-cup") ||
-        (item.title || "").toLowerCase().includes("super cup") ||
-        (item.title || "").toLowerCase().includes("supercup") ||
-        (item.description || "").toLowerCase().includes("super cup") ||
-        (item.description || "").toLowerCase().includes("supercup") ||
-        (item.category && item.category.toLowerCase().includes("super"));
+        Boolean((item as any).data?.homePlayer && (item as any).data?.awayPlayer);
 
-      if (isSuperCup) {
+      if (isSystemSuperCupFixture) {
         return {
           id: item.id,
           type: "SUPER_CUP",
@@ -798,7 +793,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           title: item.title,
           subtitle: (item as any).subtitle || "The Ultimate Clash of Continental Champions",
           description: item.description,
-          featuredImage: "/images/super-cup-bg.jpg",
+          featuredImage: resolveSlideFeaturedImage(item),
           buttonText: item.buttonText || "Super Cup Hub",
           buttonUrl: item.buttonUrl || "/dashboard/super-cup",
           publishDate: item.publishDate,

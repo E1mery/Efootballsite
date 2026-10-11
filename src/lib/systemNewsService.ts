@@ -66,8 +66,7 @@ export async function autoPublishSystemNews(params: {
       params.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
       params.featuredImage !== "/images/europa-stadium-bg.jpg" &&
       params.featuredImage !== "/images/super-cup-bg.jpg" &&
-      params.featuredImage !== "/images/super-cup-stadium-bg.jpg" &&
-      !params.featuredImage.includes("/api/files/uploads/")
+      params.featuredImage !== "/images/super-cup-stadium-bg.jpg"
         ? params.featuredImage.trim()
         : fallbackImage;
 
@@ -859,10 +858,11 @@ export async function syncSystemNewsToCarousel() {
       }
     }
 
-    // Auto-migrate any existing Super Cup news in the News table so that it always uses the official super cup background
+    // Auto-migrate only system-generated Super Cup news in the News table so that it uses the official super cup background
     await prisma.news.updateMany({
       where: {
         AND: [
+          { id: { startsWith: "sys-" } },
           {
             OR: [
               { category: { contains: "Super", mode: "insensitive" } },
@@ -874,7 +874,6 @@ export async function syncSystemNewsToCarousel() {
           {
             OR: [
               { featuredImage: "/images/carousel-stadium-bg.jpg" },
-              { featuredImage: { contains: "/api/files/uploads/" } },
               { featuredImage: "" },
             ],
           },

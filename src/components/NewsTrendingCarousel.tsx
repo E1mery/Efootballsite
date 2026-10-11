@@ -152,19 +152,9 @@ const CoverflowCard = memo(function CoverflowCard({
     slide.featuredImage === "/images/super-cup-bg.jpg" ||
     slide.featuredImage === "/images/super-cup-stadium-bg.jpg" ||
     slide.data?.competition === "SUPER_CUP" ||
-    slide.data?.competition === "Super Cup" ||
     slide.data?.division === "SUPER_CUP" ||
-    slide.data?.division === "Super Cup" ||
     slide.data?.isSuperCup === true ||
-    slide.category?.toLowerCase().includes("super") ||
-    slide.badge?.toLowerCase().includes("super") ||
-    slide.title?.toLowerCase().includes("super cup") ||
-    slide.title?.toLowerCase().includes("supercup") ||
-    slide.description?.toLowerCase().includes("super cup") ||
-    slide.description?.toLowerCase().includes("supercup") ||
-    slide.buttonUrl?.toLowerCase().includes("super-cup") ||
-    slide.buttonUrl?.toLowerCase().includes("supercup") ||
-    slide.id?.includes("super-cup")
+    slide.id?.startsWith("sys-announcement-super-cup")
   );
 
   const isEuropaSlide = !isSuperCupSlide && Boolean(
@@ -221,12 +211,12 @@ const CoverflowCard = memo(function CoverflowCard({
     ? "/images/ucl-stadium-bg.jpg"
     : "/images/carousel-stadium-bg.jpg";
 
-  const effectiveFeaturedImage = isSuperCupSlide
-    ? null
+  const effectiveFeaturedImage = isCustomFeaturedImage
+    ? slide.featuredImage
+    : isSuperCupSlide
+    ? (slide.featuredImage && slide.featuredImage !== "/images/super-cup-bg.jpg" && slide.featuredImage !== "/images/super-cup-stadium-bg.jpg" ? slide.featuredImage : null)
     : isMotwSlide
     ? null
-    : isCustomFeaturedImage
-    ? slide.featuredImage
     : isEuropaSlide
     ? "/images/europa-stadium-bg.jpg"
     : isUclSlide
@@ -363,8 +353,8 @@ const CoverflowCard = memo(function CoverflowCard({
                 )}
               </div>
 
-              {/* Head-to-Head Card if match participants are present */}
-              {slide.data?.homePlayer && slide.data?.awayPlayer && (
+              {/* Head-to-Head Card if match participants are present, or Featured Image */}
+              {slide.data?.homePlayer && slide.data?.awayPlayer ? (
                 <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-3 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/40 shadow-2xl shrink-0">
                   <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
                     <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-2xl bg-background/90 border border-primary/50 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
@@ -413,7 +403,16 @@ const CoverflowCard = memo(function CoverflowCard({
                     </div>
                   </div>
                 </div>
-              )}
+              ) : effectiveFeaturedImage ? (
+                <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl shrink-0 max-h-48 sm:max-h-60 lg:max-h-72 max-w-full lg:max-w-md w-auto flex items-center justify-center mx-auto lg:mx-0">
+                  <img
+                    src={effectiveFeaturedImage}
+                    alt={slide.title}
+                    className="w-auto h-auto max-h-44 sm:max-h-56 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -1266,17 +1265,28 @@ const CoverflowCard = memo(function CoverflowCard({
                   </div>
                 )}
 
-                {/* DEFAULT BROADCAST NOTICE SHOWCASE */}
+                {/* DEFAULT BROADCAST NOTICE SHOWCASE / FEATURED IMAGE */}
                 {!["LEAGUE_START", "DRAW_SCHEDULED", "DRAW_RESULTS", "CONTINENTAL_ADVANCE"].includes(slide.data?.subType) && (
-                  <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 p-3 sm:p-4 max-w-sm">
-                    <div className="flex items-center gap-2 mb-1.5 text-xs font-mono text-secondary font-bold">
-                      <Megaphone className="h-4 w-4" />
-                      <span>COMMISSIONER NOTICE</span>
+                  effectiveFeaturedImage ? (
+                    <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl shrink-0 max-h-48 sm:max-h-60 lg:max-h-72 max-w-full lg:max-w-md w-auto flex items-center justify-center mx-auto lg:mx-0">
+                      <img
+                        src={effectiveFeaturedImage}
+                        alt={slide.title}
+                        className="w-auto h-auto max-h-44 sm:max-h-56 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto"
+                        loading="lazy"
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-3 sm:line-clamp-4">
-                      {slide.description}
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="relative rounded-2xl overflow-hidden border border-secondary/35 bg-card/75 backdrop-blur-md shadow-2xl shrink-0 p-3 sm:p-4 max-w-sm">
+                      <div className="flex items-center gap-2 mb-1.5 text-xs font-mono text-secondary font-bold">
+                        <Megaphone className="h-4 w-4" />
+                        <span>COMMISSIONER NOTICE</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-3 sm:line-clamp-4">
+                        {slide.description}
+                      </p>
+                    </div>
+                  )
                 )}
               </div>
             </div>
