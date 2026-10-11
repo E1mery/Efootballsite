@@ -245,6 +245,18 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       const text = `${item.title || ""} ${item.description || ""} ${item.subtitle || ""} ${item.category || ""} ${item.id || ""}`.toLowerCase();
       const isEuropa = text.includes("europa");
       const isUcl = !isEuropa && (text.includes("ucl") || text.includes("champions league"));
+      const isMotw =
+        item.id?.startsWith("sys-motw-") ||
+        item.id === "sys-motw-active" ||
+        text.includes("match of the week") ||
+        text.includes("motw");
+
+      if (isMotw) {
+        if (!explicit || explicit === "/images/carousel-stadium-bg.jpg" || explicit === "/images/ucl-stadium-bg.jpg" || explicit === "/images/europa-stadium-bg.jpg") {
+          return "/images/motw-stadium-bg.jpg";
+        }
+        return explicit;
+      }
 
       if (isEuropa) {
         if (!explicit || explicit === "/images/carousel-stadium-bg.jpg" || explicit === "/images/ucl-stadium-bg.jpg") {
@@ -304,10 +316,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
                 title: item.title,
                 subtitle: `${motwMatch.division} • ${motwMatch.round} • Kickoff: ${formattedKickoffFull}`,
                 description: item.description,
-                featuredImage:
-                  motwMatch.homePlayer.avatar ||
-                  motwMatch.awayPlayer.avatar ||
-                  resolveSlideFeaturedImage(item),
+                featuredImage: "/images/motw-stadium-bg.jpg",
                 buttonText: item.buttonText || "Predict Winner",
                 buttonUrl: item.buttonUrl || `/fixtures?highlight=${motwMatch.id}`,
                 publishDate: item.publishDate,

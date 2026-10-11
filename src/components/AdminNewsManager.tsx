@@ -479,47 +479,33 @@ export default function AdminNewsManager({
   return (
     <div className="space-y-6">
       {/* Header & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl bg-card/80 border border-border backdrop-blur-xl shadow-xl">
-        <div className="space-y-1">
-          <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
-            <Newspaper className="h-6 w-6 text-primary" />
-            <span>News &amp; Carousel Management</span>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 p-5 sm:p-6 rounded-3xl bg-card/80 border border-border backdrop-blur-xl shadow-xl">
+        <div className="space-y-1.5 min-w-0 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <Newspaper className="h-4 w-4 text-primary shrink-0" />
+              <span>Editorial &amp; Broadcast Portal</span>
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+            News &amp; Carousel Management
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             Manage all homepage carousel published contents — including real-time Auto-Sync System updates and administrator-created news articles. Full control to edit headlines, change carousel visibility, schedule, or delete.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-          <Button
-            onClick={() => setActiveSection("TABLES")}
-            variant={activeSection === "TABLES" ? "yellow" : "outline"}
-            size="default"
-            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border"
-          >
-            <Trophy className="h-4 w-4 text-secondary" />
-            <span>Publish Table to Carousel</span>
-          </Button>
-
-          <Button
-            onClick={() => setActiveSection("MOTW")}
-            variant={activeSection === "MOTW" ? "yellow" : "outline"}
-            size="default"
-            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border"
-          >
-            <Sparkles className="h-4 w-4 text-secondary" />
-            <span>Match of the Week</span>
-          </Button>
-
+        {/* Primary Action Buttons (Responsive: stack on mobile, side-by-side on desktop without clipping) */}
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0 w-full lg:w-auto">
           <Button
             onClick={handleAutoSyncSystemNews}
             disabled={isSyncing}
             variant="outline"
             size="default"
-            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border hover:bg-muted"
+            className="w-full sm:w-auto rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border hover:bg-muted"
             title="Automatically detect active matchday, MOTD, and registration to publish system updates"
           >
-            <Sparkles className="h-4 w-4 text-secondary" />
+            <Sparkles className="h-4 w-4 text-secondary shrink-0" />
             <span>{isSyncing ? "Syncing..." : "Auto-Sync System Updates"}</span>
           </Button>
 
@@ -527,40 +513,51 @@ export default function AdminNewsManager({
             onClick={handleOpenCreate}
             variant="yellow"
             size="default"
-            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-lg cursor-pointer"
+            className="w-full sm:w-auto rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-lg cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 shrink-0" />
             <span>Create News Article</span>
           </Button>
         </div>
       </div>
 
       {/* Sub-Navigation View Switcher */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-card border border-border overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl bg-card border border-border overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveSection("FEED")}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
+            "flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
             activeSection === "FEED"
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           )}
         >
-          All News &amp; Carousel Articles ({metrics.total})
+          <Newspaper className="h-4 w-4 shrink-0" />
+          <span>All News &amp; Carousel Articles</span>
+          <span
+            className={cn(
+              "px-1.5 py-0.5 rounded-md text-xs font-mono font-bold",
+              activeSection === "FEED"
+                ? "bg-primary-foreground/20 text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {metrics.total}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveSection("TABLES")}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+            "flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
             activeSection === "TABLES"
-              ? "bg-secondary text-secondary-foreground shadow-md"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           )}
         >
-          <Trophy className="h-4 w-4" />
+          <Trophy className="h-4 w-4 shrink-0 text-secondary" />
           <span>Publish League Tables to Carousel</span>
         </button>
 
@@ -568,13 +565,13 @@ export default function AdminNewsManager({
           type="button"
           onClick={() => setActiveSection("MOTW")}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+            "flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
             activeSection === "MOTW"
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           )}
         >
-          <Sparkles className="h-4 w-4 text-secondary" />
+          <Sparkles className="h-4 w-4 shrink-0 text-secondary" />
           <span>Match of the Week Selector</span>
         </button>
       </div>
@@ -586,6 +583,9 @@ export default function AdminNewsManager({
       {activeSection === "MOTW" && (
         <AdminMotwManager onRefreshNews={handleRefreshNewsList} />
       )}
+
+      {activeSection === "FEED" && (
+        <div className="space-y-6">
 
       {/* Metrics Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -655,8 +655,8 @@ export default function AdminNewsManager({
       </div>
 
       {/* Controls & Search Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-4 rounded-2xl border border-border bg-card/60 backdrop-blur-md">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border border-border bg-card/60 backdrop-blur-md">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchQuery}
@@ -666,12 +666,12 @@ export default function AdminNewsManager({
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
           {/* Category Filter */}
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+            className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary min-w-0"
           >
             <option value="ALL">All Categories</option>
             {CATEGORIES.map((cat) => (
@@ -685,7 +685,7 @@ export default function AdminNewsManager({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+            className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary min-w-0"
           >
             <option value="ALL">All Content</option>
             <option value="PUBLISHED">Published (Active)</option>
@@ -1021,7 +1021,7 @@ export default function AdminNewsManager({
                       <span className="text-muted-foreground text-xs">{pubStr}</span>
                     </div>
 
-                    <div className="flex items-center justify-end gap-1.5 pt-1">
+                    <div className="flex items-center justify-end flex-wrap gap-1.5 pt-2 border-t border-border/40">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1063,13 +1063,15 @@ export default function AdminNewsManager({
           </div>
         )}
       </div>
+      </div>
+      )}
 
       {/* ========================================================================= */}
       {/* CREATE / EDIT NEWS MODAL */}
       {/* ========================================================================= */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/85 backdrop-blur-xl overflow-y-auto animate-fade-in">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl my-auto space-y-5">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-card p-5 sm:p-8 shadow-2xl my-auto space-y-5">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div className="space-y-1">
                 <h3 className="text-lg sm:text-xl font-black text-foreground">

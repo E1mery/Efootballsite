@@ -173,14 +173,25 @@ const CoverflowCard = memo(function CoverflowCard({
     (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.uclTimeStr))
   );
 
+  const isMotwSlide = Boolean(
+    slide.type === "MOTW" ||
+    slide.featuredImage === "/images/motw-stadium-bg.jpg" ||
+    slide.badge?.toLowerCase().includes("match of the week") ||
+    (slide.category?.toLowerCase() === "match" && (slide.title || "").toLowerCase().includes("match of the week")) ||
+    (slide.tabLabel?.toLowerCase().includes("match of the week"))
+  );
+
   const isCustomFeaturedImage = Boolean(
     slide.featuredImage &&
     slide.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
     slide.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
-    slide.featuredImage !== "/images/europa-stadium-bg.jpg"
+    slide.featuredImage !== "/images/europa-stadium-bg.jpg" &&
+    slide.featuredImage !== "/images/motw-stadium-bg.jpg"
   );
 
-  const ambientBackgroundImage = isCustomFeaturedImage
+  const ambientBackgroundImage = isMotwSlide
+    ? "/images/motw-stadium-bg.jpg"
+    : isCustomFeaturedImage
     ? slide.featuredImage
     : isEuropaSlide
     ? "/images/europa-stadium-bg.jpg"
@@ -188,7 +199,9 @@ const CoverflowCard = memo(function CoverflowCard({
     ? "/images/ucl-stadium-bg.jpg"
     : "/images/carousel-stadium-bg.jpg";
 
-  const effectiveFeaturedImage = isCustomFeaturedImage
+  const effectiveFeaturedImage = isMotwSlide
+    ? null
+    : isCustomFeaturedImage
     ? slide.featuredImage
     : isEuropaSlide
     ? "/images/europa-stadium-bg.jpg"
@@ -221,15 +234,30 @@ const CoverflowCard = memo(function CoverflowCard({
       }}
     >
       {/* Dynamic Background Image */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+      <div
+        className={cn(
+          "absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-500",
+          isMotwSlide ? "opacity-90" : "opacity-30"
+        )}
+      >
         <img
           src={ambientBackgroundImage}
           alt=""
           aria-hidden="true"
-          className="h-full w-full object-cover"
+          className={cn(
+            "h-full w-full object-cover",
+            isMotwSlide ? "object-center" : ""
+          )}
         />
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
+      <div
+        className={cn(
+          "absolute inset-0 pointer-events-none",
+          isMotwSlide
+            ? "bg-gradient-to-t from-background/90 via-background/35 to-background/20 sm:from-background/85 sm:via-background/20 sm:to-background/10"
+            : "bg-gradient-to-t from-background via-background/80 to-transparent"
+        )}
+      />
 
       {/* Top Brand Accent Line */}
       <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-primary relative z-10" />
@@ -260,7 +288,7 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* ========================================================================= */}
           {slide.type === "MOTW" && slide.data && (
             <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
-              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
+              <div className="space-y-2.5 sm:space-y-3 text-left max-w-md lg:max-w-lg w-full p-3.5 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-mono text-secondary font-bold uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-secondary" />

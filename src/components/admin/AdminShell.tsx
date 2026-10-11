@@ -200,7 +200,7 @@ export default function AdminShell({
           <button
             aria-label="Close admin navigation"
             onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 bg-background"
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
           />
           <div className="absolute left-0 top-0 h-full w-72 max-w-full border-r border-border bg-card">
             <button
@@ -240,8 +240,8 @@ export default function AdminShell({
           onSignOut={handleSignOut}
           signingOut={signingOut}
         />
-        <main className="flex-1 p-4 sm:p-6">
-          <div className="mx-auto max-w-6xl">
+        <main className="flex-1 p-3 sm:p-5 lg:p-6 min-w-0">
+          <div className="mx-auto max-w-7xl w-full">
             <AdminClient
               matches={matches}
               pendingSubmissions={pendingSubmissions}

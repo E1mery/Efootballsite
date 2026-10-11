@@ -173,7 +173,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
           disabled={loading}
           variant="outline"
           size="sm"
-          className="rounded-xl text-xs font-bold gap-1.5 border-border self-start sm:self-auto cursor-pointer"
+          className="w-full sm:w-auto rounded-xl text-xs font-bold gap-1.5 border-border cursor-pointer shrink-0"
         >
           <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
           <span>Refresh Calendar</span>
@@ -205,8 +205,16 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
       )}
 
       {/* CURRENTLY PUBLISHED MOTW CARD */}
-      <div className="rounded-2xl border border-secondary/40 bg-secondary/5 p-4 sm:p-5 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-secondary/20 pb-3">
+      <div className="relative rounded-2xl border border-secondary/40 bg-secondary/5 p-4 sm:p-5 space-y-3 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-20">
+          <img
+            src="/images/motw-stadium-bg.jpg"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover object-center"
+          />
+        </div>
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-secondary/20 pb-3">
           <div className="flex items-center gap-2">
             <Radio className="h-4 w-4 text-secondary animate-pulse" />
             <span className="text-xs font-mono font-bold text-secondary uppercase tracking-wider">
@@ -220,7 +228,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
               disabled={unpublishing}
               variant="outline"
               size="sm"
-              className="h-8 text-xs font-mono font-bold text-destructive hover:bg-destructive/15 hover:text-destructive border-destructive/40 rounded-xl cursor-pointer"
+              className="h-8 text-xs font-mono font-bold text-destructive hover:bg-destructive/15 hover:text-destructive border-destructive/40 rounded-xl cursor-pointer w-full sm:w-auto"
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               <span>{unpublishing ? "Removing..." : "Unpublish MOTW from Carousel"}</span>
@@ -248,7 +256,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
             </div>
 
             {/* Head-to-Head Mini Preview */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border shadow-sm shrink-0">
+            <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-3 p-3 rounded-xl bg-card border border-border shadow-sm w-full md:w-auto shrink-0">
               <div className="flex items-center gap-2">
                 <div className="h-9 w-9 rounded-lg bg-background border border-border overflow-hidden flex items-center justify-center shrink-0">
                   <img
@@ -257,7 +265,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                     className="h-full w-full object-contain"
                   />
                 </div>
-                <div className="text-left text-xs min-w-16">
+                <div className="text-left text-xs min-w-0 sm:min-w-16">
                   <span className="font-black text-foreground block truncate max-w-20">
                     {currentMotw.homePlayer?.gamerTag}
                   </span>
@@ -267,12 +275,12 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                 </div>
               </div>
 
-              <span className="px-2 py-0.5 rounded bg-secondary/20 text-secondary font-mono text-xs font-black">
+              <span className="px-2 py-0.5 rounded bg-secondary/20 text-secondary font-mono text-xs font-black shrink-0">
                 VS
               </span>
 
               <div className="flex items-center gap-2">
-                <div className="text-right text-xs min-w-16">
+                <div className="text-right text-xs min-w-0 sm:min-w-16">
                   <span className="font-black text-foreground block truncate max-w-20">
                     {currentMotw.awayPlayer?.gamerTag}
                   </span>
@@ -303,8 +311,8 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
       </div>
 
       {/* FILTER BAR FOR CALENDAR FIXTURES */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 rounded-2xl border border-border bg-card/60">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-border bg-card/60">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={search}
@@ -314,12 +322,12 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
           {/* Division Filter */}
           <select
             value={divisionFilter}
             onChange={(e) => setDivisionFilter(e.target.value)}
-            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none"
+            className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none min-w-0"
           >
             <option value="ALL">All Divisions</option>
             <option value="Division 1">Division 1</option>
@@ -334,7 +342,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
             <select
               value={roundFilter}
               onChange={(e) => setRoundFilter(e.target.value)}
-              className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none"
+              className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none min-w-0"
             >
               <option value="ALL">All Rounds</option>
               {uniqueRounds.map((rnd) => (
@@ -349,7 +357,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none"
+            className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none min-w-0"
           >
             <option value="ALL">All Statuses</option>
             <option value="SCHEDULED">Scheduled Only</option>
@@ -463,14 +471,14 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                 </div>
 
                 {/* Right: One-Click Action */}
-                <div className="shrink-0 flex items-center justify-end">
+                <div className="shrink-0 flex items-center justify-end w-full sm:w-auto pt-1 sm:pt-0">
                   {isSelected ? (
                     <Button
                       onClick={handleUnpublishMotw}
                       disabled={unpublishing}
                       variant="outline"
                       size="sm"
-                      className="rounded-xl text-xs font-mono font-bold text-destructive hover:bg-destructive/15 border-destructive/40 cursor-pointer"
+                      className="w-full sm:w-auto rounded-xl text-xs font-mono font-bold text-destructive hover:bg-destructive/15 border-destructive/40 cursor-pointer"
                     >
                       <span>Remove</span>
                     </Button>
@@ -480,7 +488,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                       disabled={isProcessing}
                       variant="yellow"
                       size="sm"
-                      className="rounded-xl text-xs font-bold gap-1.5 shadow-sm cursor-pointer"
+                      className="w-full sm:w-auto rounded-xl text-xs font-bold gap-1.5 shadow-sm cursor-pointer justify-center"
                     >
                       <Sparkles className="h-3 w-3" />
                       <span>{isProcessing ? "Publishing..." : "Publish MOTW to Carousel"}</span>

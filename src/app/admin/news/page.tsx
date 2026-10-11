@@ -33,7 +33,7 @@ export default async function AdminNewsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6">
       {/* Navigation Header Back to Admin Portal */}
       <div className="flex items-center justify-between gap-4 pb-2 border-b border-border/60">
         <Link

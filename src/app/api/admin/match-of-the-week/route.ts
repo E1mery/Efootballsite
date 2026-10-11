@@ -163,8 +163,7 @@ export async function POST(req: Request) {
 
     const title = `Match of the Week: ${homeName} vs ${awayName}`;
     const description = `Official Match of the Week showdown in ${match.division} (${match.round}). ${homeName} (${homeTeam}) goes head-to-head against ${awayName} (${awayTeam}). Kickoff: ${kickoffFormatted} (CAT).`;
-    const featuredImage =
-      match.homePlayer?.avatar || match.awayPlayer?.avatar || "/images/carousel-stadium-bg.jpg";
+    const featuredImage = "/images/motw-stadium-bg.jpg";
 
     const newsItem = await prisma.news.upsert({
       where: { id: newsId },

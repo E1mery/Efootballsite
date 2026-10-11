@@ -113,7 +113,7 @@ export default function AdminLeagueTablePublisher({
           disabled={loading}
           variant="outline"
           size="sm"
-          className="rounded-xl text-xs font-bold gap-1.5 border-border self-start sm:self-auto cursor-pointer"
+          className="w-full sm:w-auto rounded-xl text-xs font-bold gap-1.5 border-border cursor-pointer shrink-0"
         >
           <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
           <span>Refresh Status</span>
