@@ -198,6 +198,22 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
 
       const titleLower = item.title.toLowerCase();
       const descLower = item.description.toLowerCase();
+      const isSuperCup =
+        item.id?.startsWith("sys-announcement-super-cup") ||
+        (item as any).data?.competition === "SUPER_CUP" ||
+        (item as any).data?.division === "SUPER_CUP" ||
+        (item.buttonUrl || "").toLowerCase().includes("super-cup") ||
+        titleLower.includes("super cup") ||
+        titleLower.includes("supercup") ||
+        descLower.includes("super cup") ||
+        descLower.includes("supercup") ||
+        (item.category && item.category.toLowerCase().includes("super"));
+
+      // Rule 1B: Super Cup announcements & showdowns are NEVER barred by UCL/Europa locks
+      if (isSuperCup) {
+        return true;
+      }
+
       const isUclItem = titleLower.includes("champions league") || titleLower.includes("ucl") || descLower.includes("champions league");
       const isEuropaItem = titleLower.includes("europa league") || titleLower.includes("europa") || descLower.includes("europa league");
 
@@ -239,10 +255,32 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       return true;
     });
 
-    // Helper to select the accurate stadium background for carousel slides (Europa vs UCL vs League)
+    // Helper to select the accurate stadium background for carousel slides (Super Cup vs Europa vs UCL vs League)
     const resolveSlideFeaturedImage = (item: any) => {
       const explicit = item.featuredImage?.trim();
-      const text = `${item.title || ""} ${item.description || ""} ${item.subtitle || ""} ${item.category || ""} ${item.id || ""}`.toLowerCase();
+      const text = `${item.title || ""} ${item.description || ""} ${item.subtitle || ""} ${item.category || ""} ${item.id || ""} ${item.buttonUrl || ""}`.toLowerCase();
+      const isSuperCup =
+        item.id?.startsWith("sys-announcement-super-cup") ||
+        (item as any).data?.competition === "SUPER_CUP" ||
+        (item as any).data?.division === "SUPER_CUP" ||
+        text.includes("super cup") ||
+        text.includes("supercup") ||
+        item.category?.toLowerCase().includes("super");
+
+      if (isSuperCup) {
+        if (
+          !explicit ||
+          explicit === "/images/carousel-stadium-bg.jpg" ||
+          explicit === "/images/ucl-stadium-bg.jpg" ||
+          explicit === "/images/europa-stadium-bg.jpg" ||
+          explicit === "/images/motw-stadium-bg.jpg" ||
+          explicit.includes("/api/files/uploads/")
+        ) {
+          return "/images/super-cup-bg.jpg";
+        }
+        return explicit;
+      }
+
       const isEuropa = text.includes("europa");
       const isUcl = !isEuropa && (text.includes("ucl") || text.includes("champions league"));
       const isMotw =
@@ -316,7 +354,10 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
                 title: item.title,
                 subtitle: `${motwMatch.division} • ${motwMatch.round} • Kickoff: ${formattedKickoffFull}`,
                 description: item.description,
-                featuredImage: "/images/motw-stadium-bg.jpg",
+                featuredImage:
+                  motwMatch.division === "SUPER_CUP" || (motwMatch.round || "").toLowerCase().includes("super cup")
+                    ? "/images/super-cup-bg.jpg"
+                    : "/images/motw-stadium-bg.jpg",
                 buttonText: item.buttonText || "Predict Winner",
                 buttonUrl: item.buttonUrl || `/fixtures?highlight=${motwMatch.id}`,
                 publishDate: item.publishDate,
@@ -736,6 +777,39 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         };
       }
 
+      const isSuperCup =
+        item.id?.startsWith("sys-announcement-super-cup") ||
+        (item as any).data?.competition === "SUPER_CUP" ||
+        (item as any).data?.division === "SUPER_CUP" ||
+        (item.buttonUrl || "").toLowerCase().includes("super-cup") ||
+        (item.title || "").toLowerCase().includes("super cup") ||
+        (item.title || "").toLowerCase().includes("supercup") ||
+        (item.description || "").toLowerCase().includes("super cup") ||
+        (item.description || "").toLowerCase().includes("supercup") ||
+        (item.category && item.category.toLowerCase().includes("super"));
+
+      if (isSuperCup) {
+        return {
+          id: item.id,
+          type: "SUPER_CUP",
+          badge: "SUPER CUP SHOWDOWN",
+          category: "Super Cup",
+          tabLabel: "Super Cup",
+          title: item.title,
+          subtitle: (item as any).subtitle || "The Ultimate Clash of Continental Champions",
+          description: item.description,
+          featuredImage: "/images/super-cup-bg.jpg",
+          buttonText: item.buttonText || "Super Cup Hub",
+          buttonUrl: item.buttonUrl || "/dashboard/super-cup",
+          publishDate: item.publishDate,
+          expirationDate: item.expirationDate,
+          data: {
+            ...item,
+            isSuperCup: true,
+          },
+        };
+      }
+
       // Standard Administrator-created News Article
       return {
         id: item.id,
@@ -758,11 +832,23 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
 ).filter(Boolean) as CarouselSlide[];
 
     // Final safety check: guarantee no league standings reset or locked-competition news ever appears
-    return slides.filter((slide) => {
+    const prioritizedSlides = slides.filter((slide) => {
       if (isStandingsResetAnnouncement(slide)) return false;
 
       const titleLower = (slide.title || "").toLowerCase();
       const descLower = (slide.description || "").toLowerCase();
+      const isSuperCup =
+        slide.type === "SUPER_CUP" ||
+        (slide.category && slide.category.toLowerCase().includes("super")) ||
+        (slide.badge && slide.badge.toLowerCase().includes("super")) ||
+        titleLower.includes("super cup") ||
+        titleLower.includes("supercup") ||
+        descLower.includes("super cup") ||
+        descLower.includes("supercup");
+
+      // Super Cup slides are NEVER blocked by UCL/Europa locks!
+      if (isSuperCup) return true;
+
       const isUcl = titleLower.includes("champions league") || titleLower.includes("ucl") || descLower.includes("champions league");
       const isEuropa = titleLower.includes("europa league") || titleLower.includes("europa") || descLower.includes("europa league");
       const isReg = titleLower.includes("registration") || titleLower.includes("enrollment") || descLower.includes("enrollment");
@@ -777,6 +863,21 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       if (!leagueConfig.registrationOpen && isReg) return false;
 
       return true;
+    });
+
+    return prioritizedSlides.sort((a, b) => {
+      const getPriority = (s: CarouselSlide) => {
+        if (s.type === "SUPER_CUP") return 100;
+        if (s.type === "MOTW") return 95;
+        if (s.type === "SYSTEM_ANNOUNCEMENT") return 80;
+        if (s.type === "LEAGUE_TABLE") return 70;
+        return 50;
+      };
+      const diff = getPriority(b) - getPriority(a);
+      if (diff !== 0) return diff;
+      const dateA = a.publishDate ? new Date(a.publishDate).getTime() : 0;
+      const dateB = b.publishDate ? new Date(b.publishDate).getTime() : 0;
+      return dateB - dateA;
     });
   } catch (error) {
     console.error("[getCarouselSlides] Error assembling carousel data:", error);

@@ -429,6 +429,10 @@ body {
   box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(var(--secondary) / 0.35);
 }
 
+.carousel-card-supercup {
+  box-shadow: 0 25px 50px -12px oklch(0 0 0 / 0.6), 0 0 35px -5px oklch(var(--secondary) / 0.45);
+}
+
 .carousel-3d-stage {
   transform-style: preserve-3d;
 }
@@ -531,6 +535,27 @@ body {
 }
 
 /* Animations */
+@keyframes carouselProgress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.carousel-progress-line {
+  animation: carouselProgress 8000ms linear forwards;
+}
+
+.carousel-progress-running {
+  animation-play-state: running;
+}
+
+.carousel-progress-paused {
+  animation-play-state: paused;
+}
+
 @keyframes carouselSlideIn {
   from {
     opacity: 0;

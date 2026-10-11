@@ -69,7 +69,6 @@ interface CoverflowCardProps {
   isCenter: boolean;
   isPaused: boolean;
   isMobile: boolean;
-  progress: number;
   onCardClick: (index: number) => void;
 }
 
@@ -85,7 +84,6 @@ const CoverflowCard = memo(function CoverflowCard({
   isCenter,
   isPaused,
   isMobile,
-  progress,
   onCardClick,
 }: CoverflowCardProps) {
   // Continuous 3D transforms driven directly by spring physics
@@ -149,7 +147,27 @@ const CoverflowCard = memo(function CoverflowCard({
       })
     : null;
 
-  const isEuropaSlide = Boolean(
+  const isSuperCupSlide = Boolean(
+    slide.type === "SUPER_CUP" ||
+    slide.featuredImage === "/images/super-cup-bg.jpg" ||
+    slide.featuredImage === "/images/super-cup-stadium-bg.jpg" ||
+    slide.data?.competition === "SUPER_CUP" ||
+    slide.data?.competition === "Super Cup" ||
+    slide.data?.division === "SUPER_CUP" ||
+    slide.data?.division === "Super Cup" ||
+    slide.data?.isSuperCup === true ||
+    slide.category?.toLowerCase().includes("super") ||
+    slide.badge?.toLowerCase().includes("super") ||
+    slide.title?.toLowerCase().includes("super cup") ||
+    slide.title?.toLowerCase().includes("supercup") ||
+    slide.description?.toLowerCase().includes("super cup") ||
+    slide.description?.toLowerCase().includes("supercup") ||
+    slide.buttonUrl?.toLowerCase().includes("super-cup") ||
+    slide.buttonUrl?.toLowerCase().includes("supercup") ||
+    slide.id?.includes("super-cup")
+  );
+
+  const isEuropaSlide = !isSuperCupSlide && Boolean(
     slide.category?.toLowerCase().includes("europa") ||
     slide.title?.toLowerCase().includes("europa") ||
     slide.description?.toLowerCase().includes("europa") ||
@@ -160,7 +178,7 @@ const CoverflowCard = memo(function CoverflowCard({
     (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.europaTimeStr) && !slide.data?.uclTimeStr)
   );
 
-  const isUclSlide = !isEuropaSlide && Boolean(
+  const isUclSlide = !isSuperCupSlide && !isEuropaSlide && Boolean(
     slide.category?.toLowerCase().includes("ucl") ||
     slide.title?.toLowerCase().includes("ucl") ||
     slide.title?.toLowerCase().includes("champions league") ||
@@ -173,7 +191,7 @@ const CoverflowCard = memo(function CoverflowCard({
     (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.uclTimeStr))
   );
 
-  const isMotwSlide = Boolean(
+  const isMotwSlide = !isSuperCupSlide && Boolean(
     slide.type === "MOTW" ||
     slide.featuredImage === "/images/motw-stadium-bg.jpg" ||
     slide.badge?.toLowerCase().includes("match of the week") ||
@@ -186,10 +204,14 @@ const CoverflowCard = memo(function CoverflowCard({
     slide.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
     slide.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
     slide.featuredImage !== "/images/europa-stadium-bg.jpg" &&
-    slide.featuredImage !== "/images/motw-stadium-bg.jpg"
+    slide.featuredImage !== "/images/motw-stadium-bg.jpg" &&
+    slide.featuredImage !== "/images/super-cup-bg.jpg" &&
+    slide.featuredImage !== "/images/super-cup-stadium-bg.jpg"
   );
 
-  const ambientBackgroundImage = isMotwSlide
+  const ambientBackgroundImage = isSuperCupSlide
+    ? "/images/super-cup-bg.jpg"
+    : isMotwSlide
     ? "/images/motw-stadium-bg.jpg"
     : isCustomFeaturedImage
     ? slide.featuredImage
@@ -199,7 +221,9 @@ const CoverflowCard = memo(function CoverflowCard({
     ? "/images/ucl-stadium-bg.jpg"
     : "/images/carousel-stadium-bg.jpg";
 
-  const effectiveFeaturedImage = isMotwSlide
+  const effectiveFeaturedImage = isSuperCupSlide
+    ? null
+    : isMotwSlide
     ? null
     : isCustomFeaturedImage
     ? slide.featuredImage
@@ -213,8 +237,8 @@ const CoverflowCard = memo(function CoverflowCard({
     <motion.div
       key={slide.id || index}
       className={cn(
-        "carousel-slide-card absolute will-change-transform select-none cursor-pointer bg-background border border-border shadow-2xl rounded-3xl",
-        isCenter && "carousel-card-active"
+        "carousel-slide-card absolute will-change-transform select-none cursor-pointer bg-background border border-border shadow-2xl rounded-3xl pointer-events-auto",
+        isCenter && (isSuperCupSlide ? "border-secondary/60 carousel-card-supercup" : "carousel-card-active")
       )}
       /* eslint-disable shadcn/no-inline-styles -- framer-motion reactive 3D transform bindings */
       style={{
@@ -227,8 +251,9 @@ const CoverflowCard = memo(function CoverflowCard({
         filter,
       }}
       /* eslint-enable shadcn/no-inline-styles */
-      onClick={() => {
+      onClick={(e) => {
         if (!isCenter) {
+          e.stopPropagation();
           onCardClick(index);
         }
       }}
@@ -237,7 +262,7 @@ const CoverflowCard = memo(function CoverflowCard({
       <div
         className={cn(
           "absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-500",
-          isMotwSlide ? "opacity-90" : "opacity-30"
+          isSuperCupSlide ? "opacity-95" : isMotwSlide ? "opacity-90" : "opacity-30"
         )}
       >
         <img
@@ -246,21 +271,30 @@ const CoverflowCard = memo(function CoverflowCard({
           aria-hidden="true"
           className={cn(
             "h-full w-full object-cover",
-            isMotwSlide ? "object-center" : ""
+            isSuperCupSlide ? "object-center" : isMotwSlide ? "object-center" : ""
           )}
         />
       </div>
       <div
         className={cn(
           "absolute inset-0 pointer-events-none",
-          isMotwSlide
+          isSuperCupSlide
+            ? "bg-gradient-to-t from-background/95 via-background/60 to-background/25 sm:from-background/90 sm:via-background/40 sm:to-transparent"
+            : isMotwSlide
             ? "bg-gradient-to-t from-background/90 via-background/35 to-background/20 sm:from-background/85 sm:via-background/20 sm:to-background/10"
             : "bg-gradient-to-t from-background via-background/80 to-transparent"
         )}
       />
 
       {/* Top Brand Accent Line */}
-      <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-primary relative z-10" />
+      <div
+        className={cn(
+          "h-1 w-full relative z-10",
+          isSuperCupSlide
+            ? "bg-gradient-to-r from-secondary via-primary to-secondary"
+            : "bg-gradient-to-r from-primary via-secondary to-primary"
+        )}
+      />
 
       {/* Clickable Overlay for Preview / Inactive Cards */}
       {!isCenter && (
@@ -271,8 +305,9 @@ const CoverflowCard = memo(function CoverflowCard({
             e.stopPropagation();
             onCardClick(index);
           }}
+          onPointerDown={(e) => e.stopPropagation()}
           aria-label={`View ${slide.category}: ${slide.title}`}
-          className="absolute inset-0 z-30 bg-background/40 hover:bg-background/15 backdrop-blur-sm cursor-pointer transition-all duration-300 flex items-center justify-center group/preview focus:outline-none"
+          className="absolute inset-0 z-30 bg-background/40 hover:bg-background/15 backdrop-blur-sm cursor-pointer transition-all duration-300 flex items-center justify-center group/preview focus:outline-none pointer-events-auto"
         >
           <span className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-200 px-3 py-1 rounded-xl bg-card/90 border border-secondary/40 text-xs font-mono font-bold text-secondary shadow-xl pointer-events-none">
             Click to view
@@ -283,6 +318,105 @@ const CoverflowCard = memo(function CoverflowCard({
       {/* SLIDE CARD INNER CONTENT */}
       <div className="carousel-slide-body relative z-10 p-3.5 sm:p-6 md:p-8 flex-1 flex flex-col justify-between gap-3 sm:gap-4 md:px-10 lg:px-12 w-full h-full overflow-hidden">
         <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
+          {/* ========================================================================= */}
+          {/* 00. SUPER CUP SHOWDOWN / MATCH / ANNOUNCEMENT */}
+          {/* ========================================================================= */}
+          {slide.type === "SUPER_CUP" && (
+            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+              <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-md lg:max-w-xl w-full p-4 sm:p-6 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-2xl">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono text-secondary font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <Trophy className="h-3.5 w-3.5 text-secondary" />
+                    <span>{slide.badge || "Super Cup Showdown"}</span>
+                  </span>
+                  {slide.data?.formattedKickoffFull && (
+                    <span className="text-xs font-mono text-muted-foreground font-semibold">
+                      • Kickoff: {slide.data.formattedKickoffFull}
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
+                  {slide.title}
+                </h2>
+
+                <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4">
+                  {slide.subtitle || slide.description}
+                </p>
+
+                {slide.buttonText && slide.buttonUrl && (
+                  <div className="pt-1 sm:pt-2">
+                    <Link
+                      href={slide.buttonUrl}
+                      tabIndex={isCenter ? 0 : -1}
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className={cn(
+                        buttonVariants({ variant: "yellow", size: "default" }),
+                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                      )}
+                    >
+                      <span>{slide.buttonText}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Head-to-Head Card if match participants are present */}
+              {slide.data?.homePlayer && slide.data?.awayPlayer && (
+                <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-3 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/40 shadow-2xl shrink-0">
+                  <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
+                    <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-2xl bg-background/90 border border-primary/50 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                      <img
+                        src={resolvePlayerAvatar(slide.data.homePlayer)}
+                        alt={slide.data.homePlayer?.gamerTag}
+                        className="h-full w-full object-contain aspect-square"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-24 sm:max-w-28">
+                        {slide.data.homePlayer?.gamerTag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold block truncate max-w-24 sm:max-w-28">
+                        {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "UCL CHAMP"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="px-3 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                      VS
+                    </div>
+                    <span className="text-xs font-mono text-secondary font-bold">
+                      SUPER CUP
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
+                    <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-2xl bg-background/90 border border-primary/50 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                      <img
+                        src={resolvePlayerAvatar(slide.data.awayPlayer)}
+                        alt={slide.data.awayPlayer?.gamerTag}
+                        className="h-full w-full object-contain aspect-square"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-24 sm:max-w-28">
+                        {slide.data.awayPlayer?.gamerTag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold block truncate max-w-24 sm:max-w-28">
+                        {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "EUROPA CHAMP"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ========================================================================= */}
           {/* 0A. MATCH OF THE WEEK (MOTW) HEAD-TO-HEAD SHOWCASE */}
           {/* ========================================================================= */}
@@ -1226,12 +1360,14 @@ const CoverflowCard = memo(function CoverflowCard({
       </div>
 
       {/* Dynamic progress line on bottom of active card */}
-      {isCenter && totalSlides > 1 && !isPaused && (
+      {isCenter && totalSlides > 1 && (
         <div className="h-1 w-full bg-border/40 overflow-hidden relative z-10 shrink-0">
           <div
-            className="h-full bg-secondary transition-all duration-75 ease-linear"
-            // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress 0-100%
-            style={{ width: `${progress}%` }}
+            key={`progress-${index}`}
+            className={cn(
+              "h-full bg-secondary carousel-progress-line",
+              isPaused ? "carousel-progress-paused" : "carousel-progress-running"
+            )}
           />
         </div>
       )}
@@ -1246,13 +1382,16 @@ export default function NewsTrendingCarousel({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [containerWidth, setContainerWidth] = useState(1200);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentIndexRef = useRef(currentIndex);
 
   const totalSlides = slides.length;
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   // Real-time Motion value for physics-driven Coverflow
   const scrollX = useMotionValue(0);
@@ -1295,22 +1434,21 @@ export default function NewsTrendingCarousel({
       const clamped = Math.min(Math.max(index, 0), totalSlides - 1);
       setCurrentIndex(clamped);
       scrollX.set(clamped);
-      setProgress(0);
     },
     [totalSlides, scrollX]
   );
 
   const nextSlide = useCallback(() => {
     if (totalSlides <= 1) return;
-    const next = (currentIndex + 1) % totalSlides;
+    const next = (currentIndexRef.current + 1) % totalSlides;
     jumpToIndex(next);
-  }, [totalSlides, currentIndex, jumpToIndex]);
+  }, [totalSlides, jumpToIndex]);
 
   const prevSlide = useCallback(() => {
     if (totalSlides <= 1) return;
-    const prev = (currentIndex - 1 + totalSlides) % totalSlides;
+    const prev = (currentIndexRef.current - 1 + totalSlides) % totalSlides;
     jumpToIndex(prev);
-  }, [totalSlides, currentIndex, jumpToIndex]);
+  }, [totalSlides, jumpToIndex]);
 
   // Keep motion value in sync if currentIndex changes externally
   useEffect(() => {
@@ -1319,32 +1457,20 @@ export default function NewsTrendingCarousel({
     }
   }, [totalSlides, currentIndex, jumpToIndex]);
 
-  // Auto-rotation timer
+  // Clean auto-rotation timer
   useEffect(() => {
     if (totalSlides <= 1 || isPaused || isDragging) {
       return;
     }
 
-    const stepMs = 50;
-    const increment = (stepMs / ROTATION_INTERVAL_MS) * 100;
-
-    progressTimerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          const next = (currentIndex + 1) % totalSlides;
-          jumpToIndex(next);
-          return 0;
-        }
-        return prev + increment;
-      });
-    }, stepMs);
+    const timer = setInterval(() => {
+      nextSlide();
+    }, ROTATION_INTERVAL_MS);
 
     return () => {
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current);
-      }
+      clearInterval(timer);
     };
-  }, [totalSlides, isPaused, isDragging, currentIndex, jumpToIndex]);
+  }, [totalSlides, isPaused, isDragging, nextSlide]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
@@ -1385,17 +1511,21 @@ export default function NewsTrendingCarousel({
       setIsDragging(false);
       setIsPaused(false);
       const velocity = info.velocity.x;
+      const offset = info.offset.x;
       let targetIndex: number;
-      // Flick detection: fast finger swipe advances to next/prev slide cleanly
-      if (Math.abs(velocity) > 280) {
-        targetIndex = velocity < 0 ? currentIndex + 1 : currentIndex - 1;
+      // Flick detection or swipe past 50px
+      if (Math.abs(velocity) > 200 || Math.abs(offset) > 50) {
+        targetIndex =
+          velocity < -200 || offset < -50
+            ? currentIndexRef.current + 1
+            : currentIndexRef.current - 1;
       } else {
         targetIndex = Math.round(scrollX.get());
       }
       const clamped = Math.min(Math.max(targetIndex, 0), totalSlides - 1);
       jumpToIndex(clamped);
     },
-    [scrollX, totalSlides, jumpToIndex, currentIndex]
+    [scrollX, totalSlides, jumpToIndex]
   );
 
   if (totalSlides === 0) {
@@ -1445,7 +1575,6 @@ export default function NewsTrendingCarousel({
               isCenter={index === currentIndex}
               isPaused={isPaused}
               isMobile={isMobile}
-              progress={progress}
               onCardClick={jumpToIndex}
             />
           ))}
@@ -1461,6 +1590,7 @@ export default function NewsTrendingCarousel({
                 e.stopPropagation();
                 prevSlide();
               }}
+              onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               disabled={totalSlides <= 1}
               aria-label="Previous news slide"
@@ -1475,6 +1605,7 @@ export default function NewsTrendingCarousel({
                 e.stopPropagation();
                 nextSlide();
               }}
+              onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               disabled={totalSlides <= 1}
               aria-label="Next news slide"

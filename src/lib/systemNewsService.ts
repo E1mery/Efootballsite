@@ -39,8 +39,10 @@ export async function autoPublishSystemNews(params: {
     }
 
     const textLower = `${params.title || ""} ${params.description || ""} ${params.category || ""} ${params.buttonUrl || ""}`.toLowerCase();
-    const isEuropa = textLower.includes("europa");
+    const isSuperCup = textLower.includes("super cup") || textLower.includes("supercup") || textLower.includes("super_cup");
+    const isEuropa = !isSuperCup && textLower.includes("europa");
     const isUcl =
+      !isSuperCup &&
       !isEuropa &&
       (params.category === "Competition" && (params.title.toLowerCase().includes("ucl") || params.title.toLowerCase().includes("champions league")) ||
         params.category?.toLowerCase().includes("ucl") ||
@@ -50,7 +52,9 @@ export async function autoPublishSystemNews(params: {
         params.description?.toLowerCase().includes("champions league") ||
         params.buttonUrl?.toLowerCase().includes("ucl"));
 
-    const fallbackImage = isEuropa
+    const fallbackImage = isSuperCup
+      ? "/images/super-cup-bg.jpg"
+      : isEuropa
       ? "/images/europa-stadium-bg.jpg"
       : isUcl
       ? "/images/ucl-stadium-bg.jpg"
@@ -60,7 +64,10 @@ export async function autoPublishSystemNews(params: {
       params.featuredImage?.trim() &&
       params.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
       params.featuredImage !== "/images/ucl-stadium-bg.jpg" &&
-      params.featuredImage !== "/images/europa-stadium-bg.jpg"
+      params.featuredImage !== "/images/europa-stadium-bg.jpg" &&
+      params.featuredImage !== "/images/super-cup-bg.jpg" &&
+      params.featuredImage !== "/images/super-cup-stadium-bg.jpg" &&
+      !params.featuredImage.includes("/api/files/uploads/")
         ? params.featuredImage.trim()
         : fallbackImage;
 
@@ -128,6 +135,7 @@ export async function syncSystemNewsToCarousel() {
       maxPlayedStanding,
       hallOfFameEntries,
       activeRoundMatch,
+      superCupMatch,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
         where: { id: "default" },
@@ -186,6 +194,11 @@ export async function syncSystemNewsToCarousel() {
           status: { in: ["SCHEDULED", "LIVE"] },
         },
         orderBy: [{ round: "desc" }, { matchDate: "asc" }],
+      }),
+      prisma.match.findFirst({
+        where: { division: "SUPER_CUP", stage: "FINAL" },
+        include: { homePlayer: true, awayPlayer: true },
+        orderBy: { createdAt: "desc" },
       }),
     ]);
 
@@ -805,6 +818,72 @@ export async function syncSystemNewsToCarousel() {
         }
       }
     }
+
+    // =========================================================================
+    // 13. UEFA Super Cup Showdown Fixture & News Background Migration
+    // =========================================================================
+    if (superCupMatch && superCupMatch.homePlayer && superCupMatch.awayPlayer) {
+      const superCupId = `sys-announcement-super-cup-${superCupMatch.id}`;
+      if (!dismissedSet.has(superCupId)) {
+        const kickoffDate = superCupMatch.matchDate;
+        const formattedKickoff = kickoffDate
+          ? `${formatRwandanDate(kickoffDate, { weekday: "short", month: "short", day: "numeric" })} at ${formatRwandanTime(kickoffDate)} (CAT)`
+          : "Schedule Pending";
+        const scTitle = `🏆 UEFA Super Cup: ${superCupMatch.homePlayer.gamerTag} vs ${superCupMatch.awayPlayer.gamerTag}`;
+        const scDesc = `The ultimate clash of champions: UCL Champion @${superCupMatch.homePlayer.gamerTag} vs Europa League Champion @${superCupMatch.awayPlayer.gamerTag} for the UEFA Super Cup! Single-match showdown for continental supremacy (${formattedKickoff}).`;
+
+        const existing = await prisma.news.findUnique({ where: { id: superCupId } });
+        if (!existing) {
+          const item = await prisma.news.create({
+            data: {
+              id: superCupId,
+              title: scTitle,
+              category: "Competition",
+              description: scDesc,
+              featuredImage: "/images/super-cup-bg.jpg",
+              buttonText: "Super Cup Hub",
+              buttonUrl: "/dashboard/super-cup",
+              status: "PUBLISHED",
+              publishDate: now,
+              expirationDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+              showOnCarousel: true,
+            },
+          });
+          synced.push(item);
+        } else if (existing.showOnCarousel && existing.featuredImage !== "/images/super-cup-bg.jpg") {
+          await prisma.news.update({
+            where: { id: superCupId },
+            data: { featuredImage: "/images/super-cup-bg.jpg" },
+          });
+        }
+      }
+    }
+
+    // Auto-migrate any existing Super Cup news in the News table so that it always uses the official super cup background
+    await prisma.news.updateMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { category: { contains: "Super", mode: "insensitive" } },
+              { title: { contains: "Super Cup", mode: "insensitive" } },
+              { description: { contains: "Super Cup", mode: "insensitive" } },
+              { buttonUrl: { contains: "super-cup", mode: "insensitive" } },
+            ],
+          },
+          {
+            OR: [
+              { featuredImage: "/images/carousel-stadium-bg.jpg" },
+              { featuredImage: { contains: "/api/files/uploads/" } },
+              { featuredImage: "" },
+            ],
+          },
+        ],
+      },
+      data: {
+        featuredImage: "/images/super-cup-bg.jpg",
+      },
+    }).catch(() => {});
   } catch (err) {
     console.error("[syncSystemNewsToCarousel] Error:", err);
   }
