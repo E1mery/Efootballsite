@@ -21,11 +21,14 @@ import {
   ArrowRight,
   Radio,
   Image as ImageIcon,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import AdminMotwManager from "@/components/AdminMotwManager";
+import AdminLeagueTablePublisher from "@/components/AdminLeagueTablePublisher";
 
 export interface NewsItem {
   id: string;
@@ -45,6 +48,7 @@ export interface NewsItem {
 
 const CATEGORIES = [
   "League News",
+  "League Table",
   "eFootball UCL",
   "eFootball Europa",
   "Match",
@@ -84,7 +88,17 @@ export default function AdminNewsManager({
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [activeSection, setActiveSection] = useState<"FEED" | "TABLES" | "MOTW">("FEED");
   const [isPending, startTransition] = useTransition();
+
+  const handleRefreshNewsList = async () => {
+    try {
+      const res = await fetch("/api/admin/news");
+      const data = await res.json();
+      if (data.news) setNewsList(data.news);
+    } catch {}
+    if (onRefresh) onRefresh();
+  };
 
   // Create / Edit Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -478,6 +492,26 @@ export default function AdminNewsManager({
 
         <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           <Button
+            onClick={() => setActiveSection("TABLES")}
+            variant={activeSection === "TABLES" ? "yellow" : "outline"}
+            size="default"
+            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border"
+          >
+            <Trophy className="h-4 w-4 text-secondary" />
+            <span>Publish Table to Carousel</span>
+          </Button>
+
+          <Button
+            onClick={() => setActiveSection("MOTW")}
+            variant={activeSection === "MOTW" ? "yellow" : "outline"}
+            size="default"
+            className="rounded-xl font-bold text-xs sm:text-sm gap-2 shadow-sm cursor-pointer border-border"
+          >
+            <Sparkles className="h-4 w-4 text-secondary" />
+            <span>Match of the Week</span>
+          </Button>
+
+          <Button
             onClick={handleAutoSyncSystemNews}
             disabled={isSyncing}
             variant="outline"
@@ -500,6 +534,58 @@ export default function AdminNewsManager({
           </Button>
         </div>
       </div>
+
+      {/* Sub-Navigation View Switcher */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-card border border-border overflow-x-auto no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveSection("FEED")}
+          className={cn(
+            "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap",
+            activeSection === "FEED"
+              ? "bg-primary text-primary-foreground shadow-md"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          All News &amp; Carousel Articles ({metrics.total})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection("TABLES")}
+          className={cn(
+            "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+            activeSection === "TABLES"
+              ? "bg-secondary text-secondary-foreground shadow-md"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Trophy className="h-4 w-4" />
+          <span>Publish League Tables to Carousel</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection("MOTW")}
+          className={cn(
+            "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+            activeSection === "MOTW"
+              ? "bg-primary text-primary-foreground shadow-md"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Sparkles className="h-4 w-4 text-secondary" />
+          <span>Match of the Week Selector</span>
+        </button>
+      </div>
+
+      {activeSection === "TABLES" && (
+        <AdminLeagueTablePublisher onRefreshNews={handleRefreshNewsList} />
+      )}
+
+      {activeSection === "MOTW" && (
+        <AdminMotwManager onRefreshNews={handleRefreshNewsList} />
+      )}
 
       {/* Metrics Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

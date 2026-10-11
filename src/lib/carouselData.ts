@@ -6,6 +6,7 @@ import {
   formatRwandanTime,
   formatRwandanDateTime,
 } from "@/lib/rwandanTime";
+import { resolvePlayerAvatar } from "@/lib/teams";
 import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
 
 /**
@@ -19,18 +20,26 @@ import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
  *    draw/advance news on the carousel is removed immediately.
  * 3. UCL news cannot be published on the carousel when UCL is locked (!leagueConfig.uclStarted).
  * 4. Europa news cannot be published on the carousel when Europa is locked (!leagueConfig.europaStarted).
- * 5. League standings and tournament reset announcements are strictly barred from carousel publication.
+ * 5. Standings reset announcements are strictly barred from carousel publication.
  */
 
 /**
  * Strict safeguard: League standings and tournament reset announcements must NOT be published on the carousel.
  */
 function isStandingsResetAnnouncement(item: {
+  id?: string;
+  category?: string;
   title?: string;
   subtitle?: string;
   description?: string;
   content?: string;
 }): boolean {
+  if (
+    item.category === "League Table" ||
+    (item.id && (item.id.startsWith("sys-league-table-") || item.id.startsWith("sys-motw-")))
+  ) {
+    return false;
+  }
   const combined = `${item.title || ""} ${item.subtitle || ""} ${item.description || ""} ${item.content || ""}`.toLowerCase();
   return (
     combined.includes("standings reset") ||
@@ -255,8 +264,219 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
     };
 
     // 6. Map filtered news into CarouselSlides
-    const slides: CarouselSlide[] = filteredEligibleNews.map((item) => {
-      // 1. Division League Kickoff
+    const slides: CarouselSlide[] = (
+      await Promise.all(
+        filteredEligibleNews.map(async (item) => {
+          // 0A. Match of the Week (MOTW) Official Headline Fixture
+          if (
+            item.id.startsWith("sys-motw-") ||
+            item.id === "sys-motw-active" ||
+            (item.category === "Match" && (item.title || "").toLowerCase().includes("match of the week"))
+          ) {
+            const matchId = item.buttonUrl?.includes("highlight=")
+              ? item.buttonUrl.split("highlight=")[1]?.split("&")[0]
+              : item.id.replace("sys-motw-", "");
+
+            const motwMatch = await prisma.match.findUnique({
+              where: { id: matchId },
+              include: {
+                homePlayer: true,
+                awayPlayer: true,
+              },
+            });
+
+            if (motwMatch && motwMatch.homePlayer && motwMatch.awayPlayer) {
+              const kickoffDate = motwMatch.matchDate;
+              const formattedKickoffDate = formatRwandanDate(kickoffDate, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              const formattedKickoffTime = formatRwandanTime(kickoffDate);
+              const formattedKickoffFull = `${formattedKickoffDate} • ${formattedKickoffTime} (CAT)`;
+
+              return {
+                id: item.id,
+                type: "MOTW",
+                badge: "MATCH OF THE WEEK",
+                category: "Match",
+                tabLabel: "Match of the Week",
+                title: item.title,
+                subtitle: `${motwMatch.division} • ${motwMatch.round} • Kickoff: ${formattedKickoffFull}`,
+                description: item.description,
+                featuredImage:
+                  motwMatch.homePlayer.avatar ||
+                  motwMatch.awayPlayer.avatar ||
+                  resolveSlideFeaturedImage(item),
+                buttonText: item.buttonText || "Predict Winner",
+                buttonUrl: item.buttonUrl || `/fixtures?highlight=${motwMatch.id}`,
+                publishDate: item.publishDate,
+                expirationDate: item.expirationDate,
+                data: {
+                  matchId: motwMatch.id,
+                  division: motwMatch.division,
+                  round: motwMatch.round,
+                  matchDate: motwMatch.matchDate,
+                  formattedKickoffDate,
+                  formattedKickoffTime,
+                  formattedKickoffFull,
+                  homePlayer: motwMatch.homePlayer,
+                  awayPlayer: motwMatch.awayPlayer,
+                },
+              };
+            }
+          }
+
+          // 0B. Publish Any League Table to the Carousel
+          if (
+            item.category === "League Table" ||
+            item.id.startsWith("sys-league-table-") ||
+            (item.title || "").toLowerCase().includes("standings & table")
+          ) {
+            let division = "Division 1";
+            if (item.buttonUrl?.includes("division=")) {
+              division = decodeURIComponent(item.buttonUrl.split("division=")[1]?.split("&")[0] || "Division 1");
+            } else if (item.id.includes("division-2") || (item.title || "").includes("Division 2")) {
+              division = "Division 2";
+            } else if (item.id.includes("division-3") || (item.title || "").includes("Division 3")) {
+              division = "Division 3";
+            } else if (item.id.includes("ucl") || (item.title || "").toLowerCase().includes("ucl")) {
+              division = "UCL";
+            } else if (item.id.includes("europa") || (item.title || "").toLowerCase().includes("europa")) {
+              division = "EUROPA";
+            }
+
+            const rawStandings = await prisma.standing.findMany({
+              where: {
+                division,
+                player: {
+                  status: { not: "RESERVED" },
+                },
+              },
+              include: {
+                player: true,
+              },
+            });
+
+            const seenPlayers = new Set<string>();
+            const sorted = (rawStandings || [])
+              .filter((s: any) => {
+                if (!s || !s.player || s.player.status === "RESERVED") return false;
+                const pId = s.playerId || s.player?.id;
+                if (pId) {
+                  if (seenPlayers.has(pId)) return false;
+                  seenPlayers.add(pId);
+                }
+                return true;
+              })
+              .sort((a: any, b: any) => {
+                if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
+                if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);
+                if ((b.goalsFor ?? 0) !== (a.goalsFor ?? 0)) return (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
+                if ((b.won ?? 0) !== (a.won ?? 0)) return (b.won ?? 0) - (a.won ?? 0);
+                return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
+              });
+
+            let bestFormScore = -1;
+            let inFormLeaderGamerTag: string | null = null;
+            let inFormLeaderPlayer: any = null;
+
+            sorted.forEach((s: any) => {
+              const formArr = (s.form || "")
+                .split(",")
+                .map((f: string) => f.trim().toUpperCase())
+                .filter(Boolean);
+              const formPoints = formArr.reduce(
+                (acc: number, f: string) => acc + (f === "W" ? 3 : f === "D" ? 1 : 0),
+                0
+              );
+              let winStreak = 0;
+              for (let i = formArr.length - 1; i >= 0; i--) {
+                if (formArr[i] === "W") winStreak++;
+                else break;
+              }
+              const totalScore = winStreak * 10 + formPoints * 2 + (s.won || 0);
+              if (totalScore > bestFormScore && formArr.length > 0) {
+                bestFormScore = totalScore;
+                inFormLeaderGamerTag = s.player?.gamerTag || null;
+                inFormLeaderPlayer = {
+                  gamerTag: s.player?.gamerTag,
+                  club: s.player?.realTeam,
+                  avatar: resolvePlayerAvatar(s.player),
+                  winStreak,
+                  recentForm: formArr.slice(-5),
+                };
+              }
+            });
+
+            const rows = sorted.map((s: any, idx: number) => {
+              const rank = idx + 1;
+              const prevRank = s.previousRank;
+              let movement: "UP" | "DOWN" | "SAME" = "SAME";
+              let delta = 0;
+
+              if (typeof prevRank === "number" && prevRank > 0) {
+                if (rank < prevRank) {
+                  movement = "UP";
+                  delta = prevRank - rank;
+                } else if (rank > prevRank) {
+                  movement = "DOWN";
+                  delta = rank - prevRank;
+                }
+              }
+
+              const formArr = (s.form || "")
+                .split(",")
+                .map((f: string) => f.trim().toUpperCase())
+                .filter(Boolean);
+
+              return {
+                id: s.id,
+                rank,
+                previousRank: prevRank,
+                movement,
+                delta,
+                gamerTag: s.player?.gamerTag,
+                club: s.player?.realTeam,
+                avatar: resolvePlayerAvatar(s.player),
+                played: s.played || 0,
+                won: s.won || 0,
+                drawn: s.drawn || 0,
+                lost: s.lost || 0,
+                goalsFor: s.goalsFor || 0,
+                goalsAgainst: s.goalsAgainst || 0,
+                goalDifference: s.goalDifference || 0,
+                points: s.points || 0,
+                form: formArr.length > 0 ? formArr.slice(-5) : ["D"],
+                isTopForm: s.player?.gamerTag === inFormLeaderGamerTag,
+              };
+            });
+
+            return {
+              id: item.id,
+              type: "LEAGUE_TABLE",
+              badge: `${division.toUpperCase()} STANDINGS`,
+              category: "League Table",
+              tabLabel: `${division} Table`,
+              title: item.title || `${division} Official Standings`,
+              subtitle: `Live Table • Matchday ${leagueConfig.currentMatchday || 1}`,
+              description: item.description,
+              featuredImage: resolveSlideFeaturedImage(item),
+              buttonText: item.buttonText || "View Full Standings",
+              buttonUrl: item.buttonUrl || `/standings?division=${encodeURIComponent(division)}`,
+              publishDate: item.publishDate,
+              expirationDate: item.expirationDate,
+              data: {
+                division,
+                standings: rows.slice(0, 5),
+                totalTeams: rows.length,
+                inFormLeaderGamerTag,
+                inFormLeaderPlayer,
+              },
+            };
+          }
+
+          // 1. Division League Kickoff
       if (item.id === "sys-announcement-league-kickoff") {
         return {
           id: item.id,
@@ -524,7 +744,9 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         expirationDate: item.expirationDate,
         data: item,
       };
-    });
+    })
+  )
+).filter(Boolean) as CarouselSlide[];
 
     // Final safety check: guarantee no league standings reset or locked-competition news ever appears
     return slides.filter((slide) => {

@@ -61,6 +61,8 @@ import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams"
 import AdminHallOfFameHub from "@/components/admin/AdminHallOfFameHub";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import AdminNewsManager from "@/components/AdminNewsManager";
+import AdminLeagueTablePublisher from "@/components/AdminLeagueTablePublisher";
+import AdminMotwManager from "@/components/AdminMotwManager";
 import {
   getTomorrowInRwandaString,
   formatRwandanDate,
@@ -2969,6 +2971,9 @@ export default function AdminClient({
               )}
             </div>
           </div>
+
+          {/* Operation 4B: Match of the Week (MOTW) Calendar Selector & Carousel Publisher */}
+          <AdminMotwManager onRefreshNews={() => router.refresh()} />
           </div>
 
           {/* Operation 5: End Season Finale: Promotions & Relegations */}
@@ -3741,6 +3746,9 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "TABLES" && (
         <div className="space-y-6">
+          {/* Publish Any League Table directly to the Homepage Carousel */}
+          <AdminLeagueTablePublisher onRefreshNews={() => router.refresh()} />
+
           {/* Master Standings Update & Recalculate Bar */}
           <div className="p-5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/30 via-card/90 to-background shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
@@ -4270,6 +4278,9 @@ export default function AdminClient({
               </Button>
             </div>
           </div>
+
+          {/* Interactive Match of the Week Calendar Selector & Carousel Publisher */}
+          <AdminMotwManager onRefreshNews={() => router.refresh()} />
 
           {/* Quick Division Reset Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -6,6 +6,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Flame,
   Calendar,
   Sparkles,
   Award,
@@ -251,6 +255,327 @@ const CoverflowCard = memo(function CoverflowCard({
       {/* SLIDE CARD INNER CONTENT */}
       <div className="carousel-slide-body relative z-10 p-3.5 sm:p-6 md:p-8 flex-1 flex flex-col justify-between gap-3 sm:gap-4 md:px-10 lg:px-12 w-full h-full overflow-hidden">
         <div className="flex-1 flex flex-col justify-center py-1 sm:py-2">
+          {/* ========================================================================= */}
+          {/* 0A. MATCH OF THE WEEK (MOTW) HEAD-TO-HEAD SHOWCASE */}
+          {/* ========================================================================= */}
+          {slide.type === "MOTW" && slide.data && (
+            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
+              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono text-secondary font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                    <span>Match of the Week</span>
+                  </span>
+                  <span className="text-xs font-mono text-muted-foreground font-semibold">
+                    • {slide.data.division} • {slide.data.round}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5 text-secondary shrink-0" />
+                  <span className="text-foreground font-semibold">
+                    Kickoff: {slide.data.formattedKickoffFull || "Official Schedule"}
+                  </span>
+                </div>
+
+                <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
+                  {slide.data.homePlayer?.gamerTag}{" "}
+                  <span className="text-secondary">vs</span>{" "}
+                  {slide.data.awayPlayer?.gamerTag}
+                </h2>
+
+                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
+                  {slide.subtitle || slide.description}
+                </p>
+
+                {slide.buttonText && slide.buttonUrl && (
+                  <div className="pt-1">
+                    <Link
+                      href={slide.buttonUrl}
+                      tabIndex={isCenter ? 0 : -1}
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className={cn(
+                        buttonVariants({ variant: "yellow", size: "default" }),
+                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                      )}
+                    >
+                      <span>{slide.buttonText}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Head-to-Head Card with resolved player avatars & clubs */}
+              <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/40 shadow-xl shrink-0">
+                <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
+                  <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                    <img
+                      src={resolvePlayerAvatar(slide.data.homePlayer)}
+                      alt={slide.data.homePlayer?.gamerTag}
+                      className="h-full w-full object-contain aspect-square"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
+                      {slide.data.homePlayer?.gamerTag}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-semibold block truncate max-w-20 sm:max-w-28">
+                      {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "HOME"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                  <div className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                    VS
+                  </div>
+                  <span className="text-xs font-mono text-secondary font-bold">
+                    MOTW
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
+                  <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                    <img
+                      src={resolvePlayerAvatar(slide.data.awayPlayer)}
+                      alt={slide.data.awayPlayer?.gamerTag}
+                      className="h-full w-full object-contain aspect-square"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
+                      {slide.data.awayPlayer?.gamerTag}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-semibold block truncate max-w-20 sm:max-w-28">
+                      {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "AWAY"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 0B. PUBLISHED LEAGUE TABLE CAROUSEL SLIDE (WITH FULL COMPONENTS) */}
+          {/* ========================================================================= */}
+          {slide.type === "LEAGUE_TABLE" && slide.data && (
+            <div className="w-full space-y-2.5 sm:space-y-3.5 my-auto">
+              {/* Header Row: Title, In-Form Leader Highlight, and CTA */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-left">
+                <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-mono text-secondary font-bold flex items-center gap-1.5 uppercase">
+                      <Trophy className="h-3.5 w-3.5 text-secondary" />
+                      <span>{slide.data.division} Standings</span>
+                    </span>
+                    {slide.data.inFormLeaderPlayer && (
+                      <span className="inline-flex items-center gap-1 text-xs font-mono text-secondary font-bold px-2 py-0.5 rounded-lg bg-secondary/15 border border-secondary/35">
+                        <Flame className="h-3 w-3 text-secondary" />
+                        <span>In-Form Leader: {slide.data.inFormLeaderPlayer.gamerTag}</span>
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="carousel-headline font-black text-foreground drop-shadow-sm truncate">
+                    {slide.title}
+                  </h2>
+                </div>
+
+                {slide.buttonText && slide.buttonUrl && (
+                  <Link
+                    href={slide.buttonUrl}
+                    tabIndex={isCenter ? 0 : -1}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={cn(
+                      buttonVariants({ variant: "yellow", size: "sm" }),
+                      "carousel-cta-btn font-bold text-secondary-foreground text-xs gap-1.5 shrink-0 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center shadow-md self-start sm:self-auto"
+                    )}
+                  >
+                    <span>{slide.buttonText}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+              </div>
+
+              {/* Responsive High-Impact League Table */}
+              <div className="w-full rounded-2xl border border-border/80 bg-card/80 backdrop-blur-md overflow-hidden shadow-lg">
+                <div className="w-full overflow-x-auto no-scrollbar">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-background/80 text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                        <th className="py-2 px-2.5 sm:px-3 text-center w-12 sm:w-16">Pos</th>
+                        <th className="py-2 px-2.5 sm:px-3">Athlete</th>
+                        <th className="py-2 px-1.5 sm:px-2 text-center">MP</th>
+                        <th className="py-2 px-1.5 sm:px-2 text-center text-primary font-bold">W</th>
+                        <th className="py-2 px-1.5 sm:px-2 text-center text-muted-foreground hidden sm:table-cell">D</th>
+                        <th className="py-2 px-1.5 sm:px-2 text-center text-destructive hidden sm:table-cell">L</th>
+                        <th className="py-2 px-1.5 sm:px-2 text-center font-bold">GD</th>
+                        <th className="py-2 px-2 text-center font-black text-secondary">Pts</th>
+                        <th className="py-2 px-2 sm:px-3 text-center hidden md:table-cell">Form</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 font-mono">
+                      {slide.data.standings?.map((row: any) => {
+                        const isTop = row.isTopForm;
+                        const clubObj = row.club ? findTeam(row.club) : null;
+                        const forms = Array.isArray(row.form) ? row.form : ["D"];
+
+                        return (
+                          <tr
+                            key={row.id || row.rank}
+                            className={cn(
+                              "transition-colors",
+                              isTop
+                                ? "bg-secondary/10 hover:bg-secondary/15"
+                                : "hover:bg-muted/40"
+                            )}
+                          >
+                            {/* 1. Rank & Movement Indicator */}
+                            <td className="py-2 px-2.5 sm:px-3 text-center align-middle whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1">
+                                <span
+                                  className={cn(
+                                    "inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-md text-xs font-black",
+                                    row.rank === 1
+                                      ? "bg-secondary/20 text-secondary border border-secondary/40 font-black"
+                                      : row.rank <= 3
+                                      ? "bg-primary/20 text-primary border border-primary/30"
+                                      : "bg-muted/50 text-muted-foreground border border-border/50"
+                                  )}
+                                >
+                                  {row.rank}
+                                </span>
+
+                                {/* Movement Indicator: ArrowUp, ArrowDown, or Minus */}
+                                <span className="inline-flex items-center justify-center min-w-4 text-xs">
+                                  {row.movement === "UP" ? (
+                                    <span
+                                      className="inline-flex items-center text-primary font-black gap-0.5"
+                                      title={`Gained ${row.delta} spots`}
+                                    >
+                                      <ArrowUp className="h-3 w-3" strokeWidth={2.5} />
+                                      {row.delta > 0 && (
+                                        <span className="text-xs font-mono leading-none hidden sm:inline">
+                                          {row.delta}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : row.movement === "DOWN" ? (
+                                    <span
+                                      className="inline-flex items-center text-destructive font-black gap-0.5"
+                                      title={`Lost ${row.delta} spots`}
+                                    >
+                                      <ArrowDown className="h-3 w-3" strokeWidth={2.5} />
+                                      {row.delta > 0 && (
+                                        <span className="text-xs font-mono leading-none hidden sm:inline">
+                                          {row.delta}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground font-bold" title="Unchanged position">
+                                      <Minus className="h-3 w-3" strokeWidth={2.5} />
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 2. Athlete GamerTag, Club & Avatar (with In-Form Leader indicator if applicable) */}
+                            <td className="py-2 px-2.5 sm:px-3 align-middle font-sans">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg overflow-hidden bg-background/90 border border-border/80 flex items-center justify-center shrink-0 shadow-sm">
+                                  {row.avatar ? (
+                                    <img
+                                      src={row.avatar}
+                                      alt={row.gamerTag}
+                                      className="h-full w-full object-contain aspect-square"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="text-xs font-black text-primary font-mono">
+                                      {(row.gamerTag || "PL").substring(0, 2).toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-black text-foreground text-xs sm:text-sm truncate">
+                                      {row.gamerTag}
+                                    </span>
+                                    {isTop && (
+                                      <span
+                                        className="inline-flex items-center gap-0.5 text-xs font-mono font-bold text-secondary px-1.5 py-0 rounded bg-secondary/20 border border-secondary/40 shrink-0"
+                                        title="Best Current Form / Win Streak"
+                                      >
+                                        <Flame className="h-2.5 w-2.5 text-secondary" />
+                                        <span>Form Leader</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                  {row.club && (
+                                    <span className="text-xs text-muted-foreground truncate block">
+                                      {clubObj?.shortName || row.club}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Core Statistics: MP, W, D, L, GD, Pts */}
+                            <td className="py-2 px-1.5 sm:px-2 text-center align-middle font-mono font-medium text-foreground">
+                              {row.played}
+                            </td>
+                            <td className="py-2 px-1.5 sm:px-2 text-center align-middle font-mono font-bold text-primary">
+                              {row.won}
+                            </td>
+                            <td className="py-2 px-1.5 sm:px-2 text-center align-middle font-mono text-muted-foreground hidden sm:table-cell">
+                              {row.drawn}
+                            </td>
+                            <td className="py-2 px-1.5 sm:px-2 text-center align-middle font-mono text-destructive hidden sm:table-cell">
+                              {row.lost}
+                            </td>
+                            <td className="py-2 px-1.5 sm:px-2 text-center align-middle font-mono font-semibold text-foreground">
+                              {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                            </td>
+                            <td className="py-2 px-2 text-center align-middle font-mono font-black text-xs sm:text-sm text-secondary">
+                              {row.points}
+                            </td>
+
+                            {/* Form Badges/Pills (W / D / L) */}
+                            <td className="py-2 px-2 sm:px-3 text-center align-middle hidden md:table-cell">
+                              <div className="flex items-center justify-center gap-1 font-mono">
+                                {forms.map((f: string, i: number) => (
+                                  <span
+                                    key={i}
+                                    className={cn(
+                                      "inline-flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded text-xs font-bold",
+                                      f === "W"
+                                        ? "bg-primary/20 text-primary border border-primary/30"
+                                        : f === "D"
+                                        ? "bg-secondary/20 text-secondary border border-secondary/30"
+                                        : "bg-destructive/20 text-destructive border border-destructive/30"
+                                    )}
+                                  >
+                                    {f}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ========================================================================= */}
           {/* 1. MATCH OF THE DAY AUTOMATED SYSTEM SHOWDOWN */}
           {/* ========================================================================= */}
