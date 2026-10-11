@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Crown,
   Trophy,
@@ -10,6 +10,7 @@ import {
   Award,
   Calendar,
   User,
+  Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -44,6 +45,17 @@ export default function HallOfFameCarousel({
   const [direction, setDirection] = useState(1); // 1 = next, -1 = prev
 
   const totalEntries = entries.length;
+
+  const championTitleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    entries.forEach((e) => {
+      const key = (e.championName || "").trim().toLowerCase();
+      if (key) {
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+    });
+    return counts;
+  }, [entries]);
 
   const nextSlide = useCallback(() => {
     if (totalEntries <= 1) return;
@@ -198,8 +210,27 @@ export default function HallOfFameCarousel({
                     </span>
                   </div>
 
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight drop-shadow-md">
-                    {activeEntry.championName}
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight drop-shadow-md flex items-center flex-wrap gap-2">
+                    <span>{activeEntry.championName}</span>
+                    {(() => {
+                      const count = championTitleCounts.get((activeEntry.championName || "").trim().toLowerCase()) || 1;
+                      if (count <= 1) return null;
+                      return (
+                        <div
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary/20 border border-secondary/40 text-secondary"
+                          title={`${count} Championship Titles`}
+                        >
+                          <div className="flex items-center gap-0.5">
+                            {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
+                              <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+                            ))}
+                          </div>
+                          <span className="text-xs font-black">
+                            {count > 5 ? `+${count - 5}` : `×${count}`}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {activeEntry.championRealName && (

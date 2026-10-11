@@ -12,6 +12,7 @@ import {
   Calendar,
   Quote as QuoteIcon,
   User,
+  Star,
 } from "lucide-react";
 import { PlayerCareerStats } from "@/lib/hallOfFameStatsService";
 
@@ -144,6 +145,21 @@ export default function LegendSpotlight({ legends = [] }: LegendSpotlightProps) 
                 <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-foreground">
                   {current.gamerTag}
                 </h3>
+                {current.totalTrophies > 1 && (
+                  <div
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/20 border border-secondary/40 text-secondary"
+                    title={`${current.totalTrophies} Championship Titles won`}
+                  >
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: Math.min(current.totalTrophies, 5) }).map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+                      ))}
+                    </div>
+                    <span className="text-xs font-black">
+                      {current.totalTrophies > 5 ? `+${current.totalTrophies - 5}` : `×${current.totalTrophies}`}
+                    </span>
+                  </div>
+                )}
               </div>
               {current.fullName && (
                 <p className="text-sm font-medium text-muted-foreground">

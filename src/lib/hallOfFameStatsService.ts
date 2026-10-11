@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { resolvePlayerAvatar } from "@/lib/teams";
 
 export interface PlayerCareerStats {
   playerId?: string;
@@ -257,11 +258,16 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
 
   // Seed with all known registered players
   for (const p of allPlayers) {
+    const resolvedAvatar = resolvePlayerAvatar({
+      avatar: p.avatar,
+      realTeam: p.realTeam,
+      gamerTag: p.gamerTag,
+    });
     const stats = getOrCreatePlayerStats(
       p.gamerTag,
       p.id,
       p.fullName,
-      p.avatar,
+      resolvedAvatar,
       p.division
     );
     stats.country = (p as any).country || "RW";
@@ -281,7 +287,10 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
     );
     stats.isInducted = hof.isInducted ?? true;
     if (hof.isFeatured) stats.isFeatured = true;
-    if (hof.playerImage && !stats.avatar) stats.avatar = hof.playerImage;
+    // If a custom photo/image was uploaded for this Hall of Fame induction, use it as priority
+    if (hof.playerImage) {
+      stats.avatar = hof.playerImage;
+    }
     if (hof.championRealName && !stats.fullName) stats.fullName = hof.championRealName;
   }
 

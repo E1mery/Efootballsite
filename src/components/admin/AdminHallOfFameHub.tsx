@@ -22,11 +22,14 @@ import {
   Star,
   Layers,
   History as HistoryIcon,
+  Check,
+  ImageIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatRwandanDate } from "@/lib/rwandanTime";
+import { resolvePlayerAvatar } from "@/lib/teams";
 
 interface AdminHallOfFameHubProps {
   initialHallOfFame: any[];
@@ -64,6 +67,9 @@ export default function AdminHallOfFameHub({
   const [hofTrophyType, setHofTrophyType] = useState("GOLD");
   const [isUploadingHofImage, setIsUploadingHofImage] = useState(false);
   const [submittingHof, setSubmittingHof] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [avatarChoice, setAvatarChoice] = useState<"SYSTEM_AVATAR" | "REAL_PICTURE">("SYSTEM_AVATAR");
+  const [customUploadedImage, setCustomUploadedImage] = useState("");
 
   // Manual record form
   const [manualRecordName, setManualRecordName] = useState("");
@@ -114,7 +120,7 @@ export default function AdminHallOfFameHub({
     loadData();
   });
 
-  // Handle image upload for crown champion
+  // Handle image upload for crown champion real picture
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -132,11 +138,57 @@ export default function AdminHallOfFameHub({
 
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
+      setCustomUploadedImage(data.url);
       setHofPlayerImage(data.url);
+      setAvatarChoice("REAL_PICTURE");
     } catch (err) {
       alert("Failed to upload image. Please try again.");
     } finally {
       setIsUploadingHofImage(false);
+    }
+  };
+
+  // Find currently selected player object from system
+  const currentSelectedPlayer = allPlayers.find(
+    (p) => p.id === selectedPlayerId || p.gamerTag.toLowerCase() === hofChampion.trim().toLowerCase()
+  );
+
+  // Compute player's system avatar (real team logo / registered avatar)
+  const playerSystemAvatar = currentSelectedPlayer
+    ? resolvePlayerAvatar({
+        avatar: currentSelectedPlayer.avatar,
+        realTeam: currentSelectedPlayer.realTeam,
+        gamerTag: currentSelectedPlayer.gamerTag,
+      })
+    : "";
+
+  // The actual image to submit based on admin selection
+  const finalImageToUse =
+    avatarChoice === "REAL_PICTURE"
+      ? (customUploadedImage.trim() || hofPlayerImage.trim() || null)
+      : (playerSystemAvatar || null);
+
+  // Handle player selection from dropdown
+  const handleSelectSystemPlayer = (playerId: string) => {
+    setSelectedPlayerId(playerId);
+    if (!playerId) {
+      return;
+    }
+    const found = allPlayers.find((p) => p.id === playerId);
+    if (found) {
+      setHofChampion(found.gamerTag);
+      if (found.fullName) {
+        setHofRealName(found.fullName);
+      }
+      // If admin hasn't uploaded a real picture, keep system avatar choice
+      if (avatarChoice === "SYSTEM_AVATAR") {
+        const sysAvatar = resolvePlayerAvatar({
+          avatar: found.avatar,
+          realTeam: found.realTeam,
+          gamerTag: found.gamerTag,
+        });
+        setHofPlayerImage(sysAvatar);
+      }
     }
   };
 
@@ -155,8 +207,9 @@ export default function AdminHallOfFameHub({
           season: hofSeason,
           championName: hofChampion.trim(),
           championRealName: hofRealName.trim() || null,
-          playerImage: hofPlayerImage || null,
+          playerImage: finalImageToUse,
           trophyType: hofTrophyType,
+          playerId: selectedPlayerId || currentSelectedPlayer?.id || null,
           sourceType: "MANUAL",
         }),
       });
@@ -171,6 +224,9 @@ export default function AdminHallOfFameHub({
       setHofChampion("");
       setHofRealName("");
       setHofPlayerImage("");
+      setSelectedPlayerId("");
+      setCustomUploadedImage("");
+      setAvatarChoice("SYSTEM_AVATAR");
       alert(data.message || "Champion crowned successfully!");
       loadData();
     } catch (err: any) {
@@ -712,6 +768,81 @@ export default function AdminHallOfFameHub({
                 </div>
               </div>
 
+              {/* Registered Player Selection (Pre-System / Historical Champion) */}
+              <div className="p-4 rounded-xl bg-background/60 border border-secondary/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold uppercase text-secondary flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-secondary" />
+                      <span>Select Player In System (Pre-system / Historical Champion) *</span>
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Choose any player registered in the system. The admin can then pick their team avatar logo or upload a real photo.
+                    </p>
+                  </div>
+                  {selectedPlayerId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPlayerId("");
+                        setHofChampion("");
+                        setHofRealName("");
+                        setHofPlayerImage("");
+                        setCustomUploadedImage("");
+                        setAvatarChoice("SYSTEM_AVATAR");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
+                    >
+                      Clear Selection
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <select
+                      value={selectedPlayerId}
+                      onChange={(e) => handleSelectSystemPlayer(e.target.value)}
+                      className="w-full rounded-xl border border-secondary/30 bg-background px-3 py-2 text-xs font-bold text-foreground focus:ring-1 focus:ring-secondary"
+                    >
+                      <option value="">-- Choose a registered player from system --</option>
+                      {allPlayers.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.gamerTag} ({p.fullName || "Player"} • {p.division || "Division 1"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {currentSelectedPlayer && (
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-card border border-border text-xs">
+                      <div className="h-8 w-8 rounded-lg overflow-hidden bg-background border border-border shrink-0 flex items-center justify-center">
+                        {playerSystemAvatar ? (
+                          <img
+                            src={playerSystemAvatar}
+                            alt={currentSelectedPlayer.gamerTag}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-4 w-4 text-secondary" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 truncate">
+                        <span className="font-bold text-foreground">{currentSelectedPlayer.gamerTag}</span>
+                        <span className="text-muted-foreground block text-xs truncate">
+                          Team Logo: {currentSelectedPlayer.realTeam || "Standard"}
+                        </span>
+                      </div>
+                      <Badge variant="yellow" className="text-xs shrink-0 font-mono">
+                        Selected
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-secondary">Champion Gamer Tag *</label>
@@ -735,47 +866,137 @@ export default function AdminHallOfFameHub({
                 </div>
               </div>
 
-              {/* Photo Upload */}
-              <div className="space-y-2 pt-2 border-t border-border">
-                <label className="text-xs font-bold uppercase text-muted-foreground block">
-                  Champion Player Picture (Auto Ratio)
-                </label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  <div className="relative">
-                    <input
-                      type="file"
-                      id="adminHofImageInput"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="sr-only"
-                      disabled={isUploadingHofImage}
-                    />
-                    <label
-                      htmlFor="adminHofImageInput"
-                      className="cursor-pointer text-xs font-bold px-3 py-2 rounded-xl bg-card border border-border hover:bg-muted text-foreground inline-flex items-center gap-2"
-                    >
-                      <Upload className="h-3.5 w-3.5 text-secondary" />
-                      <span>{isUploadingHofImage ? "Uploading..." : "Upload Picture"}</span>
-                    </label>
-                  </div>
-
-                  <div className="flex-1 w-full">
-                    <Input
-                      placeholder="Or paste image URL"
-                      value={hofPlayerImage}
-                      onChange={(e) => setHofPlayerImage(e.target.value)}
-                      className="bg-background border-border text-xs"
-                    />
-                  </div>
+              {/* Profile Avatar Selection (Player Avatar vs Real Picture) */}
+              <div className="space-y-3 pt-3 border-t border-border">
+                <div>
+                  <label className="text-xs font-bold uppercase text-secondary block">
+                    Profile Avatar / Picture Option
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Choose to display either the player&apos;s chosen team logo avatar or upload the player&apos;s real photo.
+                  </p>
                 </div>
 
-                {hofPlayerImage && (
-                  <div className="mt-2 p-2 rounded-xl border border-secondary/20 bg-background max-w-xs">
-                    <img
-                      src={hofPlayerImage}
-                      alt="Preview"
-                      className="max-h-36 rounded-lg object-contain mx-auto"
-                    />
+                {/* Option Selector Pills */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAvatarChoice("SYSTEM_AVATAR")}
+                    className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      avatarChoice === "SYSTEM_AVATAR"
+                        ? "bg-secondary/15 border-secondary text-foreground shadow-sm"
+                        : "bg-background border-border text-muted-foreground hover:border-secondary/40 hover:text-foreground"
+                    }`}
+                  >
+                    <div className="h-10 w-10 rounded-xl overflow-hidden bg-card border border-border shrink-0 flex items-center justify-center mt-0.5">
+                      {playerSystemAvatar ? (
+                        <img
+                          src={playerSystemAvatar}
+                          alt="Team Logo Avatar"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-5 w-5 text-secondary" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase text-foreground">
+                          Player&apos;s Team Logo Avatar
+                        </span>
+                        {avatarChoice === "SYSTEM_AVATAR" && (
+                          <Check className="h-4 w-4 text-secondary" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Uses the real team club crest / avatar the athlete chose in the system.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAvatarChoice("REAL_PICTURE")}
+                    className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      avatarChoice === "REAL_PICTURE"
+                        ? "bg-secondary/15 border-secondary text-foreground shadow-sm"
+                        : "bg-background border-border text-muted-foreground hover:border-secondary/40 hover:text-foreground"
+                    }`}
+                  >
+                    <div className="h-10 w-10 rounded-xl overflow-hidden bg-card border border-border shrink-0 flex items-center justify-center mt-0.5">
+                      {customUploadedImage || (avatarChoice === "REAL_PICTURE" && hofPlayerImage) ? (
+                        <img
+                          src={customUploadedImage || hofPlayerImage}
+                          alt="Real Picture"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="h-5 w-5 text-secondary" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase text-foreground">
+                          Upload Real Player Picture
+                        </span>
+                        {avatarChoice === "REAL_PICTURE" && (
+                          <Check className="h-4 w-4 text-secondary" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Upload or link an authentic photograph of the champion athlete.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Upload UI if Real Picture is selected */}
+                {avatarChoice === "REAL_PICTURE" && (
+                  <div className="p-3.5 rounded-2xl border border-secondary/30 bg-background/80 space-y-3">
+                    <label className="text-xs font-bold uppercase text-muted-foreground block">
+                      Upload Authentic Player Photo (Auto Ratio)
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="adminHofImageInput"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="sr-only"
+                          disabled={isUploadingHofImage}
+                        />
+                        <label
+                          htmlFor="adminHofImageInput"
+                          className="cursor-pointer text-xs font-bold px-3 py-2 rounded-xl bg-card border border-border hover:bg-muted text-foreground inline-flex items-center gap-2"
+                        >
+                          <Upload className="h-3.5 w-3.5 text-secondary" />
+                          <span>{isUploadingHofImage ? "Uploading..." : "Upload Picture"}</span>
+                        </label>
+                      </div>
+
+                      <div className="flex-1 w-full">
+                        <Input
+                          placeholder="Or paste direct image URL (e.g. https://...)"
+                          value={customUploadedImage || hofPlayerImage}
+                          onChange={(e) => {
+                            setCustomUploadedImage(e.target.value);
+                            setHofPlayerImage(e.target.value);
+                          }}
+                          className="bg-background border-border text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {(customUploadedImage || hofPlayerImage) && (
+                      <div className="mt-2 p-2 rounded-xl border border-secondary/20 bg-background max-w-xs">
+                        <img
+                          src={customUploadedImage || hofPlayerImage}
+                          alt="Real Picture Preview"
+                          className="max-h-36 rounded-lg object-contain mx-auto"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -844,8 +1065,27 @@ export default function AdminHallOfFameHub({
                         </div>
 
                         <div className="min-w-0">
-                          <div className="text-sm font-black text-foreground truncate">
-                            {entry.championName}
+                          <div className="text-sm font-black text-foreground truncate flex items-center gap-1.5">
+                            <span>{entry.championName}</span>
+                            {(() => {
+                              const count = hallOfFame.filter(
+                                (h) => (h.championName || "").trim().toLowerCase() === (entry.championName || "").trim().toLowerCase()
+                              ).length;
+                              if (count <= 1) return null;
+                              return (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-secondary"
+                                  title={`${count} Championship Titles`}
+                                >
+                                  {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+                                    <Star key={i} className="h-3 w-3 fill-secondary text-secondary" />
+                                  ))}
+                                  {count > 4 && (
+                                    <span className="text-xs font-black">+{count - 4}</span>
+                                  )}
+                                </span>
+                              );
+                            })()}
                           </div>
                           {entry.championRealName && (
                             <div className="text-xs text-muted-foreground truncate">

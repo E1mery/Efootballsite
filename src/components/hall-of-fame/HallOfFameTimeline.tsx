@@ -10,6 +10,7 @@ import {
   User,
   Medal,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { HallOfFameEntry } from "@/components/HallOfFameCarousel";
 import { BRANDING_ASSETS } from "@/lib/assets.config";
@@ -34,6 +35,18 @@ export default function HallOfFameTimeline({
     availableCompetitions.forEach((c) => list.add(c));
     return ["ALL", ...Array.from(list)];
   }, [entries, availableCompetitions]);
+
+  // Count total titles per champion across all entries to indicate multi-title winners with stars
+  const championTitleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    entries.forEach((e) => {
+      const key = (e.championName || "").trim().toLowerCase();
+      if (key) {
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+    });
+    return counts;
+  }, [entries]);
 
   // Filter entries
   const filteredEntries = useMemo(() => {
@@ -149,8 +162,25 @@ export default function HallOfFameTimeline({
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold uppercase tracking-wide text-foreground truncate">
-                          {item.championName}
+                        <div className="text-xs font-bold uppercase tracking-wide text-foreground truncate flex items-center gap-1">
+                          <span>{item.championName}</span>
+                          {(() => {
+                            const count = championTitleCounts.get((item.championName || "").trim().toLowerCase()) || 1;
+                            if (count <= 1) return null;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-0.5 text-secondary"
+                                title={`${count} Championship Titles`}
+                              >
+                                {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+                                  <Star key={i} className="w-3 h-3 fill-secondary text-secondary" />
+                                ))}
+                                {count > 4 && (
+                                  <span className="text-xs font-black">+{count - 4}</span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </div>
                         {item.championRealName && (
                           <div className="text-xs text-muted-foreground truncate">

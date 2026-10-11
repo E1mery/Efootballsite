@@ -12,6 +12,7 @@ import {
   Crown,
   User,
   ArrowRight,
+  Star,
 } from "lucide-react";
 import { PlayerCareerStats } from "@/lib/hallOfFameStatsService";
 
@@ -135,19 +136,48 @@ export default function HallOfFamePlayers({
                       )}
                     </div>
 
-                    <div className="px-2.5 py-1 rounded-full bg-secondary/15 border border-secondary/30 text-xs font-black uppercase tracking-wider text-secondary flex items-center gap-1">
-                      <Crown className="w-3 h-3" />
-                      <span>LEGEND</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="px-2.5 py-1 rounded-full bg-secondary/15 border border-secondary/30 text-xs font-black uppercase tracking-wider text-secondary flex items-center gap-1">
+                        <Crown className="w-3 h-3" />
+                        <span>LEGEND</span>
+                      </div>
+                      {p.totalTrophies > 1 && (
+                        <div
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/20 border border-secondary/40 text-secondary text-xs font-black"
+                          title={`${p.totalTrophies} Championship Titles won`}
+                        >
+                          <Star className="w-3 h-3 fill-secondary text-secondary" />
+                          <span>×{p.totalTrophies}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Name and Tag */}
                   <div className="mb-4">
-                    <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                       <h3 className="text-lg font-black uppercase tracking-tight text-foreground group-hover:text-secondary transition-colors truncate">
                         {p.gamerTag}
                       </h3>
                       <span className="text-xs">🇷🇼</span>
+                      {p.totalTrophies > 1 && (
+                        <span
+                          className="inline-flex items-center gap-0.5 ml-0.5"
+                          title={`${p.totalTrophies} Titles`}
+                        >
+                          {Array.from({ length: Math.min(p.totalTrophies, 5) }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className="w-3.5 h-3.5 text-secondary fill-secondary drop-shadow-sm"
+                            />
+                          ))}
+                          {p.totalTrophies > 5 && (
+                            <span className="text-xs font-black text-secondary ml-0.5">
+                              +{p.totalTrophies - 5}
+                            </span>
+                          )}
+                        </span>
+                      )}
                     </div>
                     {p.fullName && (
                       <p className="text-xs text-muted-foreground truncate">
