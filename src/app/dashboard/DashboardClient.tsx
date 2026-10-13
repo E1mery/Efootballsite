@@ -2399,9 +2399,6 @@ export default function DashboardClient({
                     <tr className="border-b border-border/60 text-muted-foreground uppercase text-xs font-bold">
                       <th className="py-1.5 px-2">#</th>
                       <th className="py-1.5 px-2">Athlete</th>
-                      <th className="py-1.5 px-2 text-center">Pld</th>
-                      <th className="py-1.5 px-2 text-center">W-D-L</th>
-                      <th className="py-1.5 px-2 text-center">GD</th>
                       <th className="py-1.5 px-2 text-right">Pts</th>
                     </tr>
                   </thead>
@@ -2430,20 +2427,13 @@ export default function DashboardClient({
                                   }}
                                 />
                               </div>
-                              <span className="truncate max-w-28 sm:max-w-36">{row.player?.gamerTag}</span>
+                              <span className="truncate max-w-36 sm:max-w-48">{row.player?.gamerTag}</span>
                               {isMe && (
                                 <span className="text-xs uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
                                   YOU
                                 </span>
                               )}
                             </div>
-                          </td>
-                          <td className="py-1.5 px-2 text-center font-mono">{row.played}</td>
-                          <td className="py-1.5 px-2 text-center font-mono text-muted-foreground">
-                            {row.won}-{row.drawn}-{row.lost}
-                          </td>
-                          <td className="py-1.5 px-2 text-center font-mono">
-                            {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
                           </td>
                           <td className="py-1.5 px-2 text-right font-black font-mono text-secondary">
                             {row.points}
