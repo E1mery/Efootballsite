@@ -63,6 +63,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Comment exceeds 500 character limit." }, { status: 400 });
     }
 
+    // Content Moderation Filter
+    const prohibitedTerms = [
+      "fuck", "shit", "bitch", "nigger", "nigga", "bastard", "cunt", "whore",
+      "idiot", "retard", "faggot", "trash player", "kill yourself"
+    ];
+    const lowerContent = trimmed.toLowerCase();
+    const containsProhibited = prohibitedTerms.some((term) =>
+      new RegExp(`\\b${term}\\b`, "i").test(lowerContent)
+    );
+    if (containsProhibited) {
+      return NextResponse.json(
+        { error: "Comment flagged by League Moderation. Offensive and abusive language is strictly prohibited." },
+        { status: 400 }
+      );
+    }
+
     // Verify post exists
     const post = await prisma.socialPost.findUnique({
       where: { id: postId },

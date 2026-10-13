@@ -82,7 +82,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
   };
 
   return (
-    <section className="space-y-6 pt-4">
+    <section className="space-y-6 pt-4 max-w-xl mx-auto w-full">
       {/* 1. Feed Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
         <div>
@@ -95,7 +95,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
                   League Social Feed
                 </h2>
-                <Badge variant="live" className="text-[10px] font-black uppercase px-2 py-0.5">
+                <Badge variant="live" className="text-xs font-black uppercase px-2 py-0.5">
                   LIVE
                 </Badge>
               </div>
@@ -164,13 +164,13 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
         </div>
       </div>
 
-      {/* 2. Posts Grid / Timeline */}
+      {/* 2. Vertically Scrolling Social Media Timeline (Single-Column, Instagram Experience) */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col space-y-6">
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-3xl border border-border bg-card/40 p-6 space-y-4 animate-pulse h-96"
+              className="rounded-3xl border border-border bg-card/40 p-6 space-y-4 animate-pulse"
             >
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-border/60" />
@@ -179,7 +179,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
                   <div className="h-2.5 w-16 bg-border/40 rounded" />
                 </div>
               </div>
-              <div className="h-44 bg-border/40 rounded-2xl" />
+              <div className="w-full aspect-square bg-border/40 rounded-2xl" />
               <div className="h-4 w-3/4 bg-border/60 rounded" />
               <div className="h-3 w-full bg-border/40 rounded" />
             </div>
@@ -194,7 +194,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div className="flex flex-col space-y-8">
           {posts.map((post) => (
             <SocialPostCard
               key={post.id}

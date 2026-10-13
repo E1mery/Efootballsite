@@ -679,3 +679,34 @@ body {
   box-shadow: 0 8px 24px oklch(var(--secondary) / 0.3);
 }
 
+/* ========================================================================= */
+/* INSTAGRAM FC-INSPIRED FEED STYLING */
+/* ========================================================================= */
+
+.ig-post-aspect {
+  aspect-ratio: 1 / 1;
+}
+
+@media (min-width: 640px) {
+  .ig-post-aspect {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+.ig-stadium-card {
+  position: relative;
+  background-color: oklch(var(--background));
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.ig-stadium-overlay {
+  background: radial-gradient(circle at 50% 25%, oklch(var(--primary) / 0.35) 0%, oklch(0.08 0.02 260 / 0.85) 60%, oklch(0.05 0.01 260 / 0.98) 100%);
+}
+
+.ig-beam-overlay {
+  background: linear-gradient(180deg, oklch(var(--primary) / 0.25) 0%, transparent 40%, oklch(var(--background) / 0.9) 100%);
+}
+
+

@@ -1830,7 +1830,7 @@ export default function DashboardClient({
         {/* Quick Stats: Rank, Points, and Form */}
         <div className="flex items-center justify-between md:justify-end gap-4 sm:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-border/80">
           <div className="text-left md:text-right">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Rank</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Rank</span>
             <span className="text-base sm:text-xl font-black text-secondary">
               {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
@@ -1839,14 +1839,14 @@ export default function DashboardClient({
           {!isReserved && standing && (
             <>
               <div className="text-left md:text-right">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Points</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Points</span>
                 <span className="text-base sm:text-xl font-black text-white">
-                  {standing.points ?? 0} <span className="text-[11px] font-bold text-muted-foreground">PTS</span>
+                  {standing.points ?? 0} <span className="text-xs font-bold text-muted-foreground">PTS</span>
                 </span>
               </div>
 
               <div className="text-left md:text-right">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Form</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Form</span>
                 <div className="flex items-center gap-1 mt-0.5">
                   {(standing.form ? standing.form.split(",").slice(-5) : ["D"]).map((res: string, idx: number) => {
                     const letter = res.trim().toUpperCase() || "D";
@@ -1855,9 +1855,9 @@ export default function DashboardClient({
                     return (
                       <span
                         key={idx}
-                        className={`inline-flex items-center justify-center h-5 w-5 rounded-md font-black text-[10px] ${
+                        className={`inline-flex items-center justify-center h-5 w-5 rounded-md font-black text-xs ${
                           isW
-                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                            ? "bg-primary/20 text-primary border border-primary/40"
                             : isL
                             ? "bg-destructive/20 text-destructive border border-destructive/40"
                             : "bg-muted text-muted-foreground border border-border"
@@ -3747,7 +3747,7 @@ export default function DashboardClient({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-border/60 text-muted-foreground uppercase text-[10px] font-bold">
+                      <tr className="border-b border-border/60 text-muted-foreground uppercase text-xs font-bold">
                         <th className="py-2 px-2">#</th>
                         <th className="py-2 px-2">Athlete</th>
                         <th className="py-2 px-2 text-center">Pld</th>
@@ -3766,7 +3766,7 @@ export default function DashboardClient({
                               isMe ? "bg-primary/15 font-black text-white" : "hover:bg-muted/30"
                             }`}
                           >
-                            <td className="py-2 px-2 font-mono text-[11px]">
+                            <td className="py-2 px-2 font-mono text-xs">
                               {row.rank}
                             </td>
                             <td className="py-2 px-2">
@@ -3783,7 +3783,7 @@ export default function DashboardClient({
                                 </div>
                                 <span className="truncate max-w-32">{row.player?.gamerTag}</span>
                                 {isMe && (
-                                  <span className="text-[9px] uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
+                                  <span className="text-xs uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
                                     YOU
                                   </span>
                                 )}
