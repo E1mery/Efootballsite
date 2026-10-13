@@ -50,7 +50,7 @@ export type PlayerNavGroup = {
 };
 
 export const PLAYER_TAB_TITLES: Record<PlayerDashboardTab, string> = {
-  OVERVIEW: "Today's Match",
+  OVERVIEW: "Overview",
   CALENDAR: "Match Calendar",
   STANDINGS: "All Division Tables",
   INTERDIVISION_CUPS: "Interdivision Cups",
@@ -68,7 +68,7 @@ export function buildPlayerNav(counts: PlayerSidebarCounts): PlayerNavGroup[] {
   if (!counts.isReserve) {
     matchItems.push({
       id: "OVERVIEW",
-      title: "Today's Match",
+      title: "Overview",
       icon: Zap,
       dot: counts.hasLiveMatch,
     });

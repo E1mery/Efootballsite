@@ -1827,14 +1827,50 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* Status */}
-        <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-border/80">
+        {/* Quick Stats: Rank, Points, and Form */}
+        <div className="flex items-center justify-between md:justify-end gap-4 sm:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-border/80">
           <div className="text-left md:text-right">
-            <span className="text-xs font-bold text-muted-foreground uppercase block">Status / Rank</span>
-            <span className="text-lg sm:text-xl font-black text-secondary">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Rank</span>
+            <span className="text-base sm:text-xl font-black text-secondary">
               {isReserved ? "STANDBY" : standing ? `#${standing.rank}` : "Unranked"}
             </span>
           </div>
+
+          {!isReserved && standing && (
+            <>
+              <div className="text-left md:text-right">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Points</span>
+                <span className="text-base sm:text-xl font-black text-white">
+                  {standing.points ?? 0} <span className="text-[11px] font-bold text-muted-foreground">PTS</span>
+                </span>
+              </div>
+
+              <div className="text-left md:text-right">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Form</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  {(standing.form ? standing.form.split(",").slice(-5) : ["D"]).map((res: string, idx: number) => {
+                    const letter = res.trim().toUpperCase() || "D";
+                    const isW = letter === "W";
+                    const isL = letter === "L";
+                    return (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center justify-center h-5 w-5 rounded-md font-black text-[10px] ${
+                          isW
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                            : isL
+                            ? "bg-destructive/20 text-destructive border border-destructive/40"
+                            : "bg-muted text-muted-foreground border border-border"
+                        }`}
+                      >
+                        {letter}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
         )}
@@ -1913,7 +1949,7 @@ export default function DashboardClient({
               }`}
             >
               <Smartphone className="h-4 w-4" />
-              <span>Today's Match</span>
+              <span>Overview</span>
               {isSeasonAwaitingKickoff ? (
                 <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-xs font-bold text-primary border border-primary/40 animate-pulse">
                   Drops 12 AM
@@ -3674,6 +3710,107 @@ export default function DashboardClient({
               </div>
             );
           })()}
+
+          {/* DIVISION STANDINGS SNAPSHOT */}
+          {(() => {
+            const currentDivTable =
+              player.division === "Division 1"
+                ? div1Standings
+                : player.division === "Division 2"
+                ? div2Standings
+                : div3Standings;
+
+            if (!currentDivTable || currentDivTable.length === 0) return null;
+
+            // Take top 5 rows
+            const snapshotRows = currentDivTable.slice(0, 5);
+
+            return (
+              <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-border/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-secondary" />
+                    <h3 className="text-sm sm:text-base font-black uppercase text-white tracking-wide">
+                      {player.division} Leaderboard Snapshot
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("STANDINGS")}
+                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <span>Full Table</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-border/60 text-muted-foreground uppercase text-[10px] font-bold">
+                        <th className="py-2 px-2">#</th>
+                        <th className="py-2 px-2">Athlete</th>
+                        <th className="py-2 px-2 text-center">Pld</th>
+                        <th className="py-2 px-2 text-center">W-D-L</th>
+                        <th className="py-2 px-2 text-center">GD</th>
+                        <th className="py-2 px-2 text-right">Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 font-medium">
+                      {snapshotRows.map((row: any) => {
+                        const isMe = row.playerId === currentPlayer.id;
+                        return (
+                          <tr
+                            key={row.id}
+                            className={`transition-colors ${
+                              isMe ? "bg-primary/15 font-black text-white" : "hover:bg-muted/30"
+                            }`}
+                          >
+                            <td className="py-2 px-2 font-mono text-[11px]">
+                              {row.rank}
+                            </td>
+                            <td className="py-2 px-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="h-5 w-5 rounded-full overflow-hidden bg-background border border-border shrink-0 flex items-center justify-center">
+                                  <img
+                                    src={resolvePlayerAvatar(row.player)}
+                                    alt=""
+                                    className="h-full w-full object-contain"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
+                                    }}
+                                  />
+                                </div>
+                                <span className="truncate max-w-32">{row.player?.gamerTag}</span>
+                                {isMe && (
+                                  <span className="text-[9px] uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
+                                    YOU
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2 px-2 text-center font-mono">{row.played}</td>
+                            <td className="py-2 px-2 text-center font-mono text-muted-foreground">
+                              {row.won}-{row.drawn}-{row.lost}
+                            </td>
+                            <td className="py-2 px-2 text-center font-mono">
+                              {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                            </td>
+                            <td className="py-2 px-2 text-right font-black font-mono text-secondary">
+                              {row.points}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* FC-STYLE INSTAGRAM SOCIAL FEED & AUTOMATIC FOOTBALL NEWS */}
+          <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
         </div>
       )}
 
@@ -4071,9 +4208,6 @@ export default function DashboardClient({
               ))}
             </div>
           )}
-
-          {/* FC-Style Instagram Social Feed & Automatic Football News */}
-          <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
         </div>
       )}
 
