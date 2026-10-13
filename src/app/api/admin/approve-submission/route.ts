@@ -120,6 +120,14 @@ export async function POST(req: Request) {
           matchSummary,
         });
 
+        // Auto-sync verified result to Social Feed if MOTD or MOTW
+        try {
+          const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+          await syncSocialResultForMatch(updatedMatch.id, "FINISHED");
+        } catch (socialErr) {
+          console.error("[approve-submission] Error syncing social result:", socialErr);
+        }
+
         // If knockout match, automatically notify the eliminated athlete
         const isKnockout = ["QUARTER_FINAL", "SEMI_FINAL", "FINAL"].includes(updatedMatch.stage);
         if (isKnockout) {
@@ -219,6 +227,14 @@ export async function POST(req: Request) {
             groupName: revertedMatch.groupName,
             matchSummary: "Result Reverted (Match Reset)",
           });
+
+          // Revert social result posts if previously published
+          try {
+            const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+            await syncSocialResultForMatch(revertedMatch.id, "SCHEDULED");
+          } catch (socialErr) {
+            console.error("[approve-submission] Error reverting social result:", socialErr);
+          }
         }
 
         return NextResponse.json({
@@ -297,6 +313,14 @@ export async function POST(req: Request) {
         : updatedMatch.division;
       await recalculateStandings(updatedMatch.tournamentId, divToRecalc);
       await invalidateHallOfFameCache().catch(() => {});
+
+      // Auto-sync verified result to Social Feed if MOTD or MOTW
+      try {
+        const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+        await syncSocialResultForMatch(updatedMatch.id, "FINISHED");
+      } catch (socialErr) {
+        console.error("[approve-submission DIRECT_SCORE_ENTRY] Error syncing social result:", socialErr);
+      }
 
       await notifyStandingsUpdate({
         tournamentType: updatedMatch.division,

@@ -54,6 +54,7 @@ import ChampionsLeagueView from "@/components/competitions/ChampionsLeagueView";
 import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
 import SuperCupView from "@/components/competitions/SuperCupView";
 import InterdivisionCupsView from "@/components/competitions/InterdivisionCupsView";
+import SocialFeed from "@/components/social/SocialFeed";
 
 interface ContinentalGroupStandingsViewProps {
   competition: "UCL" | "EUROPA";
@@ -4070,6 +4071,9 @@ export default function DashboardClient({
               ))}
             </div>
           )}
+
+          {/* FC-Style Instagram Social Feed & Automatic Football News */}
+          <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
         </div>
       )}
 

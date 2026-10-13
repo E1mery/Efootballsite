@@ -491,7 +491,7 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                       className="w-full sm:w-auto rounded-xl text-xs font-bold gap-1.5 shadow-sm cursor-pointer justify-center"
                     >
                       <Sparkles className="h-3 w-3" />
-                      <span>{isProcessing ? "Publishing..." : "Publish MOTW to Carousel"}</span>
+                      <span>{isProcessing ? "Publishing..." : "Publish MOTW (Carousel & Feed)"}</span>
                     </Button>
                   )}
                 </div>

@@ -200,9 +200,37 @@ export async function POST(req: Request) {
       newsId
     ).catch(() => {});
 
+    // Automatically synchronize with the Social Feed on the Player Overview (Idempotent)
+    try {
+      const { syncSocialPostForMatch, getSocialAutomationSettings } = await import("@/lib/socialFeedService");
+      const settings = await getSocialAutomationSettings();
+
+      if (settings.autoPublishMotw) {
+        await syncSocialPostForMatch({
+          type: "MOTW_ANNOUNCEMENT",
+          matchId: match.id,
+          division: match.division,
+          homePlayerId: match.homePlayerId,
+          awayPlayerId: match.awayPlayerId,
+        });
+      }
+
+      if (settings.autoRivalryThread) {
+        await syncSocialPostForMatch({
+          type: "MOTW_RIVALRY",
+          matchId: match.id,
+          division: match.division,
+          homePlayerId: match.homePlayerId,
+          awayPlayerId: match.awayPlayerId,
+        });
+      }
+    } catch (socialErr) {
+      console.error("[MOTW Social Sync] Error syncing social post & rivalry discussion:", socialErr);
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Match of the Week published to carousel: ${homeName} vs ${awayName}`,
+      message: `Match of the Week published to carousel & social feed: ${homeName} vs ${awayName}`,
       match,
       news: newsItem,
     });

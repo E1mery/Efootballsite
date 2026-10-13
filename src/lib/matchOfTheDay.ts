@@ -188,6 +188,28 @@ export async function syncMatchOfTheDay(roundNumber: number): Promise<Record<str
       where: { id: { in: motdIdsToUpdate } },
       data: { isMatchOfTheDay: true },
     });
+
+    // Auto-generate official MOTD announcement social posts
+    try {
+      const { syncSocialPostForMatch, getSocialAutomationSettings } = await import("@/lib/socialFeedService");
+      const settings = await getSocialAutomationSettings();
+      if (settings.autoPublishMotd) {
+        for (const div of Object.keys(divisionalMotds)) {
+          const motd = divisionalMotds[div];
+          if (motd && motd.id) {
+            await syncSocialPostForMatch({
+              type: "MOTD_ANNOUNCEMENT",
+              matchId: motd.id,
+              division: motd.division,
+              homePlayerId: motd.homePlayerId,
+              awayPlayerId: motd.awayPlayerId,
+            });
+          }
+        }
+      }
+    } catch (socialErr) {
+      console.error("[MOTD Social Auto-Sync] Error creating social announcement:", socialErr);
+    }
   }
 
   return divisionalMotds;

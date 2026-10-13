@@ -30,6 +30,8 @@ model User {
   passwordHash String
   role         String    @default("PLAYER") // "PLAYER" or "ADMIN"
   player       Player?
+  socialReactions SocialReaction[]
+  socialComments  SocialComment[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -133,6 +135,7 @@ model Match {
   submissions       MatchSubmission[]
   forfeitClaims     ForfeitClaim[]
   motdPollVotes     MotdPollVote[]
+  socialPosts       SocialPost[]
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -527,6 +530,79 @@ model DismissedSystemNews {
 model EditedSystemNews {
   id       String   @id
   editedAt DateTime @default(now())
+}
+
+model SocialPost {
+  id            String           @id @default(cuid())
+  type          String           // "MOTD_ANNOUNCEMENT", "MOTD_RESULT", "MOTW_ANNOUNCEMENT", "MOTW_RESULT", "MOTW_RIVALRY"
+  headline      String
+  caption       String           @db.Text
+  hashtags      String[]         @default([])
+
+  matchId       String?
+  match         Match?           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  season        String           @default("Season 1 (2026)")
+  division      String?
+
+  homePlayerId  String?
+  awayPlayerId  String?
+  homeScore     Int?
+  awayScore     Int?
+
+  status        String           @default("PUBLISHED") // "DRAFT", "PUBLISHED", "ARCHIVED"
+  publishedAt   DateTime         @default(now())
+
+  reactions     SocialReaction[]
+  comments      SocialComment[]
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([type, matchId])
+  @@index([publishedAt])
+  @@index([type])
+  @@index([season])
+}
+
+model SocialReaction {
+  id        String     @id @default(cuid())
+  postId    String
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model SocialComment {
+  id               String     @id @default(cuid())
+  postId           String
+  post             SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content          String     @db.Text
+  isOpponentBanter Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model SocialAutomationSetting {
+  id                 String   @id @default("default")
+  autoPublishMotd    Boolean  @default(true)
+  autoPublishMotdRes Boolean  @default(true)
+  autoPublishMotw    Boolean  @default(true)
+  autoPublishMotwRes Boolean  @default(true)
+  autoRivalryThread  Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
 }
 
 
