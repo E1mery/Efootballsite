@@ -3778,6 +3778,12 @@ export default function DashboardClient({
           </div>
 
 
+          {/* DIVISION STANDINGS SNAPSHOT (Shown at bottom only when an active match or kickoff pending occupies the top row) */}
+          {(activeMatch || isSeasonAwaitingKickoff) && leaderboardSnapshotElement}
+
+          {/* FC-STYLE INSTAGRAM SOCIAL FEED & AUTOMATIC FOOTBALL NEWS */}
+          <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
+
           {/* Quick Stats Grid with Win Rate */}
           {(() => {
             const effectiveStatsStanding = (hasStartedContinental && continentalStanding) ? continentalStanding : standing;
@@ -3911,12 +3917,6 @@ export default function DashboardClient({
               </div>
             );
           })()}
-
-          {/* DIVISION STANDINGS SNAPSHOT (Shown at bottom only when an active match or kickoff pending occupies the top row) */}
-          {(activeMatch || isSeasonAwaitingKickoff) && leaderboardSnapshotElement}
-
-          {/* FC-STYLE INSTAGRAM SOCIAL FEED & AUTOMATIC FOOTBALL NEWS */}
-          <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
         </div>
       );
     })()}
