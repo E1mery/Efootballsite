@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  Flame,
-  Sparkles,
-  Trophy,
-  Swords,
-  RefreshCw,
-  PlusCircle,
-  Radio,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Flame, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import SocialPostCard, { SocialPostData } from "./SocialPostCard";
@@ -26,10 +17,9 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "MOTD" | "MOTW" | "RIVALRY">("ALL");
 
   const fetchPosts = useCallback(
-    async (pageNum: number, filter: string, append = false) => {
+    async (pageNum: number, append = false) => {
       if (append) {
         setLoadingMore(true);
       } else {
@@ -41,9 +31,6 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
           page: String(pageNum),
           limit: "6",
         });
-        if (filter !== "ALL") {
-          params.set("type", filter);
-        }
 
         const res = await fetch(`/api/social/posts?${params.toString()}`);
         const data = await res.json();
@@ -68,23 +55,18 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
   );
 
   useEffect(() => {
-    fetchPosts(1, activeFilter, false);
-  }, [activeFilter, fetchPosts]);
-
-  const handleFilterChange = (filter: "ALL" | "MOTD" | "MOTW" | "RIVALRY") => {
-    if (activeFilter === filter) return;
-    setActiveFilter(filter);
-  };
+    fetchPosts(1, false);
+  }, [fetchPosts]);
 
   const handleLoadMore = () => {
     if (loadingMore || !hasMore) return;
-    fetchPosts(page + 1, activeFilter, true);
+    fetchPosts(page + 1, true);
   };
 
   return (
     <section className="space-y-6 pt-4 max-w-2xl mx-auto w-full">
       {/* 1. Feed Section Header */}
-      <div className="border-b border-border/80 pb-4 space-y-3.5">
+      <div className="border-b border-border/80 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-primary/20 text-primary border border-primary/30 shrink-0">
@@ -109,57 +91,11 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
             type="button"
             size="icon"
             variant="ghost"
-            onClick={() => fetchPosts(1, activeFilter, false)}
+            onClick={() => fetchPosts(1, false)}
             className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground shrink-0 self-end sm:self-center"
             title="Refresh Feed"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-
-        {/* Filter Pills - Dedicated row with guaranteed no-wrap and shrink-0 */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <Button
-            type="button"
-            size="sm"
-            variant={activeFilter === "ALL" ? "default" : "outline"}
-            onClick={() => handleFilterChange("ALL")}
-            className="rounded-xl text-xs font-black h-8 px-3.5 shrink-0 whitespace-nowrap"
-          >
-            All Stories
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={activeFilter === "MOTD" ? "default" : "outline"}
-            onClick={() => handleFilterChange("MOTD")}
-            className="rounded-xl text-xs font-black h-8 px-3.5 gap-1.5 shrink-0 whitespace-nowrap"
-          >
-            <Flame className="h-3.5 w-3.5" />
-            <span>Match of Day</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={activeFilter === "MOTW" ? "default" : "outline"}
-            onClick={() => handleFilterChange("MOTW")}
-            className="rounded-xl text-xs font-black h-8 px-3.5 gap-1.5 shrink-0 whitespace-nowrap"
-          >
-            <Trophy className="h-3.5 w-3.5" />
-            <span>Match of Week</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={activeFilter === "RIVALRY" ? "default" : "outline"}
-            onClick={() => handleFilterChange("RIVALRY")}
-            className="rounded-xl text-xs font-black h-8 px-3.5 gap-1.5 shrink-0 whitespace-nowrap"
-          >
-            <Swords className="h-3.5 w-3.5" />
-            <span>Rivalry Banter</span>
           </Button>
         </div>
       </div>
@@ -192,25 +128,12 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-black text-foreground uppercase tracking-wide">
-              {activeFilter === "ALL"
-                ? "No Stories In This Category Yet"
-                : `No ${activeFilter === "MOTD" ? "Match of the Day" : activeFilter === "MOTW" ? "Match of the Week" : "Rivalry"} Stories Yet`}
+              No Stories Yet
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
               Official announcements, verified match scores, and rivalry banter will appear here automatically as league matchdays unfold.
             </p>
           </div>
-          {activeFilter !== "ALL" && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleFilterChange("ALL")}
-              className="text-xs font-bold rounded-xl"
-            >
-              View All Stories
-            </Button>
-          )}
         </div>
       ) : (
         <div className="flex flex-col space-y-8">
@@ -220,7 +143,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
               post={post}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
-              onPostUpdated={() => fetchPosts(1, activeFilter, false)}
+              onPostUpdated={() => fetchPosts(1, false)}
             />
           ))}
         </div>
