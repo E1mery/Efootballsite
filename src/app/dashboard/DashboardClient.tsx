@@ -2347,8 +2347,103 @@ export default function DashboardClient({
       )}
 
       {/* TAB 1: OVERVIEW & ACTIVE 24-HOUR MATCH */}
-      {!isReserved && activeTab === "OVERVIEW" && (
-        <div className="space-y-8">
+      {!isReserved && activeTab === "OVERVIEW" && (() => {
+        const currentDivTable =
+          player.division === "Division 1"
+            ? div1Standings
+            : player.division === "Division 2"
+            ? div2Standings
+            : div3Standings;
+        const snapshotRows = currentDivTable ? currentDivTable.slice(0, 5) : [];
+        const hasSnapshot = snapshotRows.length > 0;
+
+        const leaderboardSnapshotElement = hasSnapshot ? (
+          <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-5 sm:p-6 shadow-xl space-y-3 h-full flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-border/80 pb-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-secondary" />
+                  <h3 className="text-sm sm:text-base font-black uppercase text-white tracking-wide">
+                    {player.division} Leaderboard Snapshot
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("STANDINGS")}
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  <span>Full Table</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border/60 text-muted-foreground uppercase text-xs font-bold">
+                      <th className="py-1.5 px-2">#</th>
+                      <th className="py-1.5 px-2">Athlete</th>
+                      <th className="py-1.5 px-2 text-center">Pld</th>
+                      <th className="py-1.5 px-2 text-center">W-D-L</th>
+                      <th className="py-1.5 px-2 text-center">GD</th>
+                      <th className="py-1.5 px-2 text-right">Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40 font-medium">
+                    {snapshotRows.map((row: any) => {
+                      const isMe = row.playerId === currentPlayer.id;
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`transition-colors ${
+                            isMe ? "bg-primary/15 font-black text-white" : "hover:bg-muted/30"
+                          }`}
+                        >
+                          <td className="py-1.5 px-2 font-mono text-xs">
+                            {row.rank}
+                          </td>
+                          <td className="py-1.5 px-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="h-5 w-5 rounded-full overflow-hidden bg-background border border-border shrink-0 flex items-center justify-center">
+                                <img
+                                  src={resolvePlayerAvatar(row.player)}
+                                  alt=""
+                                  className="h-full w-full object-contain"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
+                                  }}
+                                />
+                              </div>
+                              <span className="truncate max-w-28 sm:max-w-36">{row.player?.gamerTag}</span>
+                              {isMe && (
+                                <span className="text-xs uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
+                                  YOU
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-1.5 px-2 text-center font-mono">{row.played}</td>
+                          <td className="py-1.5 px-2 text-center font-mono text-muted-foreground">
+                            {row.won}-{row.drawn}-{row.lost}
+                          </td>
+                          <td className="py-1.5 px-2 text-center font-mono">
+                            {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-black font-mono text-secondary">
+                            {row.points}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : null;
+
+        return (
+          <div className="space-y-8">
           {/* CONTINENTAL QUALIFICATION & ELIMINATION STATUS BANNER */}
           {continentalStatus && continentalStatus.title && (
             <div
@@ -3507,52 +3602,60 @@ export default function DashboardClient({
               </div>
             </div>
           ) : (
-            <div className="relative overflow-hidden rounded-3xl border border-border bg-card/40 backdrop-blur-xl px-6 py-14 sm:px-12 sm:py-20 text-center shadow-2xl flex flex-col justify-center items-center">
-              {/* Official Today's Match Graphic Stadium Background */}
-              <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-                <Image
-                  src="/images/today-match-bg.png"
-                  alt="Today's Match Pitch and Stadium"
-                  fill
-                  sizes="(max-width: 1200px) 100vw, 1200px"
-                  className="object-cover object-bottom opacity-85 sm:opacity-90"
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/60 to-background/20" />
-              </div>
-
-              <div className="relative z-10 space-y-4 max-w-xl mx-auto">
-                <Smartphone className="h-12 w-12 text-muted-foreground mx-auto drop-shadow-md" />
-                <h3 className="text-xl sm:text-2xl font-black uppercase text-white tracking-wide drop-shadow-md">
-                  No Active Match at this moment
-                </h3>
-                <p className="text-xs sm:text-sm text-foreground/90 max-w-md mx-auto leading-relaxed drop-shadow">
-                  {allPlayerMatches.length > 0
-                    ? `You have ${allPlayerMatches.length} fixture${allPlayerMatches.length === 1 ? "" : "s"} scheduled in your season timeline. You can explore all your upcoming and past matches in the Match Calendar.`
-                    : "Your next 24-hour matchday fixture will drop automatically when generated by the Commissioner. Please check back then or explore the division standings."}
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                  {allPlayerMatches.length > 0 && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setActiveTab("CALENDAR")}
-                      className="bg-primary hover:bg-primary text-white font-black text-xs gap-2 shadow-lg"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      Open Match Calendar ({allPlayerMatches.length} Fixtures)
-                    </Button>
-                  )}
-                  <ButtonRollingText
-                    href="/standings"
-                    variant="yellow"
-                    size="sm"
-                    text="View Division Standings"
-                    stagger
-                    className="font-bold text-xs shadow-lg"
+            <div className={`grid grid-cols-1 ${hasSnapshot ? "lg:grid-cols-2" : ""} gap-5 items-stretch`}>
+              {/* Official Today's Match Status Card (Compact) */}
+              <div className="relative overflow-hidden rounded-3xl border border-border bg-card/40 backdrop-blur-xl p-5 sm:p-6 text-center shadow-xl flex flex-col justify-center items-center h-full min-h-75">
+                {/* Official Today's Match Graphic Stadium Background */}
+                <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+                  <Image
+                    src="/images/today-match-bg.png"
+                    alt="Today's Match Pitch and Stadium"
+                    fill
+                    sizes="(max-width: 1200px) 100vw, 600px"
+                    className="object-cover object-bottom opacity-75 sm:opacity-80"
+                    priority
                   />
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/70 to-background/30" />
+                </div>
+
+                <div className="relative z-10 space-y-3 max-w-sm mx-auto flex flex-col items-center justify-center my-auto">
+                  <div className="p-2.5 rounded-2xl bg-card/80 border border-border/80 shadow-md inline-flex items-center justify-center">
+                    <Smartphone className="h-6 w-6 text-muted-foreground drop-shadow-md" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wide drop-shadow-md">
+                    No Active Match at this moment
+                  </h3>
+                  <p className="text-xs text-foreground/80 leading-relaxed drop-shadow">
+                    {allPlayerMatches.length > 0
+                      ? `You have ${allPlayerMatches.length} fixture${allPlayerMatches.length === 1 ? "" : "s"} scheduled in your season timeline. You can explore upcoming matches in the Match Calendar.`
+                      : "Your next 24-hour matchday fixture will drop automatically when generated by the Commissioner. Please check back then or explore the division standings."}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+                    {allPlayerMatches.length > 0 && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setActiveTab("CALENDAR")}
+                        className="bg-primary hover:bg-primary text-white font-black text-xs gap-1.5 shadow-md h-9 px-3.5"
+                      >
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>Match Calendar ({allPlayerMatches.length})</span>
+                      </Button>
+                    )}
+                    <ButtonRollingText
+                      href="/standings"
+                      variant="yellow"
+                      size="sm"
+                      text="View Division Standings"
+                      stagger
+                      className="font-bold text-xs shadow-md h-9 px-3.5"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Division Standings Snapshot Aligned on the same line */}
+              {leaderboardSnapshotElement}
             </div>
           )}
 
@@ -3711,108 +3814,14 @@ export default function DashboardClient({
             );
           })()}
 
-          {/* DIVISION STANDINGS SNAPSHOT */}
-          {(() => {
-            const currentDivTable =
-              player.division === "Division 1"
-                ? div1Standings
-                : player.division === "Division 2"
-                ? div2Standings
-                : div3Standings;
-
-            if (!currentDivTable || currentDivTable.length === 0) return null;
-
-            // Take top 5 rows
-            const snapshotRows = currentDivTable.slice(0, 5);
-
-            return (
-              <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-5 sm:p-6 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-border/80 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-secondary" />
-                    <h3 className="text-sm sm:text-base font-black uppercase text-white tracking-wide">
-                      {player.division} Leaderboard Snapshot
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("STANDINGS")}
-                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                  >
-                    <span>Full Table</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border/60 text-muted-foreground uppercase text-xs font-bold">
-                        <th className="py-2 px-2">#</th>
-                        <th className="py-2 px-2">Athlete</th>
-                        <th className="py-2 px-2 text-center">Pld</th>
-                        <th className="py-2 px-2 text-center">W-D-L</th>
-                        <th className="py-2 px-2 text-center">GD</th>
-                        <th className="py-2 px-2 text-right">Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40 font-medium">
-                      {snapshotRows.map((row: any) => {
-                        const isMe = row.playerId === currentPlayer.id;
-                        return (
-                          <tr
-                            key={row.id}
-                            className={`transition-colors ${
-                              isMe ? "bg-primary/15 font-black text-white" : "hover:bg-muted/30"
-                            }`}
-                          >
-                            <td className="py-2 px-2 font-mono text-xs">
-                              {row.rank}
-                            </td>
-                            <td className="py-2 px-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="h-5 w-5 rounded-full overflow-hidden bg-background border border-border shrink-0 flex items-center justify-center">
-                                  <img
-                                    src={resolvePlayerAvatar(row.player)}
-                                    alt=""
-                                    className="h-full w-full object-contain"
-                                    onError={(e) => {
-                                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
-                                    }}
-                                  />
-                                </div>
-                                <span className="truncate max-w-32">{row.player?.gamerTag}</span>
-                                {isMe && (
-                                  <span className="text-xs uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
-                                    YOU
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-2 px-2 text-center font-mono">{row.played}</td>
-                            <td className="py-2 px-2 text-center font-mono text-muted-foreground">
-                              {row.won}-{row.drawn}-{row.lost}
-                            </td>
-                            <td className="py-2 px-2 text-center font-mono">
-                              {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
-                            </td>
-                            <td className="py-2 px-2 text-right font-black font-mono text-secondary">
-                              {row.points}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          })()}
+          {/* DIVISION STANDINGS SNAPSHOT (Shown at bottom only when an active match or kickoff pending occupies the top row) */}
+          {(activeMatch || isSeasonAwaitingKickoff) && leaderboardSnapshotElement}
 
           {/* FC-STYLE INSTAGRAM SOCIAL FEED & AUTOMATIC FOOTBALL NEWS */}
           <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
         </div>
-      )}
+      );
+    })()}
 
       {/* TAB 2: INBOX & ANNOUNCEMENTS & DIRECT MESSAGING */}
       {activeTab === "INBOX" && (
