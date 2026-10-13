@@ -82,17 +82,17 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
   };
 
   return (
-    <section className="space-y-6 pt-4 max-w-xl mx-auto w-full">
+    <section className="space-y-6 pt-4 max-w-2xl mx-auto w-full">
       {/* 1. Feed Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-primary/20 text-primary border border-primary/30">
+      <div className="border-b border-border/80 pb-4 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-primary/20 text-primary border border-primary/30 shrink-0">
               <Flame className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
+                <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight uppercase">
                   League Social Feed
                 </h2>
                 <Badge variant="live" className="text-xs font-black uppercase px-2 py-0.5">
@@ -104,16 +104,27 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
               </p>
             </div>
           </div>
+
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => fetchPosts(1, activeFilter, false)}
+            className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground shrink-0 self-end sm:self-center"
+            title="Refresh Feed"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          </Button>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        {/* Filter Pills - Dedicated row with guaranteed no-wrap and shrink-0 */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           <Button
             type="button"
             size="sm"
             variant={activeFilter === "ALL" ? "default" : "outline"}
             onClick={() => handleFilterChange("ALL")}
-            className="rounded-xl text-xs font-black h-8 px-3"
+            className="rounded-xl text-xs font-black h-8 px-3.5 shrink-0 whitespace-nowrap"
           >
             All Stories
           </Button>
@@ -123,7 +134,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
             size="sm"
             variant={activeFilter === "MOTD" ? "default" : "outline"}
             onClick={() => handleFilterChange("MOTD")}
-            className="rounded-xl text-xs font-black h-8 px-3 gap-1.5"
+            className="rounded-xl text-xs font-black h-8 px-3.5 gap-1.5 shrink-0 whitespace-nowrap"
           >
             <Flame className="h-3.5 w-3.5" />
             <span>Match of Day</span>
@@ -134,7 +145,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
             size="sm"
             variant={activeFilter === "MOTW" ? "default" : "outline"}
             onClick={() => handleFilterChange("MOTW")}
-            className="rounded-xl text-xs font-black h-8 px-3 gap-1.5"
+            className="rounded-xl text-xs font-black h-8 px-3.5 gap-1.5 shrink-0 whitespace-nowrap"
           >
             <Trophy className="h-3.5 w-3.5" />
             <span>Match of Week</span>
@@ -145,21 +156,10 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
             size="sm"
             variant={activeFilter === "RIVALRY" ? "default" : "outline"}
             onClick={() => handleFilterChange("RIVALRY")}
-            className="rounded-xl text-xs font-black h-8 px-3 gap-1.5"
+            className="rounded-xl text-xs font-black h-8 px-3.5 gap-1.5 shrink-0 whitespace-nowrap"
           >
             <Swords className="h-3.5 w-3.5" />
             <span>Rivalry Banter</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            onClick={() => fetchPosts(1, activeFilter, false)}
-            className="h-8 w-8 rounded-xl text-muted-foreground hover:text-white"
-            title="Refresh Feed"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -186,12 +186,31 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
           ))}
         </div>
       ) : posts.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border p-12 text-center space-y-3 bg-card/30">
-          <Sparkles className="h-10 w-10 text-muted-foreground mx-auto opacity-40" />
-          <h3 className="text-base font-black text-white">No Stories In This Category Yet</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Official announcements, Match of the Day results, and Match of the Week rivalry banter will appear here automatically as fixtures are scheduled and confirmed.
-          </p>
+        <div className="rounded-3xl border border-dashed border-border p-10 sm:p-12 text-center space-y-4 bg-card/30 backdrop-blur-sm">
+          <div className="h-12 w-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center mx-auto text-muted-foreground">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-black text-foreground uppercase tracking-wide">
+              {activeFilter === "ALL"
+                ? "No Stories In This Category Yet"
+                : `No ${activeFilter === "MOTD" ? "Match of the Day" : activeFilter === "MOTW" ? "Match of the Week" : "Rivalry"} Stories Yet`}
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              Official announcements, verified match scores, and rivalry banter will appear here automatically as league matchdays unfold.
+            </p>
+          </div>
+          {activeFilter !== "ALL" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleFilterChange("ALL")}
+              className="text-xs font-bold rounded-xl"
+            >
+              View All Stories
+            </Button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col space-y-8">

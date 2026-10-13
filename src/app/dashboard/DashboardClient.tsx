@@ -38,6 +38,9 @@ import {
   XCircle,
   RefreshCw,
   ShieldCheck,
+  Activity,
+  TrendingUp,
+  Swords,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonRollingText } from "@/components/ui/button-rolling-text";
@@ -3661,13 +3664,23 @@ export default function DashboardClient({
 
           {/* DIVISION MATCH OF THE DAY SECTION (ISOLATED TO PLAYER'S DIVISION ONLY) */}
           <div className="space-y-4 pt-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-secondary" />
-                <h3 className="text-lg font-black uppercase text-white tracking-wide">
-                  Match of the Day ({player.division})
-                </h3>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-secondary/15 text-secondary border border-secondary/25">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black uppercase text-foreground tracking-wide">
+                    Match of the Day ({player.division})
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Featured division marquee clash selected dynamically
+                  </p>
+                </div>
               </div>
+              <Badge variant="secondary" className="font-mono text-xs hidden sm:inline-flex">
+                Matchday {leagueConfig?.currentMatchday || 1}
+              </Badge>
             </div>
 
             {isSeasonAwaitingKickoff ? (
@@ -3682,17 +3695,38 @@ export default function DashboardClient({
             ) : myDivMotd ? (
               <MatchOfTheDayCard match={myDivMotd} />
             ) : (
-              <div className="rounded-2xl border border-border bg-background/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-2.5 w-2.5 rounded-full bg-secondary" />
-                  <span className="font-bold text-foreground">
-                    {player.division} Match of the Day:
-                  </span>
-                  <span>Evaluated and selected dynamically based on standings & performance.</span>
+              <div className="relative overflow-hidden rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-secondary/5 via-transparent to-primary/5" />
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className="h-11 w-11 rounded-2xl bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 text-secondary">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm sm:text-base font-black uppercase text-foreground">
+                          {player.division} Marquee Clash Selection
+                        </h4>
+                        <Badge variant="secondary" className="font-mono text-xs">
+                          Matchday {leagueConfig?.currentMatchday || 1}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground max-w-xl">
+                        Evaluated dynamically based on table standings, rivalry history, and peak performance once fixtures kick off.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/80 bg-background/60 text-xs font-mono text-muted-foreground">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary" />
+                      </span>
+                      <span>Dynamic Evaluation Active</span>
+                    </div>
+                  </div>
                 </div>
-                <Badge variant="secondary" className="font-mono text-xs w-fit">
-                  Matchday {leagueConfig?.currentMatchday || 1}
-                </Badge>
               </div>
             )}
 
@@ -3753,14 +3787,17 @@ export default function DashboardClient({
             const winRate = played > 0 ? Math.round((won / played) * 100) : 0;
 
             return (
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
                 {/* Standings Performance Indicator */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                  <span className="font-bold uppercase tracking-wider text-white">
-                    {hasStartedContinental && continentalStanding
-                      ? `${continentalStanding.division || "Continental"} Standings Stats`
-                      : `${player.division} Standings Stats`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    <span className="font-bold uppercase tracking-wider text-foreground">
+                      {hasStartedContinental && continentalStanding
+                        ? `${continentalStanding.division || "Continental"} Standings Stats`
+                        : `${player.division} Standings Stats`}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2">
                     {continentalStatus?.title && (
                       <span
@@ -3782,32 +3819,93 @@ export default function DashboardClient({
                 </div>
 
                 {/* 5-Card Quick Stats Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
-                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase block">Matches Played</span>
-                    <span className="text-2xl font-black text-white">{played}</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                  {/* Matches Played */}
+                  <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-md p-4 flex flex-col justify-between hover:border-border/80 transition-all shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground uppercase">Matches Played</span>
+                      <div className="p-1.5 rounded-xl bg-muted/60 text-muted-foreground">
+                        <Swords className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-foreground block">{played}</span>
+                      <span className="text-xs font-mono text-muted-foreground">Regular Season</span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase block">Wins</span>
-                    <span className="text-2xl font-black text-primary">{won}</span>
+
+                  {/* Wins */}
+                  <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-md p-4 flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground uppercase">Wins</span>
+                      <div className="p-1.5 rounded-xl bg-primary/20 text-primary">
+                        <Trophy className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-primary block">{won}</span>
+                      <span className="text-xs font-mono text-muted-foreground">Total Victories</span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase block">Points</span>
-                    <span className="text-2xl font-black text-secondary">{points}</span>
+
+                  {/* Points */}
+                  <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-md p-4 flex flex-col justify-between hover:border-secondary/40 transition-all shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground uppercase">Points</span>
+                      <div className="p-1.5 rounded-xl bg-secondary/20 text-secondary">
+                        <Star className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-secondary block">{points}</span>
+                      <span className="text-xs font-mono text-muted-foreground">Table Standing</span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase block">Win Rate</span>
-                    <span className="text-2xl font-black text-secondary">{winRate}%</span>
+
+                  {/* Win Rate */}
+                  <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-md p-4 flex flex-col justify-between hover:border-secondary/40 transition-all shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground uppercase">Win Rate</span>
+                      <div className="p-1.5 rounded-xl bg-secondary/20 text-secondary">
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-secondary block">{winRate}%</span>
+                      <span className="text-xs font-mono text-muted-foreground">Efficiency</span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-card/60 p-4 text-center col-span-2 sm:col-span-1">
-                    <span className="text-xs font-bold text-muted-foreground uppercase block">Missed Matches</span>
-                    <span
-                      className={`text-2xl font-black ${
-                        player.consecutiveMissed > 0 ? "text-destructive" : "text-foreground"
-                      }`}
-                    >
-                      {player.consecutiveMissed} / 3 Max
-                    </span>
+
+                  {/* Missed Matches */}
+                  <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-md p-4 flex flex-col justify-between col-span-2 sm:col-span-1 hover:border-border/80 transition-all shadow-sm space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground uppercase">Missed Matches</span>
+                      <div
+                        className={`p-1.5 rounded-xl ${
+                          player.consecutiveMissed > 0
+                            ? "bg-destructive/20 text-destructive"
+                            : "bg-primary/20 text-primary"
+                        }`}
+                      >
+                        <ShieldAlert className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <span
+                        className={`text-2xl sm:text-3xl font-black block ${
+                          player.consecutiveMissed > 0 ? "text-destructive" : "text-foreground"
+                        }`}
+                      >
+                        {player.consecutiveMissed} <span className="text-xs font-bold text-muted-foreground">/ 3 Max</span>
+                      </span>
+                      <span
+                        className={`text-xs font-mono ${
+                          player.consecutiveMissed > 0 ? "text-destructive" : "text-muted-foreground"
+                        }`}
+                      >
+                        {player.consecutiveMissed === 0 ? "Clean Record" : "Forfeit Risk"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
