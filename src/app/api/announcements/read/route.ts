@@ -20,33 +20,44 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { announcementId } = body;
+    const { announcementId, announcementIds } = body;
 
-    if (!announcementId) {
+    const ids: string[] = Array.isArray(announcementIds)
+      ? announcementIds.filter((id) => typeof id === "string" && id.length > 0)
+      : typeof announcementId === "string" && announcementId.length > 0
+      ? [announcementId]
+      : [];
+
+    if (ids.length === 0) {
       return NextResponse.json({ error: "Announcement ID is required" }, { status: 400 });
     }
 
-    // Persist or refresh read receipt
-    const readRecord = await prisma.announcementRead.upsert({
-      where: {
-        announcementId_playerId: {
-          announcementId,
-          playerId: user.player.id,
-        },
-      },
-      update: {},
-      create: {
-        announcementId,
-        playerId: user.player.id,
-        readAt: new Date(),
-      },
-    });
+    const playerId = user.player.id;
+
+    // Persist or refresh read receipts
+    await Promise.all(
+      ids.map((id) =>
+        prisma.announcementRead.upsert({
+          where: {
+            announcementId_playerId: {
+              announcementId: id,
+              playerId,
+            },
+          },
+          update: {},
+          create: {
+            announcementId: id,
+            playerId,
+            readAt: new Date(),
+          },
+        })
+      )
+    );
 
     return NextResponse.json({
       success: true,
-      announcementId,
-      readAt: readRecord.readAt.toISOString(),
-      message: "Announcement marked as read. It will be removed from your feed 24 hours after being read.",
+      markedIds: ids,
+      message: "Announcement(s) marked as read.",
     });
   } catch (err: any) {
     console.error("Mark announcement read error:", err);

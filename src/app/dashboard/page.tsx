@@ -168,6 +168,16 @@ export default async function DashboardPage({
   const expiredReadIds = new Set(expiredReads.map((r) => r.announcementId));
   announcements = announcements.filter((ann) => !expiredReadIds.has(ann.id));
 
+  // Fetch actively read announcement IDs to hydrate client-side read states
+  const activeReads = await prisma.announcementRead.findMany({
+    where: {
+      playerId: player.id,
+      readAt: { gte: cutoff24h },
+    },
+    select: { announcementId: true },
+  });
+  const initialReadAnnouncementIds = activeReads.map((r) => r.announcementId);
+
   // If player is in the reserve pool, filter out match fixture broadcasts
   if (isReserved) {
     announcements = announcements.filter(
@@ -968,6 +978,7 @@ export default async function DashboardPage({
       activeMatch={activeMatch}
       allPlayerMatches={allPlayerMatches}
       announcements={announcements}
+      initialReadAnnouncementIds={initialReadAnnouncementIds}
       recentMatches={recentMatches}
       standing={activeStandingForStats || currentStanding}
       leagueConfig={leagueConfig}

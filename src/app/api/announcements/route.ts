@@ -44,7 +44,16 @@ export async function GET(req: Request) {
       orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ announcements });
+    let readIds: string[] = [];
+    if (playerId) {
+      const reads = await prisma.announcementRead.findMany({
+        where: { playerId },
+        select: { announcementId: true },
+      });
+      readIds = reads.map((r) => r.announcementId);
+    }
+
+    return NextResponse.json({ announcements, readIds });
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to load announcements" }, { status: 500 });
   }

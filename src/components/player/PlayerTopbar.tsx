@@ -34,6 +34,8 @@ export default function PlayerTopbar({
   collapsed,
   onRefresh,
   onViewAllNotifications,
+  onMarkAsRead,
+  onMarkAllAsRead,
   onSettings,
   onSignOut,
   signingOut = false,
@@ -49,6 +51,8 @@ export default function PlayerTopbar({
   collapsed: boolean;
   onRefresh: () => void;
   onViewAllNotifications?: () => void;
+  onMarkAsRead?: (announcementId: string) => void;
+  onMarkAllAsRead?: () => void;
   onSettings: () => void;
   onSignOut: () => void;
   signingOut?: boolean;
@@ -98,6 +102,8 @@ export default function PlayerTopbar({
         initialAnnouncements={announcements}
         unreadCount={unreadCount}
         onViewAll={onViewAllNotifications}
+        onMarkAsRead={onMarkAsRead}
+        onMarkAllAsRead={onMarkAllAsRead}
       />
 
       <UserAvatarMenu

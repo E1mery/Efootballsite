@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Bell, CheckCircle2, Megaphone, Pin } from "lucide-react";
+import { ArrowRight, Bell, CheckCheck, CheckCircle2, Megaphone, Pin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,12 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import {
+  getStoredReadIds,
+  markAnnouncementsAsReadApi,
+  onAnnouncementsRead,
+  persistStoredReadIds,
+} from "@/lib/announcements-sync";
 
 export type NotificationItem = {
   id: string;
@@ -33,14 +39,11 @@ type NotificationProps = {
   unreadCount?: number;
   onViewAll?: () => void;
   onMarkAsRead?: (announcementId: string) => void;
+  onMarkAllAsRead?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   triggerClassName?: string;
 };
-
-function getStorageKey(playerId?: string) {
-  return playerId ? `efrl_read_ann_${playerId}` : "efrl_read_ann_guest";
-}
 
 function formatRelativeTime(value: string | Date) {
   const date = new Date(value);
@@ -64,6 +67,7 @@ export default function Notification({
   unreadCount: controlledUnread,
   onViewAll,
   onMarkAsRead: onMarkAsReadProp,
+  onMarkAllAsRead: onMarkAllAsReadProp,
   open: controlledOpen,
   onOpenChange,
   triggerClassName,
@@ -76,7 +80,10 @@ export default function Notification({
     initialAnnouncements ?? []
   );
   const [loading, setLoading] = useState(false);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [readIds, setReadIds] = useState<Set<string>>(() =>
+    getStoredReadIds(playerId)
+  );
+  const [hydrated, setHydrated] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -94,16 +101,18 @@ export default function Notification({
   }, [initialAnnouncements]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(getStorageKey(playerId));
-      if (saved) {
-        setReadIds(new Set<string>(JSON.parse(saved)));
-      } else {
-        setReadIds(new Set());
-      }
-    } catch {
-      setReadIds(new Set());
-    }
+    setReadIds(getStoredReadIds(playerId));
+    setHydrated(true);
+  }, [playerId]);
+
+  useEffect(() => {
+    return onAnnouncementsRead(playerId, (ids) => {
+      setReadIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.add(id));
+        return next;
+      });
+    });
   }, [playerId]);
 
   const loadAnnouncements = useCallback(async () => {
@@ -119,6 +128,14 @@ export default function Notification({
       if (Array.isArray(data.announcements)) {
         setFetched(data.announcements);
       }
+      if (Array.isArray(data.readIds) && data.readIds.length > 0) {
+        persistStoredReadIds(playerId, data.readIds);
+        setReadIds((prev) => {
+          const next = new Set(prev);
+          data.readIds.forEach((id: string) => next.add(id));
+          return next;
+        });
+      }
     } catch {
       // keep previous list on network hiccup
     } finally {
@@ -133,14 +150,17 @@ export default function Notification({
   }, [loadAnnouncements]);
 
   const sorted = useMemo(() => {
-    return [...fetched].sort((a, b) => {
-      if (Boolean(a.isPinned) !== Boolean(b.isPinned)) {
-        return a.isPinned ? -1 : 1;
-      }
-      return (
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    });
+    const cutoff24h = Date.now() - 24 * 60 * 60 * 1000;
+    return [...fetched]
+      .filter((a) => a && (a.isPinned || new Date(a.createdAt).getTime() > cutoff24h))
+      .sort((a, b) => {
+        if (Boolean(a.isPinned) !== Boolean(b.isPinned)) {
+          return a.isPinned ? -1 : 1;
+        }
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
   }, [fetched]);
 
   const latest = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
@@ -149,43 +169,36 @@ export default function Notification({
     () => sorted.filter((a) => !readIds.has(a.id)).length,
     [sorted, readIds]
   );
-  const unreadCount = controlledUnread ?? computedUnread;
 
-  const persistRead = useCallback(
-    (ids: string[]) => {
-      setReadIds((prev) => {
-        const updated = new Set(prev);
-        ids.forEach((id) => updated.add(id));
-        try {
-          localStorage.setItem(
-            getStorageKey(playerId),
-            JSON.stringify(Array.from(updated))
-          );
-        } catch {
-          // ignore storage errors
-        }
-        return updated;
-      });
-    },
-    [playerId]
-  );
+  // Live count based on hydrated read status. Fallback to controlled count before hydration.
+  const unreadCount = hydrated ? computedUnread : (controlledUnread ?? computedUnread);
 
   const handleMarkAsRead = useCallback(
     async (announcementId: string) => {
-      persistRead([announcementId]);
+      persistStoredReadIds(playerId, [announcementId]);
+      setReadIds((prev) => {
+        const next = new Set(prev);
+        next.add(announcementId);
+        return next;
+      });
       onMarkAsReadProp?.(announcementId);
-      try {
-        await fetch("/api/announcements/read", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ announcementId }),
-        });
-      } catch {
-        // read receipt is best-effort
-      }
+      await markAnnouncementsAsReadApi([announcementId]);
     },
-    [onMarkAsReadProp, persistRead]
+    [playerId, onMarkAsReadProp]
   );
+
+  const handleMarkAllAsRead = useCallback(async () => {
+    const unreadIds = sorted.filter((a) => !readIds.has(a.id)).map((a) => a.id);
+    if (unreadIds.length === 0) return;
+    persistStoredReadIds(playerId, unreadIds);
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      unreadIds.forEach((id) => next.add(id));
+      return next;
+    });
+    onMarkAllAsReadProp?.();
+    await markAnnouncementsAsReadApi(unreadIds);
+  }, [playerId, sorted, readIds, onMarkAllAsReadProp]);
 
   return (
     <Drawer
@@ -223,15 +236,30 @@ export default function Notification({
               </span>
               <DrawerTitle>Latest Notifications</DrawerTitle>
             </div>
-            {unreadCount > 0 ? (
-              <Badge variant="yellow" className="text-xs font-bold">
-                {unreadCount} New
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-xs">
-                All caught up
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 ? (
+                <>
+                  <Badge variant="yellow" className="text-xs font-bold">
+                    {unreadCount} New
+                  </Badge>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMarkAllAsRead}
+                    className="h-7 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    title="Mark all notifications as read"
+                  >
+                    <CheckCheck className="mr-1 h-3.5 w-3.5 text-primary" />
+                    Mark all read
+                  </Button>
+                </>
+              ) : (
+                <Badge variant="secondary" className="text-xs">
+                  All caught up
+                </Badge>
+              )}
+            </div>
           </div>
           <DrawerDescription>
             Official broadcasts and direct notices
@@ -302,10 +330,15 @@ export default function Notification({
                     <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                       {ann.content}
                     </p>
-                    {isRead && (
+                    {isRead ? (
                       <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
                         <CheckCircle2 className="h-3 w-3 text-primary" />
                         Read
+                      </span>
+                    ) : (
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-secondary">
+                        <CheckCheck className="h-3 w-3" />
+                        Mark as read
                       </span>
                     )}
                   </button>

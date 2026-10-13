@@ -11,6 +11,11 @@ import {
   type PlayerDashboardTab,
   type PlayerSidebarCounts,
 } from "./player-nav";
+import {
+  getStoredReadIds,
+  onAnnouncementsRead,
+  persistStoredReadIds,
+} from "@/lib/announcements-sync";
 
 type DashboardClientProps = React.ComponentProps<typeof DashboardClient>;
 
@@ -68,29 +73,61 @@ export default function PlayerShell(props: PlayerShellProps) {
     }
   }, [bothLeaguesUnlocked, internalTab, isReserved]);
 
-  const unreadCount = useMemo(() => {
-    const now = Date.now();
-    const cutoff = now - 24 * 60 * 60 * 1000;
-    try {
-      const storageKey = `efrl_read_ann_${player?.id}`;
-      const saved =
-        typeof window !== "undefined"
-          ? localStorage.getItem(storageKey)
-          : null;
-      const readSet = new Set<string>(saved ? JSON.parse(saved) : []);
-      return (announcements || []).filter(
-        (a: any) =>
-          a &&
-          (a.isPinned || new Date(a.createdAt).getTime() > cutoff) &&
-          !readSet.has(a.id)
-      ).length;
-    } catch {
-      return (announcements || []).filter(
-        (a: any) =>
-          a && (a.isPinned || new Date(a.createdAt).getTime() > cutoff)
-      ).length;
+  const { initialReadAnnouncementIds } = props as any;
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    const stored = getStoredReadIds(player?.id);
+    if (Array.isArray(initialReadAnnouncementIds)) {
+      initialReadAnnouncementIds.forEach((id: string) => stored.add(id));
     }
-  }, [announcements, player?.id, internalTab]);
+    return stored;
+  });
+
+  useEffect(() => {
+    const stored = getStoredReadIds(player?.id);
+    if (Array.isArray(initialReadAnnouncementIds)) {
+      initialReadAnnouncementIds.forEach((id: string) => stored.add(id));
+    }
+    setReadIds(stored);
+  }, [player?.id, initialReadAnnouncementIds]);
+
+  useEffect(() => {
+    return onAnnouncementsRead(player?.id, (ids) => {
+      setReadIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.add(id));
+        return next;
+      });
+    });
+  }, [player?.id]);
+
+  const handleMarkAsRead = (id: string) => {
+    persistStoredReadIds(player?.id, [id]);
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+
+  const handleMarkAllAsRead = () => {
+    const allIds = (announcements || []).map((a: any) => a?.id).filter(Boolean);
+    persistStoredReadIds(player?.id, allIds);
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      allIds.forEach((id: string) => next.add(id));
+      return next;
+    });
+  };
+
+  const unreadCount = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return (announcements || []).filter(
+      (a: any) =>
+        a &&
+        (a.isPinned || new Date(a.createdAt).getTime() > cutoff) &&
+        !readIds.has(a.id)
+    ).length;
+  }, [announcements, readIds]);
 
   const counts: PlayerSidebarCounts = useMemo(
     () => ({
@@ -204,6 +241,8 @@ export default function PlayerShell(props: PlayerShellProps) {
           collapsed={collapsed}
           onRefresh={handleRefresh}
           onViewAllNotifications={() => handleNavigate("INBOX")}
+          onMarkAsRead={handleMarkAsRead}
+          onMarkAllAsRead={handleMarkAllAsRead}
           onSettings={() => handleNavigate("PROFILE")}
           onSignOut={handleSignOut}
           signingOut={signingOut}
@@ -215,6 +254,7 @@ export default function PlayerShell(props: PlayerShellProps) {
               activeTab={internalTab}
               onTabChange={setInternalTab}
               onOpenSidebar={() => setMobileOpen(true)}
+              initialReadAnnouncementIds={initialReadAnnouncementIds}
             />
           </div>
         </main>

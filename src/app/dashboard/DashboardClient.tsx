@@ -58,6 +58,12 @@ import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
 import SuperCupView from "@/components/competitions/SuperCupView";
 import InterdivisionCupsView from "@/components/competitions/InterdivisionCupsView";
 import SocialFeed from "@/components/social/SocialFeed";
+import {
+  getStoredReadIds,
+  persistStoredReadIds,
+  onAnnouncementsRead,
+  markAnnouncementsAsReadApi,
+} from "@/lib/announcements-sync";
 
 interface ContinentalGroupStandingsViewProps {
   competition: "UCL" | "EUROPA";
@@ -557,6 +563,7 @@ export default function DashboardClient({
   pastChampionsUcl = [],
   pastChampionsEuropa = [],
   initialCup,
+  initialReadAnnouncementIds = [],
   activeTab: controlledTab,
   onTabChange,
   onOpenSidebar,
@@ -566,6 +573,7 @@ export default function DashboardClient({
   activeMatch: any;
   allPlayerMatches?: any[];
   announcements?: any[];
+  initialReadAnnouncementIds?: string[];
   recentMatches?: any[];
   standing: any;
   leagueConfig?: any;
@@ -818,34 +826,46 @@ export default function DashboardClient({
     return (announcements || []).filter((a) => a && (a.isPinned || new Date(a.createdAt).getTime() > cutoff24h));
   }, [announcements, announcementNow]);
 
-  // Announcement read tracking (interactive from localStorage)
-  const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
+  // Announcement read tracking (interactive from localStorage & sync event)
+  const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(() => {
+    const set = getStoredReadIds(player?.id);
+    if (Array.isArray(initialReadAnnouncementIds)) {
+      initialReadAnnouncementIds.forEach((id: string) => set.add(id));
+    }
+    return set;
+  });
 
   useEffect(() => {
     try {
-      const storageKey = `efrl_read_ann_${player.id}`;
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        setReadAnnouncements(new Set<string>(JSON.parse(saved)));
+      const set = getStoredReadIds(player?.id);
+      if (Array.isArray(initialReadAnnouncementIds)) {
+        initialReadAnnouncementIds.forEach((id: string) => set.add(id));
       }
+      setReadAnnouncements(set);
     } catch (e) {
       console.error("Read receipt load error:", e);
     }
-  }, [player.id]);
+  }, [player?.id, initialReadAnnouncementIds]);
+
+  useEffect(() => {
+    return onAnnouncementsRead(player?.id, (ids) => {
+      setReadAnnouncements((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.add(id));
+        return next;
+      });
+    });
+  }, [player?.id]);
 
   const handleMarkAsRead = async (announcementId: string) => {
     try {
-      const storageKey = `efrl_read_ann_${player.id}`;
-      const updated = new Set(readAnnouncements);
-      updated.add(announcementId);
-      setReadAnnouncements(updated);
-      localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
-
-      await fetch("/api/announcements/read", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ announcementId }),
+      persistStoredReadIds(player?.id, [announcementId]);
+      setReadAnnouncements((prev) => {
+        const updated = new Set(prev);
+        updated.add(announcementId);
+        return updated;
       });
+      await markAnnouncementsAsReadApi([announcementId]);
     } catch (e) {
       console.error("Failed to mark announcement as read:", e);
     }
@@ -853,21 +873,14 @@ export default function DashboardClient({
 
   const handleMarkAllAsRead = async () => {
     try {
-      const storageKey = `efrl_read_ann_${player.id}`;
-      const updated = new Set(readAnnouncements);
-      activeAnnouncements.forEach((ann) => updated.add(ann.id));
-      setReadAnnouncements(updated);
-      localStorage.setItem(storageKey, JSON.stringify(Array.from(updated)));
-
-      await Promise.all(
-        activeAnnouncements.map((ann) =>
-          fetch("/api/announcements/read", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ announcementId: ann.id }),
-          }).catch(() => {})
-        )
-      );
+      const allIds = activeAnnouncements.map((ann) => ann.id);
+      persistStoredReadIds(player?.id, allIds);
+      setReadAnnouncements((prev) => {
+        const updated = new Set(prev);
+        allIds.forEach((id) => updated.add(id));
+        return updated;
+      });
+      await markAnnouncementsAsReadApi(allIds);
     } catch (e) {
       console.error("Failed to mark all announcements as read:", e);
     }
