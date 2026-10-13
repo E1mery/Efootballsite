@@ -330,7 +330,7 @@ export default function ContinentalClient({
           </button>
 
           <Link
-            href="/dashboard?tab=SUPER_CUP"
+            href="/dashboard?tab=INTERDIVISION_CUPS&cup=SUPER_CUP"
             className="flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shrink-0 whitespace-nowrap text-muted-foreground hover:text-white hover:bg-card border border-transparent hover:border-border"
           >
             <div className="relative h-5 w-5 shrink-0">

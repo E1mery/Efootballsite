@@ -15,6 +15,7 @@ export type PlayerDashboardTab =
   | "OVERVIEW"
   | "CALENDAR"
   | "STANDINGS"
+  | "INTERDIVISION_CUPS"
   | "UCL"
   | "EUROPA"
   | "SUPER_CUP"
@@ -52,9 +53,10 @@ export const PLAYER_TAB_TITLES: Record<PlayerDashboardTab, string> = {
   OVERVIEW: "Today's Match",
   CALENDAR: "Match Calendar",
   STANDINGS: "All Division Tables",
-  UCL: "UEFA Champions League",
-  EUROPA: "UEFA Europa League",
-  SUPER_CUP: "UEFA Super Cup",
+  INTERDIVISION_CUPS: "Interdivision Cups",
+  UCL: "Interdivision Cups",
+  EUROPA: "Interdivision Cups",
+  SUPER_CUP: "Interdivision Cups",
   DRAWS: "UCL & Europa Draws",
   INBOX: "Announcements & Inbox",
   HISTORY: "Match History & Proof",
@@ -86,22 +88,10 @@ export function buildPlayerNav(counts: PlayerSidebarCounts): PlayerNavGroup[] {
       trophyImage: "/assets/trophies/league.png",
     },
     {
-      id: "UCL",
-      title: "Champions League",
-      icon: Shield,
+      id: "INTERDIVISION_CUPS",
+      title: "Interdivision Cups",
+      icon: Trophy,
       trophyImage: "/assets/trophies/champions-league.png",
-    },
-    {
-      id: "EUROPA",
-      title: "Europa League",
-      icon: Flame,
-      trophyImage: "/assets/trophies/europa-league.png",
-    },
-    {
-      id: "SUPER_CUP",
-      title: "Super Cup",
-      icon: Crown,
-      trophyImage: "/assets/trophies/super-cup.png",
     },
   ];
   if (counts.drawsLive) {

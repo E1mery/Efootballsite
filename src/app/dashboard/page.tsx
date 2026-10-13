@@ -14,14 +14,16 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ tab?: string; cup?: string }>;
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const rawTab = resolvedSearchParams?.tab?.toUpperCase();
+  const rawCup = resolvedSearchParams?.cup?.toUpperCase();
   const initialTab: PlayerDashboardTab | undefined =
     rawTab === "OVERVIEW" ||
     rawTab === "CALENDAR" ||
     rawTab === "STANDINGS" ||
+    rawTab === "INTERDIVISION_CUPS" ||
     rawTab === "UCL" ||
     rawTab === "EUROPA" ||
     rawTab === "SUPER_CUP" ||
@@ -30,6 +32,15 @@ export default async function DashboardPage({
     rawTab === "HISTORY" ||
     rawTab === "PROFILE"
       ? (rawTab as PlayerDashboardTab)
+      : undefined;
+
+  const initialCup: "UCL" | "EUROPA" | "SUPER_CUP" | undefined =
+    rawCup === "EUROPA" || rawTab === "EUROPA"
+      ? "EUROPA"
+      : rawCup === "SUPER_CUP" || rawTab === "SUPER_CUP"
+      ? "SUPER_CUP"
+      : rawCup === "UCL" || rawTab === "UCL"
+      ? "UCL"
       : undefined;
 
   const cookieStore = await cookies();
@@ -987,6 +998,7 @@ export default async function DashboardPage({
       seasonKickoffDate={seasonKickoffDate}
       standingsUpdatesMap={standingsUpdatesMap}
       initialTab={initialTab}
+      initialCup={initialCup}
       uclMatches={uclMatches}
       europaMatches={europaMatches}
       uclChampion={superCupOverview.uclChampion}

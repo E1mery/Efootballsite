@@ -141,7 +141,13 @@ export function PlayerSidebarBody({
           <NavButton
             key={item.id}
             item={item}
-            isActive={activeTab === item.id}
+            isActive={
+              activeTab === item.id ||
+              (item.id === "INTERDIVISION_CUPS" &&
+                (activeTab === "UCL" ||
+                  activeTab === "EUROPA" ||
+                  activeTab === "SUPER_CUP"))
+            }
             collapsed={collapsed}
             onNavigate={onNavigate}
           />

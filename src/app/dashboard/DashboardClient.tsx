@@ -53,6 +53,7 @@ import type { PlayerDashboardTab } from "@/components/player/player-nav";
 import ChampionsLeagueView from "@/components/competitions/ChampionsLeagueView";
 import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
 import SuperCupView from "@/components/competitions/SuperCupView";
+import InterdivisionCupsView from "@/components/competitions/InterdivisionCupsView";
 
 interface ContinentalGroupStandingsViewProps {
   competition: "UCL" | "EUROPA";
@@ -551,6 +552,7 @@ export default function DashboardClient({
   pastSuperCupWinners = [],
   pastChampionsUcl = [],
   pastChampionsEuropa = [],
+  initialCup,
   activeTab: controlledTab,
   onTabChange,
   onOpenSidebar,
@@ -597,6 +599,7 @@ export default function DashboardClient({
   pastSuperCupWinners?: any[];
   pastChampionsUcl?: any[];
   pastChampionsEuropa?: any[];
+  initialCup?: "UCL" | "EUROPA" | "SUPER_CUP";
   activeTab?: PlayerDashboardTab;
   onTabChange?: (tab: PlayerDashboardTab) => void;
   onOpenSidebar?: () => void;
@@ -1958,6 +1961,21 @@ export default function DashboardClient({
           <span>All Division Tables</span>
         </button>
 
+        <button
+          onClick={() => setActiveTab("INTERDIVISION_CUPS")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
+            activeTab === "INTERDIVISION_CUPS" ||
+            activeTab === "UCL" ||
+            activeTab === "EUROPA" ||
+            activeTab === "SUPER_CUP"
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
+          }`}
+        >
+          <Trophy className="h-4 w-4" />
+          <span>Interdivision Cups</span>
+        </button>
+
         {bothLeaguesUnlocked && (
           <button
             onClick={() => setActiveTab("DRAWS")}
@@ -2174,51 +2192,38 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* TAB: UEFA CHAMPIONS LEAGUE (UCL) */}
-      {activeTab === "UCL" && (
-        <ChampionsLeagueView
+      {/* TAB: INTERDIVISION CUPS (CHAMPIONS LEAGUE, EUROPA LEAGUE & SUPER CUP) */}
+      {(activeTab === "INTERDIVISION_CUPS" ||
+        activeTab === "UCL" ||
+        activeTab === "EUROPA" ||
+        activeTab === "SUPER_CUP") && (
+        <InterdivisionCupsView
           season={leagueConfig?.season || "Season 1 (2026)"}
           currentPlayer={player}
           leagueConfig={leagueConfig}
-          qualifiedPlayers={uclQualified}
-          groupSlots={uclSlots}
-          matches={uclMatches}
-          standings={uclGroupStandings}
-          pastChampions={pastChampionsUcl}
-          onOpenSubmitResult={(m) => {
-            setActionMatch(m);
-            setShowResultModal(true);
-          }}
-        />
-      )}
-
-      {/* TAB: UEFA EUROPA LEAGUE */}
-      {activeTab === "EUROPA" && (
-        <EuropaLeagueView
-          season={leagueConfig?.season || "Season 1 (2026)"}
-          currentPlayer={player}
-          leagueConfig={leagueConfig}
-          qualifiedPlayers={europaQualified}
-          groupSlots={europaSlots}
-          matches={europaMatches}
-          standings={europaGroupStandings}
-          pastChampions={pastChampionsEuropa}
-          onOpenSubmitResult={(m) => {
-            setActionMatch(m);
-            setShowResultModal(true);
-          }}
-        />
-      )}
-
-      {/* TAB: UEFA SUPER CUP */}
-      {activeTab === "SUPER_CUP" && (
-        <SuperCupView
-          season={leagueConfig?.season || "Season 1 (2026)"}
-          currentPlayer={player}
+          uclQualified={uclQualified}
+          uclSlots={uclSlots}
+          uclMatches={uclMatches}
+          uclGroupStandings={uclGroupStandings}
+          pastChampionsUcl={pastChampionsUcl}
+          europaQualified={europaQualified}
+          europaSlots={europaSlots}
+          europaMatches={europaMatches}
+          europaGroupStandings={europaGroupStandings}
+          pastChampionsEuropa={pastChampionsEuropa}
           uclChampion={uclChampion}
           europaChampion={europaChampion}
           superCupMatch={superCupMatch}
           pastSuperCupWinners={pastSuperCupWinners}
+          initialCup={
+            activeTab === "EUROPA"
+              ? "EUROPA"
+              : activeTab === "SUPER_CUP"
+              ? "SUPER_CUP"
+              : activeTab === "UCL"
+              ? "UCL"
+              : initialCup || "UCL"
+          }
           onOpenSubmitResult={(m) => {
             setActionMatch(m);
             setShowResultModal(true);

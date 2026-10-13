@@ -106,8 +106,10 @@ export default function PlayerShell(props: PlayerShellProps) {
   const handleNavigate = (tab: PlayerDashboardTab) => {
     setInternalTab(tab);
     setMobileOpen(false);
-    if (tab === "UCL" || tab === "EUROPA" || tab === "SUPER_CUP") {
-      router.replace(`/dashboard?tab=${tab}`, { scroll: false });
+    if (tab === "INTERDIVISION_CUPS") {
+      router.replace("/dashboard?tab=INTERDIVISION_CUPS", { scroll: false });
+    } else if (tab === "UCL" || tab === "EUROPA" || tab === "SUPER_CUP") {
+      router.replace(`/dashboard?tab=INTERDIVISION_CUPS&cup=${tab}`, { scroll: false });
     } else if (tab === "DRAWS") {
       router.replace("/dashboard?tab=DRAWS", { scroll: false });
     } else {
