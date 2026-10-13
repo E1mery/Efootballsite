@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { resolvePlayerAvatar } from "@/lib/teams";
+import { resolvePlayerAvatar, ALL_REAL_TEAMS, findTeam, isCustomUploadedHofImage } from "@/lib/teams";
+
+export { isCustomUploadedHofImage };
 
 export interface PlayerCareerStats {
   playerId?: string;
@@ -277,6 +279,43 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
     }
   }
 
+  // Build lookup maps for registered players
+  const playerMapByTag = new Map<string, (typeof allPlayers)[0]>();
+  const playerMapById = new Map<string, (typeof allPlayers)[0]>();
+  for (const p of allPlayers) {
+    playerMapByTag.set(p.gamerTag.trim().toLowerCase(), p);
+    playerMapById.set(p.id, p);
+  }
+
+  // Pre-sync and enrich Hall of Fame entries where player has selected a real team avatar
+  for (const hof of hallOfFameEntries) {
+    const matched =
+      (hof.playerId && playerMapById.get(hof.playerId)) ||
+      playerMapByTag.get((hof.championName || "").trim().toLowerCase());
+    if (matched) {
+      let teamAvatar = matched.avatar;
+      if ((!teamAvatar || teamAvatar.includes("dicebear.com")) && matched.realTeam) {
+        const t = findTeam(matched.realTeam);
+        if (t) teamAvatar = t.logo;
+      }
+      if (teamAvatar && !teamAvatar.includes("dicebear.com")) {
+        // If it's not a custom uploaded photograph, update to team avatar
+        if (!isCustomUploadedHofImage(hof.playerImage)) {
+          if (hof.playerImage !== teamAvatar || !hof.playerId) {
+            hof.playerImage = teamAvatar;
+            hof.playerId = matched.id;
+            prisma.hallOfFame
+              .update({
+                where: { id: hof.id },
+                data: { playerImage: teamAvatar, playerId: matched.id },
+              })
+              .catch(() => {});
+          }
+        }
+      }
+    }
+  }
+
   // Also seed with Hall of Fame inductees if they don't exist as active players
   for (const hof of hallOfFameEntries) {
     const stats = getOrCreatePlayerStats(
@@ -288,7 +327,13 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
     stats.isInducted = hof.isInducted ?? true;
     if (hof.isFeatured) stats.isFeatured = true;
     // If a custom photo/image was uploaded for this Hall of Fame induction, use it as priority
-    if (hof.playerImage) {
+    if (hof.playerImage && isCustomUploadedHofImage(hof.playerImage)) {
+      stats.avatar = hof.playerImage;
+    } else if (
+      hof.playerImage &&
+      !hof.playerImage.includes("dicebear.com") &&
+      (!stats.avatar || stats.avatar.includes("dicebear.com"))
+    ) {
       stats.avatar = hof.playerImage;
     }
     if (hof.championRealName && !stats.fullName) stats.fullName = hof.championRealName;
@@ -1050,4 +1095,181 @@ export async function snapshotCurrentSeason(seasonName: string): Promise<number>
   }
 
   return snapshotsCreated;
+}
+
+/**
+ * Synchronizes a player's real team avatar across all Hall of Fame records where that player
+ * was inducted without a real team avatar (or when using system team crest avatar).
+ *
+ * This ensures that when an admin adds a player to the Hall of Fame before that player
+ * chose their real team avatar, once the player chooses their team avatar, it immediately
+ * updates everywhere the player is (Hall of Fame table, timeline, showcase, records, etc.).
+ */
+export async function syncPlayerAvatarWithHallOfFame(player: {
+  id?: string;
+  gamerTag: string;
+  avatar?: string | null;
+  realTeam?: string | null;
+  fullName?: string | null;
+}): Promise<number> {
+  try {
+    if (!player || (!player.id && !player.gamerTag)) return 0;
+
+    // Resolve the player's effective team avatar
+    let effectiveAvatar = player.avatar;
+    if ((!effectiveAvatar || effectiveAvatar.includes("dicebear.com")) && player.realTeam) {
+      const team = findTeam(player.realTeam);
+      if (team) effectiveAvatar = team.logo;
+    }
+
+    // If player still has no real team avatar (or only a placeholder), nothing to sync yet
+    if (!effectiveAvatar || effectiveAvatar.includes("dicebear.com")) {
+      return 0;
+    }
+
+    // Find all Hall of Fame entries matching this player
+    const matchingEntries = await prisma.hallOfFame.findMany({
+      where: {
+        OR: [
+          ...(player.id ? [{ playerId: player.id }] : []),
+          { championName: { equals: player.gamerTag.trim(), mode: "insensitive" as const } },
+        ],
+      },
+    });
+
+    let updatedCount = 0;
+    for (const entry of matchingEntries) {
+      // If the Hall of Fame entry does NOT have an authentic custom photo (e.g. was empty, DiceBear, or system team logo)
+      // or if its playerImage doesn't match the current team avatar
+      if (!isCustomUploadedHofImage(entry.playerImage)) {
+        if (entry.playerImage !== effectiveAvatar || (player.id && entry.playerId !== player.id)) {
+          await prisma.hallOfFame.update({
+            where: { id: entry.id },
+            data: {
+              playerImage: effectiveAvatar,
+              ...(player.id ? { playerId: player.id } : {}),
+              ...(player.fullName && !entry.championRealName ? { championRealName: player.fullName } : {}),
+            },
+          });
+          updatedCount++;
+        }
+      } else if (!entry.playerId && player.id) {
+        // Even if custom photo is kept, ensure playerId is linked
+        await prisma.hallOfFame.update({
+          where: { id: entry.id },
+          data: { playerId: player.id },
+        });
+      }
+    }
+
+    if (updatedCount > 0) {
+      await invalidateHallOfFameCache();
+
+      // Also sync system news carousel if Hall of Fame slide is showing this champion
+      const topChamp = await prisma.hallOfFame.findFirst({
+        orderBy: [{ season: "desc" }, { createdAt: "desc" }],
+      });
+      if (topChamp?.playerImage) {
+        await prisma.news
+          .updateMany({
+            where: { id: "sys-hall-of-fame" },
+            data: { featuredImage: topChamp.playerImage },
+          })
+          .catch(() => {});
+      }
+    }
+
+    return updatedCount;
+  } catch (err) {
+    console.warn("syncPlayerAvatarWithHallOfFame warning:", err);
+    return 0;
+  }
+}
+
+/**
+ * Enriches and self-heals Hall of Fame entries by matching registered players who have chosen a team avatar.
+ */
+export async function enrichAndSyncHallOfFameEntries<
+  T extends {
+    id: string;
+    championName: string;
+    playerId?: string | null;
+    playerImage?: string | null;
+  }
+>(entries: T[]): Promise<T[]> {
+  try {
+    if (!entries || entries.length === 0) return entries;
+
+    const allPlayers = await prisma.player.findMany({
+      select: {
+        id: true,
+        gamerTag: true,
+        avatar: true,
+        realTeam: true,
+        fullName: true,
+      },
+    });
+
+    const playerMapByTag = new Map<string, (typeof allPlayers)[0]>();
+    const playerMapById = new Map<string, (typeof allPlayers)[0]>();
+    for (const p of allPlayers) {
+      playerMapByTag.set(p.gamerTag.trim().toLowerCase(), p);
+      playerMapById.set(p.id, p);
+    }
+
+    const updatedEntries = [...entries];
+    const toUpdateInDb: Array<{ id: string; playerImage: string; playerId: string }> = [];
+
+    for (let i = 0; i < updatedEntries.length; i++) {
+      const entry = updatedEntries[i];
+      const matched =
+        (entry.playerId && playerMapById.get(entry.playerId)) ||
+        playerMapByTag.get((entry.championName || "").trim().toLowerCase());
+
+      if (matched) {
+        let teamAvatar = matched.avatar;
+        if ((!teamAvatar || teamAvatar.includes("dicebear.com")) && matched.realTeam) {
+          const t = findTeam(matched.realTeam);
+          if (t) teamAvatar = t.logo;
+        }
+
+        if (teamAvatar && !teamAvatar.includes("dicebear.com")) {
+          // If the entry does NOT have a custom uploaded photograph
+          if (!isCustomUploadedHofImage(entry.playerImage)) {
+            if (entry.playerImage !== teamAvatar || !entry.playerId) {
+              updatedEntries[i] = {
+                ...entry,
+                playerImage: teamAvatar,
+                playerId: matched.id,
+              };
+              toUpdateInDb.push({
+                id: entry.id,
+                playerImage: teamAvatar,
+                playerId: matched.id,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (toUpdateInDb.length > 0) {
+      Promise.all(
+        toUpdateInDb.map((u) =>
+          prisma.hallOfFame
+            .update({
+              where: { id: u.id },
+              data: { playerImage: u.playerImage, playerId: u.playerId },
+            })
+            .catch(() => {})
+        )
+      )
+        .then(() => invalidateHallOfFameCache())
+        .catch(() => {});
+    }
+
+    return updatedEntries;
+  } catch {
+    return entries;
+  }
 }

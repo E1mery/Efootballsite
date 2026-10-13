@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findTeam } from "@/lib/teams";
+import { syncPlayerAvatarWithHallOfFame } from "@/lib/hallOfFameStatsService";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -79,6 +80,11 @@ async function processAthlete({
       },
       include: { user: true },
     });
+
+    // Auto-update player avatar across Hall of Fame records & table if inducted
+    if (updatedPlayer.avatar || updatedPlayer.realTeam) {
+      await syncPlayerAvatarWithHallOfFame(updatedPlayer).catch(() => {});
+    }
 
     // Find tournament for this division
     const tournament = await prisma.tournament.findFirst({

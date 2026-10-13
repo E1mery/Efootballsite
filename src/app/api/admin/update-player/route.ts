@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { findTeam } from "@/lib/teams";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { normalizePhoneNumber, isSamePhoneNumber } from "@/lib/phone";
+import { syncPlayerAvatarWithHallOfFame } from "@/lib/hallOfFameStatsService";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -244,6 +245,11 @@ export async function POST(req: Request) {
       where: { id: playerId },
       data: updateData,
     });
+
+    // Auto-update player avatar across Hall of Fame records & table if inducted
+    if (updated.avatar || updated.realTeam) {
+      await syncPlayerAvatarWithHallOfFame(updated).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,

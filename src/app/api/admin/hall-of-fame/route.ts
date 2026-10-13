@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ensureR2FileUrl } from "@/lib/r2";
-import { getHallOfFameStats, invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
+import { findTeam } from "@/lib/teams";
+import {
+  getHallOfFameStats,
+  invalidateHallOfFameCache,
+  enrichAndSyncHallOfFameEntries,
+} from "@/lib/hallOfFameStatsService";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -16,9 +21,10 @@ async function verifyAdmin() {
 
 export async function GET() {
   try {
-    const entries = await prisma.hallOfFame.findMany({
+    const rawEntries = await prisma.hallOfFame.findMany({
       orderBy: [{ season: "desc" }, { createdAt: "desc" }],
     });
+    const entries = await enrichAndSyncHallOfFameEntries(rawEntries);
     const stats = await getHallOfFameStats(false);
 
     return NextResponse.json({ success: true, entries, stats });
@@ -63,11 +69,25 @@ export async function POST(req: Request) {
 
     // Try linking to registered player if not provided
     let linkedPlayerId = playerId || null;
-    if (!linkedPlayerId) {
-      const matchPlayer = await prisma.player.findFirst({
+    let matchPlayer: any = null;
+    if (linkedPlayerId) {
+      matchPlayer = await prisma.player.findUnique({ where: { id: linkedPlayerId } });
+    }
+    if (!matchPlayer) {
+      matchPlayer = await prisma.player.findFirst({
         where: { gamerTag: { equals: championName.trim(), mode: "insensitive" } },
       });
       if (matchPlayer) linkedPlayerId = matchPlayer.id;
+    }
+
+    // If playerImage was NOT provided or is a DiceBear URL, and matchPlayer has a real team avatar:
+    if ((!finalPlayerImage || finalPlayerImage.includes("dicebear.com")) && matchPlayer) {
+      let teamAvatar = matchPlayer.avatar;
+      if ((!teamAvatar || teamAvatar.includes("dicebear.com")) && matchPlayer.realTeam) {
+        const team = findTeam(matchPlayer.realTeam);
+        if (team) teamAvatar = team.logo;
+      }
+      finalPlayerImage = teamAvatar && !teamAvatar.includes("dicebear.com") ? teamAvatar : null;
     }
 
     const entry = await prisma.hallOfFame.create({
@@ -75,7 +95,7 @@ export async function POST(req: Request) {
         tournamentName: tournamentName.trim(),
         season: season.trim(),
         championName: championName.trim(),
-        championRealName: championRealName?.trim() || null,
+        championRealName: championRealName?.trim() || matchPlayer?.fullName || null,
         playerImage: finalPlayerImage || null,
         trophyType: trophyType || "GOLD",
         isInducted: Boolean(isInducted),

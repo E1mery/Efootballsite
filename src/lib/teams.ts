@@ -977,3 +977,22 @@ export function resolvePlayerAvatar(player?: {
   // Default fallback avatar placeholder or initial
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player?.gamerTag || "Player")}`;
 }
+
+/**
+ * Checks if a player image URL is a genuine custom uploaded photo
+ * (e.g., uploaded by admin as REAL_PICTURE) rather than a team club crest,
+ * DiceBear placeholder, or default avatar.
+ */
+export function isCustomUploadedHofImage(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  // DiceBear SVG placeholders are NOT authentic custom player photos
+  if (trimmed.includes("dicebear.com")) return false;
+  // Football data org crests are system team avatars
+  if (trimmed.includes("football-data.org")) return false;
+  // Check if it matches any team logo in ALL_REAL_TEAMS
+  if (ALL_REAL_TEAMS.some((t) => t.logo === trimmed)) return false;
+  // Otherwise, it's considered an authentic uploaded photograph
+  return true;
+}

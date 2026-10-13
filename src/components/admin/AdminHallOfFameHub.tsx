@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Crown,
   Trophy,
@@ -24,12 +24,15 @@ import {
   History as HistoryIcon,
   Check,
   ImageIcon,
+  Filter,
+  X,
+  RotateCcw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatRwandanDate } from "@/lib/rwandanTime";
-import { resolvePlayerAvatar } from "@/lib/teams";
+import { resolvePlayerAvatar, isCustomUploadedHofImage } from "@/lib/teams";
 
 interface AdminHallOfFameHubProps {
   initialHallOfFame: any[];
@@ -80,8 +83,146 @@ export default function AdminHallOfFameHub({
   const [manualDesc, setManualDesc] = useState("");
   const [submittingManual, setSubmittingManual] = useState(false);
 
-  // Search filter
+  // Search filter for statistics subtab
   const [playerSearchQuery, setPlayerSearchQuery] = useState("");
+
+  // Filters for Inducted Champions subtab
+  const [hofSearchQuery, setHofSearchQuery] = useState("");
+  const [hofTournamentFilter, setHofTournamentFilter] = useState("ALL");
+  const [hofSeasonFilter, setHofSeasonFilter] = useState("ALL");
+  const [hofSourceFilter, setHofSourceFilter] = useState("ALL");
+  const [hofFeaturedFilter, setHofFeaturedFilter] = useState("ALL");
+  const [hofAvatarFilter, setHofAvatarFilter] = useState("ALL");
+
+  const availableTournaments = useMemo(() => {
+    const set = new Set<string>();
+    hallOfFame.forEach((h) => {
+      if (h.tournamentName && typeof h.tournamentName === "string" && h.tournamentName.trim()) {
+        set.add(h.tournamentName.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [hallOfFame]);
+
+  const availableSeasons = useMemo(() => {
+    const set = new Set<string>();
+    hallOfFame.forEach((h) => {
+      if (h.season && typeof h.season === "string" && h.season.trim()) {
+        set.add(h.season.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [hallOfFame]);
+
+  const isAnyHofFilterActive = useMemo(() => {
+    return (
+      Boolean(hofSearchQuery.trim()) ||
+      hofTournamentFilter !== "ALL" ||
+      hofSeasonFilter !== "ALL" ||
+      hofSourceFilter !== "ALL" ||
+      hofFeaturedFilter !== "ALL" ||
+      hofAvatarFilter !== "ALL"
+    );
+  }, [
+    hofSearchQuery,
+    hofTournamentFilter,
+    hofSeasonFilter,
+    hofSourceFilter,
+    hofFeaturedFilter,
+    hofAvatarFilter,
+  ]);
+
+  const handleResetHofFilters = () => {
+    setHofSearchQuery("");
+    setHofTournamentFilter("ALL");
+    setHofSeasonFilter("ALL");
+    setHofSourceFilter("ALL");
+    setHofFeaturedFilter("ALL");
+    setHofAvatarFilter("ALL");
+  };
+
+  const filteredHallOfFame = useMemo(() => {
+    return hallOfFame.filter((entry) => {
+      // Search query (champion name, real name, notes, season, tournament)
+      if (hofSearchQuery.trim()) {
+        const q = hofSearchQuery.toLowerCase().trim();
+        const champ = (entry.championName || "").toLowerCase();
+        const real = (entry.championRealName || "").toLowerCase();
+        const notes = (entry.notes || "").toLowerCase();
+        const tourney = (entry.tournamentName || "").toLowerCase();
+        const season = (entry.season || "").toLowerCase();
+        if (
+          !champ.includes(q) &&
+          !real.includes(q) &&
+          !notes.includes(q) &&
+          !tourney.includes(q) &&
+          !season.includes(q)
+        ) {
+          return false;
+        }
+      }
+
+      // Tournament filter
+      if (hofTournamentFilter !== "ALL" && entry.tournamentName !== hofTournamentFilter) {
+        return false;
+      }
+
+      // Season filter
+      if (hofSeasonFilter !== "ALL" && entry.season !== hofSeasonFilter) {
+        return false;
+      }
+
+      // Source filter
+      if (hofSourceFilter !== "ALL" && entry.sourceType !== hofSourceFilter) {
+        return false;
+      }
+
+      // Featured filter
+      if (hofFeaturedFilter === "FEATURED" && !entry.isFeatured) {
+        return false;
+      }
+      if (hofFeaturedFilter === "STANDARD" && entry.isFeatured) {
+        return false;
+      }
+
+      // Avatar status filter
+      if (hofAvatarFilter !== "ALL") {
+        const matchedPlayer = allPlayers.find(
+          (p) =>
+            (entry.playerId && p.id === entry.playerId) ||
+            p.gamerTag?.toLowerCase() === entry.championName?.toLowerCase()
+        );
+        const hasPlayerTeam = Boolean(
+          (matchedPlayer?.avatar && !matchedPlayer.avatar.includes("dicebear.com")) ||
+          matchedPlayer?.realTeam
+        );
+        const playerAvatar = matchedPlayer && hasPlayerTeam ? resolvePlayerAvatar(matchedPlayer) : null;
+        const isCustom = isCustomUploadedHofImage(entry.playerImage);
+        const displayImage = isCustom
+          ? entry.playerImage
+          : playerAvatar || (entry.playerImage && !entry.playerImage.includes("dicebear.com") ? entry.playerImage : null);
+
+        const hasAvatar = Boolean(displayImage);
+        if (hofAvatarFilter === "HAS_AVATAR" && !hasAvatar) {
+          return false;
+        }
+        if (hofAvatarFilter === "AWAITING_AVATAR" && hasAvatar) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [
+    hallOfFame,
+    allPlayers,
+    hofSearchQuery,
+    hofTournamentFilter,
+    hofSeasonFilter,
+    hofSourceFilter,
+    hofFeaturedFilter,
+    hofAvatarFilter,
+  ]);
 
   // Load stats and manual records on mount or refresh
   const loadData = async () => {
@@ -153,8 +294,14 @@ export default function AdminHallOfFameHub({
     (p) => p.id === selectedPlayerId || p.gamerTag.toLowerCase() === hofChampion.trim().toLowerCase()
   );
 
+  // Check if player has chosen a real team avatar (custom avatar or real team logo, not a dicebear placeholder)
+  const hasRealTeamAvatar = Boolean(
+    (currentSelectedPlayer?.avatar && !currentSelectedPlayer.avatar.includes("dicebear.com")) ||
+    currentSelectedPlayer?.realTeam
+  );
+
   // Compute player's system avatar (real team logo / registered avatar)
-  const playerSystemAvatar = currentSelectedPlayer
+  const playerSystemAvatar = currentSelectedPlayer && hasRealTeamAvatar
     ? resolvePlayerAvatar({
         avatar: currentSelectedPlayer.avatar,
         realTeam: currentSelectedPlayer.realTeam,
@@ -162,7 +309,9 @@ export default function AdminHallOfFameHub({
       })
     : "";
 
-  // The actual image to submit based on admin selection
+  // The actual image to submit based on admin selection.
+  // If player hasn't chosen a team avatar yet and admin picks SYSTEM_AVATAR,
+  // we send null so that once the player chooses their team avatar, it automatically populates.
   const finalImageToUse =
     avatarChoice === "REAL_PICTURE"
       ? (customUploadedImage.trim() || hofPlayerImage.trim() || null)
@@ -182,11 +331,16 @@ export default function AdminHallOfFameHub({
       }
       // If admin hasn't uploaded a real picture, keep system avatar choice
       if (avatarChoice === "SYSTEM_AVATAR") {
-        const sysAvatar = resolvePlayerAvatar({
-          avatar: found.avatar,
-          realTeam: found.realTeam,
-          gamerTag: found.gamerTag,
-        });
+        const hasTeam = Boolean(
+          (found.avatar && !found.avatar.includes("dicebear.com")) || found.realTeam
+        );
+        const sysAvatar = hasTeam
+          ? resolvePlayerAvatar({
+              avatar: found.avatar,
+              realTeam: found.realTeam,
+              gamerTag: found.gamerTag,
+            })
+          : "";
         setHofPlayerImage(sysAvatar);
       }
     }
@@ -909,7 +1063,9 @@ export default function AdminHallOfFameHub({
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Uses the real team club crest / avatar the athlete chose in the system.
+                        {currentSelectedPlayer && !hasRealTeamAvatar
+                          ? "Player hasn't chosen a team avatar yet. Once they choose their team avatar, it will automatically update everywhere (Hall of Fame table, timeline, showcase, etc.)."
+                          : "Uses the real team club crest / avatar the athlete chose in the system."}
                       </p>
                     </div>
                   </button>
@@ -1014,20 +1170,226 @@ export default function AdminHallOfFameHub({
             </form>
           </div>
 
-          {/* Inductees List */}
+          {/* Inductees List with Filters */}
           <div className="space-y-4">
-            <h4 className="text-sm font-black uppercase text-foreground flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-secondary" />
-              All-Time Inducted Champions ({hallOfFame.length})
-            </h4>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-black uppercase text-foreground flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-secondary" />
+                  All-Time Inducted Champions ({filteredHallOfFame.length}
+                  {filteredHallOfFame.length !== hallOfFame.length && (
+                    <span className="text-muted-foreground font-normal lowercase text-xs">
+                      of {hallOfFame.length} total
+                    </span>
+                  )})
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Filter and manage immortalized champions, their featured spotlights, and avatar statuses.
+                </p>
+              </div>
+
+              {isAnyHofFilterActive && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetHofFilters}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground self-start sm:self-auto shrink-0"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                  Reset Filters
+                </Button>
+              )}
+            </div>
+
+            {/* Filter Controls Bar */}
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2 border-b border-border pb-2.5">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase text-foreground">
+                  <Filter className="h-3.5 w-3.5 text-secondary" />
+                  Filter Champions
+                </div>
+                {isAnyHofFilterActive && (
+                  <span className="text-xs font-medium text-secondary">
+                    Filters active ({filteredHallOfFame.length} found)
+                  </span>
+                )}
+              </div>
+
+              {/* Main inputs: Search, Tournament, Season, Source */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by gamer tag, name..."
+                    value={hofSearchQuery}
+                    onChange={(e) => setHofSearchQuery(e.target.value)}
+                    className="pl-9 pr-8 text-xs bg-background border-border h-9"
+                  />
+                  {hofSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setHofSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Tournament Filter */}
+                <div>
+                  <select
+                    value={hofTournamentFilter}
+                    onChange={(e) => setHofTournamentFilter(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 h-9 text-xs text-foreground focus:ring-1 focus:ring-secondary"
+                  >
+                    <option value="ALL">All Tournaments ({availableTournaments.length})</option>
+                    {availableTournaments.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Season Filter */}
+                <div>
+                  <select
+                    value={hofSeasonFilter}
+                    onChange={(e) => setHofSeasonFilter(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 h-9 text-xs text-foreground focus:ring-1 focus:ring-secondary"
+                  >
+                    <option value="ALL">All Seasons ({availableSeasons.length})</option>
+                    {availableSeasons.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Source Filter */}
+                <div>
+                  <select
+                    value={hofSourceFilter}
+                    onChange={(e) => setHofSourceFilter(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 h-9 text-xs text-foreground focus:ring-1 focus:ring-secondary"
+                  >
+                    <option value="ALL">All Sources (Auto & Manual)</option>
+                    <option value="AUTOMATIC">🔒 Auto (System Crowned)</option>
+                    <option value="MANUAL">✎ Manual (Admin Crowned)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick filter pills: Featured status & Avatar status */}
+              <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-border/60 text-xs">
+                {/* Featured filter toggle */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground font-medium">Spotlight:</span>
+                  <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setHofFeaturedFilter("ALL")}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                        hofFeaturedFilter === "ALL"
+                          ? "bg-secondary text-secondary-foreground font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHofFeaturedFilter("FEATURED")}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors inline-flex items-center gap-1 ${
+                        hofFeaturedFilter === "FEATURED"
+                          ? "bg-secondary text-secondary-foreground font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Star className="h-3 w-3" />
+                      Featured
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHofFeaturedFilter("STANDARD")}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                        hofFeaturedFilter === "STANDARD"
+                          ? "bg-secondary text-secondary-foreground font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Standard
+                    </button>
+                  </div>
+                </div>
+
+                {/* Avatar status toggle */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground font-medium">Avatar:</span>
+                  <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setHofAvatarFilter("ALL")}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                        hofAvatarFilter === "ALL"
+                          ? "bg-secondary text-secondary-foreground font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHofAvatarFilter("HAS_AVATAR")}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                        hofAvatarFilter === "HAS_AVATAR"
+                          ? "bg-secondary text-secondary-foreground font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Has Avatar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHofAvatarFilter("AWAITING_AVATAR")}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                        hofAvatarFilter === "AWAITING_AVATAR"
+                          ? "bg-secondary text-secondary-foreground font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Awaiting Team Avatar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {hallOfFame.length === 0 ? (
               <div className="p-8 rounded-2xl border border-border bg-card text-center text-xs text-muted-foreground">
                 No champions inducted yet. Use the form above to immortalize your first champion!
               </div>
+            ) : filteredHallOfFame.length === 0 ? (
+              <div className="p-8 rounded-2xl border border-dashed border-border bg-card/50 text-center space-y-3">
+                <div className="text-xs text-muted-foreground">
+                  No champions match the selected filters.
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetHofFilters}
+                  className="h-8 text-xs"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1.5" />
+                  Clear All Filters
+                </Button>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {hallOfFame.map((entry) => (
+                {filteredHallOfFame.map((entry) => (
                   <div
                     key={entry.id}
                     className="rounded-2xl border border-border bg-card p-4 space-y-3 flex flex-col justify-between"
@@ -1051,49 +1413,78 @@ export default function AdminHallOfFameHub({
                         </Badge>
                       </div>
 
-                      <div className="flex items-center gap-3 pt-1">
-                        <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
-                          {entry.playerImage ? (
-                            <img
-                              src={entry.playerImage}
-                              alt={entry.championName}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <User className="h-6 w-6 text-muted-foreground" />
-                          )}
-                        </div>
+                      {(() => {
+                        const matchedPlayer = allPlayers.find(
+                          (p) =>
+                            (entry.playerId && p.id === entry.playerId) ||
+                            p.gamerTag?.toLowerCase() === entry.championName?.toLowerCase()
+                        );
+                        const hasPlayerTeam = Boolean(
+                          (matchedPlayer?.avatar && !matchedPlayer.avatar.includes("dicebear.com")) ||
+                          matchedPlayer?.realTeam
+                        );
+                        const playerAvatar = matchedPlayer && hasPlayerTeam ? resolvePlayerAvatar(matchedPlayer) : null;
+                        const isCustom = isCustomUploadedHofImage(entry.playerImage);
+                        const displayImage = isCustom
+                          ? entry.playerImage
+                          : playerAvatar || (entry.playerImage && !entry.playerImage.includes("dicebear.com") ? entry.playerImage : null);
 
-                        <div className="min-w-0">
-                          <div className="text-sm font-black text-foreground truncate flex items-center gap-1.5">
-                            <span>{entry.championName}</span>
-                            {(() => {
-                              const count = hallOfFame.filter(
-                                (h) => (h.championName || "").trim().toLowerCase() === (entry.championName || "").trim().toLowerCase()
-                              ).length;
-                              if (count <= 1) return null;
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-0.5 text-secondary"
-                                  title={`${count} Championship Titles`}
-                                >
-                                  {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
-                                    <Star key={i} className="h-3 w-3 fill-secondary text-secondary" />
-                                  ))}
-                                  {count > 4 && (
-                                    <span className="text-xs font-black">+{count - 4}</span>
-                                  )}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                          {entry.championRealName && (
-                            <div className="text-xs text-muted-foreground truncate">
-                              {entry.championRealName}
+                        return (
+                          <div className="flex items-center gap-3 pt-1">
+                            <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
+                              {displayImage ? (
+                                <img
+                                  src={displayImage}
+                                  alt={entry.championName}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <User className="h-6 w-6 text-muted-foreground" />
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
+
+                            <div className="min-w-0">
+                              <div className="text-sm font-black text-foreground truncate flex items-center gap-1.5">
+                                <span>{entry.championName}</span>
+                                {(() => {
+                                  const count = hallOfFame.filter(
+                                    (h) => (h.championName || "").trim().toLowerCase() === (entry.championName || "").trim().toLowerCase()
+                                  ).length;
+                                  if (count <= 1) return null;
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 text-secondary"
+                                      title={`${count} Championship Titles`}
+                                    >
+                                      {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+                                        <Star key={i} className="h-3 w-3 fill-secondary text-secondary" />
+                                      ))}
+                                      {count > 4 && (
+                                        <span className="text-xs font-black">+{count - 4}</span>
+                                      )}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                              {entry.championRealName && (
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {entry.championRealName}
+                                </div>
+                              )}
+                              {!isCustom && matchedPlayer?.realTeam && (
+                                <div className="text-xs text-secondary font-bold truncate">
+                                  {matchedPlayer.realTeam}
+                                </div>
+                              )}
+                              {!isCustom && !matchedPlayer?.realTeam && !displayImage && (
+                                <div className="text-xs text-muted-foreground italic truncate">
+                                  Awaiting team avatar
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="pt-2 border-t border-border flex items-center justify-between text-xs">

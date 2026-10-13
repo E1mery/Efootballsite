@@ -7,6 +7,7 @@ import {
   formatRwandanDateTime,
 } from "@/lib/rwandanTime";
 import { resolvePlayerAvatar } from "@/lib/teams";
+import { enrichAndSyncHallOfFameEntries } from "@/lib/hallOfFameStatsService";
 import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
 
 /**
@@ -73,7 +74,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       motdMatch,
       latestFinishedMatch,
       maxPlayedStanding,
-      hallOfFameEntries,
+      rawHallOfFameEntries,
       topInFormStandings,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
@@ -134,6 +135,8 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         take: 4,
       }),
     ]);
+
+    const hallOfFameEntries = await enrichAndSyncHallOfFameEntries(rawHallOfFameEntries);
 
     // 3. Query all eligible news articles and system announcements from database
     const eligibleNews = await prisma.news.findMany({

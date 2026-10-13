@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { enrichAndSyncHallOfFameEntries } from "@/lib/hallOfFameStatsService";
 
 export interface SeasonArchiveOverview {
   seasonName: string;
@@ -270,10 +271,11 @@ export async function getArchivedSeasonDetails(seasonName: string): Promise<Seas
   }
 
   // 3. Champions: from HallOfFame records matching this season
-  const hofEntries = await prisma.hallOfFame.findMany({
+  const rawHofEntries = await prisma.hallOfFame.findMany({
     where: { season: seasonName },
     orderBy: { createdAt: "asc" },
   });
+  const hofEntries = await enrichAndSyncHallOfFameEntries(rawHofEntries);
 
   const champions: SeasonArchiveChampionItem[] = hofEntries.map((h) => {
     let comp = "Division 1";

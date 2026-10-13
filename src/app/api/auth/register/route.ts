@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { findTeam } from "@/lib/teams";
 import { normalizePhoneNumber, isSamePhoneNumber } from "@/lib/phone";
+import { syncPlayerAvatarWithHallOfFame } from "@/lib/hallOfFameStatsService";
 
 export async function POST(req: Request) {
   try {
@@ -193,6 +194,11 @@ export async function POST(req: Request) {
         overallRating: 85,
       },
     });
+
+    // Auto-update player avatar across Hall of Fame records & table if already inducted
+    if (player.avatar || player.realTeam) {
+      await syncPlayerAvatarWithHallOfFame(player).catch(() => {});
+    }
 
     // NOTE: Standings record is NOT created yet for unadmitted players.
     // If placed on reserve, the player can immediately explore standings and vote on MOTD.

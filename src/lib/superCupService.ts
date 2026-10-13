@@ -69,7 +69,9 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
         gamerTag: uclHof.championName,
         fullName: uclHof.championRealName || matchedPlayer?.fullName,
         realTeam: matchedPlayer?.realTeam,
-        avatar: uclHof.playerImage || matchedPlayer?.avatar,
+        avatar: (matchedPlayer?.avatar && !matchedPlayer.avatar.includes("dicebear.com"))
+          ? matchedPlayer.avatar
+          : (uclHof.playerImage || matchedPlayer?.avatar),
         division: matchedPlayer?.division,
         source: "HALL_OF_FAME",
       };
@@ -128,7 +130,9 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
         gamerTag: europaHof.championName,
         fullName: europaHof.championRealName || matchedPlayer?.fullName,
         realTeam: matchedPlayer?.realTeam,
-        avatar: europaHof.playerImage || matchedPlayer?.avatar,
+        avatar: (matchedPlayer?.avatar && !matchedPlayer.avatar.includes("dicebear.com"))
+          ? matchedPlayer.avatar
+          : (europaHof.playerImage || matchedPlayer?.avatar),
         division: matchedPlayer?.division,
         source: "HALL_OF_FAME",
       };

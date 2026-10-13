@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { redirectAdminToPortal } from "@/lib/adminGuard";
-import { getHallOfFameStats } from "@/lib/hallOfFameStatsService";
+import { getHallOfFameStats, enrichAndSyncHallOfFameEntries } from "@/lib/hallOfFameStatsService";
 import { BRANDING_ASSETS } from "@/lib/assets.config";
 import HallOfFameClient from "./HallOfFameClient";
 
@@ -37,7 +37,7 @@ export default async function HallOfFamePage() {
       }),
     ]);
 
-    hallOfFameEntries = entriesData;
+    hallOfFameEntries = await enrichAndSyncHallOfFameEntries(entriesData);
     stats = statsData;
     leagueConfig = configData;
     tournaments = tournamentsData;
