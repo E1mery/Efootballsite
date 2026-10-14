@@ -19,6 +19,7 @@ import {
   Megaphone,
   Trophy,
   Zap,
+  CheckCircle2,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -71,6 +72,246 @@ interface CoverflowCardProps {
   isMobile: boolean;
   onCardClick: (index: number) => void;
 }
+
+interface SuperCupCarouselPredictionProps {
+  homePlayer: any;
+  awayPlayer: any;
+  initialPollStats?: {
+    totalVotes?: number;
+    f1Votes?: number;
+    f2Votes?: number;
+    homeVotes?: number;
+    awayVotes?: number;
+    f1Pct?: number;
+    f2Pct?: number;
+    homePct?: number;
+    awayPct?: number;
+  };
+  isFinished: boolean;
+  winnerPlayer: any;
+}
+
+const SuperCupCarouselPrediction = memo(function SuperCupCarouselPrediction({
+  homePlayer,
+  awayPlayer,
+  initialPollStats,
+  isFinished,
+  winnerPlayer,
+}: SuperCupCarouselPredictionProps) {
+  const [voterId, setVoterId] = useState<string>("");
+  const [userVotedWinnerId, setUserVotedWinnerId] = useState<string | null>(null);
+  const [voting, setVoting] = useState(false);
+  const [pollStats, setPollStats] = useState({
+    totalVotes: initialPollStats?.totalVotes || 0,
+    f1Votes: initialPollStats?.f1Votes ?? initialPollStats?.homeVotes ?? 0,
+    f2Votes: initialPollStats?.f2Votes ?? initialPollStats?.awayVotes ?? 0,
+    f1Pct: initialPollStats?.f1Pct ?? initialPollStats?.homePct ?? 50,
+    f2Pct: initialPollStats?.f2Pct ?? initialPollStats?.awayPct ?? 50,
+  });
+
+  useEffect(() => {
+    let vid = "";
+    try {
+      const stored = localStorage.getItem("efrl_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id) vid = parsed.id;
+      }
+    } catch {}
+
+    if (!vid) {
+      let guestId = localStorage.getItem("efrl_supercup_voter_id");
+      if (!guestId) {
+        guestId = "voter_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+        localStorage.setItem("efrl_supercup_voter_id", guestId);
+      }
+      vid = guestId;
+    }
+    setVoterId(vid);
+
+    // Fetch live user vote status
+    fetch(`/api/continental/trophy-poll?competition=SUPER_CUP&voterId=${encodeURIComponent(vid)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.active) {
+          if (data.userVotedWinnerId) {
+            setUserVotedWinnerId(data.userVotedWinnerId);
+          }
+          if (data.totalVotes !== undefined) {
+            setPollStats({
+              totalVotes: data.totalVotes,
+              f1Votes: data.finalist1?.votes || 0,
+              f2Votes: data.finalist2?.votes || 0,
+              f1Pct: data.finalist1?.percentage ?? 50,
+              f2Pct: data.finalist2?.percentage ?? 50,
+            });
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleQuickVote = async (predictedWinnerPlayerId: string) => {
+    if (!voterId || voting || isFinished || !predictedWinnerPlayerId) return;
+    setVoting(true);
+
+    const isF1 = predictedWinnerPlayerId === homePlayer?.id;
+    const prevF1Votes = pollStats.f1Votes;
+    const prevF2Votes = pollStats.f2Votes;
+    const prevTotal = pollStats.totalVotes;
+    const hadVoted = Boolean(userVotedWinnerId);
+
+    let newF1Votes = prevF1Votes;
+    let newF2Votes = prevF2Votes;
+    let newTotal = prevTotal;
+
+    if (!hadVoted) {
+      newTotal += 1;
+      if (isF1) newF1Votes += 1;
+      else newF2Votes += 1;
+    } else if (userVotedWinnerId !== predictedWinnerPlayerId) {
+      if (isF1) {
+        newF1Votes += 1;
+        newF2Votes = Math.max(0, newF2Votes - 1);
+      } else {
+        newF2Votes += 1;
+        newF1Votes = Math.max(0, newF1Votes - 1);
+      }
+    }
+
+    const newF1Pct = newTotal > 0 ? Math.round((newF1Votes / newTotal) * 100) : 50;
+    const newF2Pct = newTotal > 0 ? 100 - newF1Pct : 50;
+
+    setUserVotedWinnerId(predictedWinnerPlayerId);
+    setPollStats({
+      totalVotes: newTotal,
+      f1Votes: newF1Votes,
+      f2Votes: newF2Votes,
+      f1Pct: newF1Pct,
+      f2Pct: newF2Pct,
+    });
+
+    try {
+      const res = await fetch("/api/continental/trophy-poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          competition: "SUPER_CUP",
+          predictedWinnerPlayerId,
+          voterId,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to record prediction");
+      }
+    } catch {
+      setUserVotedWinnerId(null);
+      setPollStats({
+        totalVotes: prevTotal,
+        f1Votes: prevF1Votes,
+        f2Votes: prevF2Votes,
+        f1Pct: prevTotal > 0 ? Math.round((prevF1Votes / prevTotal) * 100) : 50,
+        f2Pct: prevTotal > 0 ? Math.round((prevF2Votes / prevTotal) * 100) : 50,
+      });
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  if (isFinished && winnerPlayer) {
+    return (
+      <div className="flex items-center gap-2 text-xs font-mono text-secondary font-bold">
+        <Crown className="h-4 w-4 text-secondary shrink-0" />
+        <span className="truncate">
+          Super Cup Champion: @{winnerPlayer.gamerTag} ({findTeam(winnerPlayer.realTeam)?.shortName || winnerPlayer.realTeam || "Winner"})
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full sm:max-w-md space-y-1.5">
+      <div className="flex items-center justify-between text-xs font-mono font-bold">
+        <span className="text-primary truncate max-w-28 sm:max-w-36">
+          @{homePlayer?.gamerTag} {pollStats.f1Pct}%
+        </span>
+        <span className="text-muted-foreground text-xs font-normal">
+          Prediction Poll ({pollStats.totalVotes} votes)
+        </span>
+        <span className="text-secondary truncate max-w-28 sm:max-w-36 text-right">
+          {pollStats.f2Pct}% @{awayPlayer?.gamerTag}
+        </span>
+      </div>
+
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex shadow-inner border border-border/40">
+        {/* eslint-disable shadcn/no-inline-styles -- dynamic prediction poll percentage */}
+        <div
+          className="h-full bg-primary transition-all duration-500"
+          style={{ width: `${pollStats.f1Pct}%` }}
+        />
+        <div
+          className="h-full bg-secondary transition-all duration-500"
+          style={{ width: `${pollStats.f2Pct}%` }}
+        />
+        {/* eslint-enable shadcn/no-inline-styles */}
+      </div>
+
+      <div className="flex items-center gap-2 pt-0.5">
+        <button
+          type="button"
+          disabled={voting}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleQuickVote(homePlayer?.id);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={cn(
+            "px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer pointer-events-auto border flex items-center gap-1",
+            userVotedWinnerId === homePlayer?.id
+              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+              : "bg-card/90 text-foreground hover:bg-primary/15 hover:text-primary hover:border-primary/50 border-border/70"
+          )}
+        >
+          {userVotedWinnerId === homePlayer?.id && (
+            <CheckCircle2 className="h-3 w-3 text-primary-foreground shrink-0" />
+          )}
+          <span>
+            {userVotedWinnerId === homePlayer?.id
+              ? "Your Pick"
+              : `Predict @${homePlayer?.gamerTag || "Home"}`}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={voting}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleQuickVote(awayPlayer?.id);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={cn(
+            "px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer pointer-events-auto border flex items-center gap-1",
+            userVotedWinnerId === awayPlayer?.id
+              ? "bg-secondary text-secondary-foreground border-secondary shadow-sm"
+              : "bg-card/90 text-foreground hover:bg-secondary/15 hover:text-secondary hover:border-secondary/50 border-border/70"
+          )}
+        >
+          {userVotedWinnerId === awayPlayer?.id && (
+            <CheckCircle2 className="h-3 w-3 text-secondary-foreground shrink-0" />
+          )}
+          <span>
+            {userVotedWinnerId === awayPlayer?.id
+              ? "Your Pick"
+              : `Predict @${awayPlayer?.gamerTag || "Away"}`}
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+});
 
 const CoverflowCard = memo(function CoverflowCard({
   slide,
@@ -282,6 +523,15 @@ const CoverflowCard = memo(function CoverflowCard({
         )}
       />
 
+      {/* UEFA Super Cup Ambient European Night Glow Overlay */}
+      {isSuperCupSlide && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-80 sm:w-96 h-40 bg-secondary/15 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 left-4 w-60 h-36 bg-primary/15 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 right-4 w-60 h-36 bg-secondary/15 rounded-full blur-3xl" />
+        </div>
+      )}
+
       {/* Top Brand Accent Line */}
       <div
         className={cn(
@@ -317,31 +567,296 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* ========================================================================= */}
           {/* 00. SUPER CUP SHOWDOWN / MATCH / ANNOUNCEMENT */}
           {/* ========================================================================= */}
-          {slide.type === "SUPER_CUP" && (
-            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
-              <div className="space-y-2.5 sm:space-y-3.5 text-left max-w-md lg:max-w-xl w-full p-4 sm:p-6 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-2xl">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono text-secondary font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <Trophy className="h-3.5 w-3.5 text-secondary" />
-                    <span>{slide.badge || "Super Cup Showdown"}</span>
-                  </span>
-                  {slide.data?.formattedKickoffFull && (
-                    <span className="text-xs font-mono text-muted-foreground font-semibold">
-                      • Kickoff: {slide.data.formattedKickoffFull}
+          {slide.type === "SUPER_CUP" && (() => {
+            const scData = slide.data || {};
+            const homePlayer = scData.homePlayer || scData.uclChampion || null;
+            const awayPlayer = scData.awayPlayer || scData.europaChampion || null;
+            const matchStatus = scData.matchStatus || (scData.status === "FINISHED" ? "FINISHED" : scData.status === "LIVE" ? "LIVE" : "SCHEDULED");
+            const isFinished = matchStatus === "FINISHED" || scData.status === "FINISHED";
+            const isLive = matchStatus === "LIVE" || scData.status === "LIVE";
+            const homeScore = scData.homeScore ?? scData.match?.homeScore ?? null;
+            const awayScore = scData.awayScore ?? scData.match?.awayScore ?? null;
+            const winnerPlayer = scData.winner || (isFinished && homeScore !== null && awayScore !== null ? (homeScore > awayScore ? homePlayer : awayScore > homeScore ? awayPlayer : null) : null);
+            const isHomeWinner = Boolean(winnerPlayer && homePlayer && ((winnerPlayer.id && winnerPlayer.id === homePlayer.id) || (winnerPlayer.gamerTag && winnerPlayer.gamerTag === homePlayer.gamerTag)));
+            const isAwayWinner = Boolean(winnerPlayer && awayPlayer && ((winnerPlayer.id && winnerPlayer.id === awayPlayer.id) || (winnerPlayer.gamerTag && winnerPlayer.gamerTag === awayPlayer.gamerTag)));
+            const pollStats = scData.pollStats || { totalVotes: 0, f1Votes: 0, f2Votes: 0, f1Pct: 50, f2Pct: 50 };
+            const formattedKickoff = scData.formattedKickoffFull || (scData.formattedKickoffDate && scData.formattedKickoffTime ? `${scData.formattedKickoffDate} • ${scData.formattedKickoffTime} (CAT)` : null);
+            const hasContenders = Boolean(homePlayer && awayPlayer);
+
+            const homeTeam = homePlayer?.realTeam ? findTeam(homePlayer.realTeam) : null;
+            const awayTeam = awayPlayer?.realTeam ? findTeam(awayPlayer.realTeam) : null;
+
+            return (
+              <div className="w-full flex-1 flex flex-col justify-between my-auto py-1 sm:py-2 gap-2 sm:gap-3 h-full">
+                {/* TOP HEADER ROW: Badges & Kickoff / Status Indicator */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-1.5 shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/15 border border-secondary/40 text-secondary font-mono text-xs font-bold uppercase tracking-wider">
+                      <Trophy className="h-3.5 w-3.5 text-secondary" />
+                      <span>{slide.badge || "UEFA Super Cup"}</span>
+                    </span>
+
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-card/80 border border-border text-foreground font-mono text-xs font-semibold">
+                      <Sparkles className="h-3 w-3 text-secondary" />
+                      <span>Season 10 Opener</span>
+                    </span>
+
+                    {isFinished ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/20 border border-secondary/40 text-secondary font-mono text-xs font-bold">
+                        <Crown className="h-3.5 w-3.5 text-secondary" />
+                        <span>Trophy Lifted</span>
+                      </span>
+                    ) : isLive ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-destructive/20 border border-destructive/50 text-destructive font-mono text-xs font-black animate-pulse">
+                        <span className="h-2 w-2 rounded-full bg-destructive" />
+                        <span>LIVE FINAL SHOWDOWN</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-card/80 border border-border text-foreground font-mono text-xs font-medium">
+                        <span>Single-Match Final</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {formattedKickoff && !isFinished && (
+                    <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <Calendar className="h-3.5 w-3.5 text-secondary shrink-0" />
+                      <span>{formattedKickoff}</span>
                     </span>
                   )}
                 </div>
 
-                <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
-                  {slide.title}
-                </h2>
+                {/* SHOWDOWN HEADLINE */}
+                {hasContenders && (
+                  <div className="space-y-0.5 text-left sm:text-center shrink-0">
+                    <h2 className="text-sm sm:text-lg md:text-xl font-black text-foreground uppercase tracking-tight leading-tight drop-shadow-sm">
+                      {isFinished && winnerPlayer
+                        ? `🏆 ${winnerPlayer.gamerTag} Wins The UEFA Super Cup!`
+                        : isLive
+                        ? `LIVE: ${homePlayer.gamerTag} vs ${awayPlayer.gamerTag} • UEFA Super Cup`
+                        : `Clash of Champions: ${homePlayer.gamerTag} vs ${awayPlayer.gamerTag}`}
+                    </h2>
+                    <p className="text-xs text-muted-foreground font-medium line-clamp-1 hidden sm:block">
+                      {isFinished
+                        ? "Continental supremacy decided. The season opens with a championship performance."
+                        : `Champions League Winner @${homePlayer.gamerTag} takes on Europa League Winner @${awayPlayer.gamerTag} for continental glory.`}
+                    </p>
+                  </div>
+                )}
 
-                <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed line-clamp-3 sm:line-clamp-4">
-                  {slide.subtitle || slide.description}
-                </p>
+                {/* MAIN CONTENT: Esports Head-to-Head Arena */}
+                {hasContenders ? (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 items-center flex-1 my-auto">
+                    {/* LEFT: UCL Winner Contender */}
+                    <div
+                      className={cn(
+                        "rounded-2xl p-2.5 sm:p-3 md:p-3.5 bg-card/90 backdrop-blur-xl border transition-all flex md:flex-col items-center justify-between md:justify-center gap-2 sm:gap-2.5 text-left md:text-center shadow-lg relative overflow-hidden md:col-span-4",
+                        isHomeWinner ? "border-secondary/70 supercup-glow" : "border-primary/40 hover:border-primary/60"
+                      )}
+                    >
+                      <div className="w-full flex items-center justify-between md:justify-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 text-xs font-mono font-black text-primary uppercase tracking-wide px-2 py-0.5 rounded-md bg-primary/15 border border-primary/30">
+                          <Crown className="h-3 w-3 text-primary shrink-0" />
+                          <span>UCL Winner</span>
+                        </span>
+                        {isHomeWinner && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-mono font-black text-secondary uppercase px-1.5 py-0.5 rounded bg-secondary/20 border border-secondary/40">
+                            CHAMPION
+                          </span>
+                        )}
+                      </div>
 
-                {slide.buttonText && slide.buttonUrl && (
-                  <div className="pt-1 sm:pt-2">
+                      <div className="relative my-0.5 sm:my-1 shrink-0">
+                        <div
+                          className={cn(
+                            "h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-2xl bg-background/95 border flex items-center justify-center overflow-hidden shadow-xl p-1",
+                            isHomeWinner ? "border-secondary ring-2 ring-secondary/50" : "border-primary/50"
+                          )}
+                        >
+                          <img
+                            src={resolvePlayerAvatar(homePlayer)}
+                            alt={homePlayer.gamerTag}
+                            className="h-full w-full object-contain aspect-square"
+                            loading="lazy"
+                          />
+                        </div>
+                        {homeTeam?.logo && (
+                          <div className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-background border border-border p-0.5 shadow-md flex items-center justify-center">
+                            <img
+                              src={homeTeam.logo}
+                              alt={homeTeam.name}
+                              className="h-full w-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+                        {isHomeWinner && (
+                          <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-secondary absolute -top-2.5 -right-2.5 animate-bounce drop-shadow" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 md:flex-initial">
+                        <span className="text-xs sm:text-sm md:text-base font-black text-foreground block truncate">
+                          @{homePlayer.gamerTag}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-semibold block truncate">
+                          {homeTeam?.name || homePlayer.realTeam || "Champions League Winner"}
+                        </span>
+                      </div>
+
+                      {(isLive || isFinished) && (
+                        <div className="md:mt-0.5 px-3 py-0.5 sm:py-1 rounded-xl bg-background border border-border text-base sm:text-xl font-mono font-black text-foreground shadow-inner">
+                          {homeScore ?? 0}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CENTER: 3D UEFA Super Cup Trophy & Match State */}
+                    <div className="flex flex-col items-center justify-center text-center gap-1 sm:gap-1.5 py-0.5 md:col-span-4">
+                      <div className="relative h-14 w-14 sm:h-18 sm:w-18 md:h-22 md:w-22 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full bg-secondary/20 blur-xl pointer-events-none" />
+                        <img
+                          src="/assets/trophies/super-cup.png"
+                          alt="UEFA Super Cup Trophy"
+                          className="h-full w-full object-contain filter drop-shadow-xl transition-transform hover:scale-105 duration-300"
+                          loading="lazy"
+                        />
+                      </div>
+
+                      {isFinished ? (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="px-3 sm:px-4 py-0.5 sm:py-1 rounded-xl bg-secondary/15 border border-secondary/40 text-foreground font-mono text-sm sm:text-lg font-black tracking-widest shadow-inner">
+                            {homeScore ?? 0} - {awayScore ?? 0}
+                          </div>
+                          <span className="text-xs font-mono uppercase font-bold text-secondary tracking-widest">
+                            FINAL SCORE
+                          </span>
+                        </div>
+                      ) : isLive ? (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="px-3 sm:px-4 py-0.5 sm:py-1 rounded-xl bg-destructive/20 border border-destructive/50 text-foreground font-mono text-sm sm:text-lg font-black tracking-widest shadow-inner animate-pulse">
+                            {homeScore ?? 0} - {awayScore ?? 0}
+                          </div>
+                          <span className="text-xs font-mono uppercase font-black text-destructive tracking-widest">
+                            IN PLAY
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="px-3.5 py-0.5 sm:px-4 sm:py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                            VS
+                          </div>
+                          <span className="text-xs font-mono uppercase font-bold text-muted-foreground tracking-widest">
+                            SUPER CUP FINAL
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT: Europa Winner Contender */}
+                    <div
+                      className={cn(
+                        "rounded-2xl p-2.5 sm:p-3 md:p-3.5 bg-card/90 backdrop-blur-xl border transition-all flex md:flex-col items-center justify-between md:justify-center gap-2 sm:gap-2.5 text-left md:text-center shadow-lg relative overflow-hidden md:col-span-4",
+                        isAwayWinner ? "border-secondary/70 supercup-glow" : "border-secondary/40 hover:border-secondary/60"
+                      )}
+                    >
+                      <div className="w-full flex items-center justify-between md:justify-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 text-xs font-mono font-black text-secondary uppercase tracking-wide px-2 py-0.5 rounded-md bg-secondary/15 border border-secondary/30">
+                          <Award className="h-3 w-3 text-secondary shrink-0" />
+                          <span>Europa Winner</span>
+                        </span>
+                        {isAwayWinner && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-mono font-black text-secondary uppercase px-1.5 py-0.5 rounded bg-secondary/20 border border-secondary/40">
+                            CHAMPION
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative my-0.5 sm:my-1 shrink-0">
+                        <div
+                          className={cn(
+                            "h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-2xl bg-background/95 border flex items-center justify-center overflow-hidden shadow-xl p-1",
+                            isAwayWinner ? "border-secondary ring-2 ring-secondary/50" : "border-secondary/50"
+                          )}
+                        >
+                          <img
+                            src={resolvePlayerAvatar(awayPlayer)}
+                            alt={awayPlayer.gamerTag}
+                            className="h-full w-full object-contain aspect-square"
+                            loading="lazy"
+                          />
+                        </div>
+                        {awayTeam?.logo && (
+                          <div className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-background border border-border p-0.5 shadow-md flex items-center justify-center">
+                            <img
+                              src={awayTeam.logo}
+                              alt={awayTeam.name}
+                              className="h-full w-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+                        {isAwayWinner && (
+                          <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-secondary absolute -top-2.5 -right-2.5 animate-bounce drop-shadow" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 md:flex-initial">
+                        <span className="text-xs sm:text-sm md:text-base font-black text-foreground block truncate">
+                          @{awayPlayer.gamerTag}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-semibold block truncate">
+                          {awayTeam?.name || awayPlayer.realTeam || "Europa League Winner"}
+                        </span>
+                      </div>
+
+                      {(isLive || isFinished) && (
+                        <div className="md:mt-0.5 px-3 py-0.5 sm:py-1 rounded-xl bg-background border border-border text-base sm:text-xl font-mono font-black text-foreground shadow-inner">
+                          {awayScore ?? 0}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Fallback when participants await confirmation */
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/35 shadow-xl flex-1 my-auto">
+                    <div className="space-y-2 text-left max-w-xl">
+                      <h3 className="text-lg sm:text-2xl font-black text-foreground drop-shadow-sm">
+                        {slide.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-foreground/85 leading-relaxed">
+                        {slide.subtitle || slide.description}
+                      </p>
+                    </div>
+                    <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full bg-secondary/20 blur-xl pointer-events-none" />
+                      <img
+                        src="/assets/trophies/super-cup.png"
+                        alt="Super Cup Trophy"
+                        className="h-full w-full object-contain filter drop-shadow-xl"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* BOTTOM FOOTER: Interactive Prediction Poll + CTA Button */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 pt-1 border-t border-border/40 shrink-0">
+                  {hasContenders ? (
+                    <SuperCupCarouselPrediction
+                      homePlayer={homePlayer}
+                      awayPlayer={awayPlayer}
+                      initialPollStats={pollStats}
+                      isFinished={isFinished}
+                      winnerPlayer={winnerPlayer}
+                    />
+                  ) : (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      Mandatory Qualification: UCL Winner vs Europa League Winner
+                    </div>
+                  )}
+
+                  {slide.buttonText && slide.buttonUrl && (
                     <Link
                       href={slide.buttonUrl}
                       tabIndex={isCenter ? 0 : -1}
@@ -349,78 +864,17 @@ const CoverflowCard = memo(function CoverflowCard({
                       onMouseDown={(e) => e.stopPropagation()}
                       className={cn(
                         buttonVariants({ variant: "yellow", size: "default" }),
-                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center shrink-0 w-full sm:w-auto justify-center"
                       )}
                     >
                       <span>{slide.buttonText}</span>
                       <ArrowRight className="h-4 w-4" />
                     </Link>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-
-              {/* Head-to-Head Card if match participants are present, or Featured Image */}
-              {slide.data?.homePlayer && slide.data?.awayPlayer ? (
-                <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-3 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/40 shadow-2xl shrink-0">
-                  <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
-                    <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-2xl bg-background/90 border border-primary/50 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
-                      <img
-                        src={resolvePlayerAvatar(slide.data.homePlayer)}
-                        alt={slide.data.homePlayer?.gamerTag}
-                        className="h-full w-full object-contain aspect-square"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-24 sm:max-w-28">
-                        {slide.data.homePlayer?.gamerTag}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-semibold block truncate max-w-24 sm:max-w-28">
-                        {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "UCL CHAMP"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="px-3 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
-                      VS
-                    </div>
-                    <span className="text-xs font-mono text-secondary font-bold">
-                      SUPER CUP
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
-                    <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-2xl bg-background/90 border border-primary/50 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
-                      <img
-                        src={resolvePlayerAvatar(slide.data.awayPlayer)}
-                        alt={slide.data.awayPlayer?.gamerTag}
-                        className="h-full w-full object-contain aspect-square"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-24 sm:max-w-28">
-                        {slide.data.awayPlayer?.gamerTag}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-semibold block truncate max-w-24 sm:max-w-28">
-                        {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "EUROPA CHAMP"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : effectiveFeaturedImage ? (
-                <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-card/60 shadow-2xl shrink-0 max-h-48 sm:max-h-60 lg:max-h-72 max-w-full lg:max-w-md w-auto flex items-center justify-center mx-auto lg:mx-0">
-                  <img
-                    src={effectiveFeaturedImage}
-                    alt={slide.title}
-                    className="w-auto h-auto max-h-44 sm:max-h-56 lg:max-h-72 max-w-full rounded-2xl object-contain aspect-auto"
-                    loading="lazy"
-                  />
-                </div>
-              ) : null}
-            </div>
-          )}
+            );
+          })()}
 
           {/* ========================================================================= */}
           {/* 0A. MATCH OF THE WEEK (MOTW) & OFFICIAL DERBY HEAD-TO-HEAD SHOWCASE */}

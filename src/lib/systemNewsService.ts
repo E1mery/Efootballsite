@@ -5,6 +5,7 @@ import {
   formatRwandanTime,
   formatRwandanDateTime,
 } from "@/lib/rwandanTime";
+import { getConfirmedContinentalChampions } from "@/lib/superCupService";
 
 /**
  * Automatically creates and publishes an official system news update in the database.
@@ -828,8 +829,21 @@ export async function syncSystemNewsToCarousel() {
         const formattedKickoff = kickoffDate
           ? `${formatRwandanDate(kickoffDate, { weekday: "short", month: "short", day: "numeric" })} at ${formatRwandanTime(kickoffDate)} (CAT)`
           : "Schedule Pending";
-        const scTitle = `🏆 UEFA Super Cup: ${superCupMatch.homePlayer.gamerTag} vs ${superCupMatch.awayPlayer.gamerTag}`;
-        const scDesc = `The ultimate clash of champions: UCL Champion @${superCupMatch.homePlayer.gamerTag} vs Europa League Champion @${superCupMatch.awayPlayer.gamerTag} for the UEFA Super Cup! Single-match showdown for continental supremacy (${formattedKickoff}).`;
+        const isFinished = superCupMatch.status === "FINISHED";
+        const isLive = superCupMatch.status === "LIVE";
+        const homeScore = superCupMatch.homeScore ?? 0;
+        const awayScore = superCupMatch.awayScore ?? 0;
+        const winner = homeScore > awayScore ? superCupMatch.homePlayer.gamerTag : awayScore > homeScore ? superCupMatch.awayPlayer.gamerTag : null;
+
+        const scTitle = isFinished
+          ? `🏆 UEFA Super Cup Result: ${superCupMatch.homePlayer.gamerTag} ${homeScore} - ${awayScore} ${superCupMatch.awayPlayer.gamerTag}`
+          : isLive
+          ? `🔴 LIVE: UEFA Super Cup — ${superCupMatch.homePlayer.gamerTag} vs ${superCupMatch.awayPlayer.gamerTag}`
+          : `🏆 UEFA Super Cup: ${superCupMatch.homePlayer.gamerTag} vs ${superCupMatch.awayPlayer.gamerTag}`;
+
+        const scDesc = isFinished
+          ? `The UEFA Super Cup has been lifted! Result: ${winner ? `@${winner} is crowned champion` : "Final conclusion"}. Final score: ${homeScore} - ${awayScore}.`
+          : `The ultimate clash of champions: UCL Champion @${superCupMatch.homePlayer.gamerTag} vs Europa League Champion @${superCupMatch.awayPlayer.gamerTag} for the UEFA Super Cup! Single-match showdown for continental supremacy (${formattedKickoff}).`;
 
         const existing = await prisma.news.findUnique({ where: { id: superCupId } });
         if (!existing) {
@@ -840,8 +854,8 @@ export async function syncSystemNewsToCarousel() {
               category: "Competition",
               description: scDesc,
               featuredImage: "/images/super-cup-bg.jpg",
-              buttonText: "Super Cup Hub",
-              buttonUrl: "/dashboard/super-cup",
+              buttonText: isFinished ? "Super Cup History" : isLive ? "Live Match Center" : "Super Cup Hub",
+              buttonUrl: "/dashboard?tab=INTERDIVISION_CUPS&cup=SUPER_CUP",
               status: "PUBLISHED",
               publishDate: now,
               expirationDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
@@ -849,11 +863,51 @@ export async function syncSystemNewsToCarousel() {
             },
           });
           synced.push(item);
-        } else if (existing.showOnCarousel && existing.featuredImage !== "/images/super-cup-bg.jpg") {
-          await prisma.news.update({
-            where: { id: superCupId },
-            data: { featuredImage: "/images/super-cup-bg.jpg" },
-          });
+        } else if (existing.showOnCarousel) {
+          if (!editedSet.has(superCupId) && (existing.title !== scTitle || existing.description !== scDesc || existing.featuredImage !== "/images/super-cup-bg.jpg")) {
+            await prisma.news.update({
+              where: { id: superCupId },
+              data: {
+                title: scTitle,
+                description: scDesc,
+                featuredImage: "/images/super-cup-bg.jpg",
+                buttonUrl: "/dashboard?tab=INTERDIVISION_CUPS&cup=SUPER_CUP",
+              },
+            });
+          }
+        }
+      }
+    } else {
+      // Check if champions are confirmed from Hall of Fame or previous tournaments
+      const { uclChampion, europaChampion, bothConfirmed } = await getConfirmedContinentalChampions(leagueConfig.season).catch(() => ({
+        uclChampion: null,
+        europaChampion: null,
+        bothConfirmed: false,
+      }));
+      if (bothConfirmed && uclChampion && europaChampion) {
+        const confirmedId = "sys-announcement-super-cup-confirmed";
+        if (!dismissedSet.has(confirmedId)) {
+          const scTitle = `🏆 UEFA Super Cup: ${uclChampion.gamerTag} vs ${europaChampion.gamerTag}`;
+          const scDesc = `The ultimate clash of continental champions is confirmed! UCL Champion @${uclChampion.gamerTag} will battle Europa League Champion @${europaChampion.gamerTag} for the UEFA Super Cup. Cast your prediction now!`;
+          const existing = await prisma.news.findUnique({ where: { id: confirmedId } });
+          if (!existing) {
+            const item = await prisma.news.create({
+              data: {
+                id: confirmedId,
+                title: scTitle,
+                category: "Competition",
+                description: scDesc,
+                featuredImage: "/images/super-cup-bg.jpg",
+                buttonText: "Super Cup Hub",
+                buttonUrl: "/dashboard?tab=INTERDIVISION_CUPS&cup=SUPER_CUP",
+                status: "PUBLISHED",
+                publishDate: now,
+                expirationDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+                showOnCarousel: true,
+              },
+            });
+            synced.push(item);
+          }
         }
       }
     }

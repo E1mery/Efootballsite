@@ -8,6 +8,7 @@ import {
 } from "@/lib/rwandanTime";
 import { resolvePlayerAvatar } from "@/lib/teams";
 import { enrichAndSyncHallOfFameEntries } from "@/lib/hallOfFameStatsService";
+import { getSuperCupOverview } from "@/lib/superCupService";
 import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
 
 /**
@@ -76,6 +77,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       maxPlayedStanding,
       rawHallOfFameEntries,
       topInFormStandings,
+      superCupOverviewData,
     ] = await Promise.all([
       prisma.leagueConfig.upsert({
         where: { id: "default" },
@@ -134,6 +136,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         orderBy: [{ points: "desc" }, { won: "desc" }, { goalDifference: "desc" }],
         take: 4,
       }),
+      getSuperCupOverview().catch(() => null),
     ]);
 
     const hallOfFameEntries = await enrichAndSyncHallOfFameEntries(rawHallOfFameEntries);
@@ -845,30 +848,102 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         };
       }
 
-      const isSystemSuperCupFixture =
+      const titleLower = (item.title || "").toLowerCase();
+      const descLower = (item.description || "").toLowerCase();
+      const isSuperCup =
         item.id?.startsWith("sys-announcement-super-cup") ||
+        item.id?.startsWith("sys-super-cup-") ||
         (item as any).data?.competition === "SUPER_CUP" ||
         (item as any).data?.division === "SUPER_CUP" ||
-        Boolean((item as any).data?.homePlayer && (item as any).data?.awayPlayer);
+        (item.buttonUrl || "").toLowerCase().includes("super-cup") ||
+        (item.buttonUrl || "").toLowerCase().includes("cup=super_cup") ||
+        titleLower.includes("super cup") ||
+        titleLower.includes("supercup") ||
+        descLower.includes("super cup") ||
+        descLower.includes("supercup") ||
+        (item.category && item.category.toLowerCase().includes("super"));
 
-      if (isSystemSuperCupFixture) {
+      if (isSuperCup) {
+        const scMatch = superCupOverviewData?.superCupMatch;
+        const homePlayer = scMatch?.homePlayer || superCupOverviewData?.uclChampion || null;
+        const awayPlayer = scMatch?.awayPlayer || superCupOverviewData?.europaChampion || null;
+        const isMatchFinished = scMatch?.status === "FINISHED";
+        const isMatchLive = scMatch?.status === "LIVE";
+        const homeScore = scMatch?.homeScore ?? null;
+        const awayScore = scMatch?.awayScore ?? null;
+        const winner = isMatchFinished
+          ? ((homeScore ?? 0) > (awayScore ?? 0) ? homePlayer : (awayScore ?? 0) > (homeScore ?? 0) ? awayPlayer : null)
+          : null;
+
+        const kickoffDate = scMatch?.matchDate;
+        const formattedKickoffDate = kickoffDate
+          ? formatRwandanDate(kickoffDate, { weekday: "short", month: "short", day: "numeric" })
+          : null;
+        const formattedKickoffTime = kickoffDate ? formatRwandanTime(kickoffDate) : null;
+        const formattedKickoffFull = formattedKickoffDate && formattedKickoffTime
+          ? `${formattedKickoffDate} • ${formattedKickoffTime} (CAT)`
+          : null;
+
+        let badge = "UEFA SUPER CUP";
+        if (isMatchFinished) badge = "SUPER CUP CONCLUDED";
+        else if (isMatchLive) badge = "LIVE SUPER CUP FINAL";
+        else if (homePlayer && awayPlayer) badge = "SUPER CUP SHOWDOWN";
+
+        let defaultTitle = item.title;
+        if (isMatchFinished && winner) {
+          defaultTitle = `🏆 ${winner.gamerTag} Wins The UEFA Super Cup!`;
+        } else if (isMatchLive && homePlayer && awayPlayer) {
+          defaultTitle = `LIVE: ${homePlayer.gamerTag} vs ${awayPlayer.gamerTag} • UEFA Super Cup`;
+        } else if (homePlayer && awayPlayer && (!item.title || item.title.includes("Confirmed") || item.title.includes("UEFA Super Cup:"))) {
+          defaultTitle = `🏆 UEFA Super Cup: ${homePlayer.gamerTag} vs ${awayPlayer.gamerTag}`;
+        }
+
         return {
           id: item.id,
           type: "SUPER_CUP",
-          badge: "SUPER CUP SHOWDOWN",
+          badge,
           category: "Super Cup",
           tabLabel: "Super Cup",
-          title: item.title,
-          subtitle: (item as any).subtitle || "The Ultimate Clash of Continental Champions",
+          title: defaultTitle || "UEFA Super Cup Showdown",
+          subtitle: isMatchFinished
+            ? `Final Score: ${homePlayer?.gamerTag || "UCL"} ${homeScore ?? 0} - ${awayScore ?? 0} ${awayPlayer?.gamerTag || "Europa"}. Continental supremacy decided.`
+            : homePlayer && awayPlayer
+            ? `UCL Champion @${homePlayer.gamerTag} vs Europa League Champion @${awayPlayer.gamerTag} for the ultimate trophy.`
+            : item.description || "The Ultimate Clash of Continental Champions",
           description: item.description,
           featuredImage: resolveSlideFeaturedImage(item),
-          buttonText: item.buttonText || "Super Cup Hub",
-          buttonUrl: item.buttonUrl || "/dashboard/super-cup",
+          buttonText: isMatchFinished
+            ? "Super Cup History"
+            : isMatchLive
+            ? "Enter Live Match Center"
+            : item.buttonText || "Predict & Enter Super Cup",
+          buttonUrl: item.buttonUrl || "/dashboard?tab=INTERDIVISION_CUPS&cup=SUPER_CUP",
           publishDate: item.publishDate,
           expirationDate: item.expirationDate,
           data: {
             ...item,
             isSuperCup: true,
+            matchId: scMatch?.id,
+            matchStatus: scMatch?.status || (superCupOverviewData?.bothConfirmed ? "SCHEDULED" : "AWAITING"),
+            matchDate: scMatch?.matchDate,
+            formattedKickoffDate,
+            formattedKickoffTime,
+            formattedKickoffFull,
+            homePlayer,
+            awayPlayer,
+            uclChampion: superCupOverviewData?.uclChampion || homePlayer,
+            europaChampion: superCupOverviewData?.europaChampion || awayPlayer,
+            homeScore,
+            awayScore,
+            winner,
+            pollStats: superCupOverviewData?.pollStats || {
+              totalVotes: 0,
+              f1Votes: 0,
+              f2Votes: 0,
+              f1Pct: 50,
+              f2Pct: 50,
+            },
+            trophyImage: "/assets/trophies/super-cup.png",
           },
         };
       }
@@ -893,6 +968,89 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
     })
   )
 ).filter(Boolean) as CarouselSlide[];
+
+    // Ensure Super Cup slide is always present if fixture exists or both finalists are confirmed
+    if (
+      !slides.some((s) => s.type === "SUPER_CUP") &&
+      (superCupOverviewData?.superCupMatch || superCupOverviewData?.bothConfirmed)
+    ) {
+      const scMatch = superCupOverviewData?.superCupMatch;
+      const homePlayer = scMatch?.homePlayer || superCupOverviewData?.uclChampion || null;
+      const awayPlayer = scMatch?.awayPlayer || superCupOverviewData?.europaChampion || null;
+      const isMatchFinished = scMatch?.status === "FINISHED";
+      const isMatchLive = scMatch?.status === "LIVE";
+      const homeScore = scMatch?.homeScore ?? null;
+      const awayScore = scMatch?.awayScore ?? null;
+      const winner = isMatchFinished
+        ? ((homeScore ?? 0) > (awayScore ?? 0) ? homePlayer : (awayScore ?? 0) > (homeScore ?? 0) ? awayPlayer : null)
+        : null;
+
+      const kickoffDate = scMatch?.matchDate;
+      const formattedKickoffDate = kickoffDate
+        ? formatRwandanDate(kickoffDate, { weekday: "short", month: "short", day: "numeric" })
+        : null;
+      const formattedKickoffTime = kickoffDate ? formatRwandanTime(kickoffDate) : null;
+      const formattedKickoffFull = formattedKickoffDate && formattedKickoffTime
+        ? `${formattedKickoffDate} • ${formattedKickoffTime} (CAT)`
+        : null;
+
+      let badge = "UEFA SUPER CUP";
+      if (isMatchFinished) badge = "SUPER CUP CONCLUDED";
+      else if (isMatchLive) badge = "LIVE SUPER CUP FINAL";
+      else if (homePlayer && awayPlayer) badge = "SUPER CUP SHOWDOWN";
+
+      const title = isMatchFinished && winner
+        ? `🏆 ${winner.gamerTag} Wins The UEFA Super Cup!`
+        : isMatchLive && homePlayer && awayPlayer
+        ? `LIVE: ${homePlayer.gamerTag} vs ${awayPlayer.gamerTag} • UEFA Super Cup`
+        : homePlayer && awayPlayer
+        ? `🏆 UEFA Super Cup: ${homePlayer.gamerTag} vs ${awayPlayer.gamerTag}`
+        : "🏆 UEFA Super Cup: Clash of Champions";
+
+      slides.unshift({
+        id: scMatch ? `sys-super-cup-${scMatch.id}` : "sys-super-cup-showdown",
+        type: "SUPER_CUP",
+        badge,
+        category: "Super Cup",
+        tabLabel: "Super Cup",
+        title,
+        subtitle: isMatchFinished
+          ? `Final Result: ${homePlayer?.gamerTag} ${homeScore ?? 0} - ${awayScore ?? 0} ${awayPlayer?.gamerTag}. The Super Cup has been lifted!`
+          : homePlayer && awayPlayer
+          ? `UCL Winner @${homePlayer.gamerTag} vs Europa League Winner @${awayPlayer.gamerTag}. Single-match showdown for continental supremacy.`
+          : "The supreme clash of champions between UEFA Champions League Winner and UEFA Europa League Winner.",
+        description: "Official single-match final between confirmed Champions League and Europa League winners.",
+        featuredImage: "/images/super-cup-bg.jpg",
+        buttonText: isMatchFinished ? "Super Cup History" : isMatchLive ? "Enter Live Match Center" : "Predict & Enter Super Cup",
+        buttonUrl: "/dashboard?tab=INTERDIVISION_CUPS&cup=SUPER_CUP",
+        publishDate: new Date(),
+        expirationDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        data: {
+          isSuperCup: true,
+          matchId: scMatch?.id,
+          matchStatus: scMatch?.status || (superCupOverviewData?.bothConfirmed ? "SCHEDULED" : "AWAITING"),
+          matchDate: scMatch?.matchDate,
+          formattedKickoffDate,
+          formattedKickoffTime,
+          formattedKickoffFull,
+          homePlayer,
+          awayPlayer,
+          uclChampion: superCupOverviewData?.uclChampion || homePlayer,
+          europaChampion: superCupOverviewData?.europaChampion || awayPlayer,
+          homeScore,
+          awayScore,
+          winner,
+          pollStats: superCupOverviewData?.pollStats || {
+            totalVotes: 0,
+            f1Votes: 0,
+            f2Votes: 0,
+            f1Pct: 50,
+            f2Pct: 50,
+          },
+          trophyImage: "/assets/trophies/super-cup.png",
+        },
+      });
+    }
 
     // Final safety check: guarantee no league standings reset or locked-competition news ever appears
     const prioritizedSlides = slides.filter((slide) => {
