@@ -202,6 +202,7 @@ export default function AdminClient({
   );
   const [superCupDateInput, setSuperCupDateInput] = useState<string>("");
   const [generatingSuperCup, setGeneratingSuperCup] = useState(false);
+  const [updatingSuperCupSchedule, setUpdatingSuperCupSchedule] = useState(false);
   const [superCupStatusData, setSuperCupStatusData] = useState<any>(null);
 
   const fetchSuperCupStatus = async () => {
@@ -210,9 +211,18 @@ export default function AdminClient({
       if (res.ok) {
         const data = await res.json();
         setSuperCupStatusData(data);
+        if (data.superCupMatch?.matchDate) {
+          setSuperCupDateInput(toLocalDatetimeInput(data.superCupMatch.matchDate));
+        }
       }
     } catch (e) {}
   };
+
+  useEffect(() => {
+    if (activeTab === "CONTINENTAL") {
+      fetchSuperCupStatus();
+    }
+  }, [activeTab]);
 
   const handleGenerateSuperCup = async () => {
     if (!confirm("Generate official UEFA Super Cup fixture between UCL Champion and Europa League Champion?")) return;
@@ -240,6 +250,7 @@ export default function AdminClient({
       alert("Please choose a kickoff date and time.");
       return;
     }
+    setUpdatingSuperCupSchedule(true);
     try {
       const res = await fetch("/api/admin/super-cup", {
         method: "POST",
@@ -253,6 +264,8 @@ export default function AdminClient({
       router.refresh();
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setUpdatingSuperCupSchedule(false);
     }
   };
 
@@ -5078,6 +5091,11 @@ export default function AdminClient({
                         ? `@${superCupStatusData.uclChampion.gamerTag}`
                         : "Awaiting UCL Final Conclusion"}
                     </p>
+                    {superCupStatusData?.uclChampion?.realTeam && (
+                      <p className="text-xs text-muted-foreground">
+                        Club: {superCupStatusData.uclChampion.realTeam}
+                      </p>
+                    )}
                   </div>
                   <div className="p-3.5 rounded-xl bg-background/80 border border-secondary/30 space-y-1">
                     <span className="text-xs font-bold uppercase text-secondary block">
@@ -5088,14 +5106,58 @@ export default function AdminClient({
                         ? `@${superCupStatusData.europaChampion.gamerTag}`
                         : "Awaiting Europa Final Conclusion"}
                     </p>
+                    {superCupStatusData?.europaChampion?.realTeam && (
+                      <p className="text-xs text-muted-foreground">
+                        Club: {superCupStatusData.europaChampion.realTeam}
+                      </p>
+                    )}
                   </div>
                 </div>
 
+                {/* ACTIVE FIXTURE BANNER */}
+                {superCupStatusData?.superCupMatch && (
+                  <div className="p-4 rounded-xl bg-background border border-primary/40 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-secondary" />
+                        <span className="text-xs font-black uppercase text-foreground">
+                          Official Super Cup Fixture Active
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-mono border-primary/50 text-primary">
+                        {superCupStatusData.superCupMatch.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-muted-foreground">Home (UCL Champion)</p>
+                        <p className="text-sm font-black text-foreground">
+                          @{superCupStatusData.superCupMatch.homePlayer?.gamerTag} ({superCupStatusData.superCupMatch.homePlayer?.realTeam || "eFootball"})
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-muted-foreground">VS</span>
+                      <div className="space-y-0.5 text-center sm:text-right">
+                        <p className="text-xs text-muted-foreground">Away (Europa Champion)</p>
+                        <p className="text-sm font-black text-foreground">
+                          @{superCupStatusData.superCupMatch.awayPlayer?.gamerTag} ({superCupStatusData.superCupMatch.awayPlayer?.realTeam || "eFootball"})
+                        </p>
+                      </div>
+                    </div>
+
+                    {superCupStatusData.superCupMatch.matchDate && (
+                      <p className="text-xs text-muted-foreground font-mono">
+                        Scheduled Kickoff: {new Date(superCupStatusData.superCupMatch.matchDate).toLocaleString("en-US", { timeZone: "Africa/Kigali", dateStyle: "medium", timeStyle: "short" })} CAT
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="p-4 rounded-xl bg-background/80 border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase text-muted-foreground block">
+                    <label className="text-xs font-bold uppercase text-muted-foreground block">
                       Super Cup Match Kickoff (CAT)
-                    </span>
+                    </label>
                     <Input
                       type="datetime-local"
                       value={superCupDateInput}
@@ -5106,19 +5168,20 @@ export default function AdminClient({
 
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
-                      onClick={handleGenerateSuperCup}
-                      disabled={generatingSuperCup || !superCupStatusData?.bothConfirmed}
-                      className="text-xs font-black bg-secondary hover:bg-secondary text-secondary-foreground"
+                      onClick={handleScheduleSuperCup}
+                      disabled={updatingSuperCupSchedule}
+                      className="text-xs font-black bg-primary hover:bg-primary text-primary-foreground"
                     >
-                      {generatingSuperCup ? "Generating..." : "Generate Official Super Cup Fixture"}
+                      {updatingSuperCupSchedule ? "Updating..." : "Update Kickoff Schedule"}
                     </Button>
                     <Button
-                      onClick={handleScheduleSuperCup}
+                      onClick={handleGenerateSuperCup}
+                      disabled={generatingSuperCup || !superCupStatusData?.bothConfirmed}
                       variant="outline"
                       size="sm"
-                      className="text-xs font-bold"
+                      className="text-xs font-bold border-secondary/50 text-secondary hover:bg-secondary/10"
                     >
-                      Update Schedule
+                      {generatingSuperCup ? "Generating..." : superCupStatusData?.superCupMatch ? "Regenerate Fixture" : "Generate Official Super Cup Fixture"}
                     </Button>
                   </div>
                 </div>

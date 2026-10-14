@@ -47,8 +47,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       source: "MATCH_FINAL",
     };
   } else {
-    // Fallback: Check Hall of Fame record for UCL in this season
-    const uclHof = await prisma.hallOfFame.findFirst({
+    // Fallback: Check Hall of Fame record for UCL in this season, or latest historical champion
+    let uclHof = await prisma.hallOfFame.findFirst({
       where: {
         season,
         OR: [
@@ -60,13 +60,33 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       orderBy: { createdAt: "desc" },
     });
 
-    if (uclHof) {
-      const matchedPlayer = await prisma.player.findFirst({
-        where: { gamerTag: { equals: uclHof.championName, mode: "insensitive" } },
+    if (!uclHof) {
+      uclHof = await prisma.hallOfFame.findFirst({
+        where: {
+          OR: [
+            { tournamentName: { contains: "Champions League", mode: "insensitive" } },
+            { tournamentName: { contains: "UCL", mode: "insensitive" } },
+            { trophyType: "UCL" },
+          ],
+        },
+        orderBy: [{ inductionYear: "desc" }, { createdAt: "desc" }],
       });
+    }
+
+    if (uclHof) {
+      const matchedPlayer = uclHof.playerId
+        ? await prisma.player.findUnique({ where: { id: uclHof.playerId } })
+        : await prisma.player.findFirst({
+            where: {
+              OR: [
+                { gamerTag: { equals: uclHof.championName, mode: "insensitive" } },
+                { fullName: { equals: uclHof.championName, mode: "insensitive" } },
+              ],
+            },
+          });
       uclChampion = {
         id: matchedPlayer?.id,
-        gamerTag: uclHof.championName,
+        gamerTag: matchedPlayer?.gamerTag || uclHof.championName,
         fullName: uclHof.championRealName || matchedPlayer?.fullName,
         realTeam: matchedPlayer?.realTeam,
         avatar: (matchedPlayer?.avatar && !matchedPlayer.avatar.includes("dicebear.com"))
@@ -109,8 +129,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       source: "MATCH_FINAL",
     };
   } else {
-    // Fallback: Check Hall of Fame record for Europa League in this season
-    const europaHof = await prisma.hallOfFame.findFirst({
+    // Fallback: Check Hall of Fame record for Europa League in this season, or latest historical champion
+    let europaHof = await prisma.hallOfFame.findFirst({
       where: {
         season,
         OR: [
@@ -121,13 +141,32 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       orderBy: { createdAt: "desc" },
     });
 
-    if (europaHof) {
-      const matchedPlayer = await prisma.player.findFirst({
-        where: { gamerTag: { equals: europaHof.championName, mode: "insensitive" } },
+    if (!europaHof) {
+      europaHof = await prisma.hallOfFame.findFirst({
+        where: {
+          OR: [
+            { tournamentName: { contains: "Europa", mode: "insensitive" } },
+            { trophyType: "EUROPA" },
+          ],
+        },
+        orderBy: [{ inductionYear: "desc" }, { createdAt: "desc" }],
       });
+    }
+
+    if (europaHof) {
+      const matchedPlayer = europaHof.playerId
+        ? await prisma.player.findUnique({ where: { id: europaHof.playerId } })
+        : await prisma.player.findFirst({
+            where: {
+              OR: [
+                { gamerTag: { equals: europaHof.championName, mode: "insensitive" } },
+                { fullName: { equals: europaHof.championName, mode: "insensitive" } },
+              ],
+            },
+          });
       europaChampion = {
         id: matchedPlayer?.id,
-        gamerTag: europaHof.championName,
+        gamerTag: matchedPlayer?.gamerTag || europaHof.championName,
         fullName: europaHof.championRealName || matchedPlayer?.fullName,
         realTeam: matchedPlayer?.realTeam,
         avatar: (matchedPlayer?.avatar && !matchedPlayer.avatar.includes("dicebear.com"))

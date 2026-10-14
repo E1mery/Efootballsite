@@ -65,22 +65,30 @@ export async function POST(req: Request) {
       const matchDate = new Date(scheduledDate);
       const deadlineDate = new Date(matchDate.getTime() + 24 * 60 * 60 * 1000);
 
-      const existingMatch = await prisma.match.findFirst({
+      let existingMatch = await prisma.match.findFirst({
         where: { division: "SUPER_CUP", stage: "FINAL" },
+        include: { homePlayer: true, awayPlayer: true },
       });
 
       if (!existingMatch) {
-        return NextResponse.json({ error: "Super Cup match has not been generated yet." }, { status: 404 });
+        // Automatically generate fixture with this kickoff date if not already created
+        const newFixture = await generateSuperCupFixture(season, matchDate);
+        return NextResponse.json({
+          success: true,
+          message: `Generated UEFA Super Cup fixture and scheduled kickoff for ${newFixture.homePlayer?.gamerTag} vs ${newFixture.awayPlayer?.gamerTag}!`,
+          match: newFixture,
+        });
       }
 
       const updated = await prisma.match.update({
         where: { id: existingMatch.id },
         data: { matchDate, deadlineDate },
+        include: { homePlayer: true, awayPlayer: true },
       });
 
       return NextResponse.json({
         success: true,
-        message: "Super Cup kickoff date and deadline updated.",
+        message: "Super Cup kickoff date and deadline updated successfully.",
         match: updated,
       });
     }
