@@ -40,7 +40,7 @@ export default function AdminTopbar({
   const shortName = (adminEmail || "admin").split("@")[0];
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-1.5 sm:gap-2 border-b border-border bg-card px-2.5 sm:px-4">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-1.5 sm:gap-2 border-b border-border bg-card/95 backdrop-blur-md px-2.5 sm:px-4">
       <button
         onClick={onMenuClick}
         aria-label="Open admin navigation"

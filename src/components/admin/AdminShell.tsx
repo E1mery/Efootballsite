@@ -202,11 +202,11 @@ export default function AdminShell({
             onClick={() => setMobileOpen(false)}
             className="absolute inset-0 bg-background/80 backdrop-blur-sm"
           />
-          <div className="absolute left-0 top-0 h-full w-72 max-w-full border-r border-border bg-card">
+          <div className="absolute left-0 top-0 h-full w-72 max-w-xs border-r border-border bg-card shadow-2xl">
             <button
               onClick={() => setMobileOpen(false)}
               aria-label="Close navigation"
-              className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>

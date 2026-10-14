@@ -311,53 +311,52 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
       </div>
 
       {/* FILTER BAR FOR CALENDAR FIXTURES */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-border bg-card/60">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3.5 rounded-2xl border border-border bg-card/60">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search fixtures by player tag or club name..."
-            className="pl-9 h-9 text-xs rounded-xl bg-background/80"
+            className="pl-9 h-9 text-xs rounded-xl bg-background/80 w-full"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full md:w-auto">
           {/* Division Filter */}
           <select
             value={divisionFilter}
             onChange={(e) => setDivisionFilter(e.target.value)}
-            className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none min-w-0"
+            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:border-primary w-full"
           >
             <option value="ALL">All Divisions</option>
             <option value="Division 1">Division 1</option>
             <option value="Division 2">Division 2</option>
             <option value="Division 3">Division 3</option>
+            <option value="SUPER_CUP">UEFA Super Cup</option>
             <option value="UCL">UCL (Champions League)</option>
             <option value="EUROPA">Europa League</option>
           </select>
 
           {/* Round Filter */}
-          {uniqueRounds.length > 0 && (
-            <select
-              value={roundFilter}
-              onChange={(e) => setRoundFilter(e.target.value)}
-              className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none min-w-0"
-            >
-              <option value="ALL">All Rounds</option>
-              {uniqueRounds.map((rnd) => (
-                <option key={rnd} value={rnd}>
-                  {rnd}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={roundFilter}
+            onChange={(e) => setRoundFilter(e.target.value)}
+            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:border-primary w-full"
+          >
+            <option value="ALL">All Rounds</option>
+            {uniqueRounds.map((rnd) => (
+              <option key={rnd} value={rnd}>
+                {rnd}
+              </option>
+            ))}
+          </select>
 
           {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="flex-1 sm:flex-initial h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none min-w-0"
+            className="h-9 px-3 text-xs rounded-xl bg-background/80 border border-border text-foreground font-medium focus:outline-none focus:border-primary w-full"
           >
             <option value="ALL">All Statuses</option>
             <option value="SCHEDULED">Scheduled Only</option>
@@ -396,14 +395,14 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
               <div
                 key={fixture.id}
                 className={cn(
-                  "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-150",
+                  "flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 rounded-2xl border transition-all duration-150",
                   isSelected
                     ? "border-secondary/60 bg-secondary/10 shadow-sm"
                     : "border-border/70 bg-card/60 hover:bg-card hover:border-border"
                 )}
               >
                 {/* Left: Fixture Details */}
-                <div className="space-y-1 min-w-0 flex-1">
+                <div className="space-y-1 min-w-0 lg:w-1/4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono font-bold text-primary">
                       {fixture.division}
@@ -412,32 +411,32 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                       • {fixture.round}
                     </span>
                     {isSelected && (
-                      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-secondary px-1.5 py-0 rounded bg-secondary/20">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-secondary px-1.5 py-0.5 rounded bg-secondary/20">
                         <Sparkles className="h-2.5 w-2.5" />
                         <span>Active MOTW</span>
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                    <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span>{kickoffFormatted}</span>
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate">{kickoffFormatted}</span>
                   </div>
                 </div>
 
                 {/* Center: Head-to-Head Clash */}
-                <div className="flex items-center justify-center gap-3 shrink-0 py-1 sm:py-0">
+                <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-4 py-2 lg:py-0 flex-1 min-w-0">
                   {/* Home Athlete */}
-                  <div className="flex items-center gap-2 text-right">
-                    <div className="min-w-16">
-                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-24">
+                  <div className="flex items-center gap-2 text-right min-w-0 flex-1 sm:flex-initial sm:min-w-32 justify-end">
+                    <div className="min-w-0 truncate">
+                      <span className="text-xs sm:text-sm font-black text-foreground block truncate">
                         {homeTag}
                       </span>
-                      <span className="text-xs text-muted-foreground block truncate max-w-24">
+                      <span className="text-xs text-muted-foreground block truncate">
                         {homeClub}
                       </span>
                     </div>
-                    <div className="h-8 w-8 rounded-lg bg-background border border-border overflow-hidden flex items-center justify-center shrink-0">
+                    <div className="h-9 w-9 rounded-lg bg-background border border-border overflow-hidden flex items-center justify-center shrink-0">
                       <img
                         src={resolvePlayerAvatar(fixture.homePlayer)}
                         alt=""
@@ -446,24 +445,24 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                     </div>
                   </div>
 
-                  <span className="px-2 py-0.5 rounded bg-muted/60 text-muted-foreground font-mono text-xs font-bold">
+                  <span className="px-2 py-0.5 rounded bg-muted/60 text-muted-foreground font-mono text-xs font-bold shrink-0">
                     VS
                   </span>
 
                   {/* Away Athlete */}
-                  <div className="flex items-center gap-2 text-left">
-                    <div className="h-8 w-8 rounded-lg bg-background border border-border overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-2 text-left min-w-0 flex-1 sm:flex-initial sm:min-w-32 justify-start">
+                    <div className="h-9 w-9 rounded-lg bg-background border border-border overflow-hidden flex items-center justify-center shrink-0">
                       <img
                         src={resolvePlayerAvatar(fixture.awayPlayer)}
                         alt=""
                         className="h-full w-full object-contain"
                       />
                     </div>
-                    <div className="min-w-16">
-                      <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-24">
+                    <div className="min-w-0 truncate">
+                      <span className="text-xs sm:text-sm font-black text-foreground block truncate">
                         {awayTag}
                       </span>
-                      <span className="text-muted-foreground text-xs block truncate max-w-24">
+                      <span className="text-muted-foreground text-xs block truncate">
                         {awayClub}
                       </span>
                     </div>
@@ -471,15 +470,16 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                 </div>
 
                 {/* Right: One-Click Action */}
-                <div className="shrink-0 flex items-center justify-end w-full sm:w-auto pt-1 sm:pt-0">
+                <div className="shrink-0 flex items-center justify-end w-full lg:w-auto pt-2 lg:pt-0 border-t border-border/50 lg:border-t-0">
                   {isSelected ? (
                     <Button
                       onClick={handleUnpublishMotw}
                       disabled={unpublishing}
                       variant="outline"
                       size="sm"
-                      className="w-full sm:w-auto rounded-xl text-xs font-mono font-bold text-destructive hover:bg-destructive/15 border-destructive/40 cursor-pointer"
+                      className="w-full lg:w-auto rounded-xl text-xs font-mono font-bold text-destructive hover:bg-destructive/15 border-destructive/40 cursor-pointer"
                     >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
                       <span>Remove</span>
                     </Button>
                   ) : (
@@ -488,10 +488,10 @@ export default function AdminMotwManager({ onRefreshNews }: AdminMotwManagerProp
                       disabled={isProcessing}
                       variant="yellow"
                       size="sm"
-                      className="w-full sm:w-auto rounded-xl text-xs font-bold gap-1.5 shadow-sm cursor-pointer justify-center"
+                      className="w-full lg:w-auto rounded-xl text-xs font-bold gap-1.5 shadow-sm cursor-pointer justify-center"
                     >
-                      <Sparkles className="h-3 w-3" />
-                      <span>{isProcessing ? "Publishing..." : "Publish MOTW (Carousel & Feed)"}</span>
+                      <Sparkles className="h-3 w-3 shrink-0" />
+                      <span>{isProcessing ? "Publishing..." : "Publish MOTW"}</span>
                     </Button>
                   )}
                 </div>

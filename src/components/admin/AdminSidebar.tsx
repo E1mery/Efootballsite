@@ -99,7 +99,7 @@ export function AdminSidebarBody({
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
-      <div className="flex items-center gap-2 border-b border-border p-4">
+      <div className="flex items-center gap-2 border-b border-border p-4 pr-12 lg:pr-4">
         <EfootballGamingLogo size="sm" showText={false} />
         {!collapsed && (
           <div className="min-w-0 flex-1">
@@ -190,7 +190,7 @@ export default function AdminSidebar({
     <aside
       aria-label="Admin dashboard sidebar"
       className={cn(
-        "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-card lg:flex",
+        "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-card transition-all duration-200 ease-in-out lg:flex",
         collapsed ? "w-16" : "w-72"
       )}
     >
