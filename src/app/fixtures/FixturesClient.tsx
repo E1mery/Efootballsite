@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import MatchCard from "@/components/MatchCard";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
+import SuperCupPredictionPoll from "@/components/competitions/SuperCupPredictionPoll";
 import HistoricalDerbyModal from "@/components/competitions/HistoricalDerbyModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -215,10 +216,19 @@ export default function FixturesClient({
       <div className="relative z-10 mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
         {/* Match of the Day Showcase */}
         {matchOfTheDay && (
-        <section className="space-y-2">
-          <MatchOfTheDayCard match={matchOfTheDay} />
-        </section>
-      )}
+          <section className="space-y-2">
+            <MatchOfTheDayCard match={matchOfTheDay} />
+          </section>
+        )}
+
+        {/* Super Cup Winner Prediction Poll Showcase */}
+        {(divisionFilter === "SUPER_CUP" ||
+          (divisionFilter === "ALL" &&
+            initialMatches.some((m) => m.division === "SUPER_CUP" && m.status === "SCHEDULED"))) && (
+          <section className="space-y-2">
+            <SuperCupPredictionPoll />
+          </section>
+        )}
 
       {/* Hero Header & Quick Stats */}
       <div className="rounded-3xl border border-border bg-gradient-to-b from-card via-background to-background p-5 sm:p-7 backdrop-blur-xl shadow-2xl relative overflow-hidden space-y-5">

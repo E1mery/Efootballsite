@@ -45,8 +45,9 @@ export default function HistoricalDerbyModal({
     if (!isOpen) return;
 
     fetch("/api/derbies")
-      .then((res) => res.json())
+      .then(async (res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
+        if (!data) return;
         const list: DerbyConfiguration[] = data.derbies || [];
         setDerbies(list);
         if (!selectedDerbyId && list.length > 0) {
@@ -69,10 +70,10 @@ export default function HistoricalDerbyModal({
     }
 
     fetch(`/api/derbies/h2h?derbyId=${selectedDerbyId}`)
-      .then((res) => res.json())
+      .then(async (res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
-        if (data.error) {
-          setError(data.error);
+        if (!data || data.error) {
+          setError(data?.error || "Failed to load historical derby records.");
           setH2hData(null);
         } else {
           setH2hData(data.h2h || null);
@@ -93,9 +94,9 @@ export default function HistoricalDerbyModal({
     fetch(
       `/api/derbies/player-h2h?playerId=${activePlayerId}&opponentId=${selectedOpponentId}&derbyId=${selectedDerbyId}`
     )
-      .then((res) => res.json())
+      .then(async (res) => (res.ok ? res.json().catch(() => null) : null))
       .then((data) => {
-        setOpponentH2H(data.stats || null);
+        if (data) setOpponentH2H(data.stats || null);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoadingOpponentH2H(false));

@@ -1,6 +1,34 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const tournamentId = searchParams.get("tournamentId");
+    const division = searchParams.get("division");
+    const status = searchParams.get("status");
+
+    const where: any = {};
+    if (tournamentId) where.tournamentId = tournamentId;
+    if (division) where.division = division;
+    if (status) where.status = status;
+
+    const matches = await prisma.match.findMany({
+      where,
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+      },
+      orderBy: { matchDate: "asc" },
+    });
+
+    return NextResponse.json({ success: true, matches });
+  } catch (err: any) {
+    console.error("GET /api/matches error:", err);
+    return NextResponse.json({ error: "Failed to fetch matches" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();

@@ -20,6 +20,7 @@ import {
 import { resolvePlayerAvatar } from "@/lib/teams";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import SuperCupPredictionPoll from "./SuperCupPredictionPoll";
 
 export interface SuperCupPlayer {
   id?: string;
@@ -467,6 +468,9 @@ export default function SuperCupView({
                 )}
               </div>
             </div>
+
+            {/* Community Super Cup Winner Prediction Poll */}
+            <SuperCupPredictionPoll />
           </div>
         </div>
       )}

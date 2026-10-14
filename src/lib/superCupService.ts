@@ -226,6 +226,21 @@ export async function getSuperCupOverview(season: string = "Season 1 (2026)") {
     orderBy: { createdAt: "desc" },
   });
 
+  // Super Cup prediction poll stats
+  const pollVotes = await prisma.trophyPollVote.findMany({
+    where: { competition: "SUPER_CUP" },
+  });
+
+  const f1Votes = superCupMatch?.homePlayerId
+    ? pollVotes.filter((v) => v.predictedWinnerPlayerId === superCupMatch.homePlayerId).length
+    : 0;
+  const f2Votes = superCupMatch?.awayPlayerId
+    ? pollVotes.filter((v) => v.predictedWinnerPlayerId === superCupMatch.awayPlayerId).length
+    : 0;
+  const totalVotes = pollVotes.length;
+  const f1Pct = totalVotes > 0 ? Math.round((f1Votes / totalVotes) * 100) : 50;
+  const f2Pct = totalVotes > 0 ? 100 - f1Pct : 50;
+
   return {
     season,
     uclChampion,
@@ -234,6 +249,13 @@ export async function getSuperCupOverview(season: string = "Season 1 (2026)") {
     superCupTournament,
     superCupMatch,
     pastSuperCupWinners,
+    pollStats: {
+      totalVotes,
+      f1Votes,
+      f2Votes,
+      f1Pct,
+      f2Pct,
+    },
   };
 }
 
@@ -277,6 +299,17 @@ export async function generateSuperCupFixture(season: string = "Season 1 (2026)"
     },
   });
 
+  // Reset existing Super Cup poll votes for a fresh prediction poll
+  await prisma.trophyPollVote.deleteMany({
+    where: { competition: "SUPER_CUP" },
+  });
+
+  // Activate as official Match of the Day showcase
+  await prisma.match.updateMany({
+    where: { isMatchOfTheDay: true },
+    data: { isMatchOfTheDay: false },
+  });
+
   const now = new Date();
   const matchDate = scheduledDate || now;
   const deadlineDate = new Date(matchDate.getTime() + 24 * 60 * 60 * 1000);
@@ -291,6 +324,7 @@ export async function generateSuperCupFixture(season: string = "Season 1 (2026)"
       awayPlayerId: europaChampion.id,
       status: "SCHEDULED",
       platform: "eFootball Mobile",
+      isMatchOfTheDay: true,
       matchDate,
       deadlineDate,
       notes: "UEFA Super Cup: Single-match final between confirmed UCL Champion and Europa League Champion. Winner lifts the Super Cup!",
@@ -301,11 +335,11 @@ export async function generateSuperCupFixture(season: string = "Season 1 (2026)"
     },
   });
 
-  // Broadcast announcement to whole league
+  // Broadcast announcement to whole league inviting everyone to vote in the prediction poll
   await prisma.announcement.create({
     data: {
-      title: "🏆 THE UEFA SUPER CUP SHOWDOWN IS SET!",
-      content: `The ultimate clash of champions: @${uclChampion.gamerTag} (UCL Winner) vs @${europaChampion.gamerTag} (Europa League Winner) for the UEFA Super Cup! Single-match showdown for continental supremacy.`,
+      title: "🏆 THE UEFA SUPER CUP SHOWDOWN IS SET! VOTE IN THE PREDICTION POLL!",
+      content: `The ultimate clash of champions: @${uclChampion.gamerTag} (UCL Winner) vs @${europaChampion.gamerTag} (Europa League Winner) for the UEFA Super Cup! Cast your vote now in the official Super Cup Prediction Poll to predict who lifts the trophy!`,
       type: "BROADCAST",
       isPinned: true,
     },

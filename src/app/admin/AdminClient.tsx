@@ -53,6 +53,7 @@ import {
   Newspaper,
   Image as ImageIcon,
   Flame,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -3001,10 +3002,10 @@ export default function AdminClient({
               )}
             </div>
           </div>
+          </div>
 
           {/* Operation 4B: Match of the Week (MOTW) Calendar Selector & Carousel Publisher */}
           <AdminMotwManager onRefreshNews={() => router.refresh()} />
-          </div>
 
           {/* Operation 5: End Season Finale: Promotions & Relegations */}
           {!isLeagueEnded ? (
@@ -5149,6 +5150,26 @@ export default function AdminClient({
                       <p className="text-xs text-muted-foreground font-mono">
                         Scheduled Kickoff: {new Date(superCupStatusData.superCupMatch.matchDate).toLocaleString("en-US", { timeZone: "Africa/Kigali", dateStyle: "medium", timeStyle: "short" })} CAT
                       </p>
+                    )}
+
+                    {/* Live Community Prediction Poll Stats */}
+                    {superCupStatusData.pollStats && (
+                      <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-bold text-muted-foreground flex items-center gap-1.5">
+                          <BarChart2 className="h-3.5 w-3.5 text-secondary" />
+                          <span>Community Prediction Poll:</span>
+                          <strong className="text-foreground">{superCupStatusData.pollStats.totalVotes} votes cast</strong>
+                        </span>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-primary font-bold">
+                            @{superCupStatusData.superCupMatch.homePlayer?.gamerTag}: {superCupStatusData.pollStats.f1Pct}%
+                          </span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-secondary font-bold">
+                            @{superCupStatusData.superCupMatch.awayPlayer?.gamerTag}: {superCupStatusData.pollStats.f2Pct}%
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

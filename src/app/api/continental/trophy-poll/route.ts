@@ -6,6 +6,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const competition = searchParams.get("competition") || "UCL";
+    const voterIdParam = searchParams.get("voterId");
 
     const cookieStore = await cookies();
     const sessionUserId = cookieStore.get("efrl_session")?.value;
@@ -18,33 +19,38 @@ export async function GET(req: Request) {
       });
       currentPlayerId = user?.player?.id || user?.id || null;
     }
+    if (!currentPlayerId && voterIdParam) {
+      currentPlayerId = voterIdParam;
+    }
 
     // Find the Grand Final match for this tournament
     const tournament = await prisma.tournament.findFirst({
-      where: { type: competition },
+      where: {
+        OR: [
+          { type: competition },
+          ...(competition === "SUPER_CUP" ? [{ slug: { contains: "super-cup" } }] : []),
+        ],
+      },
     });
-
-    if (!tournament) {
-      return NextResponse.json({ active: false, message: "Tournament not found" });
-    }
 
     const finalMatch = await prisma.match.findFirst({
       where: {
-        tournamentId: tournament.id,
+        ...(tournament ? { tournamentId: tournament.id } : { division: competition }),
         stage: "FINAL",
       },
       include: {
         homePlayer: {
-          select: { id: true, gamerTag: true, fullName: true, avatar: true, division: true, overallRating: true },
+          select: { id: true, gamerTag: true, fullName: true, avatar: true, realTeam: true, division: true, overallRating: true },
         },
         awayPlayer: {
-          select: { id: true, gamerTag: true, fullName: true, avatar: true, division: true, overallRating: true },
+          select: { id: true, gamerTag: true, fullName: true, avatar: true, realTeam: true, division: true, overallRating: true },
         },
       },
+      orderBy: { createdAt: "desc" },
     });
 
-    if (!finalMatch) {
-      return NextResponse.json({ active: false, message: "Grand Final has not been generated yet." });
+    if (!finalMatch || !finalMatch.homePlayer || !finalMatch.awayPlayer) {
+      return NextResponse.json({ active: false, message: "Final match has not been generated yet." });
     }
 
     // Get all votes for this competition's trophy poll
@@ -75,6 +81,7 @@ export async function GET(req: Request) {
       competition,
       matchId: finalMatch.id,
       matchStatus: finalMatch.status,
+      matchDate: finalMatch.matchDate,
       finalist1: {
         ...finalMatch.homePlayer,
         votes: f1Votes,
@@ -98,23 +105,26 @@ export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
     const sessionUserId = cookieStore.get("efrl_session")?.value;
-    if (!sessionUserId) {
-      return NextResponse.json({ error: "Please log in to vote in the Trophy Prediction Poll." }, { status: 401 });
+
+    let voterId: string | null = null;
+    if (sessionUserId) {
+      const user = await prisma.user.findUnique({
+        where: { id: sessionUserId },
+        include: { player: true },
+      });
+      voterId = user?.player?.id || user?.id || null;
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id: sessionUserId },
-      include: { player: true },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User session invalid." }, { status: 401 });
-    }
-
-    const voterId = user.player?.id || user.id;
 
     const body = await req.json();
-    const { competition = "UCL", predictedWinnerPlayerId } = body;
+    const { competition = "UCL", predictedWinnerPlayerId, voterId: guestVoterId } = body;
+
+    if (!voterId && guestVoterId) {
+      voterId = String(guestVoterId);
+    }
+
+    if (!voterId) {
+      return NextResponse.json({ error: "Please log in to vote in the Trophy Prediction Poll." }, { status: 401 });
+    }
 
     if (!predictedWinnerPlayerId) {
       return NextResponse.json({ error: "Please select an athlete to win the trophy." }, { status: 400 });
@@ -122,18 +132,20 @@ export async function POST(req: Request) {
 
     // Verify finalist exists in the final match
     const tournament = await prisma.tournament.findFirst({
-      where: { type: competition },
+      where: {
+        OR: [
+          { type: competition },
+          ...(competition === "SUPER_CUP" ? [{ slug: { contains: "super-cup" } }] : []),
+        ],
+      },
     });
-
-    if (!tournament) {
-      return NextResponse.json({ error: "Tournament not found." }, { status: 404 });
-    }
 
     const finalMatch = await prisma.match.findFirst({
       where: {
-        tournamentId: tournament.id,
+        ...(tournament ? { tournamentId: tournament.id } : { division: competition }),
         stage: "FINAL",
       },
+      orderBy: { createdAt: "desc" },
     });
 
     if (!finalMatch) {
@@ -169,7 +181,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Your trophy prediction has been cast! Thank you for participating in the Grand Final Poll.",
+      message: "Your trophy prediction has been cast! Thank you for voting in the official Prediction Poll.",
       vote,
     });
   } catch (err: any) {

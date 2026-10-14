@@ -83,6 +83,13 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerDerbyStats | null>(null);
   const [loadingPlayerStats, setLoadingPlayerStats] = useState(false);
 
+  // Sync fixtures when matches prop updates
+  useEffect(() => {
+    if (matches && matches.length > 0) {
+      setFixtures(matches);
+    }
+  }, [matches]);
+
   // Fetch Derbies & Data
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -93,15 +100,26 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
         fetch("/api/matches"),
       ]);
 
-      const derbiesData = await derbiesRes.json();
-      const fixturesData = await fixturesRes.json();
-
-      if (derbiesData.derbies) {
-        setDerbies(derbiesData.derbies);
+      if (derbiesRes.ok) {
+        const derbiesData = await derbiesRes.json().catch(() => null);
+        if (derbiesData?.derbies) {
+          setDerbies(derbiesData.derbies);
+        } else if (derbiesData?.error) {
+          setActionMessage({ text: derbiesData.error, error: true });
+        }
+      } else {
+        const errData = await derbiesRes.json().catch(() => null);
+        setActionMessage({
+          text: errData?.error || `Failed to load derby records (Status ${derbiesRes.status}).`,
+          error: true,
+        });
       }
 
-      if (fixturesData.matches) {
-        setFixtures(fixturesData.matches);
+      if (fixturesRes.ok) {
+        const fixturesData = await fixturesRes.json().catch(() => null);
+        if (fixturesData?.matches) {
+          setFixtures(fixturesData.matches);
+        }
       }
     } catch (err: any) {
       setActionMessage({ text: err.message || "Failed to load derby records.", error: true });
@@ -117,10 +135,23 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
   // Load registered players for player derby records tab
   useEffect(() => {
     if (activeSubTab === "PLAYER_STATS" && players.length === 0) {
+      if (fixtures.length > 0) {
+        const playerMap = new Map<string, { id: string; gamerTag: string; realTeam?: string }>();
+        fixtures.forEach((m: any) => {
+          if (m.homePlayer) playerMap.set(m.homePlayer.id, m.homePlayer);
+          if (m.awayPlayer) playerMap.set(m.awayPlayer.id, m.awayPlayer);
+        });
+        setPlayers(Array.from(playerMap.values()));
+        return;
+      }
+
       fetch("/api/matches")
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) return null;
+          return res.json().catch(() => null);
+        })
         .then((data) => {
-          if (data.matches) {
+          if (data?.matches) {
             const playerMap = new Map<string, { id: string; gamerTag: string; realTeam?: string }>();
             data.matches.forEach((m: any) => {
               if (m.homePlayer) playerMap.set(m.homePlayer.id, m.homePlayer);
@@ -131,7 +162,7 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
         })
         .catch(() => {});
     }
-  }, [activeSubTab, players.length]);
+  }, [activeSubTab, players.length, fixtures]);
 
   // Fetch Player Derby Stats (STRICT: NO WIN RATE)
   useEffect(() => {
@@ -142,9 +173,12 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
 
     setLoadingPlayerStats(true);
     fetch(`/api/player/profile?playerId=${selectedPlayerId}`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return res.json().catch(() => null);
+      })
       .then((data) => {
-        if (data.derbyStats) {
+        if (data?.derbyStats) {
           setSelectedPlayerStats(data.derbyStats);
         } else {
           // Compute on the fly from confirmed matches
@@ -249,10 +283,10 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save derby.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `Failed to save derby (Status ${res.status}).`);
 
-      setActionMessage({ text: data.message || "Derby configuration saved successfully!" });
+      setActionMessage({ text: data?.message || "Derby configuration saved successfully!" });
       setShowModal(false);
       fetchData();
       if (onRefresh) onRefresh();
@@ -271,8 +305,8 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !derby.isActive }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update derby status.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `Failed to update derby status (Status ${res.status}).`);
 
       setDerbies((prev) =>
         prev.map((d) => (d.id === derby.id ? { ...d, isActive: !derby.isActive } : d))
@@ -295,10 +329,10 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
       const res = await fetch(`/api/admin/derbies/${derby.id}`, {
         method: "DELETE",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete derby.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `Failed to delete derby (Status ${res.status}).`);
 
-      setActionMessage({ text: data.message || "Derby configuration deleted." });
+      setActionMessage({ text: data?.message || "Derby configuration deleted." });
       setDerbies((prev) => prev.filter((d) => d.id !== derby.id));
     } catch (err: any) {
       setActionMessage({ text: err.message || "Error deleting derby.", error: true });
@@ -315,10 +349,10 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matchId }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to publish carousel slide.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `Failed to publish carousel slide (Status ${res.status}).`);
 
-      setActionMessage({ text: data.message || "Derby published to carousel slide!" });
+      setActionMessage({ text: data?.message || "Derby published to carousel slide!" });
       if (onRefresh) onRefresh();
     } catch (err: any) {
       setActionMessage({ text: err.message || "Error publishing carousel.", error: true });
@@ -337,10 +371,10 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matchId }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to publish social announcement.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `Failed to publish social announcement (Status ${res.status}).`);
 
-      setActionMessage({ text: data.message || "Derby announcement posted to social feed!" });
+      setActionMessage({ text: data?.message || "Derby announcement posted to social feed!" });
       if (onRefresh) onRefresh();
     } catch (err: any) {
       setActionMessage({ text: err.message || "Error publishing social post.", error: true });

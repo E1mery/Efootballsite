@@ -56,6 +56,7 @@ import type { PlayerDashboardTab } from "@/components/player/player-nav";
 import ChampionsLeagueView from "@/components/competitions/ChampionsLeagueView";
 import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
 import SuperCupView from "@/components/competitions/SuperCupView";
+import SuperCupPredictionPoll from "@/components/competitions/SuperCupPredictionPoll";
 import InterdivisionCupsView from "@/components/competitions/InterdivisionCupsView";
 import SocialFeed from "@/components/social/SocialFeed";
 import PlayerDerbyPerformanceCard from "@/components/player/PlayerDerbyPerformanceCard";
@@ -3669,6 +3670,9 @@ export default function DashboardClient({
               {leaderboardSnapshotElement}
             </div>
           )}
+
+          {/* COMMUNITY SUPER CUP WINNER PREDICTION POLL */}
+          <SuperCupPredictionPoll />
 
           {/* DIVISION MATCH OF THE DAY SECTION (ISOLATED TO PLAYER'S DIVISION ONLY) */}
           <div className="space-y-4 pt-2">
