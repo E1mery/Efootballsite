@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import MatchCard from "@/components/MatchCard";
 import MatchOfTheDayCard from "@/components/MatchOfTheDayCard";
+import HistoricalDerbyModal from "@/components/competitions/HistoricalDerbyModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,7 @@ export default function FixturesClient({
   const [statusFilter, setStatusFilter] = useState<string>(initialFilter);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"CHRONOLOGICAL" | "LATEST">("CHRONOLOGICAL");
+  const [isDerbyModalOpen, setIsDerbyModalOpen] = useState(false);
 
   // Keep URL search params in sync smoothly without full page reloads
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function FixturesClient({
         if (statusFilter === "LIVE" && m.status !== "LIVE") return false;
         if (statusFilter === "SCHEDULED" && m.status !== "SCHEDULED") return false;
         if (statusFilter === "FINISHED" && m.status !== "FINISHED" && m.status !== "FORFEIT") return false;
+        if (statusFilter === "DERBY" && !m.isDerby) return false;
 
         // Search Query
         if (searchQuery.trim()) {
@@ -243,16 +246,16 @@ export default function FixturesClient({
           </div>
 
           {/* Quick Stats Pill Grid */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
-            <div className="rounded-2xl border border-border bg-card/60 p-3 text-center w-20">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
+            <div className="rounded-2xl border border-border bg-card/60 p-2.5 sm:p-3 text-center w-full sm:w-20">
               <span className="text-xs font-black uppercase text-muted-foreground block">Total</span>
               <span className="text-base sm:text-xl font-black text-white font-mono">{initialMatches.length}</span>
             </div>
-            <div className="rounded-2xl border border-primary/30 bg-primary/20 p-3 text-center w-20">
+            <div className="rounded-2xl border border-primary/30 bg-primary/20 p-2.5 sm:p-3 text-center w-full sm:w-20">
               <span className="text-xs font-black uppercase text-primary block">Finished</span>
               <span className="text-base sm:text-xl font-black text-primary font-mono">{totalCompleted}</span>
             </div>
-            <div className="rounded-2xl border border-secondary/30 bg-secondary/20 p-3 text-center w-20">
+            <div className="rounded-2xl border border-secondary/30 bg-secondary/20 p-2.5 sm:p-3 text-center w-full sm:w-20">
               <span className="text-xs font-black uppercase text-secondary block">Upcoming</span>
               <span className="text-base sm:text-xl font-black text-secondary font-mono">{totalUpcoming}</span>
             </div>
@@ -307,8 +310,18 @@ export default function FixturesClient({
               })}
             </div>
 
-            {/* Sort Toggle */}
+            {/* Rivalries H2H & Sort Toggle */}
             <div className="flex items-center gap-2 self-end sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDerbyModalOpen(true)}
+                className="text-xs font-bold border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 gap-1.5 h-9"
+              >
+                <Flame className="h-3.5 w-3.5 text-primary" />
+                <span>Rivalries & H2H</span>
+              </Button>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -353,6 +366,7 @@ export default function FixturesClient({
                   className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                 >
                   <option value="ALL">All Statuses</option>
+                  <option value="DERBY">🔥 Official Derbies</option>
                   <option value="SCHEDULED">Scheduled</option>
                   <option value="LIVE">Live Window</option>
                   <option value="FINISHED">Completed Results</option>
@@ -465,6 +479,11 @@ export default function FixturesClient({
         </div>
       )}
       </div>
+
+      <HistoricalDerbyModal
+        isOpen={isDerbyModalOpen}
+        onClose={() => setIsDerbyModalOpen(false)}
+      />
     </div>
   );
 }

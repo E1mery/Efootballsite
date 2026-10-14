@@ -119,14 +119,14 @@ export default async function StandingsPage(props: {
           </div>
 
           {/* Quick Metrics */}
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl border border-border bg-card/80 px-4 py-2 text-right">
-              <span className="text-xs uppercase font-bold text-muted-foreground block">Division Athletes</span>
-              <span className="text-lg font-black text-primary">{standings.length} / {divisionCapacity} Max</span>
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="rounded-xl border border-border bg-card/80 px-3 sm:px-4 py-2 text-center sm:text-right">
+              <span className="text-xs uppercase font-bold text-muted-foreground block truncate">Division Athletes</span>
+              <span className="text-base sm:text-lg font-black text-primary">{standings.length} / {divisionCapacity} Max</span>
             </div>
-            <div className="rounded-xl border border-border bg-card/80 px-4 py-2 text-right">
-              <span className="text-xs uppercase font-bold text-muted-foreground block">Division Goals</span>
-              <span className="text-lg font-black text-secondary">{totalGoals}</span>
+            <div className="rounded-xl border border-border bg-card/80 px-3 sm:px-4 py-2 text-center sm:text-right">
+              <span className="text-xs uppercase font-bold text-muted-foreground block truncate">Division Goals</span>
+              <span className="text-base sm:text-lg font-black text-secondary">{totalGoals}</span>
             </div>
           </div>
         </div>

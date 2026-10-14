@@ -152,11 +152,11 @@ export default function StandingsTable({
 
   return (
     <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
-      <Table className="w-full">
+      <Table className="w-full table-min-standings sm:min-w-full">
         <TableHeader>
           <TableRow>
             <TableHead className={`${showMovement ? "w-20" : "w-14"} text-center transition-all`}>Pos</TableHead>
-            <TableHead>eFootball Mobile Athlete (Gamer Tag)</TableHead>
+            <TableHead className="table-head-athlete sm:min-w-0">eFootball Mobile Athlete (Gamer Tag)</TableHead>
             <TableHead className="text-center">MP</TableHead>
             <TableHead className="text-center">W</TableHead>
             <TableHead className="text-center">D</TableHead>

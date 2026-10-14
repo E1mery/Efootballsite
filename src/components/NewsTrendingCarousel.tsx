@@ -181,7 +181,13 @@ const CoverflowCard = memo(function CoverflowCard({
     (slide.data?.subType === "DRAW_SCHEDULED" && Boolean(slide.data?.uclTimeStr))
   );
 
-  const isMotwSlide = !isSuperCupSlide && Boolean(
+  const isDerbySlide = Boolean(
+    slide.type === "DERBY" ||
+    slide.category?.toLowerCase() === "derby" ||
+    slide.tabLabel?.toLowerCase().includes("derby")
+  );
+
+  const isMotwSlide = !isSuperCupSlide && !isDerbySlide && Boolean(
     slide.type === "MOTW" ||
     slide.featuredImage === "/images/motw-stadium-bg.jpg" ||
     slide.badge?.toLowerCase().includes("match of the week") ||
@@ -201,8 +207,8 @@ const CoverflowCard = memo(function CoverflowCard({
 
   const ambientBackgroundImage = isSuperCupSlide
     ? "/images/super-cup-bg.jpg"
-    : isMotwSlide
-    ? "/images/motw-stadium-bg.jpg"
+    : (isMotwSlide || isDerbySlide)
+    ? (slide.featuredImage || "/images/motw-stadium-bg.jpg")
     : isCustomFeaturedImage
     ? slide.featuredImage
     : isEuropaSlide
@@ -215,7 +221,7 @@ const CoverflowCard = memo(function CoverflowCard({
     ? slide.featuredImage
     : isSuperCupSlide
     ? (slide.featuredImage && slide.featuredImage !== "/images/super-cup-bg.jpg" && slide.featuredImage !== "/images/super-cup-stadium-bg.jpg" ? slide.featuredImage : null)
-    : isMotwSlide
+    : (isMotwSlide || isDerbySlide)
     ? null
     : isEuropaSlide
     ? "/images/europa-stadium-bg.jpg"
@@ -417,15 +423,15 @@ const CoverflowCard = memo(function CoverflowCard({
           )}
 
           {/* ========================================================================= */}
-          {/* 0A. MATCH OF THE WEEK (MOTW) HEAD-TO-HEAD SHOWCASE */}
+          {/* 0A. MATCH OF THE WEEK (MOTW) & OFFICIAL DERBY HEAD-TO-HEAD SHOWCASE */}
           {/* ========================================================================= */}
-          {slide.type === "MOTW" && slide.data && (
+          {(slide.type === "MOTW" || slide.type === "DERBY") && slide.data && (
             <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-md lg:max-w-lg w-full p-3.5 sm:p-5 rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-mono text-secondary font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-secondary" />
-                    <span>Match of the Week</span>
+                    {slide.type === "DERBY" ? <Flame className="h-3.5 w-3.5 text-secondary" /> : <Sparkles className="h-3.5 w-3.5 text-secondary" />}
+                    <span>{slide.type === "DERBY" ? (slide.data.derbyName || "Official Derby") : "Match of the Week"}</span>
                   </span>
                   <span className="text-xs font-mono text-muted-foreground font-semibold">
                     • {slide.data.division} • {slide.data.round}
@@ -440,9 +446,7 @@ const CoverflowCard = memo(function CoverflowCard({
                 </div>
 
                 <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
-                  {slide.data.homePlayer?.gamerTag}{" "}
-                  <span className="text-secondary">vs</span>{" "}
-                  {slide.data.awayPlayer?.gamerTag}
+                  {slide.title}
                 </h2>
 
                 <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
@@ -494,7 +498,7 @@ const CoverflowCard = memo(function CoverflowCard({
                     VS
                   </div>
                   <span className="text-xs font-mono text-secondary font-bold">
-                    MOTW
+                    {slide.type === "DERBY" ? "DERBY" : "MOTW"}
                   </span>
                 </div>
 

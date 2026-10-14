@@ -58,6 +58,8 @@ import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
 import SuperCupView from "@/components/competitions/SuperCupView";
 import InterdivisionCupsView from "@/components/competitions/InterdivisionCupsView";
 import SocialFeed from "@/components/social/SocialFeed";
+import PlayerDerbyPerformanceCard from "@/components/player/PlayerDerbyPerformanceCard";
+import HistoricalDerbyModal from "@/components/competitions/HistoricalDerbyModal";
 import {
   getStoredReadIds,
   persistStoredReadIds,
@@ -1038,6 +1040,9 @@ export default function DashboardClient({
   const [showResultModal, setShowResultModal] = useState(false);
   const [showForfeitModal, setShowForfeitModal] = useState(false);
   const [showQuickGuide, setShowQuickGuide] = useState(false);
+  const [isDerbyModalOpen, setIsDerbyModalOpen] = useState(false);
+  const [selectedDerbyIdForModal, setSelectedDerbyIdForModal] = useState<string | undefined>(undefined);
+  const [selectedOpponentIdForModal, setSelectedOpponentIdForModal] = useState<string | undefined>(undefined);
 
   // Continental Qualified Athletes memo
   const uclQualifiedAthletes = useMemo(() => {
@@ -4256,9 +4261,27 @@ export default function DashboardClient({
                   className="rounded-2xl border border-border bg-card/60 p-4 flex flex-col sm:flex-row items-center justify-between gap-4"
                 >
                   <div>
-                    <span className="text-xs font-bold text-muted-foreground uppercase block">
-                      {m.round} • {m.division}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-muted-foreground uppercase">
+                        {m.round} • {m.division}
+                      </span>
+                      {m.isDerby && m.derbyName && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDerbyIdForModal(m.derbyId || undefined);
+                            const opp = m.homePlayer?.id === currentPlayer.id ? m.awayPlayer : m.homePlayer;
+                            setSelectedOpponentIdForModal(opp?.id);
+                            setIsDerbyModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-black uppercase bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors"
+                          title="Click to view official derby rivalry head-to-head"
+                        >
+                          <Flame className="w-2.5 h-2.5 text-primary" />
+                          <span>{m.derbyName}</span>
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mt-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-sm">
@@ -4709,71 +4732,83 @@ export default function DashboardClient({
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Athlete Profile Summary Card */}
-            <div className="rounded-3xl border border-border bg-card/60 p-6 space-y-5 h-fit backdrop-blur-xl">
-              <div className="text-center space-y-3 pb-4 border-b border-border">
-                <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-2 text-foreground font-black text-2xl sm:text-3xl flex items-center justify-center mx-auto shadow-xl overflow-hidden">
-                  {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
-                    <img
-                      src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
-                      alt={currentPlayer.realTeam || currentPlayer.gamerTag}
-                      className="h-full w-full object-contain"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
-                      }}
-                    />
-                  ) : (
-                    <div className="h-full w-full rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center font-black text-xl sm:text-2xl text-white">
-                      {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
+            <div className="space-y-6">
+              {/* Athlete Profile Summary Card */}
+              <div className="rounded-3xl border border-border bg-card/60 p-6 space-y-5 h-fit backdrop-blur-xl">
+                <div className="text-center space-y-3 pb-4 border-b border-border">
+                  <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card to-background border border-border p-2 text-foreground font-black text-2xl sm:text-3xl flex items-center justify-center mx-auto shadow-xl overflow-hidden">
+                    {currentPlayer.avatar || resolvePlayerAvatar(currentPlayer) ? (
+                      <img
+                        src={currentPlayer.avatar || resolvePlayerAvatar(currentPlayer)}
+                        alt={currentPlayer.realTeam || currentPlayer.gamerTag}
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
+                        }}
+                      />
+                    ) : (
+                      <div className="h-full w-full rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center font-black text-xl sm:text-2xl text-white">
+                        {currentPlayer.gamerTag.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black text-white">{currentPlayer.gamerTag}</h4>
+                    <p className="text-xs text-muted-foreground">{currentPlayer.fullName}</p>
+                    {currentPlayer.realTeam && (
+                      <div className="mt-1 flex items-center justify-center gap-1.5">
+                        <span className="text-xs font-bold text-primary">{currentPlayer.realTeam}</span>
+                        {(() => {
+                          const t = findTeam(currentPlayer.realTeam);
+                          return t ? (
+                            <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-foreground">
+                              {t.shortName}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+                    <Badge variant="yellow" className="text-xs">
+                      {currentPlayer.division}
+                    </Badge>
+                    <Badge variant={currentPlayer.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
+                      {currentPlayer.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xl font-black text-white">{currentPlayer.gamerTag}</h4>
-                  <p className="text-xs text-muted-foreground">{currentPlayer.fullName}</p>
-                  {currentPlayer.realTeam && (
-                    <div className="mt-1 flex items-center justify-center gap-1.5">
-                      <span className="text-xs font-bold text-primary">{currentPlayer.realTeam}</span>
-                      {(() => {
-                        const t = findTeam(currentPlayer.realTeam);
-                        return t ? (
-                          <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-foreground">
-                            {t.shortName}
-                          </span>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-                  <Badge variant="yellow" className="text-xs">
-                    {currentPlayer.division}
-                  </Badge>
-                  <Badge variant={currentPlayer.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
-                    {currentPlayer.status}
-                  </Badge>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex justify-between py-1 border-b border-border/60">
+                    <span className="text-muted-foreground">eFootball ID:</span>
+                    <span className="font-mono text-foreground">{currentPlayer.efootballId}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-border/60">
+                    <span className="text-muted-foreground">WhatsApp Phone:</span>
+                    <span className="font-mono text-primary font-semibold">{currentPlayer.whatsapp}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-border/60">
+                    <span className="text-muted-foreground">Login Username:</span>
+                    <span className="font-mono text-foreground truncate w-36">{currentUser?.email}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">Platform:</span>
+                    <span className="font-mono text-foreground">{currentPlayer.platform}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">eFootball ID:</span>
-                  <span className="font-mono text-foreground">{currentPlayer.efootballId}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">WhatsApp Phone:</span>
-                  <span className="font-mono text-primary font-semibold">{currentPlayer.whatsapp}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">Login Username:</span>
-                  <span className="font-mono text-foreground truncate w-36">{currentUser?.email}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Platform:</span>
-                  <span className="font-mono text-foreground">{currentPlayer.platform}</span>
-                </div>
-              </div>
+              {/* Official Derby Performance Record */}
+              <PlayerDerbyPerformanceCard
+                playerId={currentPlayer.id}
+                onViewDerbyH2H={() => {
+                  setSelectedDerbyIdForModal(undefined);
+                  setSelectedOpponentIdForModal(undefined);
+                  setIsDerbyModalOpen(true);
+                }}
+              />
             </div>
 
             {/* Profile Update Form */}
@@ -5103,7 +5138,7 @@ export default function DashboardClient({
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="relative w-full max-w-lg max-h-screen overflow-y-auto rounded-3xl border border-border bg-background p-5 sm:p-8 shadow-2xl space-y-5">
+            <div className="relative w-full max-w-lg modal-responsive-height overflow-y-auto rounded-3xl border border-border bg-background p-5 sm:p-8 shadow-2xl space-y-5">
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -5494,7 +5529,7 @@ export default function DashboardClient({
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="relative w-full max-w-lg max-h-screen overflow-y-auto rounded-3xl border border-destructive/40 bg-background p-5 sm:p-8 shadow-2xl space-y-5">
+            <div className="relative w-full max-w-lg modal-responsive-height overflow-y-auto rounded-3xl border border-destructive/40 bg-background p-5 sm:p-8 shadow-2xl space-y-5">
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -5786,6 +5821,21 @@ export default function DashboardClient({
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* HISTORICAL DERBY & HEAD-TO-HEAD MODAL */}
+      {/* ========================================================================= */}
+      <HistoricalDerbyModal
+        isOpen={isDerbyModalOpen}
+        onClose={() => {
+          setIsDerbyModalOpen(false);
+          setSelectedDerbyIdForModal(undefined);
+          setSelectedOpponentIdForModal(undefined);
+        }}
+        initialDerbyId={selectedDerbyIdForModal}
+        playerId={currentPlayer.id}
+        opponentPlayerId={selectedOpponentIdForModal}
+      />
     </div>
   );
 }

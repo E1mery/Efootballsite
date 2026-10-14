@@ -5,7 +5,9 @@ export type SocialPostType =
   | "MOTD_RESULT"
   | "MOTW_ANNOUNCEMENT"
   | "MOTW_RESULT"
-  | "MOTW_RIVALRY";
+  | "MOTW_RIVALRY"
+  | "DERBY_ANNOUNCEMENT"
+  | "DERBY_RESULT";
 
 export interface CreateOrUpdateSocialPostInput {
   type: SocialPostType;
@@ -19,6 +21,8 @@ export interface CreateOrUpdateSocialPostInput {
   customHeadline?: string;
   customCaption?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  derbyId?: string | null;
+  derbyName?: string | null;
 }
 
 /**
@@ -129,6 +133,43 @@ export function generateSocialCopy(
         hashtags: ["#RivalryDiscussion", "#PreMatchHype", "#BanterRoom", "#RwandaGaming"],
       };
 
+    case "DERBY_ANNOUNCEMENT": {
+      const derbyTitle = (data as any).derbyName || "OFFICIAL DERBY";
+      const cleanHashtag = derbyTitle.replace(/[\s'’–-]+/g, "");
+      return {
+        headline: `⚔️ OFFICIAL DERBY ANNOUNCEMENT | ${derbyTitle.toUpperCase()} | ${homeGamerTag.toUpperCase()} 🆚 ${awayGamerTag.toUpperCase()}`,
+        caption: `OFFICIAL DERBY ANNOUNCEMENT\n\n` +
+          `# ${derbyTitle.toUpperCase()}\n\n` +
+          `${(homeTeam || homeGamerTag).toUpperCase()} VS ${(awayTeam || awayGamerTag).toUpperCase()}\n\n` +
+          `Two giants. One rivalry. One fixture in the Rwanda eFootball League.\n\n` +
+          `🔥 ${homeDisplay} goes to war against ${awayDisplay} in a marquee ${roundLabel} clash in ${divLabel}.\n` +
+          `Maximum bragging rights and league supremacy on the line! Drop your predictions below! 👇`,
+        hashtags: [`#${cleanHashtag}`, "#OfficialDerby", "#eFootballRW", "#RwandaGaming", `#${divLabel.replace(/\s+/g, "")}`],
+      };
+    }
+
+    case "DERBY_RESULT": {
+      const derbyTitle = (data as any).derbyName || "OFFICIAL DERBY";
+      const cleanHashtag = derbyTitle.replace(/[\s'’–-]+/g, "");
+      const hScore = homeScore ?? 0;
+      const aScore = awayScore ?? 0;
+      const outcome =
+        hScore > aScore
+          ? `${homeGamerTag} (${homeTeam || "Home"}) conquers the derby with an emphatic triumph!`
+          : aScore > hScore
+          ? `${awayGamerTag} (${awayTeam || "Away"}) claims monumental bragging rights with a masterclass away derby win!`
+          : `Honors even! A breathtaking derby stalemate between ${homeGamerTag} and ${awayGamerTag}.`;
+
+      return {
+        headline: `🏆 DERBY FULL TIME | ${derbyTitle.toUpperCase()} | ${homeGamerTag.toUpperCase()} ${hScore} - ${aScore} ${awayGamerTag.toUpperCase()}`,
+        caption: `🏁 OFFICIAL DERBY RESULT: The ${derbyTitle} is in the books!\n\n` +
+          `FINAL: ${homeDisplay} ${hScore} - ${aScore} ${awayDisplay}.\n` +
+          `${outcome}\n\n` +
+          `All verified points have officially been locked into the ${divLabel} standings. The bragging rights are officially sealed! 👏🔥`,
+        hashtags: [`#${cleanHashtag}`, "#DerbyResult", "#FullTime", "#eFootballRW", "#OfficialResult"],
+      };
+    }
+
     default:
       return {
         headline: `📢 LEAGUE UPDATE`,
@@ -161,6 +202,20 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
   const season = input.season || config?.season || match.tournament?.season || "Season 1 (2026)";
   const division = input.division || match.division;
 
+  let derbyName = input.derbyName || (match as any).derbyName || null;
+  let derbyId = input.derbyId || (match as any).derbyId || null;
+
+  if (!derbyName) {
+    try {
+      const { detectDerby } = await import("@/lib/derbyService");
+      const d = detectDerby(match.homePlayer, match.awayPlayer);
+      if (d) {
+        derbyName = d.name;
+        derbyId = d.id;
+      }
+    } catch {}
+  }
+
   const copy = generateSocialCopy(type, {
     homeGamerTag: match.homePlayer.gamerTag,
     awayGamerTag: match.awayPlayer.gamerTag,
@@ -170,7 +225,8 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
     homeScore: homeScore !== undefined ? homeScore : match.homeScore,
     awayScore: awayScore !== undefined ? awayScore : match.awayScore,
     round: match.round,
-  });
+    derbyName,
+  } as any);
 
   const headline = customHeadline || copy.headline;
   const caption = customCaption || copy.caption;
@@ -194,6 +250,8 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
       awayScore: awayScore !== undefined ? awayScore : match.awayScore,
       status: input.status || "PUBLISHED",
       publishedAt: new Date(),
+      derbyId,
+      derbyName,
     },
     create: {
       type,
@@ -209,6 +267,8 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
       awayScore: awayScore !== undefined ? awayScore : match.awayScore,
       status: input.status || "PUBLISHED",
       publishedAt: new Date(),
+      derbyId,
+      derbyName,
     },
   });
 

@@ -37,7 +37,7 @@ function isStandingsResetAnnouncement(item: {
 }): boolean {
   if (
     item.category === "League Table" ||
-    (item.id && (item.id.startsWith("sys-league-table-") || item.id.startsWith("sys-motw-")))
+    (item.id && (item.id.startsWith("sys-league-table-") || item.id.startsWith("sys-motw-") || item.id.startsWith("sys-derby-")))
   ) {
     return false;
   }
@@ -375,6 +375,71 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
                   formattedKickoffFull,
                   homePlayer: motwMatch.homePlayer,
                   awayPlayer: motwMatch.awayPlayer,
+                },
+              };
+            }
+          }
+
+          // 0A-2. Official Derby Headline Fixture Slide
+          if (
+            item.id.startsWith("sys-derby-") ||
+            item.category === "Derby" ||
+            (item.category === "Match" && (item.title || "").toLowerCase().includes("derby"))
+          ) {
+            const matchId = item.buttonUrl?.includes("highlight=")
+              ? item.buttonUrl.split("highlight=")[1]?.split("&")[0]
+              : item.id.replace("sys-derby-", "");
+
+            const derbyMatch = await prisma.match.findUnique({
+              where: { id: matchId },
+              include: {
+                homePlayer: true,
+                awayPlayer: true,
+              },
+            });
+
+            if (derbyMatch && derbyMatch.homePlayer && derbyMatch.awayPlayer) {
+              const kickoffDate = derbyMatch.matchDate;
+              const formattedKickoffDate = formatRwandanDate(kickoffDate, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              const formattedKickoffTime = formatRwandanTime(kickoffDate);
+              const formattedKickoffFull = `${formattedKickoffDate} • ${formattedKickoffTime} (CAT)`;
+
+              const { detectDerby } = await import("@/lib/derbyService");
+              const detected = (derbyMatch as any).isDerby && (derbyMatch as any).derbyName
+                ? { name: (derbyMatch as any).derbyName }
+                : detectDerby(derbyMatch.homePlayer, derbyMatch.awayPlayer);
+
+              const derbyOfficialName = (derbyMatch as any).derbyName || detected?.name || item.title;
+
+              return {
+                id: item.id,
+                type: "DERBY",
+                badge: derbyOfficialName.toUpperCase(),
+                category: "Derby",
+                tabLabel: "Official Derby",
+                title: item.title,
+                subtitle: `${derbyMatch.division} • ${derbyMatch.round} • Kickoff: ${formattedKickoffFull}`,
+                description: item.description,
+                featuredImage: item.featuredImage || "/images/motw-stadium-bg.jpg",
+                buttonText: item.buttonText || "VIEW DERBY",
+                buttonUrl: item.buttonUrl || `/fixtures?highlight=${derbyMatch.id}`,
+                publishDate: item.publishDate,
+                expirationDate: item.expirationDate,
+                data: {
+                  matchId: derbyMatch.id,
+                  division: derbyMatch.division,
+                  round: derbyMatch.round,
+                  derbyName: derbyOfficialName,
+                  matchDate: derbyMatch.matchDate,
+                  formattedKickoffDate,
+                  formattedKickoffTime,
+                  formattedKickoffFull,
+                  homePlayer: derbyMatch.homePlayer,
+                  awayPlayer: derbyMatch.awayPlayer,
                 },
               };
             }
@@ -866,6 +931,7 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
     return prioritizedSlides.sort((a, b) => {
       const getPriority = (s: CarouselSlide) => {
         if (s.type === "SUPER_CUP") return 100;
+        if (s.type === "DERBY") return 96;
         if (s.type === "MOTW") return 95;
         if (s.type === "SYSTEM_ANNOUNCEMENT") return 80;
         if (s.type === "LEAGUE_TABLE") return 70;

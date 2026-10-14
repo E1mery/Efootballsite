@@ -264,7 +264,7 @@ export default function SeasonArchiveClient({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id as ArchiveTab)}
-                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
                     isActive
                       ? "bg-secondary text-secondary-foreground shadow-md font-black"
                       : "bg-card/70 border border-border text-muted-foreground hover:text-foreground hover:bg-card"
@@ -457,8 +457,8 @@ export default function SeasonArchiveClient({
                       </span>
                     </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
+                    <div className="overflow-x-auto no-scrollbar scroll-smooth">
+                      <table className="w-full text-left text-xs table-min-standings">
                         <thead className="border-b border-border/60 bg-muted/30 text-muted-foreground text-xs font-bold uppercase tracking-wider">
                           <tr>
                             <th className="py-3 px-3 w-12 text-center">Pos</th>

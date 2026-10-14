@@ -202,12 +202,12 @@ export default function SuperCupView({
       </div>
 
       {/* Internal Navigation Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto p-1.5 rounded-2xl bg-card border border-border">
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth p-1.5 rounded-2xl bg-card border border-border">
         <Button
           variant={activeTab === "SHOWDOWN" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("SHOWDOWN")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Trophy className="h-3.5 w-3.5 text-secondary" /> Final Showdown
         </Button>
@@ -215,7 +215,7 @@ export default function SuperCupView({
           variant={activeTab === "OVERVIEW" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("OVERVIEW")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Crown className="h-3.5 w-3.5" /> Competition Overview
         </Button>
@@ -223,7 +223,7 @@ export default function SuperCupView({
           variant={activeTab === "HISTORY" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("HISTORY")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <History className="h-3.5 w-3.5" /> Historical Winners
         </Button>

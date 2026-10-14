@@ -86,7 +86,7 @@ export default function UserAvatarMenu({
         <div
           role="menu"
           aria-label={`${displayName} account menu`}
-          className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-56 max-w-xs overflow-hidden rounded-lg border border-border bg-card shadow-lg"
         >
           <div className="border-b border-border px-4 py-3">
             <p className="truncate text-sm font-bold text-foreground">{displayName}</p>

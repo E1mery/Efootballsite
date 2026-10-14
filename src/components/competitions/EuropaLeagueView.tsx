@@ -190,12 +190,12 @@ export default function EuropaLeagueView({
       </div>
 
       {/* Internal Navigation Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto p-1.5 rounded-2xl bg-card border border-border">
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth p-1.5 rounded-2xl bg-card border border-border">
         <Button
           variant={activeTab === "OVERVIEW" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("OVERVIEW")}
-          className="text-xs font-bold"
+          className="text-xs font-bold shrink-0 whitespace-nowrap"
         >
           Overview
         </Button>
@@ -203,7 +203,7 @@ export default function EuropaLeagueView({
           variant={activeTab === "BRACKET" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("BRACKET")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Flame className="h-3.5 w-3.5 text-secondary" /> Playoff Bracket
         </Button>
@@ -211,7 +211,7 @@ export default function EuropaLeagueView({
           variant={activeTab === "GROUPS" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("GROUPS")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Table className="h-3.5 w-3.5" /> Group Tables
         </Button>
@@ -219,7 +219,7 @@ export default function EuropaLeagueView({
           variant={activeTab === "FIXTURES" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("FIXTURES")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Calendar className="h-3.5 w-3.5" /> Fixtures & Results
         </Button>
@@ -227,7 +227,7 @@ export default function EuropaLeagueView({
           variant={activeTab === "DRAWS" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("DRAWS")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Sparkles className="h-3.5 w-3.5" /> Draw & Groups
         </Button>
@@ -235,7 +235,7 @@ export default function EuropaLeagueView({
           variant={activeTab === "PARTICIPANTS" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("PARTICIPANTS")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <Users className="h-3.5 w-3.5" /> 16 Competitors
         </Button>
@@ -243,7 +243,7 @@ export default function EuropaLeagueView({
           variant={activeTab === "HISTORY" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("HISTORY")}
-          className="text-xs font-bold gap-1"
+          className="text-xs font-bold gap-1 shrink-0 whitespace-nowrap"
         >
           <History className="h-3.5 w-3.5" /> Hall of Champions
         </Button>

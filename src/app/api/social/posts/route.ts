@@ -23,6 +23,8 @@ export async function GET(req: Request) {
       where.type = { in: ["MOTW_ANNOUNCEMENT", "MOTW_RESULT"] };
     } else if (filterType === "RIVALRY") {
       where.type = "MOTW_RIVALRY";
+    } else if (filterType === "DERBY") {
+      where.type = { in: ["DERBY_ANNOUNCEMENT", "DERBY_RESULT"] };
     }
 
     const [posts, totalCount] = await Promise.all([
@@ -76,6 +78,8 @@ export async function GET(req: Request) {
         publishedAt: post.publishedAt,
         homeScore: post.homeScore,
         awayScore: post.awayScore,
+        derbyId: (post as any).derbyId,
+        derbyName: (post as any).derbyName,
         likesCount: post._count.reactions,
         commentsCount: post._count.comments,
         hasLiked: hasUserLiked,

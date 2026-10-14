@@ -23,7 +23,7 @@ export async function syncSocialResultForMatch(matchId: string, status: "FINISHE
       await prisma.socialPost.updateMany({
         where: {
           matchId,
-          type: { in: ["MOTD_RESULT", "MOTW_RESULT"] },
+          type: { in: ["MOTD_RESULT", "MOTW_RESULT", "DERBY_RESULT"] },
         },
         data: {
           status: "ARCHIVED",
@@ -77,6 +77,39 @@ export async function syncSocialResultForMatch(matchId: string, status: "FINISHE
           homeScore: match.homeScore,
           awayScore: match.awayScore,
         });
+      }
+
+      // 3. Check if it was an Official Derby
+      try {
+        const { detectDerby } = await import("@/lib/derbyService");
+        const derby = (match as any).isDerby && (match as any).derbyName
+          ? { id: (match as any).derbyId, name: (match as any).derbyName, autoPublishSocial: true }
+          : detectDerby(match.homePlayer, match.awayPlayer);
+
+        if (derby) {
+          const derbyAnnouncement = await prisma.socialPost.findFirst({
+            where: {
+              matchId: match.id,
+              type: "DERBY_ANNOUNCEMENT",
+            },
+          });
+
+          if (derbyAnnouncement || derby.autoPublishSocial) {
+            await syncSocialPostForMatch({
+              type: "DERBY_RESULT",
+              matchId: match.id,
+              division: match.division,
+              homePlayerId: match.homePlayerId,
+              awayPlayerId: match.awayPlayerId,
+              homeScore: match.homeScore,
+              awayScore: match.awayScore,
+              derbyId: derby.id,
+              derbyName: derby.name,
+            });
+          }
+        }
+      } catch (derbyErr) {
+        console.error("[syncSocialResultForMatch] Error checking derby result:", derbyErr);
       }
     }
   } catch (err) {

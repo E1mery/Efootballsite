@@ -582,7 +582,7 @@ export default function ContinentalDrawExperience({
         </div>
 
         {/* Center: Animated Spinning Drum & Revealer */}
-        <div className="lg:col-span-6 relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/40 via-background to-background shadow-2xl overflow-hidden">
+        <div className="lg:col-span-6 relative flex flex-col items-center justify-center p-4 sm:p-8 rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/40 via-background to-background shadow-2xl overflow-hidden">
           {/* Neon Star Glow Center */}
           <div className="absolute inset-0 bg-radial from-primary/10 via-transparent to-transparent pointer-events-none" />
 
@@ -607,14 +607,14 @@ export default function ContinentalDrawExperience({
               </div>
             </div>
           ) : currentDrawnAthlete ? (
-            <div className="text-center space-y-3 animate-zoom-in duration-300">
+            <div className="text-center space-y-3 animate-zoom-in duration-300 w-full flex flex-col items-center">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-black uppercase tracking-wider">
                 <Sparkles className="h-3.5 w-3.5 text-secondary" />
                 Drawn Capsule
               </div>
 
               {/* Athlete Card Reveal */}
-              <div className="flex flex-col items-center p-4 rounded-2xl bg-card/90 border-2 border-secondary/60 shadow-xl w-60">
+              <div className="flex flex-col items-center p-4 rounded-2xl bg-card/90 border-2 border-secondary/60 shadow-xl max-w-full w-60">
                 <div className="relative mb-2">
                   <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl sm:rounded-3xl bg-card p-2 border-2 border-border shrink-0 aspect-square shadow-xl flex items-center justify-center overflow-hidden">
                     <img

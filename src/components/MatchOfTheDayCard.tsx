@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MotdPredictionPoll from "@/components/MotdPredictionPoll";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { detectDerby } from "@/lib/derbyCore";
 
 interface MotdProps {
   match: {
@@ -23,21 +24,29 @@ interface MotdProps {
     motdAwayPoints?: number;
     homeStanding?: any;
     awayStanding?: any;
+    derbyId?: string | null;
+    derbyName?: string | null;
+    isDerby?: boolean;
   };
 }
 
 export default function MatchOfTheDayCard({ match }: MotdProps) {
   if (!match) return null;
+  const detectedDerby = (match as any).isDerby && (match as any).derbyName ? { name: (match as any).derbyName } : detectDerby(match.homePlayer, match.awayPlayer);
+  const derbyName = (match as any).derbyName || detectedDerby?.name;
+
   const homeRank = match.motdHomeRank || match.homeStanding?.rank || 1;
   const awayRank = match.motdAwayRank || match.awayStanding?.rank || 2;
   const homePoints = match.motdHomePoints ?? match.homeStanding?.points ?? 0;
   const awayPoints = match.motdAwayPoints ?? match.awayStanding?.points ?? 0;
 
   const headline =
-    match.motdHeadline ||
-    (homeRank <= 2 && awayRank <= 2
-      ? "TOP OF THE TABLE BLOCKBUSTER (#1 vs #2)"
-      : `MARQUEE CLASH: #${homeRank} vs #${awayRank}`);
+    derbyName
+      ? `${derbyName.toUpperCase()} • Historic Derby Showdown`
+      : match.motdHeadline ||
+        (homeRank <= 2 && awayRank <= 2
+          ? "TOP OF THE TABLE BLOCKBUSTER (#1 vs #2)"
+          : `MARQUEE CLASH: #${homeRank} vs #${awayRank}`);
 
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
@@ -65,7 +74,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-secondary">
-                OFFICIAL MATCH OF THE DAY
+                {derbyName ? `${derbyName} • OFFICIAL MATCH OF THE DAY` : "OFFICIAL MATCH OF THE DAY"}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-foreground font-semibold mt-0.5">{headline}</p>

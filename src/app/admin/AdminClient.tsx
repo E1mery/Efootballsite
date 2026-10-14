@@ -52,6 +52,7 @@ import {
   KeyRound,
   Newspaper,
   Image as ImageIcon,
+  Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -63,6 +64,7 @@ import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import AdminNewsManager from "@/components/AdminNewsManager";
 import AdminLeagueTablePublisher from "@/components/AdminLeagueTablePublisher";
 import AdminMotwManager from "@/components/AdminMotwManager";
+import AdminDerbyManager from "@/components/admin/AdminDerbyManager";
 import {
   getTomorrowInRwandaString,
   formatRwandanDate,
@@ -105,7 +107,8 @@ export type AdminClientTab =
   | "HALL_OF_FAME"
   | "MESSAGES"
   | "REVIEWS"
-  | "PASSWORD_RESETS";
+  | "PASSWORD_RESETS"
+  | "DERBIES";
 
 export default function AdminClient({
   matches,
@@ -177,6 +180,8 @@ export default function AdminClient({
       const tabParam = params.get("tab")?.toUpperCase();
       if (tabParam === "NEWS") {
         setActiveTab("NEWS");
+      } else if (tabParam === "DERBIES") {
+        setActiveTab("DERBIES");
       }
     }
   }, []);
@@ -1972,7 +1977,7 @@ export default function AdminClient({
         </div>
 
         <div className="overflow-x-auto no-scrollbar scroll-smooth">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs table-min-admin-standings">
             <thead className="bg-card/80 text-xs font-black uppercase tracking-wider text-muted-foreground border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-center">Pos</th>
@@ -2348,6 +2353,18 @@ export default function AdminClient({
               {passwordResets.filter((r) => r.status === "PENDING").length}
             </Badge>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab("DERBIES")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
+            activeTab === "DERBIES"
+              ? "bg-primary text-primary-foreground font-black shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
+          }`}
+        >
+          <Flame className={`h-4 w-4 ${activeTab === "DERBIES" ? "text-primary-foreground" : "text-primary"}`} />
+          <span>Official Derbies</span>
         </button>
       </div>
 
@@ -3624,7 +3641,7 @@ export default function AdminClient({
                 <span className="text-xs font-mono text-muted-foreground">{reservePlayers.length} Total</span>
               </div>
               <div className="overflow-x-auto no-scrollbar scroll-smooth">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs table-min-admin-standby">
                   <thead className="bg-card/80 text-xs font-black uppercase text-muted-foreground border-b border-border">
                     <tr>
                       <th className="px-4 py-3">Gamer Tag</th>
@@ -6231,7 +6248,7 @@ export default function AdminClient({
               </div>
             ) : (
               <div className="overflow-x-auto no-scrollbar scroll-smooth">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs table-min-admin-players">
                   <thead className="bg-card/80 text-xs font-black uppercase text-muted-foreground border-b border-border">
                     <tr>
                       <th className="px-4 py-3">Player</th>
@@ -7481,6 +7498,13 @@ export default function AdminClient({
             </div>
           )}
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: OFFICIAL DERBY REGISTRY & FIXTURES */}
+      {/* ========================================================================= */}
+      {activeTab === "DERBIES" && (
+        <AdminDerbyManager matches={matches} />
       )}
 
       {/* REPLACE ATHLETE MODAL */}

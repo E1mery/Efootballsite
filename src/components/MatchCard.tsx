@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import { Tv, Smartphone, Calendar, ShieldAlert, Eye, MessageSquare } from "lucide-react";
+import { Tv, Smartphone, Calendar, ShieldAlert, Eye, MessageSquare, Flame } from "lucide-react";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { detectDerby } from "@/lib/derbyCore";
 
 interface PlayerInfo {
   id: string;
@@ -34,12 +35,17 @@ interface MatchProps {
     notes?: string | null;
     streamUrl?: string | null;
     isMatchOfTheDay?: boolean;
+    derbyId?: string | null;
+    derbyName?: string | null;
+    isDerby?: boolean;
     submissions?: Array<{ screenshotUrl?: string | null; status?: string }>;
   };
 }
 
 export default function MatchCard({ match }: MatchProps) {
   const isMotd = Boolean(match.isMatchOfTheDay);
+  const detectedDerby = match.isDerby && match.derbyName ? { name: match.derbyName } : detectDerby(match.homePlayer, match.awayPlayer);
+  const derbyName = match.derbyName || detectedDerby?.name;
   const isLive = match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
   const isForfeit = match.status === "FORFEIT";
@@ -122,6 +128,21 @@ export default function MatchCard({ match }: MatchProps) {
           )}
         </div>
       </div>
+
+      {/* Official Derby Identifier */}
+      {derbyName && (
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-secondary/15 border border-secondary/30 mb-3">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Flame className="h-3.5 w-3.5 text-secondary shrink-0" />
+            <span className="text-xs font-black uppercase tracking-wider text-secondary truncate">
+              {derbyName}
+            </span>
+          </div>
+          <span className="text-xs font-mono text-secondary font-bold shrink-0 uppercase tracking-widest">
+            OFFICIAL RIVALRY
+          </span>
+        </div>
+      )}
 
       {/* Main Scoreboard: Fluid Responsive 3-Column Flexbox (Never breaks on mobile) */}
       <div className="flex items-center justify-between gap-2 sm:gap-4 my-2.5">
@@ -240,7 +261,7 @@ export default function MatchCard({ match }: MatchProps) {
       {/* Match Footer */}
       <div className="mt-3 pt-2.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs">
         {match.notes ? (
-          <p className="text-muted-foreground italic text-xs sm:text-xs truncate w-52 sm:max-w-xs">
+          <p className="text-muted-foreground italic text-xs truncate max-w-44 sm:max-w-xs">
             &quot;{match.notes}&quot;
           </p>
         ) : (

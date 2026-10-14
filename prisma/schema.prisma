@@ -131,6 +131,10 @@ model Match {
   screenshotUrl     String?
   leg2ScreenshotUrl String?
   isMatchOfTheDay   Boolean           @default(false) // Match of the Day based on table standings (from Round 2 onwards)
+  derbyId           String?
+  derby             Derby?            @relation(fields: [derbyId], references: [id], onDelete: SetNull)
+  isDerby           Boolean           @default(false)
+  derbyName         String?
 
   submissions       MatchSubmission[]
   forfeitClaims     ForfeitClaim[]
@@ -145,6 +149,8 @@ model Match {
   @@index([round])
   @@index([status])
   @@index([division])
+  @@index([derbyId])
+  @@index([isDerby])
 }
 
 model Standing {
@@ -402,11 +408,14 @@ model ArchivedMatch {
   status             String   @default("FINISHED")
   matchDate          DateTime?
   winnerGamerTag     String?
+  derbyId            String?
+  derbyName          String?
   createdAt          DateTime @default(now())
 
   @@index([season])
   @@index([division])
   @@index([season, division])
+  @@index([derbyId])
 }
 
 model HallOfFameStatsCache {
@@ -550,6 +559,9 @@ model SocialPost {
   homeScore     Int?
   awayScore     Int?
 
+  derbyId       String?
+  derbyName     String?
+
   status        String           @default("PUBLISHED") // "DRAFT", "PUBLISHED", "ARCHIVED"
   publishedAt   DateTime         @default(now())
 
@@ -563,6 +575,7 @@ model SocialPost {
   @@index([publishedAt])
   @@index([type])
   @@index([season])
+  @@index([derbyId])
 }
 
 model SocialReaction {
@@ -603,6 +616,32 @@ model SocialAutomationSetting {
   autoPublishMotwRes Boolean  @default(true)
   autoRivalryThread  Boolean  @default(true)
   updatedAt          DateTime @updatedAt
+}
+
+model Derby {
+  id                  String       @id @default(cuid())
+  name                String       @unique
+  shortName           String
+  club1Id             String
+  club2Id             String
+  club1Name           String
+  club2Name           String
+  competition         String?
+  description         String?      @db.Text
+  imageUrl            String?
+  isHistoricRivalry   Boolean      @default(false)
+  priority            Int          @default(0)
+  isActive            Boolean      @default(true)
+  autoPublishSocial   Boolean      @default(false)
+  autoPublishCarousel Boolean      @default(false)
+
+  matches             Match[]
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([club1Id, club2Id])
+  @@index([isActive])
 }
 
 

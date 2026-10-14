@@ -40,18 +40,18 @@ export default function AdminTopbar({
   const shortName = (adminEmail || "admin").split("@")[0];
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-4">
+    <header className="flex h-16 shrink-0 items-center gap-1.5 sm:gap-2 border-b border-border bg-card px-2.5 sm:px-4">
       <button
         onClick={onMenuClick}
         aria-label="Open admin navigation"
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
       >
         <Menu className="h-5 w-5" />
       </button>
       <button
         onClick={onToggleCollapse}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="hidden h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:flex"
+        className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:flex"
       >
         {collapsed ? (
           <PanelLeftOpen className="h-5 w-5" />
@@ -60,17 +60,17 @@ export default function AdminTopbar({
         )}
       </button>
       <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground truncate">
           Administration
         </p>
-        <h1 className="truncate text-base font-bold text-foreground">{title}</h1>
+        <h1 className="truncate text-sm sm:text-base font-bold text-foreground">{title}</h1>
       </div>
 
       <button
         onClick={onRefresh}
         aria-label="Refresh admin data"
         title="Refresh admin data"
-        className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <RefreshCw className={refreshing ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
       </button>

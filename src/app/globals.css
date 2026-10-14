@@ -709,4 +709,37 @@ body {
   background: linear-gradient(180deg, oklch(var(--primary) / 0.25) 0%, transparent 40%, oklch(var(--background) / 0.9) 100%);
 }
 
+/* ========================================================================= */
+/* RESPONSIVE LAYOUT & TABLE ADAPTABILITY UTILITIES */
+/* ========================================================================= */
+
+.table-min-standings {
+  min-width: 580px;
+}
+
+.table-head-athlete {
+  min-width: 170px;
+}
+
+.table-min-admin-standings {
+  min-width: 760px;
+}
+
+.table-min-admin-standby {
+  min-width: 720px;
+}
+
+.table-min-admin-players {
+  min-width: 850px;
+}
+
+.modal-responsive-height {
+  max-height: calc(100dvh - 2rem);
+}
+
+.drawer-responsive-width {
+  max-width: 85vw;
+}
+
+
 

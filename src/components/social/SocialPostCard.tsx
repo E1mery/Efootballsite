@@ -34,6 +34,8 @@ export interface SocialPostData {
   publishedAt: string | Date;
   homeScore?: number | null;
   awayScore?: number | null;
+  derbyId?: string | null;
+  derbyName?: string | null;
   likesCount: number;
   commentsCount: number;
   hasLiked: boolean;
@@ -226,6 +228,7 @@ export default function SocialPostCard({
   const isMotw = post.type.startsWith("MOTW");
   const isResult = post.type.endsWith("_RESULT");
   const isRivalry = post.type === "MOTW_RIVALRY";
+  const isDerby = post.type.startsWith("DERBY") || Boolean(post.derbyName);
 
   const homePlayer = post.match?.homePlayer;
   const awayPlayer = post.match?.awayPlayer;
@@ -235,7 +238,9 @@ export default function SocialPostCard({
 
   // Visual broadcast headline based on post type
   let graphicBannerTitle = "MATCH OF THE DAY";
-  if (isRivalry) {
+  if (isDerby) {
+    graphicBannerTitle = post.derbyName ? post.derbyName.toUpperCase() : "OFFICIAL DERBY";
+  } else if (isRivalry) {
     graphicBannerTitle = "HERE WE GO";
   } else if (isResult) {
     graphicBannerTitle = "FULL TIME";
@@ -285,10 +290,10 @@ export default function SocialPostCard({
                 Rwanda eFootball League Official
               </span>
               <Badge
-                variant={isMotw ? "yellow" : isResult ? "destructive" : "default"}
+                variant={isDerby ? "yellow" : isMotw ? "yellow" : isResult ? "destructive" : "default"}
                 className="text-xs font-black uppercase px-2 py-0"
               >
-                {isRivalry ? "Rivalry Room" : isMotw ? "Match of Week" : isResult ? "Full Time" : "Match of Day"}
+                {isDerby ? (post.derbyName || "Official Derby") : isRivalry ? "Rivalry Room" : isMotw ? "Match of Week" : isResult ? "Full Time" : "Match of Day"}
               </Badge>
               {post.division && (
                 <span className="text-xs font-bold text-muted-foreground">
@@ -353,7 +358,7 @@ export default function SocialPostCard({
       {/* ========================================================================= */}
       {/* 2. MAIN POST GRAPHIC (EA SPORTS FC BROADCAST CENTERPIECE) */}
       {/* ========================================================================= */}
-      <div className="relative w-full ig-post-aspect ig-stadium-card flex flex-col justify-between p-5 select-none border-b border-border/80">
+      <div className="relative w-full ig-post-aspect ig-stadium-card flex flex-col justify-between p-3.5 sm:p-5 select-none border-b border-border/80">
         {/* Background Stadium Glow & Atmospheric Illumination */}
         <div className="absolute inset-0 ig-stadium-overlay pointer-events-none" />
         <div className="absolute inset-0 ig-beam-overlay pointer-events-none" />
@@ -381,7 +386,7 @@ export default function SocialPostCard({
         {/* Central Graphic Showcase (Headline, Crests, Players, Score) */}
         <div className="relative z-10 my-auto w-full py-4 flex flex-col items-center">
           {/* Large Broadcast Headline Banner */}
-          <div className="mb-6 text-center">
+          <div className="mb-4 sm:mb-6 text-center">
             <span className="inline-block px-4 py-1 rounded-full text-xs sm:text-sm font-black uppercase tracking-widest bg-gradient-to-r from-primary via-secondary to-primary text-black shadow-lg">
               {graphicBannerTitle}
             </span>
@@ -391,10 +396,10 @@ export default function SocialPostCard({
           </div>
 
           {post.match && homePlayer && awayPlayer ? (
-            <div className="w-full flex items-center justify-between gap-2 sm:gap-4 px-2">
+            <div className="w-full flex items-center justify-between gap-1.5 sm:gap-4 px-1 sm:px-2">
               {/* Home Side: Crest & Player Identity */}
-              <div className="flex-1 flex flex-col items-center text-center space-y-2 min-w-0">
-                <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-3xl bg-card/90 border border-border p-3 shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+              <div className="flex-1 flex flex-col items-center text-center space-y-1.5 sm:space-y-2 min-w-0">
+                <div className="relative h-16 w-16 xs:h-20 xs:w-20 sm:h-24 sm:w-24 rounded-2xl sm:rounded-3xl bg-card/90 border border-border p-2 sm:p-3 shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
                   <img
                     src={homePlayer.avatar || resolvePlayerAvatar(homePlayer) || (homeTeam?.logo || "")}
                     alt={homePlayer.gamerTag}
@@ -405,7 +410,7 @@ export default function SocialPostCard({
                   />
                 </div>
                 <div className="space-y-0.5 max-w-full">
-                  <p className="font-black text-sm sm:text-base text-white truncate drop-shadow-sm">
+                  <p className="font-black text-xs sm:text-base text-white truncate drop-shadow-sm">
                     {homePlayer.gamerTag}
                   </p>
                   <p className="text-xs font-semibold text-muted-foreground truncate">
@@ -415,15 +420,15 @@ export default function SocialPostCard({
               </div>
 
               {/* Center Arena: Scoreline or VS Badge (STRICT: NO GOALSCORERS) */}
-              <div className="shrink-0 flex flex-col items-center justify-center px-2 z-10">
+              <div className="shrink-0 flex flex-col items-center justify-center px-1 sm:px-2 z-10">
                 {isResult ? (
-                  <div className="flex flex-col items-center space-y-1.5">
-                    <div className="flex items-center gap-3 bg-card/95 px-5 py-2.5 rounded-2xl border border-border shadow-2xl">
-                      <span className="text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                  <div className="flex flex-col items-center space-y-1 sm:space-y-1.5">
+                    <div className="flex items-center gap-2 sm:gap-3 bg-card/95 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-2xl border border-border shadow-2xl">
+                      <span className="text-xl xs:text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
                         {post.homeScore ?? post.match.homeScore ?? 0}
                       </span>
-                      <span className="text-muted-foreground font-black text-base">-</span>
-                      <span className="text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                      <span className="text-muted-foreground font-black text-sm sm:text-base">-</span>
+                      <span className="text-xl xs:text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
                         {post.awayScore ?? post.match.awayScore ?? 0}
                       </span>
                     </div>
@@ -433,8 +438,8 @@ export default function SocialPostCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center space-y-1.5">
-                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-primary/30 via-background to-secondary/30 border border-border flex items-center justify-center shadow-xl">
-                      <span className="font-black text-sm sm:text-base text-white tracking-widest">
+                    <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-primary/30 via-background to-secondary/30 border border-border flex items-center justify-center shadow-xl">
+                      <span className="font-black text-xs sm:text-base text-white tracking-widest">
                         VS
                       </span>
                     </div>
@@ -446,8 +451,8 @@ export default function SocialPostCard({
               </div>
 
               {/* Away Side: Crest & Player Identity */}
-              <div className="flex-1 flex flex-col items-center text-center space-y-2 min-w-0">
-                <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-3xl bg-card/90 border border-border p-3 shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+              <div className="flex-1 flex flex-col items-center text-center space-y-1.5 sm:space-y-2 min-w-0">
+                <div className="relative h-16 w-16 xs:h-20 xs:w-20 sm:h-24 sm:w-24 rounded-2xl sm:rounded-3xl bg-card/90 border border-border p-2 sm:p-3 shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
                   <img
                     src={awayPlayer.avatar || resolvePlayerAvatar(awayPlayer) || (awayTeam?.logo || "")}
                     alt={awayPlayer.gamerTag}

@@ -204,9 +204,9 @@ export default function PlayerShell(props: PlayerShellProps) {
           <button
             aria-label="Close player navigation"
             onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 bg-background"
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
           />
-          <div className="absolute left-0 top-0 h-full w-64 max-w-full border-r border-border bg-card">
+          <div className="absolute left-0 top-0 h-full w-72 drawer-responsive-width max-w-full border-r border-border bg-card">
             <button
               onClick={() => setMobileOpen(false)}
               aria-label="Close navigation"

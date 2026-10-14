@@ -161,8 +161,17 @@ export async function POST(req: Request) {
     const homeTeam = match.homePlayer?.realTeam || "Club";
     const awayTeam = match.awayPlayer?.realTeam || "Club";
 
-    const title = `Match of the Week: ${homeName} vs ${awayName}`;
-    const description = `Official Match of the Week showdown in ${match.division} (${match.round}). ${homeName} (${homeTeam}) goes head-to-head against ${awayName} (${awayTeam}). Kickoff: ${kickoffFormatted} (CAT).`;
+    const { detectDerby } = await import("@/lib/derbyService");
+    const derby = (match as any).isDerby && (match as any).derbyName
+      ? { name: (match as any).derbyName }
+      : detectDerby(match.homePlayer, match.awayPlayer);
+
+    const title = derby
+      ? `Match of the Week: ${derby.name} (${homeName} vs ${awayName})`
+      : `Match of the Week: ${homeName} vs ${awayName}`;
+    const description = derby
+      ? `Official Match of the Week: ${derby.name.toUpperCase()}! ${homeName} (${homeTeam}) vs ${awayName} (${awayTeam}) in ${match.division} (${match.round}). Kickoff: ${kickoffFormatted} (CAT).`
+      : `Official Match of the Week showdown in ${match.division} (${match.round}). ${homeName} (${homeTeam}) goes head-to-head against ${awayName} (${awayTeam}). Kickoff: ${kickoffFormatted} (CAT).`;
     const featuredImage = "/images/motw-stadium-bg.jpg";
 
     const newsItem = await prisma.news.upsert({

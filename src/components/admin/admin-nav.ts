@@ -2,6 +2,7 @@ import {
   Bell,
   Calendar,
   Crown,
+  Flame,
   Globe,
   KeyRound,
   MessageSquare,
@@ -19,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type AdminTab =
   | "DASHBOARD"
+  | "DERBIES"
   | "NEWS"
   | "PENDING_REGISTRATIONS"
   | "RESERVE_POOL"
@@ -66,6 +68,7 @@ export type AdminNavGroup = {
 
 export const ADMIN_TAB_TITLES: Record<AdminTab, string> = {
   DASHBOARD: "Dashboard",
+  DERBIES: "Official Derbies",
   PENDING_REGISTRATIONS: "Pending Approvals",
   RESERVE_POOL: "Reserve Pool",
   PLAYERS: "Athletes Directory",
@@ -123,6 +126,7 @@ export function buildAdminNav(counts: AdminSidebarCounts): AdminNavGroup[] {
           count: counts.matches,
         },
         { id: "CONTINENTAL", title: "UCL & Europa Hub", icon: Globe },
+        { id: "DERBIES", title: "Official Derbies", icon: Flame },
         {
           id: "RESULTS_QUEUE",
           title: "Score Verification",
