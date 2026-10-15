@@ -17,61 +17,46 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<
-    "ALL" | "FINALS" | "DERBY" | "MOTW" | "MOTD" | "DRAWS" | "STANDINGS" | "SEASON" | "NOTICES"
-  >("ALL");
+  const fetchPosts = useCallback(async (pageNum: number, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
 
-  const fetchPosts = useCallback(
-    async (pageNum: number, append = false, currentFilter = filter) => {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
+    try {
+      const params = new URLSearchParams({
+        page: String(pageNum),
+        limit: "6",
+      });
 
-      try {
-        const params = new URLSearchParams({
-          page: String(pageNum),
-          limit: "6",
-          ...(currentFilter !== "ALL" ? { type: currentFilter } : {}),
-        });
+      const res = await fetch(`/api/social/posts?${params.toString()}`);
+      const data = await res.json();
 
-        const res = await fetch(`/api/social/posts?${params.toString()}`);
-        const data = await res.json();
-
-        if (res.ok) {
-          if (append) {
-            setPosts((prev) => [...prev, ...(data.posts || [])]);
-          } else {
-            setPosts(data.posts || []);
-          }
-          setHasMore(data.pagination?.hasMore || false);
-          setPage(pageNum);
+      if (res.ok) {
+        if (append) {
+          setPosts((prev) => [...prev, ...(data.posts || [])]);
+        } else {
+          setPosts(data.posts || []);
         }
-      } catch (err) {
-        console.error("Failed to load social feed:", err);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        setHasMore(data.pagination?.hasMore || false);
+        setPage(pageNum);
       }
-    },
-    [filter]
-  );
+    } catch (err) {
+      console.error("Failed to load social feed:", err);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchPosts(1, false, filter);
-  }, [fetchPosts, filter]);
-
-  const handleFilterChange = (
-    newFilter: "ALL" | "FINALS" | "DERBY" | "MOTW" | "MOTD" | "DRAWS" | "STANDINGS" | "SEASON" | "NOTICES"
-  ) => {
-    setFilter(newFilter);
-    fetchPosts(1, false, newFilter);
-  };
+    fetchPosts(1, false);
+  }, [fetchPosts]);
 
   const handleLoadMore = () => {
     if (loadingMore || !hasMore) return;
-    fetchPosts(page + 1, true, filter);
+    fetchPosts(page + 1, true);
   };
 
   return (
@@ -102,40 +87,12 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
             type="button"
             size="icon"
             variant="ghost"
-            onClick={() => fetchPosts(1, false, filter)}
+            onClick={() => fetchPosts(1, false)}
             className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground shrink-0 self-end sm:self-center"
             title="Refresh Feed"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </Button>
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-3 pb-1 scrollbar-none">
-          {[
-            { id: "ALL", label: "All Stories" },
-            { id: "DRAWS", label: "Draws & Groups 🎲" },
-            { id: "FINALS", label: "Grand Finals 🏆" },
-            { id: "DERBY", label: "Derbies ⚔️" },
-            { id: "MOTW", label: "Match of Week ⭐" },
-            { id: "MOTD", label: "Match of Day 🔥" },
-            { id: "STANDINGS", label: "Standings 📊" },
-            { id: "SEASON", label: "Season Kickoff 🚀" },
-            { id: "NOTICES", label: "Official Notices 📢" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleFilterChange(tab.id as any)}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
-                filter === tab.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-card/70 hover:bg-card border border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
       </div>
 
