@@ -66,6 +66,8 @@ import AdminNewsManager from "@/components/AdminNewsManager";
 import AdminLeagueTablePublisher from "@/components/AdminLeagueTablePublisher";
 import AdminMotwManager from "@/components/AdminMotwManager";
 import AdminDerbyManager from "@/components/admin/AdminDerbyManager";
+import AdminFinalsSocialManager from "@/components/admin/AdminFinalsSocialManager";
+import AdminSocialFeedManager from "@/components/admin/AdminSocialFeedManager";
 import {
   getTomorrowInRwandaString,
   formatRwandanDate,
@@ -95,6 +97,7 @@ function toLocalDatetimeInput(dateInput: Date | string | null | undefined): stri
 
 export type AdminClientTab =
   | "DASHBOARD"
+  | "SOCIAL_FEED"
   | "NEWS"
   | "PENDING_REGISTRATIONS"
   | "RESERVE_POOL"
@@ -3195,6 +3198,13 @@ export default function AdminClient({
       )}
 
       {/* ========================================================================= */}
+      {/* TAB: SOCIAL MEDIA FEED & EVENT PUBLISHING */}
+      {/* ========================================================================= */}
+      {activeTab === "SOCIAL_FEED" && (
+        <AdminSocialFeedManager />
+      )}
+
+      {/* ========================================================================= */}
       {/* TAB: NEWS & CAROUSEL MANAGEMENT */}
       {/* ========================================================================= */}
       {activeTab === "NEWS" && (
@@ -4692,6 +4702,8 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "CONTINENTAL" && (
         <div className="space-y-8">
+          <AdminFinalsSocialManager onRefresh={() => router.refresh()} />
+
           <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
             <div>
               <h3 className="text-xl font-black uppercase text-white flex items-center gap-2">

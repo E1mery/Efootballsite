@@ -464,6 +464,14 @@ export async function POST(req: Request) {
           matchSummary: "3-0 Forfeit Walkover",
         });
 
+        // Sync verified forfeit result to social feeds if MotD, MotW, Derby, or Final
+        try {
+          const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+          await syncSocialResultForMatch(updatedMatch.id, "FINISHED");
+        } catch (socialErr) {
+          console.error("[approve-submission FORFEIT_CLAIM] Error syncing social result:", socialErr);
+        }
+
         return NextResponse.json({
           success: true,
           message: `Forfeit approved! 3-0 walkover awarded. Opponent ${claim.accusedPlayer.gamerTag} now has ${newMissed}/3 missed matches.`,

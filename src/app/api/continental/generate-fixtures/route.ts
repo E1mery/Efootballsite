@@ -368,6 +368,9 @@ export async function POST(req: Request) {
         },
       });
 
+      const finalKickoffDate = body.scheduledDate ? new Date(body.scheduledDate) : now;
+      const finalDeadline = new Date(finalKickoffDate.getTime() + 24 * 60 * 60 * 1000);
+
       const finalMatch = await prisma.match.create({
         data: {
           tournamentId: tournament.id,
@@ -378,8 +381,8 @@ export async function POST(req: Request) {
           round: "Grand Final",
           platform: "eFootball Mobile",
           status: "SCHEDULED",
-          matchDate: now,
-          deadlineDate: deadline24h,
+          matchDate: finalKickoffDate,
+          deadlineDate: finalDeadline,
           notes: "Grand Final: Single-match showdown (1 leg only). Upload full-time result screenshot. Winner lifts the trophy!",
         },
       });
@@ -397,6 +400,14 @@ export async function POST(req: Request) {
           isPinned: true,
         },
       });
+
+      // Post Grand Final announcement to official social feeds
+      try {
+        const { syncFinalAnnouncementForMatch } = await import("@/lib/socialFeedService");
+        await syncFinalAnnouncementForMatch(finalMatch.id);
+      } catch (socialErr) {
+        console.error("[generate-fixtures FINAL] Error posting to social feed:", socialErr);
+      }
 
       return NextResponse.json({
         success: true,

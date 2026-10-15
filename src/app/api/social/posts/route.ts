@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { syncAllFinalsSocialPosts } from "@/lib/socialFeedService";
 
 export async function GET(req: Request) {
   try {
@@ -10,8 +11,23 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.min(20, Math.max(1, parseInt(searchParams.get("limit") || "8", 10)));
-    const filterType = searchParams.get("type"); // "ALL", "MOTD", "MOTW", "RIVALRY"
+    const filterType = searchParams.get("type"); // "ALL", "MOTD", "MOTW", "RIVALRY", "DERBY", "FINALS"
     const skip = (page - 1) * limit;
+
+    // On initial page load or when requesting all/finals, guarantee finals are synced to feed and scheduled posts processed
+    if (page === 1) {
+      await Promise.all([
+        syncAllFinalsSocialPosts().catch((err) => {
+          console.error("[social/posts] Error during auto finals sync:", err);
+        }),
+        (async () => {
+          const { processScheduledSocialPosts } = await import("@/lib/socialPublishingService");
+          await processScheduledSocialPosts().catch((err) => {
+            console.error("[social/posts] Error processing scheduled posts:", err);
+          });
+        })(),
+      ]);
+    }
 
     const where: any = {
       status: "PUBLISHED",
@@ -25,6 +41,69 @@ export async function GET(req: Request) {
       where.type = "MOTW_RIVALRY";
     } else if (filterType === "DERBY") {
       where.type = { in: ["DERBY_ANNOUNCEMENT", "DERBY_RESULT"] };
+    } else if (filterType === "DRAWS") {
+      where.type = {
+        in: [
+          "UCL_DRAW_ANNOUNCEMENT",
+          "EUROPA_DRAW_ANNOUNCEMENT",
+          "GROUP_STAGE_DRAW_ANNOUNCEMENT",
+          "CONFIRMED_GROUP_DRAW_RESULTS",
+          "PLAYOFF_DRAW_ANNOUNCEMENT",
+          "CONFIRMED_PLAYOFF_MATCHUPS",
+          "KNOCKOUT_DRAW_RESULTS",
+        ],
+      };
+    } else if (filterType === "STANDINGS") {
+      where.type = {
+        in: [
+          "STANDINGS_UPDATE_D1",
+          "STANDINGS_UPDATE_D2",
+          "STANDINGS_UPDATE_D3",
+          "STANDINGS_UPDATE_UCL",
+          "STANDINGS_UPDATE_EUROPA",
+          "QUALIFICATION_TABLE_UPDATE",
+        ],
+      };
+    } else if (filterType === "SEASON") {
+      where.type = {
+        in: [
+          "SEASON_ANNOUNCEMENT",
+          "REGISTRATION_OPEN",
+          "REGISTRATION_CLOSING",
+          "REGISTRATION_DEADLINE_REMINDER",
+          "SEASON_KICKOFF_ANNOUNCEMENT",
+          "DIVISION_ASSIGNMENTS",
+          "TEAM_SELECTION_REMINDER",
+          "PLAYER_CONFIRMATION_NOTICE",
+          "OFFICIAL_FIXTURE_RELEASE",
+          "SEASON_COMPLETION_ANNOUNCEMENT",
+          "CONFIRMED_CHAMPIONS",
+        ],
+      };
+    } else if (filterType === "NOTICES") {
+      where.type = {
+        in: [
+          "OFFICIAL_LEAGUE_NOTICE",
+          "MATCH_DEADLINE_CHANGE",
+          "SCHEDULE_CHANGE",
+          "COMPETITION_FORMAT_ANNOUNCEMENT",
+          "WEBSITE_FEATURE_ANNOUNCEMENT",
+          "HALL_OF_FAME_ANNOUNCEMENT",
+          "SEASON_ARCHIVE_ANNOUNCEMENT",
+          "SYSTEM_MAINTENANCE_NOTICE",
+        ],
+      };
+    } else if (filterType === "FINALS") {
+      where.type = {
+        in: [
+          "SUPER_CUP_ANNOUNCEMENT",
+          "SUPER_CUP_RESULT",
+          "UCL_FINAL_ANNOUNCEMENT",
+          "UCL_FINAL_RESULT",
+          "EUROPA_FINAL_ANNOUNCEMENT",
+          "EUROPA_FINAL_RESULT",
+        ],
+      };
     }
 
     const [posts, totalCount] = await Promise.all([

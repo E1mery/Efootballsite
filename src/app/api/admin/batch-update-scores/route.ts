@@ -97,6 +97,14 @@ export async function POST(req: Request) {
         data: { consecutiveMissed: 0 },
       });
 
+      // Sync official result to social feed (MOTD, MOTW, Derby, or Finals)
+      try {
+        const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+        await syncSocialResultForMatch(matchId, "FINISHED");
+      } catch (socialErr) {
+        console.error("[batch-update-scores] Error syncing social result:", socialErr);
+      }
+
       updatedMatchIds.push(matchId);
 
       const targetDiv = match.stage === "GROUP" && match.groupName
@@ -131,6 +139,16 @@ export async function POST(req: Request) {
     }
 
     await invalidateHallOfFameCache().catch(() => {});
+
+    // Sync finished results to social feed for MOTD, MOTW, Derby, and Continental/Super Cup Finals
+    try {
+      const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+      for (const mId of updatedMatchIds) {
+        await syncSocialResultForMatch(mId, "FINISHED").catch(() => {});
+      }
+    } catch (socialErr) {
+      console.error("[batch-update-scores] Error syncing social results:", socialErr);
+    }
 
     return NextResponse.json({
       success: true,

@@ -2378,6 +2378,8 @@ export default function DashboardClient({
             : div3Standings;
         const snapshotRows = currentDivTable ? currentDivTable.slice(0, 5) : [];
         const hasSnapshot = snapshotRows.length > 0;
+        const myStanding = currentDivTable?.find((r: any) => r.playerId === currentPlayer.id);
+        const isMeInTop5 = snapshotRows.some((r: any) => r.playerId === currentPlayer.id);
 
         const leaderboardSnapshotElement = hasSnapshot ? (
           <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-5 sm:p-6 shadow-xl space-y-3 h-full flex flex-col justify-between">
@@ -2391,7 +2393,10 @@ export default function DashboardClient({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("STANDINGS")}
+                  onClick={() => {
+                    setStandingsCategory("DIVISIONS");
+                    setActiveTab("STANDINGS");
+                  }}
                   className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                 >
                   <span>Full Table</span>
@@ -2409,17 +2414,18 @@ export default function DashboardClient({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-medium">
-                    {snapshotRows.map((row: any) => {
+                    {snapshotRows.map((row: any, idx: number) => {
                       const isMe = row.playerId === currentPlayer.id;
+                      const rank = row.rank ?? (idx + 1);
                       return (
                         <tr
-                          key={row.id}
+                          key={row.id || row.playerId || idx}
                           className={`transition-colors ${
                             isMe ? "bg-primary/15 font-black text-white" : "hover:bg-muted/30"
                           }`}
                         >
                           <td className="py-1.5 px-2 font-mono text-xs">
-                            {row.rank}
+                            {rank}
                           </td>
                           <td className="py-1.5 px-2">
                             <div className="flex items-center gap-2 min-w-0">
@@ -2442,11 +2448,49 @@ export default function DashboardClient({
                             </div>
                           </td>
                           <td className="py-1.5 px-2 text-right font-black font-mono text-secondary">
-                            {row.points}
+                            {row.points ?? 0}
                           </td>
                         </tr>
                       );
                     })}
+                    {myStanding && !isMeInTop5 && (
+                      <>
+                        <tr key="snapshot-divider" className="border-t border-border/40">
+                          <td colSpan={3} className="py-1 text-center font-mono text-xs tracking-widest text-muted-foreground">
+                            •••
+                          </td>
+                        </tr>
+                        <tr
+                          key={`my-row-${myStanding.id || myStanding.playerId}`}
+                          className="transition-colors bg-primary/15 font-black text-white"
+                        >
+                          <td className="py-1.5 px-2 font-mono text-xs">
+                            {myStanding.rank}
+                          </td>
+                          <td className="py-1.5 px-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="h-5 w-5 rounded-full overflow-hidden bg-background border border-border shrink-0 flex items-center justify-center">
+                                <img
+                                  src={resolvePlayerAvatar(myStanding.player)}
+                                  alt=""
+                                  className="h-full w-full object-contain"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(myStanding.player?.gamerTag || "player")}`;
+                                  }}
+                                />
+                              </div>
+                              <span className="truncate max-w-36 sm:max-w-48">{myStanding.player?.gamerTag}</span>
+                              <span className="text-xs uppercase px-1 rounded bg-primary/20 text-primary border border-primary/40 font-bold">
+                                YOU
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-black font-mono text-secondary">
+                            {myStanding.points ?? 0}
+                          </td>
+                        </tr>
+                      </>
+                    )}
                   </tbody>
                 </table>
               </div>

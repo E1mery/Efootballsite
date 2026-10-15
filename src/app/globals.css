@@ -687,12 +687,6 @@ body {
   aspect-ratio: 1 / 1;
 }
 
-@media (min-width: 640px) {
-  .ig-post-aspect {
-    aspect-ratio: 4 / 5;
-  }
-}
-
 .ig-stadium-card {
   position: relative;
   background-color: oklch(var(--background));

@@ -179,8 +179,12 @@ export async function recalculateStandings(tournamentId: string, division: strin
     // 4. Most Wins
     if (sB.won !== sA.won) return sB.won - sA.won;
     // 5. Alphabetical by gamerTag
-    const tagA = playerTags[a] || "";
-    const tagB = playerTags[b] || "";
+    const tagA = (playerTags[a] || "").trim();
+    const tagB = (playerTags[b] || "").trim();
+    const cleanA = tagA.replace(/^[^a-zA-Z0-9]+/, "");
+    const cleanB = tagB.replace(/^[^a-zA-Z0-9]+/, "");
+    const cmp = cleanA.localeCompare(cleanB, undefined, { sensitivity: "base" });
+    if (cmp !== 0) return cmp;
     return tagA.localeCompare(tagB);
   });
 

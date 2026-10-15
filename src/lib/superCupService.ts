@@ -345,5 +345,13 @@ export async function generateSuperCupFixture(season: string = "Season 1 (2026)"
     },
   });
 
+  // Post to official social feeds
+  try {
+    const { syncFinalAnnouncementForMatch } = await import("@/lib/socialFeedService");
+    await syncFinalAnnouncementForMatch(fixture.id);
+  } catch (socialErr) {
+    console.error("[generateSuperCupFixture] Failed to post Super Cup to social feed:", socialErr);
+  }
+
   return fixture;
 }

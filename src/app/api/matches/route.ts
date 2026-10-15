@@ -32,11 +32,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { matchId, homeScore, awayScore, status, notes } = body;
+    const { matchId, homeScore, awayScore, status, notes, matchDate } = body;
 
     if (!matchId) {
       return NextResponse.json({ error: "Missing matchId" }, { status: 400 });
     }
+
+    const parsedMatchDate = matchDate ? new Date(matchDate) : undefined;
+    const parsedDeadlineDate = parsedMatchDate
+      ? new Date(parsedMatchDate.getTime() + 24 * 60 * 60 * 1000)
+      : undefined;
 
     // 1. Update Match
     const updatedMatch = await prisma.match.update({
@@ -46,8 +51,36 @@ export async function POST(req: Request) {
         awayScore: awayScore !== undefined ? Number(awayScore) : null,
         status: status || "FINISHED",
         notes: notes !== undefined ? notes : undefined,
+        ...(parsedMatchDate && { matchDate: parsedMatchDate, deadlineDate: parsedDeadlineDate }),
+      },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        tournament: true,
       },
     });
+
+    // If kickoff date was updated and match is a final, update social announcement
+    if (parsedMatchDate) {
+      try {
+        const { detectFinalCompetition, syncFinalAnnouncementPost } = await import("@/lib/finalsSocialService");
+        if (detectFinalCompetition(updatedMatch)) {
+          await syncFinalAnnouncementPost(updatedMatch.id);
+        }
+      } catch (err) {
+        console.error("[POST /api/matches] Error updating final announcement:", err);
+      }
+    }
+
+    // If finished or scheduled, sync social result
+    if (status === "FINISHED" || status === "SCHEDULED") {
+      try {
+        const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+        await syncSocialResultForMatch(updatedMatch.id, status as "FINISHED" | "SCHEDULED");
+      } catch (err) {
+        console.error("[POST /api/matches] Error syncing social result:", err);
+      }
+    }
 
     // 2. If finished or forfeit, recalculate standings for this tournament/division
     if (

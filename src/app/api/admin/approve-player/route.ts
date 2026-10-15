@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findTeam } from "@/lib/teams";
 import { syncPlayerAvatarWithHallOfFame } from "@/lib/hallOfFameStatsService";
+import { recalculateStandings } from "@/lib/recalculateStandings";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -133,6 +134,8 @@ async function processAthlete({
           },
         });
       }
+
+      await recalculateStandings(tournament.id, targetDivision).catch(() => {});
     }
 
     // Welcome announcement

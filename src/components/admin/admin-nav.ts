@@ -20,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type AdminTab =
   | "DASHBOARD"
+  | "SOCIAL_FEED"
   | "DERBIES"
   | "NEWS"
   | "PENDING_REGISTRATIONS"
@@ -68,6 +69,7 @@ export type AdminNavGroup = {
 
 export const ADMIN_TAB_TITLES: Record<AdminTab, string> = {
   DASHBOARD: "Dashboard",
+  SOCIAL_FEED: "Social Media Publishing",
   DERBIES: "Official Derbies",
   PENDING_REGISTRATIONS: "Pending Approvals",
   RESERVE_POOL: "Reserve Pool",
@@ -146,6 +148,7 @@ export function buildAdminNav(counts: AdminSidebarCounts): AdminNavGroup[] {
     {
       label: "Engagement",
       items: [
+        { id: "SOCIAL_FEED", title: "Social Feed Hub", icon: Flame, badgeVariant: "live" },
         { id: "ANNOUNCEMENTS", title: "Announcements", icon: Bell },
         {
           id: "NEWS",

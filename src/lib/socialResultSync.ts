@@ -23,7 +23,16 @@ export async function syncSocialResultForMatch(matchId: string, status: "FINISHE
       await prisma.socialPost.updateMany({
         where: {
           matchId,
-          type: { in: ["MOTD_RESULT", "MOTW_RESULT", "DERBY_RESULT"] },
+          type: {
+            in: [
+              "MOTD_RESULT",
+              "MOTW_RESULT",
+              "DERBY_RESULT",
+              "SUPER_CUP_RESULT",
+              "UCL_FINAL_RESULT",
+              "EUROPA_FINAL_RESULT",
+            ],
+          },
         },
         data: {
           status: "ARCHIVED",
@@ -110,6 +119,17 @@ export async function syncSocialResultForMatch(matchId: string, status: "FINISHE
         }
       } catch (derbyErr) {
         console.error("[syncSocialResultForMatch] Error checking derby result:", derbyErr);
+      }
+
+      // 4. Check if it was an Official Finals Match (Super Cup, UCL, Europa)
+      try {
+        const { detectFinalCompetition, syncFinalResultPost } = await import("@/lib/finalsSocialService");
+        const finalComp = detectFinalCompetition(match);
+        if (finalComp && match.homeScore !== null && match.awayScore !== null) {
+          await syncFinalResultPost(match.id);
+        }
+      } catch (finalErr) {
+        console.error("[syncSocialResultForMatch] Error syncing final result:", finalErr);
       }
     }
   } catch (err) {

@@ -62,8 +62,18 @@ export default async function StandingsPage(props: {
           if ((b.goalDifference ?? 0) !== (a.goalDifference ?? 0)) return (b.goalDifference ?? 0) - (a.goalDifference ?? 0);
           if ((b.goalsFor ?? 0) !== (a.goalsFor ?? 0)) return (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
           if ((b.won ?? 0) !== (a.won ?? 0)) return (b.won ?? 0) - (a.won ?? 0);
-          return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
-        });
+          const tagA = (a.player?.gamerTag || "").trim();
+          const tagB = (b.player?.gamerTag || "").trim();
+          const cleanA = tagA.replace(/^[^a-zA-Z0-9]+/, "");
+          const cleanB = tagB.replace(/^[^a-zA-Z0-9]+/, "");
+          const cmp = cleanA.localeCompare(cleanB, undefined, { sensitivity: "base" });
+          if (cmp !== 0) return cmp;
+          return tagA.localeCompare(tagB);
+        })
+        .map((s: any, idx: number) => ({
+          ...s,
+          rank: idx + 1,
+        }));
       leagueConfig = cfg;
       updateRecord = upd;
 

@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { formatRwandanDate, formatRwandanTime } from "@/lib/rwandanTime";
+import { resolvePlayerAvatar } from "@/lib/teams";
+import { resolveSocialBackground } from "./socialBackgroundEngine";
+import { encodePostCaption, SocialGraphicData } from "./socialFeedTypes";
 
 export type SocialPostType =
   | "MOTD_ANNOUNCEMENT"
@@ -7,7 +11,13 @@ export type SocialPostType =
   | "MOTW_RESULT"
   | "MOTW_RIVALRY"
   | "DERBY_ANNOUNCEMENT"
-  | "DERBY_RESULT";
+  | "DERBY_RESULT"
+  | "SUPER_CUP_ANNOUNCEMENT"
+  | "SUPER_CUP_RESULT"
+  | "UCL_FINAL_ANNOUNCEMENT"
+  | "UCL_FINAL_RESULT"
+  | "EUROPA_FINAL_ANNOUNCEMENT"
+  | "EUROPA_FINAL_RESULT";
 
 export interface CreateOrUpdateSocialPostInput {
   type: SocialPostType;
@@ -58,13 +68,45 @@ export function generateSocialCopy(
     homeScore?: number | null;
     awayScore?: number | null;
     round?: string;
+    matchDate?: Date | string | null;
+    winnerGamerTag?: string | null;
+    winnerTeam?: string | null;
+    derbyName?: string | null;
   }
 ) {
-  const { homeGamerTag, awayGamerTag, homeTeam, awayTeam, division, homeScore, awayScore, round } = data;
+  const {
+    homeGamerTag,
+    awayGamerTag,
+    homeTeam,
+    awayTeam,
+    division,
+    homeScore,
+    awayScore,
+    round,
+    matchDate,
+  } = data;
   const homeDisplay = homeTeam ? `${homeGamerTag} (${homeTeam})` : homeGamerTag;
   const awayDisplay = awayTeam ? `${awayGamerTag} (${awayTeam})` : awayGamerTag;
   const divLabel = division || "League Division";
   const roundLabel = round || "Matchday Clash";
+
+  let kickoffStr = "";
+  if (matchDate) {
+    const formattedDate = formatRwandanDate(matchDate);
+    const formattedTime = formatRwandanTime(matchDate);
+    if (formattedDate && formattedTime) {
+      kickoffStr = `📅 Kickoff: ${formattedDate} at ${formattedTime} CAT\n`;
+    }
+  }
+
+  const hScore = homeScore ?? 0;
+  const aScore = awayScore ?? 0;
+  const winnerTag = data.winnerGamerTag || (hScore >= aScore ? homeGamerTag : awayGamerTag);
+  const winnerTeamName = data.winnerTeam || (hScore >= aScore ? homeTeam : awayTeam);
+  const runnerUpTag = winnerTag === homeGamerTag ? awayGamerTag : homeGamerTag;
+  const runnerUpTeamName = winnerTag === homeGamerTag ? awayTeam : homeTeam;
+  const winnerDisplay = winnerTeamName ? `${winnerTag} (${winnerTeamName})` : winnerTag;
+  const runnerUpDisplay = runnerUpTeamName ? `${runnerUpTag} (${runnerUpTeamName})` : runnerUpTag;
 
   switch (type) {
     case "MOTD_ANNOUNCEMENT":
@@ -77,8 +119,6 @@ export function generateSocialCopy(
       };
 
     case "MOTD_RESULT": {
-      const hScore = homeScore ?? 0;
-      const aScore = awayScore ?? 0;
       const outcome =
         hScore > aScore
           ? `${homeGamerTag} secures the victory over ${awayGamerTag}!`
@@ -106,8 +146,6 @@ export function generateSocialCopy(
       };
 
     case "MOTW_RESULT": {
-      const hScore = homeScore ?? 0;
-      const aScore = awayScore ?? 0;
       const outcome =
         hScore > aScore
           ? `Dominant performance by ${homeGamerTag} to take all 3 points!`
@@ -151,8 +189,6 @@ export function generateSocialCopy(
     case "DERBY_RESULT": {
       const derbyTitle = (data as any).derbyName || "OFFICIAL DERBY";
       const cleanHashtag = derbyTitle.replace(/[\s'’–-]+/g, "");
-      const hScore = homeScore ?? 0;
-      const aScore = awayScore ?? 0;
       const outcome =
         hScore > aScore
           ? `${homeGamerTag} (${homeTeam || "Home"}) conquers the derby with an emphatic triumph!`
@@ -167,6 +203,78 @@ export function generateSocialCopy(
           `${outcome}\n\n` +
           `All verified points have officially been locked into the ${divLabel} standings. The bragging rights are officially sealed! 👏🔥`,
         hashtags: [`#${cleanHashtag}`, "#DerbyResult", "#FullTime", "#eFootballRW", "#OfficialResult"],
+      };
+    }
+
+    case "SUPER_CUP_ANNOUNCEMENT":
+      return {
+        headline: `🏆 UEFA SUPER CUP FINAL | ${homeGamerTag.toUpperCase()} 🆚 ${awayGamerTag.toUpperCase()}`,
+        caption: `🚨 THE ULTIMATE CLASH OF CHAMPIONS! Official UEFA Super Cup Final confirmed.\n\n` +
+          `🏆 UEFA SUPER CUP FINAL\n\n` +
+          `🔥 UCL Winner ${homeDisplay} faces off against Europa League Winner ${awayDisplay} in a monumental single-match final showdown.\n\n` +
+          `${kickoffStr}` +
+          `📍 Rwanda eFootball League Championship Arena\n\n` +
+          `The continental crown and ultimate supremacy are on the line in the Rwanda eFootball League. Who lifts the Super Cup trophy? Drop your predictions below! 👇`,
+        hashtags: ["#SuperCup", "#SuperCupFinal", "#eFootballRW", "#ClashOfChampions", "#RwandaGaming"],
+      };
+
+    case "SUPER_CUP_RESULT": {
+      return {
+        headline: `🏆 SUPER CUP CHAMPIONS! | ${winnerTag.toUpperCase()} LIFTS THE TROPHY! | ${homeGamerTag.toUpperCase()} ${hScore} - ${aScore} ${awayGamerTag.toUpperCase()}`,
+        caption: `🏁 FULL TIME: The UEFA Super Cup champion has officially been crowned!\n\n` +
+          `🏆 FINAL SCORE: ${homeDisplay} ${hScore} - ${aScore} ${awayDisplay}\n\n` +
+          `👑 OFFICIAL CHAMPION: @${winnerDisplay}\n\n` +
+          `What an extraordinary battle for continental glory! @${winnerTag} conquers the UEFA Super Cup after a thrilling championship clash against @${runnerUpDisplay}.\n\n` +
+          `Verified by Rwanda eFootball League Administration. The Super Cup trophy has been lifted and immortalized in the Hall of Fame! 👏🔥`,
+        hashtags: ["#SuperCupChampion", "#SuperCup", "#FullTime", "#eFootballRW", "#HallOfFame"],
+      };
+    }
+
+    case "UCL_FINAL_ANNOUNCEMENT":
+      return {
+        headline: `⭐ UEFA CHAMPIONS LEAGUE GRAND FINAL | ${homeGamerTag.toUpperCase()} 🆚 ${awayGamerTag.toUpperCase()}`,
+        caption: `🚨 THE PINNACLE OF CONTINENTAL FOOTBALL! The UCL Grand Final is officially locked in.\n\n` +
+          `⭐ UEFA CHAMPIONS LEAGUE GRAND FINAL\n\n` +
+          `🔥 ${homeDisplay} clashes with ${awayDisplay} for European glory and the coveted Champions League Trophy.\n\n` +
+          `${kickoffStr}` +
+          `📍 Rwanda eFootball League Continental Arena\n\n` +
+          `Winner secures the UCL crown and qualifies for the UEFA Super Cup! Cast your vote in the Trophy Prediction Poll and leave your predictions below! 👇`,
+        hashtags: ["#UCLFinal", "#ChampionsLeague", "#eFootballRW", "#RoadToGlory", "#RwandaEsports"],
+      };
+
+    case "UCL_FINAL_RESULT": {
+      return {
+        headline: `⭐ UCL CHAMPIONS! | ${winnerTag.toUpperCase()} CROWNED KINGS OF EUROPE! | ${homeGamerTag.toUpperCase()} ${hScore} - ${aScore} ${awayGamerTag.toUpperCase()}`,
+        caption: `🏁 FULL TIME: KINGS OF EUROPE CROWNED! The UEFA Champions League Grand Final is in the books!\n\n` +
+          `⭐ FINAL SCORE: ${homeDisplay} ${hScore} - ${aScore} ${awayDisplay}\n\n` +
+          `👑 OFFICIAL UCL CHAMPION: @${winnerDisplay}\n\n` +
+          `Immortal continental glory! @${winnerTag} reigns supreme over Europe to lift the Champions League Trophy after a phenomenal final against @${runnerUpDisplay}.\n\n` +
+          `Verified by League Administration. The continental champion punches their ticket to the UEFA Super Cup! 👏⭐`,
+        hashtags: ["#UCLChampion", "#ChampionsLeague", "#UCLFinal", "#eFootballRW", "#FullTime"],
+      };
+    }
+
+    case "EUROPA_FINAL_ANNOUNCEMENT":
+      return {
+        headline: `🟠 UEFA EUROPA LEAGUE GRAND FINAL | ${homeGamerTag.toUpperCase()} 🆚 ${awayGamerTag.toUpperCase()}`,
+        caption: `🚨 THE EUROPA LEAGUE SHOWDOWN! The Europa League Grand Final is officially set.\n\n` +
+          `🟠 UEFA EUROPA LEAGUE GRAND FINAL\n\n` +
+          `🔥 ${homeDisplay} battles ${awayDisplay} for the Europa League Cup and a ticket to the prestigious UEFA Super Cup.\n\n` +
+          `${kickoffStr}` +
+          `📍 Rwanda eFootball League Continental Arena\n\n` +
+          `Who will hoist the trophy? Vote in the Trophy Prediction Poll and drop your score predictions below! 👇`,
+        hashtags: ["#EuropaFinal", "#EuropaLeague", "#eFootballRW", "#UEL", "#RwandaGaming"],
+      };
+
+    case "EUROPA_FINAL_RESULT": {
+      return {
+        headline: `🏆 EUROPA LEAGUE CHAMPIONS! | ${winnerTag.toUpperCase()} LIFTS THE CUP! | ${homeGamerTag.toUpperCase()} ${hScore} - ${aScore} ${awayGamerTag.toUpperCase()}`,
+        caption: `🏁 FULL TIME: We have our UEFA Europa League winner!\n\n` +
+          `🟠 FINAL SCORE: ${homeDisplay} ${hScore} - ${aScore} ${awayDisplay}\n\n` +
+          `👑 OFFICIAL EUROPA CHAMPION: @${winnerDisplay}\n\n` +
+          `Pure resilience and a masterclass final! @${winnerTag} captures the Europa League Cup with a glorious victory over @${runnerUpDisplay}.\n\n` +
+          `Verified by League Administration. The Europa League title is sealed, and a spot in the UEFA Super Cup is booked! 👏🟠`,
+        hashtags: ["#EuropaChampion", "#EuropaLeague", "#EuropaFinal", "#eFootballRW", "#FullTime"],
       };
     }
 
@@ -216,20 +324,60 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
     } catch {}
   }
 
+  const effectiveHomeScore = homeScore !== undefined ? homeScore : match.homeScore;
+  const effectiveAwayScore = awayScore !== undefined ? awayScore : match.awayScore;
+  const hFinal = match.aggregateHomeScore ?? (effectiveHomeScore ?? 0);
+  const aFinal = match.aggregateAwayScore ?? (effectiveAwayScore ?? 0);
+  const winnerPlayer = hFinal >= aFinal ? match.homePlayer : match.awayPlayer;
+
   const copy = generateSocialCopy(type, {
     homeGamerTag: match.homePlayer.gamerTag,
     awayGamerTag: match.awayPlayer.gamerTag,
     homeTeam: match.homePlayer.realTeam,
     awayTeam: match.awayPlayer.realTeam,
     division,
-    homeScore: homeScore !== undefined ? homeScore : match.homeScore,
-    awayScore: awayScore !== undefined ? awayScore : match.awayScore,
+    homeScore: effectiveHomeScore,
+    awayScore: effectiveAwayScore,
     round: match.round,
+    matchDate: match.matchDate,
+    winnerGamerTag: winnerPlayer.gamerTag,
+    winnerTeam: winnerPlayer.realTeam,
     derbyName,
-  } as any);
+  });
 
   const headline = customHeadline || copy.headline;
-  const caption = customCaption || copy.caption;
+  const rawCaption = customCaption || copy.caption;
+
+  const bg = resolveSocialBackground({
+    category: "MATCHES_RESULTS",
+    type,
+    division,
+    round: match.round,
+    isResult: type.endsWith("_RESULT"),
+  });
+
+  const graphicData: SocialGraphicData = {
+    category: "MATCHES_RESULTS",
+    backgroundKey: bg.imagePath,
+    bannerTitle: copy.headline.replace(/^[^\s]+\s+/, ""),
+    subtitle: match.round.toUpperCase(),
+    badgeLabel: type.startsWith("MOTW") ? "Match of Week" : type.startsWith("MOTD") ? "Match of Day" : division || "League Fixture",
+    badgeVariant: type.endsWith("_RESULT") ? "destructive" : "yellow",
+    kickoffDate: formatRwandanDate(match.matchDate),
+    kickoffTime: formatRwandanTime(match.matchDate),
+    homeGamerTag: match.homePlayer.gamerTag,
+    awayGamerTag: match.awayPlayer.gamerTag,
+    homeTeamName: match.homePlayer.realTeam || undefined,
+    awayTeamName: match.awayPlayer.realTeam || undefined,
+    homeLogo: resolvePlayerAvatar(match.homePlayer),
+    awayLogo: resolvePlayerAvatar(match.awayPlayer),
+    homeScore: effectiveHomeScore,
+    awayScore: effectiveAwayScore,
+    isConfirmedResult: type.endsWith("_RESULT"),
+    eventKey: `${type}_${match.id}`,
+  };
+
+  const caption = encodePostCaption(rawCaption, graphicData);
 
   const post = await prisma.socialPost.upsert({
     where: {
@@ -274,3 +422,96 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
 
   return post;
 }
+
+/**
+ * Automatically creates or updates the official social feed announcement
+ * for a Super Cup, UCL Final, or Europa Final fixture.
+ */
+export async function syncFinalAnnouncementForMatch(matchId: string) {
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        tournament: true,
+      },
+    });
+
+    if (!match) return null;
+
+    let postType: SocialPostType | null = null;
+    if (match.division === "SUPER_CUP" && match.stage === "FINAL") {
+      postType = "SUPER_CUP_ANNOUNCEMENT";
+    } else if (match.division === "UCL" && match.stage === "FINAL") {
+      postType = "UCL_FINAL_ANNOUNCEMENT";
+    } else if (match.division === "EUROPA" && match.stage === "FINAL") {
+      postType = "EUROPA_FINAL_ANNOUNCEMENT";
+    }
+
+    if (!postType) return null;
+
+    return await syncSocialPostForMatch({
+      type: postType,
+      matchId: match.id,
+      division: match.division,
+      homePlayerId: match.homePlayerId,
+      awayPlayerId: match.awayPlayerId,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+    });
+  } catch (err) {
+    console.error("[syncFinalAnnouncementForMatch] Error:", err);
+    return null;
+  }
+}
+
+/**
+ * Guarantees that any existing Super Cup, UCL Grand Final, or Europa League Grand Final
+ * in the database has its official announcement (and result, if completed) published on the social feed.
+ */
+export async function syncAllFinalsSocialPosts() {
+  try {
+    const finalMatches = await prisma.match.findMany({
+      where: {
+        OR: [
+          { division: "SUPER_CUP", stage: "FINAL" },
+          { division: "UCL", stage: "FINAL" },
+          { division: "EUROPA", stage: "FINAL" },
+        ],
+      },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+      },
+    });
+
+    for (const match of finalMatches) {
+      // 1. Post announcement
+      await syncFinalAnnouncementForMatch(match.id);
+
+      // 2. If completed, post full-time result
+      if (match.status === "FINISHED") {
+        let resultType: SocialPostType | null = null;
+        if (match.division === "SUPER_CUP") resultType = "SUPER_CUP_RESULT";
+        else if (match.division === "UCL") resultType = "UCL_FINAL_RESULT";
+        else if (match.division === "EUROPA") resultType = "EUROPA_FINAL_RESULT";
+
+        if (resultType) {
+          await syncSocialPostForMatch({
+            type: resultType,
+            matchId: match.id,
+            division: match.division,
+            homePlayerId: match.homePlayerId,
+            awayPlayerId: match.awayPlayerId,
+            homeScore: match.homeScore,
+            awayScore: match.awayScore,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[syncAllFinalsSocialPosts] Error syncing finals to social feed:", err);
+  }
+}
+

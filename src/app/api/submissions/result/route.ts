@@ -314,6 +314,14 @@ export async function POST(req: Request) {
       matchSummary,
     });
 
+    // Auto-sync finished result to social feed if MOTD, MOTW, Derby, or Final
+    try {
+      const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+      await syncSocialResultForMatch(updatedMatch.id, "FINISHED");
+    } catch (socialErr) {
+      console.error("[result submission] Error syncing social result:", socialErr);
+    }
+
     // If knockout match, automatically notify the eliminated athlete
     const isKnockout = ["QUARTER_FINAL", "SEMI_FINAL", "FINAL"].includes(updatedMatch.stage);
     if (isKnockout) {

@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { decodePostCaption, SocialGraphicData } from "@/lib/socialFeedTypes";
+import SocialGraphicRenderer from "./SocialGraphicRenderer";
 
 export interface SocialPostData {
   id: string;
@@ -118,6 +120,30 @@ export default function SocialPostCard({
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const [copied, setCopied] = useState(false);
+
+  // Decode clean caption and structured graphic data
+  const { cleanCaption, data: extractedData } = decodePostCaption(post.caption);
+
+  // Synthesize graphicData fallback if older post without envelope
+  const homePlayer = post.match?.homePlayer;
+  const awayPlayer = post.match?.awayPlayer;
+  const homeTeam = homePlayer ? findTeam(homePlayer.realTeam || "") : null;
+  const awayTeam = awayPlayer ? findTeam(awayPlayer.realTeam || "") : null;
+
+  const graphicData: SocialGraphicData = extractedData || {
+    category: "MATCHES_RESULTS",
+    backgroundKey: "/images/home-stadium-bg.jpg",
+    bannerTitle: post.headline,
+    homeGamerTag: homePlayer?.gamerTag,
+    awayGamerTag: awayPlayer?.gamerTag,
+    homeTeamName: homePlayer?.realTeam || undefined,
+    awayTeamName: awayPlayer?.realTeam || undefined,
+    homeLogo: homePlayer ? (homePlayer.avatar || resolvePlayerAvatar(homePlayer) || (homeTeam?.logo || "")) : undefined,
+    awayLogo: awayPlayer ? (awayPlayer.avatar || resolvePlayerAvatar(awayPlayer) || (awayTeam?.logo || "")) : undefined,
+    homeScore: post.homeScore ?? post.match?.homeScore,
+    awayScore: post.awayScore ?? post.match?.awayScore,
+    isConfirmedResult: post.type.endsWith("_RESULT"),
+  };
 
   // Toggle Like with Optimistic UI
   const handleToggleLike = async () => {
@@ -225,28 +251,30 @@ export default function SocialPostCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isMotw = post.type.startsWith("MOTW");
-  const isResult = post.type.endsWith("_RESULT");
+  const isSuperCup = post.type.startsWith("SUPER_CUP") || post.division === "SUPER_CUP";
+  const isUcl = post.type.startsWith("UCL") || post.division === "UCL";
+  const isEuropa = post.type.startsWith("EUROPA") || post.division === "EUROPA";
   const isRivalry = post.type === "MOTW_RIVALRY";
-  const isDerby = post.type.startsWith("DERBY") || Boolean(post.derbyName);
 
-  const homePlayer = post.match?.homePlayer;
-  const awayPlayer = post.match?.awayPlayer;
+  const competitionHref = isSuperCup
+    ? "/dashboard/super-cup"
+    : isUcl
+    ? "/dashboard/ucl"
+    : isEuropa
+    ? "/dashboard/europa"
+    : post.match
+    ? `/fixtures?highlight=${post.match.id}`
+    : "/standings";
 
-  const homeTeam = homePlayer ? findTeam(homePlayer.realTeam || "") : null;
-  const awayTeam = awayPlayer ? findTeam(awayPlayer.realTeam || "") : null;
-
-  // Visual broadcast headline based on post type
-  let graphicBannerTitle = "MATCH OF THE DAY";
-  if (isDerby) {
-    graphicBannerTitle = post.derbyName ? post.derbyName.toUpperCase() : "OFFICIAL DERBY";
-  } else if (isRivalry) {
-    graphicBannerTitle = "HERE WE GO";
-  } else if (isResult) {
-    graphicBannerTitle = "FULL TIME";
-  } else if (isMotw) {
-    graphicBannerTitle = "MATCH OF THE WEEK";
-  }
+  const competitionLabel = isSuperCup
+    ? "Super Cup"
+    : isUcl
+    ? "UCL"
+    : isEuropa
+    ? "Europa"
+    : post.match
+    ? "Fixture"
+    : "Standings";
 
   return (
     <article className="rounded-3xl border border-border bg-card/80 backdrop-blur-xl overflow-hidden shadow-2xl transition-all flex flex-col w-full max-w-xl mx-auto">
@@ -274,7 +302,7 @@ export default function SocialPostCard({
           {/* Account Identity and Official Indicator */}
           <div className="min-w-0 flex flex-col">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-black text-sm text-white tracking-tight truncate hover:underline cursor-pointer">
+              <span className="font-black text-xs sm:text-sm text-white tracking-tight truncate hover:underline cursor-pointer">
                 rwanda_efootball_league
               </span>
               <span title="Official League Account" className="inline-flex items-center">
@@ -289,31 +317,23 @@ export default function SocialPostCard({
               <span className="text-xs text-muted-foreground font-medium truncate">
                 Rwanda eFootball League Official
               </span>
-              <Badge
-                variant={isDerby ? "yellow" : isMotw ? "yellow" : isResult ? "destructive" : "default"}
-                className="text-xs font-black uppercase px-2 py-0"
-              >
-                {isDerby ? (post.derbyName || "Official Derby") : isRivalry ? "Rivalry Room" : isMotw ? "Match of Week" : isResult ? "Full Time" : "Match of Day"}
-              </Badge>
               {post.division && (
                 <span className="text-xs font-bold text-muted-foreground">
-                  {post.division}
+                  • {post.division}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Options Menu & Fixture Link */}
+        {/* Options Menu & Contextual Navigation Link */}
         <div className="flex items-center gap-1 shrink-0 relative">
-          {post.match && (
-            <Link
-              href={`/fixtures?highlight=${post.match.id}`}
-              className="text-xs font-bold text-primary hover:underline px-2 py-1 rounded-lg hover:bg-muted/40 transition-colors"
-            >
-              Fixture &rarr;
-            </Link>
-          )}
+          <Link
+            href={competitionHref}
+            className="text-xs font-bold text-primary hover:underline px-2 py-1 rounded-lg hover:bg-muted/40 transition-colors"
+          >
+            {competitionLabel} &rarr;
+          </Link>
 
           <div className="relative">
             <button
@@ -356,139 +376,15 @@ export default function SocialPostCard({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. MAIN POST GRAPHIC (EA SPORTS FC BROADCAST CENTERPIECE) */}
+      {/* 2. MAIN POST GRAPHIC (1080 × 1350 / 4:5 INSTAGRAM PORTRAIT RENDERER) */}
       {/* ========================================================================= */}
-      <div className="relative w-full ig-post-aspect ig-stadium-card flex flex-col justify-between p-3.5 sm:p-5 select-none border-b border-border/80">
-        {/* Background Stadium Glow & Atmospheric Illumination */}
-        <div className="absolute inset-0 ig-stadium-overlay pointer-events-none" />
-        <div className="absolute inset-0 ig-beam-overlay pointer-events-none" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none" />
-
-        {/* Top Broadcast Bar (Competition & Division) */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-card/90 border border-border flex items-center justify-center p-1 shadow-md">
-              <Image src="/logo.png" alt="Rwanda eFootball" width={20} height={20} className="object-contain" />
-            </div>
-            <span className="font-black text-xs uppercase tracking-wider text-white">
-              {post.season || "Season 1 (2026)"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-card/90 border border-border text-foreground shadow-md">
-              {post.division || post.match?.division || "eFootball League"}
-            </span>
-          </div>
-        </div>
-
-        {/* Central Graphic Showcase (Headline, Crests, Players, Score) */}
-        <div className="relative z-10 my-auto w-full py-4 flex flex-col items-center">
-          {/* Large Broadcast Headline Banner */}
-          <div className="mb-4 sm:mb-6 text-center">
-            <span className="inline-block px-4 py-1 rounded-full text-xs sm:text-sm font-black uppercase tracking-widest bg-gradient-to-r from-primary via-secondary to-primary text-black shadow-lg">
-              {graphicBannerTitle}
-            </span>
-            <p className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-widest mt-1">
-              {post.match?.round || "OFFICIAL LEAGUE FIXTURE"}
-            </p>
-          </div>
-
-          {post.match && homePlayer && awayPlayer ? (
-            <div className="w-full flex items-center justify-between gap-1.5 sm:gap-4 px-1 sm:px-2">
-              {/* Home Side: Crest & Player Identity */}
-              <div className="flex-1 flex flex-col items-center text-center space-y-1.5 sm:space-y-2 min-w-0">
-                <div className="relative h-16 w-16 xs:h-20 xs:w-20 sm:h-24 sm:w-24 rounded-2xl sm:rounded-3xl bg-card/90 border border-border p-2 sm:p-3 shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
-                  <img
-                    src={homePlayer.avatar || resolvePlayerAvatar(homePlayer) || (homeTeam?.logo || "")}
-                    alt={homePlayer.gamerTag}
-                    className="h-full w-full object-contain filter drop-shadow-md"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(homePlayer.gamerTag)}`;
-                    }}
-                  />
-                </div>
-                <div className="space-y-0.5 max-w-full">
-                  <p className="font-black text-xs sm:text-base text-white truncate drop-shadow-sm">
-                    {homePlayer.gamerTag}
-                  </p>
-                  <p className="text-xs font-semibold text-muted-foreground truncate">
-                    {homePlayer.realTeam || "Unassigned Club"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Center Arena: Scoreline or VS Badge (STRICT: NO GOALSCORERS) */}
-              <div className="shrink-0 flex flex-col items-center justify-center px-1 sm:px-2 z-10">
-                {isResult ? (
-                  <div className="flex flex-col items-center space-y-1 sm:space-y-1.5">
-                    <div className="flex items-center gap-2 sm:gap-3 bg-card/95 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-2xl border border-border shadow-2xl">
-                      <span className="text-xl xs:text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
-                        {post.homeScore ?? post.match.homeScore ?? 0}
-                      </span>
-                      <span className="text-muted-foreground font-black text-sm sm:text-base">-</span>
-                      <span className="text-xl xs:text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
-                        {post.awayScore ?? post.match.awayScore ?? 0}
-                      </span>
-                    </div>
-                    <span className="text-xs font-mono font-bold text-destructive uppercase tracking-widest">
-                      CONFIRMED RESULT
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center space-y-1.5">
-                    <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-primary/30 via-background to-secondary/30 border border-border flex items-center justify-center shadow-xl">
-                      <span className="font-black text-xs sm:text-base text-white tracking-widest">
-                        VS
-                      </span>
-                    </div>
-                    <span className="text-xs font-mono font-bold text-muted-foreground uppercase">
-                      UPCOMING
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Away Side: Crest & Player Identity */}
-              <div className="flex-1 flex flex-col items-center text-center space-y-1.5 sm:space-y-2 min-w-0">
-                <div className="relative h-16 w-16 xs:h-20 xs:w-20 sm:h-24 sm:w-24 rounded-2xl sm:rounded-3xl bg-card/90 border border-border p-2 sm:p-3 shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
-                  <img
-                    src={awayPlayer.avatar || resolvePlayerAvatar(awayPlayer) || (awayTeam?.logo || "")}
-                    alt={awayPlayer.gamerTag}
-                    className="h-full w-full object-contain filter drop-shadow-md"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(awayPlayer.gamerTag)}`;
-                    }}
-                  />
-                </div>
-                <div className="space-y-0.5 max-w-full">
-                  <p className="font-black text-sm sm:text-base text-white truncate drop-shadow-sm">
-                    {awayPlayer.gamerTag}
-                  </p>
-                  <p className="text-xs font-semibold text-muted-foreground truncate">
-                    {awayPlayer.realTeam || "Unassigned Club"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center space-y-2 py-8">
-              <Trophy className="h-14 w-14 text-secondary mx-auto animate-pulse" />
-              <h4 className="text-base font-black text-white px-4">{post.headline}</h4>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Graphic Footer Strip */}
-        <div className="relative z-10 flex items-center justify-between text-xs font-mono font-bold text-muted-foreground pt-2 border-t border-border/40">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
-            <span>RWANDA eFOOTBALL LEAGUE</span>
-          </span>
-          <span>OFFICIAL BROADCAST</span>
-        </div>
-      </div>
+      <SocialGraphicRenderer
+        data={graphicData}
+        headline={post.headline}
+        season={post.season}
+        division={post.division}
+        postType={post.type}
+      />
 
       {/* ========================================================================= */}
       {/* 3. ENGAGEMENT SECTION (INSTAGRAM ACTION BAR) */}
@@ -532,7 +428,7 @@ export default function SocialPostCard({
             {copied ? (
               <>
                 <Check className="h-6 w-6 text-primary" />
-                <span className="text-primary">Copied!</span>
+                <span className="text-primary font-bold">Copied!</span>
               </>
             ) : (
               <Share2 className="h-6 w-6" />
@@ -576,7 +472,7 @@ export default function SocialPostCard({
           <span className="font-black text-white mr-2">
             rwanda_efootball_league
           </span>
-          <span className="whitespace-pre-line">{post.caption}</span>
+          <span className="whitespace-pre-line">{cleanCaption}</span>
         </div>
 
         {/* Hashtags */}

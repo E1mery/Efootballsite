@@ -86,6 +86,13 @@ export async function POST(req: Request) {
         include: { homePlayer: true, awayPlayer: true },
       });
 
+      try {
+        const { syncFinalAnnouncementForMatch } = await import("@/lib/socialFeedService");
+        await syncFinalAnnouncementForMatch(updated.id);
+      } catch (socialErr) {
+        console.error("[SCHEDULE_MATCH] Error syncing Super Cup to social feed:", socialErr);
+      }
+
       return NextResponse.json({
         success: true,
         message: "Super Cup kickoff date and deadline updated successfully.",

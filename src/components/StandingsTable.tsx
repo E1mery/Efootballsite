@@ -86,8 +86,18 @@ export default function StandingsTable({
           return (b.won ?? 0) - (a.won ?? 0);
         }
         // 5. Alphabetical GamerTag (ascending)
-        return (a.player?.gamerTag || "").localeCompare(b.player?.gamerTag || "");
-      });
+        const tagA = (a.player?.gamerTag || "").trim();
+        const tagB = (b.player?.gamerTag || "").trim();
+        const cleanA = tagA.replace(/^[^a-zA-Z0-9]+/, "");
+        const cleanB = tagB.replace(/^[^a-zA-Z0-9]+/, "");
+        const cmp = cleanA.localeCompare(cleanB, undefined, { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return tagA.localeCompare(tagB);
+      })
+      .map((s, idx) => ({
+        ...s,
+        rank: idx + 1,
+      }));
   }, [standings]);
 
   // Derive effective update key from explicit prop or latest standing updatedAt
