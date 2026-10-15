@@ -25,6 +25,7 @@ interface SocialGraphicRendererProps {
   season?: string | null;
   division?: string | null;
   postType?: string;
+  mediaUrl?: string | null;
 }
 
 export default function SocialGraphicRenderer({
@@ -33,8 +34,10 @@ export default function SocialGraphicRenderer({
   season,
   division,
   postType = "",
+  mediaUrl,
 }: SocialGraphicRendererProps) {
   const bg = getBackgroundByKeyOrPath(data.backgroundKey);
+  const bgImage = mediaUrl || bg.imagePath;
   const upperType = postType.toUpperCase();
   const isResult = data.isConfirmedResult || upperType.endsWith("_RESULT");
   const isMatchCategory = data.category === "MATCHES_RESULTS" || Boolean(data.homeGamerTag && data.awayGamerTag);
@@ -45,20 +48,19 @@ export default function SocialGraphicRenderer({
 
   return (
     <div className="relative w-full ig-post-aspect ig-stadium-card flex flex-col justify-between p-3.5 sm:p-5 select-none overflow-hidden rounded-t-3xl border-b border-border">
-      {/* 1. Multi-Layer Intelligent Background & Overlays */}
+      {/* 1. Sharp, Vibrant Stadium Background (Zero Blur, Vivid Atmosphere) */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
         <Image
-          src={bg.imagePath}
+          src={bgImage}
           alt={bg.name}
           fill
+          unoptimized
           sizes="(max-width: 768px) 100vw, 600px"
-          className="object-cover object-center scale-105"
+          className="object-cover object-center"
           priority
         />
-        {/* Cinematic Scrims & Atmospheric Lighting */}
-        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/40" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+        {/* Soft edge vignette to preserve text contrast while stadium pitch & arena stay bright and clear */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/45" />
       </div>
 
       {/* 2. Top Broadcast Header Bar */}
@@ -199,7 +201,7 @@ export default function SocialGraphicRenderer({
             {data.groups.map((group) => (
               <div
                 key={group.groupName}
-                className="rounded-2xl border border-border/80 bg-card/90 p-2 sm:p-2.5 shadow-xl backdrop-blur-md"
+                className="rounded-2xl border border-border/80 bg-card/90 p-2 sm:p-2.5 shadow-xl"
               >
                 <div className="flex items-center justify-between border-b border-border/60 pb-1 mb-1.5">
                   <span className="font-black text-xs uppercase tracking-wider text-secondary">
@@ -269,7 +271,7 @@ export default function SocialGraphicRenderer({
         {/* TEMPLATE D: STANDINGS TABLE SNAPSHOT */}
         {/* ========================================================================= */}
         {isStandingsCategory && data.standingsRows && data.standingsRows.length > 0 ? (
-          <div className="w-full max-w-lg mx-auto rounded-2xl border border-border bg-card/95 p-2 sm:p-3 shadow-2xl backdrop-blur-md">
+          <div className="w-full max-w-lg mx-auto rounded-2xl border border-border bg-card/95 p-2 sm:p-3 shadow-2xl">
             <div className="grid grid-cols-12 gap-1 text-xs font-mono font-black uppercase text-muted-foreground border-b border-border/80 pb-1 mb-1">
               <span className="col-span-1 text-center">#</span>
               <span className="col-span-6">ATHLETE & CLUB</span>
@@ -374,7 +376,7 @@ export default function SocialGraphicRenderer({
         {/* TEMPLATE G: ADMINISTRATIVE NOTICES */}
         {/* ========================================================================= */}
         {isNoticeCategory && (
-          <div className="text-center space-y-3 py-4 max-w-md mx-auto rounded-2xl bg-card/90 border border-border p-4 shadow-2xl backdrop-blur-md">
+          <div className="text-center space-y-3 py-4 max-w-md mx-auto rounded-2xl bg-card/90 border border-border p-4 shadow-2xl">
             <ShieldCheck className="h-10 w-10 text-primary mx-auto" />
             <div className="space-y-1">
               <h4 className="text-sm sm:text-base font-black text-white uppercase">

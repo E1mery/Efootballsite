@@ -214,10 +214,21 @@ export function getBackgroundByKeyOrPath(keyOrPath?: string | null): ApprovedBac
   const foundById = APPROVED_BACKGROUNDS[keyOrPath];
   if (foundById) return foundById;
 
+  const normalized = keyOrPath.startsWith("/images/") ? keyOrPath : `/images/${keyOrPath}`;
   const foundByPath = Object.values(APPROVED_BACKGROUNDS).find(
-    (b) => b.imagePath === keyOrPath
+    (b) => b.imagePath === keyOrPath || b.imagePath === normalized
   );
   if (foundByPath) return foundByPath;
+
+  if (keyOrPath.startsWith("http") || keyOrPath.startsWith("/")) {
+    return {
+      id: "CUSTOM",
+      name: "Stadium Arena",
+      imagePath: keyOrPath,
+      theme: "stadium",
+      description: "Match visual atmosphere.",
+    };
+  }
 
   return APPROVED_BACKGROUNDS.HOME_STADIUM;
 }

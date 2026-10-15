@@ -31,6 +31,7 @@ export interface SocialPostData {
   headline: string;
   caption: string;
   hashtags: string[];
+  mediaUrl?: string | null;
   division?: string | null;
   season?: string | null;
   publishedAt: string | Date;
@@ -277,7 +278,7 @@ export default function SocialPostCard({
     : "Standings";
 
   return (
-    <article className="rounded-3xl border border-border bg-card/80 backdrop-blur-xl overflow-hidden shadow-2xl transition-all flex flex-col w-full max-w-xl mx-auto">
+    <article className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl transition-all flex flex-col w-full max-w-xl mx-auto">
       {/* ========================================================================= */}
       {/* 1. INSTAGRAM POST HEADER */}
       {/* ========================================================================= */}
@@ -384,6 +385,7 @@ export default function SocialPostCard({
         season={post.season}
         division={post.division}
         postType={post.type}
+        mediaUrl={post.mediaUrl}
       />
 
       {/* ========================================================================= */}

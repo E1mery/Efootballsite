@@ -161,7 +161,7 @@ export default function SocialFeed({ currentUserId, isAdmin }: SocialFeedProps) 
           ))}
         </div>
       ) : posts.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border p-10 sm:p-12 text-center space-y-4 bg-card/30 backdrop-blur-sm">
+        <div className="rounded-3xl border border-dashed border-border p-10 sm:p-12 text-center space-y-4 bg-card/30">
           <div className="h-12 w-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center mx-auto text-muted-foreground">
             <Sparkles className="h-6 w-6" />
           </div>
