@@ -2720,9 +2720,10 @@ export default function AdminClient({
                   disabled={actionLoading || leagueConfig.registrationOpen}
                   variant="yellow"
                   className="text-xs gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
+                  title="Confirm the kickoff date and generate official league fixtures for all active players"
                 >
                   <Calendar className="h-4 w-4" />
-                  <span>Generate all fixtures</span>
+                  <span>Confirm schedule & generate all fixtures</span>
                 </Button>
 
                 <Button
@@ -2799,7 +2800,7 @@ export default function AdminClient({
                     disabled={actionLoading || leagueConfig.registrationOpen}
                     className="text-xs border-primary/50 hover:bg-primary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    Generate fixtures
+                    Confirm & generate fixtures
                   </Button>
                   <Button
                     rollingText={false}
@@ -2832,7 +2833,7 @@ export default function AdminClient({
                     disabled={actionLoading || leagueConfig.registrationOpen}
                     className="text-xs border-secondary/50 hover:bg-secondary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    Generate fixtures
+                    Confirm & generate fixtures
                   </Button>
                   <Button
                     rollingText={false}
@@ -2865,7 +2866,7 @@ export default function AdminClient({
                     disabled={actionLoading || leagueConfig.registrationOpen}
                     className="text-xs border-primary/50 hover:bg-primary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
-                    Generate fixtures
+                    Confirm & generate fixtures
                   </Button>
                   <Button
                     rollingText={false}
