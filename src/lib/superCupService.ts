@@ -47,8 +47,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       source: "MATCH_FINAL",
     };
   } else {
-    // Fallback: Check Hall of Fame record for UCL in this season, or latest historical champion
-    let uclHof = await prisma.hallOfFame.findFirst({
+    // Check Hall of Fame record for UCL strictly in this season
+    const uclHof = await prisma.hallOfFame.findFirst({
       where: {
         season,
         OR: [
@@ -59,19 +59,6 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       },
       orderBy: { createdAt: "desc" },
     });
-
-    if (!uclHof) {
-      uclHof = await prisma.hallOfFame.findFirst({
-        where: {
-          OR: [
-            { tournamentName: { contains: "Champions League", mode: "insensitive" } },
-            { tournamentName: { contains: "UCL", mode: "insensitive" } },
-            { trophyType: "UCL" },
-          ],
-        },
-        orderBy: [{ inductionYear: "desc" }, { createdAt: "desc" }],
-      });
-    }
 
     if (uclHof) {
       const matchedPlayer = uclHof.playerId
@@ -129,8 +116,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       source: "MATCH_FINAL",
     };
   } else {
-    // Fallback: Check Hall of Fame record for Europa League in this season, or latest historical champion
-    let europaHof = await prisma.hallOfFame.findFirst({
+    // Check Hall of Fame record for Europa League strictly in this season
+    const europaHof = await prisma.hallOfFame.findFirst({
       where: {
         season,
         OR: [
@@ -140,18 +127,6 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       },
       orderBy: { createdAt: "desc" },
     });
-
-    if (!europaHof) {
-      europaHof = await prisma.hallOfFame.findFirst({
-        where: {
-          OR: [
-            { tournamentName: { contains: "Europa", mode: "insensitive" } },
-            { trophyType: "EUROPA" },
-          ],
-        },
-        orderBy: [{ inductionYear: "desc" }, { createdAt: "desc" }],
-      });
-    }
 
     if (europaHof) {
       const matchedPlayer = europaHof.playerId
@@ -212,8 +187,9 @@ export async function syncSuperCupWinnerToHallOfFame() {
     for (const match of finishedSuperCupMatches) {
       if (!match.homePlayer || !match.awayPlayer) continue;
 
-      const hScore = match.aggregateHomeScore ?? match.homeScore ?? 0;
-      const aScore = match.aggregateAwayScore ?? match.awayScore ?? 0;
+      // Super Cup is strictly a single-match final decider
+      const hScore = typeof match.homeScore === "number" ? match.homeScore : (match.aggregateHomeScore ?? 0);
+      const aScore = typeof match.awayScore === "number" ? match.awayScore : (match.aggregateAwayScore ?? 0);
       if (hScore === aScore) continue;
 
       const winner = hScore > aScore ? match.homePlayer : match.awayPlayer;

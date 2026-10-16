@@ -31,7 +31,7 @@ export default async function HallOfFamePage() {
   let tournaments: any[] = [];
 
   try {
-    const [entriesData, statsData, configData, tournamentsData, finishedSuperCup] = await Promise.all([
+    const [entriesData, statsData, configData, tournamentsData] = await Promise.all([
       prisma.hallOfFame.findMany({
         orderBy: [{ season: "desc" }, { createdAt: "desc" }],
       }),
@@ -43,58 +43,9 @@ export default async function HallOfFamePage() {
         select: { id: true, name: true, season: true, format: true, type: true },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.match.findFirst({
-        where: {
-          OR: [
-            { division: "SUPER_CUP" },
-            { round: { contains: "Super Cup", mode: "insensitive" } },
-          ],
-          status: { in: ["FINISHED", "FORFEIT"] },
-          homeScore: { not: null },
-          awayScore: { not: null },
-        },
-        include: { homePlayer: true, awayPlayer: true, tournament: true },
-        orderBy: { updatedAt: "desc" },
-      }),
     ]);
 
     hallOfFameEntries = await enrichAndSyncHallOfFameEntries(entriesData);
-
-    // Fallback: If a Super Cup match is finished in Match table but not in HallOfFame table yet
-    if (finishedSuperCup && finishedSuperCup.homePlayer && finishedSuperCup.awayPlayer) {
-      const hScore = finishedSuperCup.aggregateHomeScore ?? finishedSuperCup.homeScore ?? 0;
-      const aScore = finishedSuperCup.aggregateAwayScore ?? finishedSuperCup.awayScore ?? 0;
-      if (hScore !== aScore) {
-        const winner = hScore > aScore ? finishedSuperCup.homePlayer : finishedSuperCup.awayPlayer;
-        const runnerUp = hScore > aScore ? finishedSuperCup.awayPlayer : finishedSuperCup.homePlayer;
-        const scSeason = finishedSuperCup.tournament?.season || configData?.season || "Season 1 (2026)";
-
-        const hasScEntry = hallOfFameEntries.some(
-          (e) =>
-            (e.trophyType === "SUPER_CUP" || e.tournamentName?.toUpperCase().includes("SUPER")) &&
-            e.championName?.toLowerCase() === winner.gamerTag.toLowerCase()
-        );
-
-        if (!hasScEntry) {
-          hallOfFameEntries.unshift({
-            id: `temp-supercup-${finishedSuperCup.id}`,
-            tournamentName: "UEFA Super Cup",
-            season: scSeason,
-            championName: winner.gamerTag,
-            championRealName: winner.fullName,
-            playerImage: winner.avatar && !winner.avatar.includes("dicebear.com") ? winner.avatar : null,
-            runnerUp: runnerUp.gamerTag,
-            trophyType: "SUPER_CUP",
-            prizeWon: "1,500,000 RWF + Super Cup Trophy",
-            notes: `Winner of the ${scSeason} UEFA Super Cup`,
-            playerId: winner.id,
-            isInducted: true,
-            isFeatured: true,
-            createdAt: finishedSuperCup.updatedAt || new Date(),
-          });
-        }
-      }
-    }
 
     stats = statsData;
     leagueConfig = configData;

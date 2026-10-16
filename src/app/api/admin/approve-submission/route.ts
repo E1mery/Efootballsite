@@ -48,15 +48,19 @@ export async function POST(req: Request) {
         const officialLeg2Away =
           typeof verifiedLeg2AwayScore === "number" ? verifiedLeg2AwayScore : sub.leg2AwayScore;
 
-        const officialAggHome =
-          typeof verifiedAggregateHomeScore === "number"
-            ? verifiedAggregateHomeScore
-            : sub.aggregateHomeScore ?? (officialLeg2Home !== null ? officialHomeScore + (officialLeg2Home || 0) : officialHomeScore);
+        const isTwoLegged = officialLeg2Home !== null && officialLeg2Away !== null;
 
-        const officialAggAway =
-          typeof verifiedAggregateAwayScore === "number"
-            ? verifiedAggregateAwayScore
-            : sub.aggregateAwayScore ?? (officialLeg2Away !== null ? officialAwayScore + (officialLeg2Away || 0) : officialAwayScore);
+        const officialAggHome = isTwoLegged
+          ? (typeof verifiedAggregateHomeScore === "number"
+              ? verifiedAggregateHomeScore
+              : sub.aggregateHomeScore ?? (officialHomeScore + (officialLeg2Home || 0)))
+          : null;
+
+        const officialAggAway = isTwoLegged
+          ? (typeof verifiedAggregateAwayScore === "number"
+              ? verifiedAggregateAwayScore
+              : sub.aggregateAwayScore ?? (officialAwayScore + (officialLeg2Away || 0)))
+          : null;
 
         await prisma.matchSubmission.update({
           where: { id: submissionId },
@@ -131,8 +135,8 @@ export async function POST(req: Request) {
         // If knockout match, automatically notify the eliminated athlete
         const isKnockout = ["QUARTER_FINAL", "SEMI_FINAL", "FINAL"].includes(updatedMatch.stage);
         if (isKnockout) {
-          const homeTotal = officialAggHome ?? officialHomeScore;
-          const awayTotal = officialAggAway ?? officialAwayScore;
+          const homeTotal = isTwoLegged && officialAggHome !== null ? officialAggHome : officialHomeScore;
+          const awayTotal = isTwoLegged && officialAggAway !== null ? officialAggAway : officialAwayScore;
           const eliminatedPlayerId = homeTotal < awayTotal ? updatedMatch.homePlayerId : awayTotal < homeTotal ? updatedMatch.awayPlayerId : null;
           const winnerPlayerId = homeTotal > awayTotal ? updatedMatch.homePlayerId : awayTotal > homeTotal ? updatedMatch.awayPlayerId : null;
 
