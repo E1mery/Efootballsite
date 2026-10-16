@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -389,25 +389,93 @@ export default function AdminClient({
     return activePlayerMessages.filter((m) => m.status === "REPLIED" || !!m.adminReply);
   }, [activePlayerMessages]);
 
+  // Local League Configuration State for real-time reactivity
+  const [localLeagueConfig, setLocalLeagueConfig] = useState<any>(leagueConfig);
+
+  useEffect(() => {
+    setLocalLeagueConfig(leagueConfig);
+  }, [leagueConfig]);
+
   // Division Participant Capacity State (Default: 20 per division)
   const [div1Max, setDiv1Max] = useState<number>(leagueConfig?.div1MaxPlayers ?? 20);
   const [div2Max, setDiv2Max] = useState<number>(leagueConfig?.div2MaxPlayers ?? 20);
   const [div3Max, setDiv3Max] = useState<number>(leagueConfig?.div3MaxPlayers ?? 20);
   const [savingCapacity, setSavingCapacity] = useState(false);
   const [capacitySuccessMsg, setCapacitySuccessMsg] = useState("");
+  const [isCapacityDirty, setIsCapacityDirty] = useState(false);
+  const isCapacityDirtyRef = useRef(false);
+  isCapacityDirtyRef.current = isCapacityDirty;
+
+  // Real-time live counts state
+  const [liveCounts, setLiveCounts] = useState<{
+    div1Active: number;
+    div2Active: number;
+    div3Active: number;
+    pending: number;
+    reserve: number;
+  } | null>(null);
+
+  // Sync capacity limits if localLeagueConfig updates and user is not currently editing
+  useEffect(() => {
+    if (!isCapacityDirtyRef.current && localLeagueConfig) {
+      if (typeof localLeagueConfig.div1MaxPlayers === "number") setDiv1Max(localLeagueConfig.div1MaxPlayers);
+      if (typeof localLeagueConfig.div2MaxPlayers === "number") setDiv2Max(localLeagueConfig.div2MaxPlayers);
+      if (typeof localLeagueConfig.div3MaxPlayers === "number") setDiv3Max(localLeagueConfig.div3MaxPlayers);
+    }
+  }, [localLeagueConfig]);
+
+  // Real-time polling for division capacities, registration status & athlete counts
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveStats = async () => {
+      try {
+        const res = await fetch("/api/admin/config");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+
+        if (data.config) {
+          setLocalLeagueConfig(data.config);
+          if (!isCapacityDirtyRef.current) {
+            if (typeof data.config.div1MaxPlayers === "number") setDiv1Max(data.config.div1MaxPlayers);
+            if (typeof data.config.div2MaxPlayers === "number") setDiv2Max(data.config.div2MaxPlayers);
+            if (typeof data.config.div3MaxPlayers === "number") setDiv3Max(data.config.div3MaxPlayers);
+          }
+        }
+
+        if (data.counts) {
+          setLiveCounts({
+            div1Active: data.counts.div1Active,
+            div2Active: data.counts.div2Active,
+            div3Active: data.counts.div3Active,
+            pending: data.counts.pending,
+            reserve: data.counts.reserve,
+          });
+        }
+      } catch {
+        // Silently catch background polling errors
+      }
+    };
+
+    const interval = setInterval(fetchLiveStats, 6000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Pending approval selection state: playerId -> selectedDivision
   const [pendingDivSelection, setPendingDivSelection] = useState<Record<string, string>>({});
   const [pendingActionLoading, setPendingActionLoading] = useState<string | null>(null);
 
-  // Computed division participant counts
-  const activeDiv1Count = playersList.filter(
+  // Computed division participant counts (live-synced)
+  const activeDiv1Count = liveCounts?.div1Active ?? playersList.filter(
     (p) => p.division === "Division 1" && (p.status === "ACTIVE" || p.status === "WARNING")
   ).length;
-  const activeDiv2Count = playersList.filter(
+  const activeDiv2Count = liveCounts?.div2Active ?? playersList.filter(
     (p) => p.division === "Division 2" && (p.status === "ACTIVE" || p.status === "WARNING")
   ).length;
-  const activeDiv3Count = playersList.filter(
+  const activeDiv3Count = liveCounts?.div3Active ?? playersList.filter(
     (p) => p.division === "Division 3" && (p.status === "ACTIVE" || p.status === "WARNING")
   ).length;
 
@@ -874,6 +942,14 @@ export default function AdminClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update registration status");
+      if (data.config) {
+        setLocalLeagueConfig(data.config);
+      } else {
+        setLocalLeagueConfig((prev: any) => ({ ...prev, registrationOpen: newStatus }));
+      }
+      if (data.counts) {
+        setLiveCounts(data.counts);
+      }
       alert(data.message || `Registration successfully ${newStatus ? "opened" : "closed"}!`);
       router.refresh();
     } catch (err: any) {
@@ -1829,6 +1905,14 @@ export default function AdminClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update division capacity");
+      if (data.config) {
+        setLocalLeagueConfig(data.config);
+      }
+      if (data.counts) {
+        setLiveCounts(data.counts);
+      }
+      setIsCapacityDirty(false);
+      isCapacityDirtyRef.current = false;
       setCapacitySuccessMsg(data.message || "Division capacities saved successfully!");
       setTimeout(() => setCapacitySuccessMsg(""), 4000);
       router.refresh();
@@ -2483,10 +2567,10 @@ export default function AdminClient({
               <div className="flex items-center justify-between pt-1">
                 <span
                   className={`text-xl font-bold ${
-                    leagueConfig.registrationOpen ? "text-primary" : "text-muted-foreground"
+                    localLeagueConfig?.registrationOpen ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  {leagueConfig.registrationOpen ? "Open" : "Closed"}
+                  {localLeagueConfig?.registrationOpen ? "Open" : "Closed"}
                 </span>
               </div>
             </div>
@@ -2494,7 +2578,7 @@ export default function AdminClient({
             <div className="space-y-2 rounded-xl border border-border bg-card p-4">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current matchday</span>
               <div className="flex items-center justify-between pt-1">
-                <span className="text-xl font-bold text-primary">Matchday {leagueConfig.currentMatchday}</span>
+                <span className="text-xl font-bold text-primary">Matchday {localLeagueConfig?.currentMatchday ?? 1}</span>
                 <Clock className="h-5 w-5 text-primary" />
               </div>
             </div>
@@ -2504,12 +2588,12 @@ export default function AdminClient({
               <div className="flex items-center justify-between pt-1">
                 <span
                   className={`text-lg font-bold ${
-                    leagueConfig.uclStarted ? "text-secondary" : "text-muted-foreground"
+                    localLeagueConfig?.uclStarted ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
-                  {leagueConfig.uclStarted ? "In Progress" : "Locked"}
+                  {localLeagueConfig?.uclStarted ? "In Progress" : "Locked"}
                 </span>
-                {leagueConfig.uclStarted ? (
+                {localLeagueConfig?.uclStarted ? (
                   <Unlock className="h-5 w-5 text-secondary" />
                 ) : (
                   <Lock className="h-5 w-5 text-muted-foreground" />
@@ -2522,12 +2606,12 @@ export default function AdminClient({
               <div className="flex items-center justify-between pt-1">
                 <span
                   className={`text-lg font-bold ${
-                    leagueConfig.europaStarted ? "text-secondary" : "text-muted-foreground"
+                    localLeagueConfig?.europaStarted ? "text-secondary" : "text-muted-foreground"
                   }`}
                 >
-                  {leagueConfig.europaStarted ? "In Progress" : "Locked"}
+                  {localLeagueConfig?.europaStarted ? "In Progress" : "Locked"}
                 </span>
-                {leagueConfig.europaStarted ? (
+                {localLeagueConfig?.europaStarted ? (
                   <Unlock className="h-5 w-5 text-secondary" />
                 ) : (
                   <Lock className="h-5 w-5 text-muted-foreground" />
@@ -2536,157 +2620,291 @@ export default function AdminClient({
             </div>
           </div>
 
-          {/* Operation 1: Registration Controls */}
-          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-            <div className="flex flex-col gap-4 border-b border-border pb-4">
-              <div>
-                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <Sliders className="h-5 w-5 text-primary" />
-                  <span>Registration</span>
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Start or end player registration. When ended, you can generate scheduled round-robin division fixtures.
-                </p>
+          {/* Operation 1 & 1B: Registration Controls and Division Capacity Settings */}
+          <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-2">
+            {/* Card 1: Registration Controls */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between space-y-5">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Sliders className="h-5 w-5 text-primary" />
+                      <span>Registration</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Start or end player registration. When ended, you can generate scheduled round-robin division fixtures.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        localLeagueConfig?.registrationOpen
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : "bg-destructive/20 text-destructive border border-destructive/30"
+                      }`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${localLeagueConfig?.registrationOpen ? "bg-primary animate-pulse" : "bg-destructive"}`} />
+                      {localLeagueConfig?.registrationOpen ? "Registration Open" : "Registration Closed"}
+                    </span>
+
+                    {localLeagueConfig?.registrationOpen ? (
+                      <Button
+                        rollingText={false}
+                        size="sm"
+                        onClick={() => handleToggleRegistration(false)}
+                        disabled={actionLoading}
+                        variant="destructive"
+                        className="text-xs font-medium shadow-none hover:shadow-none"
+                      >
+                        Close registration
+                      </Button>
+                    ) : (
+                      <Button
+                        rollingText={false}
+                        size="sm"
+                        onClick={() => handleToggleRegistration(true)}
+                        disabled={actionLoading}
+                        variant="default"
+                        className="text-xs font-medium shadow-none hover:shadow-none"
+                      >
+                        Reopen registration
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3.5 pt-1 sm:grid-cols-3">
+                  {/* Division 1 Stat Box */}
+                  <div className="rounded-xl border border-border bg-background/60 p-4 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-primary">Division 1</span>
+                        <span className="text-xs font-mono text-muted-foreground uppercase">Premiership</span>
+                      </div>
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-2xl font-black text-foreground">{activeDiv1Count}</span>
+                        <span className="text-sm font-semibold text-muted-foreground">/ {div1Max}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            activeDiv1Count >= div1Max ? "bg-destructive" : activeDiv1Count >= div1Max * 0.8 ? "bg-secondary" : "bg-primary"
+                          }`}
+                          // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress fill
+                          style={{ width: `${Math.min(100, Math.round((activeDiv1Count / Math.max(1, div1Max)) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground block mt-1.5 font-medium">
+                        {activeDiv1Count >= div1Max ? "Capacity reached" : `${div1Max - activeDiv1Count} open slots`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Division 2 Stat Box */}
+                  <div className="rounded-xl border border-border bg-background/60 p-4 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-secondary">Division 2</span>
+                        <span className="text-xs font-mono text-muted-foreground uppercase">Championship</span>
+                      </div>
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-2xl font-black text-foreground">{activeDiv2Count}</span>
+                        <span className="text-sm font-semibold text-muted-foreground">/ {div2Max}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            activeDiv2Count >= div2Max ? "bg-destructive" : activeDiv2Count >= div2Max * 0.8 ? "bg-secondary" : "bg-secondary"
+                          }`}
+                          // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress fill
+                          style={{ width: `${Math.min(100, Math.round((activeDiv2Count / Math.max(1, div2Max)) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground block mt-1.5 font-medium">
+                        {activeDiv2Count >= div2Max ? "Capacity reached" : `${div2Max - activeDiv2Count} open slots`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Division 3 Stat Box */}
+                  <div className="rounded-xl border border-border bg-background/60 p-4 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-primary">Division 3</span>
+                        <span className="text-xs font-mono text-muted-foreground uppercase">National Academy</span>
+                      </div>
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-2xl font-black text-foreground">{activeDiv3Count}</span>
+                        <span className="text-sm font-semibold text-muted-foreground">/ {div3Max}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            activeDiv3Count >= div3Max ? "bg-destructive" : activeDiv3Count >= div3Max * 0.8 ? "bg-secondary" : "bg-primary"
+                          }`}
+                          // eslint-disable-next-line shadcn/no-inline-styles -- dynamic progress fill
+                          style={{ width: `${Math.min(100, Math.round((activeDiv3Count / Math.max(1, div3Max)) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground block mt-1.5 font-medium">
+                        {activeDiv3Count >= div3Max ? "Capacity reached" : `${div3Max - activeDiv3Count} open slots`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                {leagueConfig.registrationOpen ? (
-                  <Button
-                    rollingText={false}
-                    size="sm"
-                    onClick={() => handleToggleRegistration(false)}
-                    disabled={actionLoading}
-                    variant="destructive"
-                    className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
-                  >
-                    Close registration
-                  </Button>
-                ) : (
-                  <Button
-                    rollingText={false}
-                    size="sm"
-                    onClick={() => handleToggleRegistration(true)}
-                    disabled={actionLoading}
-                    variant="default"
-                    className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
-                  >
-                    Reopen registration
-                  </Button>
-                )}
+              {/* Bottom Real-time sync note */}
+              <div className="flex items-center justify-between pt-3 border-t border-border text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                  <span>Real-time live roster sync</span>
+                </div>
+                <span>Total Active: <strong className="text-foreground">{activeDiv1Count + activeDiv2Count + activeDiv3Count}</strong> athletes</span>
               </div>
             </div>
 
-              <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-background p-4">
-                <span className="text-xs font-bold text-primary block">Division 1 Registered</span>
-                <span className="text-2xl font-black text-white">{div1Standings.length} / {div1Max}</span>
-                <span className="text-xs text-muted-foreground block mt-1">Premiership Division</span>
-              </div>
-              <div className="rounded-lg border border-border bg-background p-4">
-                <span className="text-xs font-bold text-secondary block">Division 2 Registered</span>
-                <span className="text-2xl font-black text-white">{div2Standings.length} / {div2Max}</span>
-                <span className="text-xs text-muted-foreground block mt-1">Championship Division</span>
-              </div>
-              <div className="rounded-lg border border-border bg-background p-4">
-                <span className="text-xs font-bold text-primary block">Division 3 Registered</span>
-                <span className="text-2xl font-black text-white">{div3Standings.length} / {div3Max}</span>
-                <span className="text-xs text-muted-foreground block mt-1">National Academy</span>
-              </div>
-            </div>
-          </div>
+            {/* Card 2: Division Participant Capacity Controller */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between space-y-5">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      <span>Division capacities</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Admins can extend the maximum participant capacity per division (default: 20 athletes). Continental UCL and Europa League remain fixed at 16 qualification slots.
+                    </p>
+                  </div>
 
-          {/* Operation 1B: Division Participant Capacity Controller */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-            <div className="flex flex-col gap-4 border-b border-border pb-4">
-              <div>
-                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <span>Division capacities</span>
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Admins can extend the maximum participant capacity per division (default: 20 athletes). Continental UCL and Europa League remain fixed at 16 qualification slots.
-                </p>
-              </div>
-
-              {capacitySuccessMsg && (
-                <div className="flex items-center gap-2 text-xs font-bold text-primary bg-primary/40 border border-primary/40 px-3 py-1.5 rounded-xl">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>{capacitySuccessMsg}</span>
-                </div>
-              )}
-            </div>
-
-            <form onSubmit={handleSaveCapacity} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-card/70 border border-border space-y-2">
-                  <label className="text-xs font-bold uppercase text-primary block">
-                    Division 1 Capacity
-                  </label>
-                  <p className="text-xs text-muted-foreground">Premiership maximum participants.</p>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={div1Max}
-                    onChange={(e) => setDiv1Max(Number(e.target.value))}
-                    className="bg-background border-border text-sm font-bold font-mono text-white"
-                    required
-                  />
-                  <span className="text-xs text-muted-foreground block">Current active: {div1Standings.length} athletes</span>
+                  {capacitySuccessMsg && (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary bg-primary/20 border border-primary/30 px-3 py-1.5 rounded-lg shrink-0">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>{capacitySuccessMsg}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="p-4 rounded-2xl bg-card/70 border border-border space-y-2">
-                  <label className="text-xs font-bold uppercase text-secondary block">
-                    Division 2 Capacity
-                  </label>
-                  <p className="text-xs text-muted-foreground">Championship maximum participants.</p>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={div2Max}
-                    onChange={(e) => setDiv2Max(Number(e.target.value))}
-                    className="bg-background border-border text-sm font-bold font-mono text-white"
-                    required
-                  />
-                  <span className="text-xs text-muted-foreground block">Current active: {div2Standings.length} athletes</span>
-                </div>
+                <form id="capacity-settings-form" onSubmit={handleSaveCapacity} className="pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    {/* Div 1 Capacity Box */}
+                    <div className="p-4 rounded-xl bg-background/60 border border-border flex flex-col justify-between space-y-2.5">
+                      <div>
+                        <label htmlFor="div1-capacity-input" className="text-xs font-bold uppercase text-primary block">
+                          Division 1 Capacity
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-0.5">Premiership max limit</p>
+                      </div>
+                      <Input
+                        id="div1-capacity-input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={div1Max}
+                        onChange={(e) => {
+                          setIsCapacityDirty(true);
+                          setDiv1Max(Number(e.target.value));
+                        }}
+                        className="bg-card border-border text-sm font-bold font-mono text-foreground h-9"
+                        required
+                      />
+                      <div className="text-xs text-muted-foreground flex items-center justify-between font-medium">
+                        <span>Active: <strong className="text-foreground">{activeDiv1Count}</strong></span>
+                        <span className={activeDiv1Count >= div1Max ? "text-destructive font-bold" : "text-muted-foreground"}>
+                          {activeDiv1Count >= div1Max ? "Full" : `${div1Max - activeDiv1Count} left`}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="p-4 rounded-2xl bg-card/70 border border-border space-y-2">
-                  <label className="text-xs font-bold uppercase text-primary block">
-                    Division 3 Capacity
-                  </label>
-                  <p className="text-xs text-muted-foreground">National Academy maximum participants.</p>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={div3Max}
-                    onChange={(e) => setDiv3Max(Number(e.target.value))}
-                    className="bg-background border-border text-sm font-bold font-mono text-white"
-                    required
-                  />
-                  <span className="text-xs text-muted-foreground block">Current active: {div3Standings.length} athletes</span>
-                </div>
+                    {/* Div 2 Capacity Box */}
+                    <div className="p-4 rounded-xl bg-background/60 border border-border flex flex-col justify-between space-y-2.5">
+                      <div>
+                        <label htmlFor="div2-capacity-input" className="text-xs font-bold uppercase text-secondary block">
+                          Division 2 Capacity
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-0.5">Championship max limit</p>
+                      </div>
+                      <Input
+                        id="div2-capacity-input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={div2Max}
+                        onChange={(e) => {
+                          setIsCapacityDirty(true);
+                          setDiv2Max(Number(e.target.value));
+                        }}
+                        className="bg-card border-border text-sm font-bold font-mono text-foreground h-9"
+                        required
+                      />
+                      <div className="text-xs text-muted-foreground flex items-center justify-between font-medium">
+                        <span>Active: <strong className="text-foreground">{activeDiv2Count}</strong></span>
+                        <span className={activeDiv2Count >= div2Max ? "text-destructive font-bold" : "text-muted-foreground"}>
+                          {activeDiv2Count >= div2Max ? "Full" : `${div2Max - activeDiv2Count} left`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Div 3 Capacity Box */}
+                    <div className="p-4 rounded-xl bg-background/60 border border-border flex flex-col justify-between space-y-2.5">
+                      <div>
+                        <label htmlFor="div3-capacity-input" className="text-xs font-bold uppercase text-primary block">
+                          Division 3 Capacity
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-0.5">National Academy max</p>
+                      </div>
+                      <Input
+                        id="div3-capacity-input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={div3Max}
+                        onChange={(e) => {
+                          setIsCapacityDirty(true);
+                          setDiv3Max(Number(e.target.value));
+                        }}
+                        className="bg-card border-border text-sm font-bold font-mono text-foreground h-9"
+                        required
+                      />
+                      <div className="text-xs text-muted-foreground flex items-center justify-between font-medium">
+                        <span>Active: <strong className="text-foreground">{activeDiv3Count}</strong></span>
+                        <span className={activeDiv3Count >= div3Max ? "text-destructive font-bold" : "text-muted-foreground"}>
+                          {activeDiv3Count >= div3Max ? "Full" : `${div3Max - activeDiv3Count} left`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </form>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                <span className="text-xs text-muted-foreground">
+              {/* Footer */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border mt-auto">
+                <span className="text-xs text-muted-foreground leading-relaxed">
                   UCL & Europa League: <strong>16 Fixed Slots</strong> (Top 8 Div 1 + Top 4 Div 2 + Top 4 Div 3 - Unchanged).
                 </span>
                 <Button
+                  form="capacity-settings-form"
                   rollingText={false}
                   size="sm"
                   type="submit"
                   disabled={savingCapacity}
-                  className="text-xs self-start max-w-full font-medium shadow-none hover:shadow-none"
+                  className="text-xs font-medium shadow-none hover:shadow-none shrink-0"
                 >
                   {savingCapacity ? "Saving..." : "Save capacities"}
                 </Button>
               </div>
-            </form>
-          </div>
+            </div>
           </div>
 
           {/* Operation 2: Official Match Scheduling & 12:00 AM Fixture Drop */}
@@ -2717,7 +2935,7 @@ export default function AdminClient({
                   rollingText={false}
                   size="sm"
                   onClick={() => handleGenerateSchedule("ALL")}
-                  disabled={actionLoading || leagueConfig.registrationOpen}
+                  disabled={actionLoading || localLeagueConfig?.registrationOpen}
                   variant="yellow"
                   className="text-xs gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   title="Confirm the kickoff date and generate official league fixtures for all active players"
@@ -2772,7 +2990,7 @@ export default function AdminClient({
               </div>
             </div>
 
-            {leagueConfig.registrationOpen && (
+            {localLeagueConfig?.registrationOpen && (
               <div className="rounded-xl border border-secondary/30 bg-secondary/30 p-3 text-xs text-secondary flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-secondary" />
                 <span>
@@ -2787,8 +3005,8 @@ export default function AdminClient({
                   <span className="text-xs font-bold text-primary block">Division 1 Schedule</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {div1Standings.length % 2 === 0 && div1Standings.length >= 2
-                    ? `1 leg only: 10 matches/day, each player plays ${div1Standings.length - 1} matches with 0 intervals. Fixtures drop at 12:00 AM on set date.`
+                  {activeDiv1Count % 2 === 0 && activeDiv1Count >= 2
+                    ? `1 leg only: 10 matches/day, each player plays ${activeDiv1Count - 1} matches with 0 intervals. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players (e.g. 20) so all players play every round with no intervals.`}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -2797,7 +3015,7 @@ export default function AdminClient({
                     size="sm"
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 1")}
-                    disabled={actionLoading || leagueConfig.registrationOpen}
+                    disabled={actionLoading || localLeagueConfig?.registrationOpen}
                     className="text-xs border-primary/50 hover:bg-primary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
                     Confirm & generate fixtures
@@ -2820,8 +3038,8 @@ export default function AdminClient({
                   <span className="text-xs font-bold text-secondary block">Division 2 Schedule</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {div2Standings.length % 2 === 0 && div2Standings.length >= 2
-                    ? `1 leg only: all players play every round, each plays ${div2Standings.length - 1} matches. Fixtures drop at 12:00 AM on set date.`
+                  {activeDiv2Count % 2 === 0 && activeDiv2Count >= 2
+                    ? `1 leg only: all players play every round, each plays ${activeDiv2Count - 1} matches. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -2830,7 +3048,7 @@ export default function AdminClient({
                     size="sm"
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 2")}
-                    disabled={actionLoading || leagueConfig.registrationOpen}
+                    disabled={actionLoading || localLeagueConfig?.registrationOpen}
                     className="text-xs border-secondary/50 hover:bg-secondary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
                     Confirm & generate fixtures
@@ -2853,8 +3071,8 @@ export default function AdminClient({
                   <span className="text-xs font-bold text-primary block">Division 3 Schedule</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {div3Standings.length % 2 === 0 && div3Standings.length >= 2
-                    ? `1 leg only: all players play every round, each plays ${div3Standings.length - 1} matches. Fixtures drop at 12:00 AM on set date.`
+                  {activeDiv3Count % 2 === 0 && activeDiv3Count >= 2
+                    ? `1 leg only: all players play every round, each plays ${activeDiv3Count - 1} matches. Fixtures drop at 12:00 AM on set date.`
                     : `Needs an even number of players so all players play every round with no intervals.`}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -2863,7 +3081,7 @@ export default function AdminClient({
                     size="sm"
                     variant="outline"
                     onClick={() => handleGenerateSchedule("Division 3")}
-                    disabled={actionLoading || leagueConfig.registrationOpen}
+                    disabled={actionLoading || localLeagueConfig?.registrationOpen}
                     className="text-xs border-primary/50 hover:bg-primary/20 self-start max-w-full font-medium shadow-none hover:shadow-none"
                   >
                     Confirm & generate fixtures

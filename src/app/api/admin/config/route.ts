@@ -19,22 +19,55 @@ async function verifyAdmin() {
 
 export async function GET() {
   try {
-    const config = await prisma.leagueConfig.upsert({
-      where: { id: "default" },
-      update: {},
-      create: {
-        id: "default",
-        registrationOpen: true,
-        currentMatchday: 1,
-        uclStarted: false,
-        europaStarted: false,
-        div1MaxPlayers: 20,
-        div2MaxPlayers: 20,
-        div3MaxPlayers: 20,
+    const [
+      config,
+      div1ActiveCount,
+      div2ActiveCount,
+      div3ActiveCount,
+      pendingCount,
+      reserveCount,
+    ] = await Promise.all([
+      prisma.leagueConfig.upsert({
+        where: { id: "default" },
+        update: {},
+        create: {
+          id: "default",
+          registrationOpen: true,
+          currentMatchday: 1,
+          uclStarted: false,
+          europaStarted: false,
+          div1MaxPlayers: 20,
+          div2MaxPlayers: 20,
+          div3MaxPlayers: 20,
+        },
+      }),
+      prisma.player.count({
+        where: { division: "Division 1", status: { in: ["ACTIVE", "WARNING"] } },
+      }),
+      prisma.player.count({
+        where: { division: "Division 2", status: { in: ["ACTIVE", "WARNING"] } },
+      }),
+      prisma.player.count({
+        where: { division: "Division 3", status: { in: ["ACTIVE", "WARNING"] } },
+      }),
+      prisma.player.count({
+        where: { status: "PENDING_APPROVAL" },
+      }),
+      prisma.player.count({
+        where: { status: "RESERVED" },
+      }),
+    ]);
+
+    return NextResponse.json({
+      config,
+      counts: {
+        div1Active: div1ActiveCount,
+        div2Active: div2ActiveCount,
+        div3Active: div3ActiveCount,
+        pending: pendingCount,
+        reserve: reserveCount,
       },
     });
-
-    return NextResponse.json({ config });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -192,10 +225,41 @@ export async function POST(req: Request) {
     // Synchronize system news to ensure Admin News Tab displays all active items
     await syncSystemNewsToCarousel().catch(() => {});
 
+    const [
+      div1ActiveCount,
+      div2ActiveCount,
+      div3ActiveCount,
+      pendingCount,
+      reserveCount,
+    ] = await Promise.all([
+      prisma.player.count({
+        where: { division: "Division 1", status: { in: ["ACTIVE", "WARNING"] } },
+      }),
+      prisma.player.count({
+        where: { division: "Division 2", status: { in: ["ACTIVE", "WARNING"] } },
+      }),
+      prisma.player.count({
+        where: { division: "Division 3", status: { in: ["ACTIVE", "WARNING"] } },
+      }),
+      prisma.player.count({
+        where: { status: "PENDING_APPROVAL" },
+      }),
+      prisma.player.count({
+        where: { status: "RESERVED" },
+      }),
+    ]);
+
     return NextResponse.json({
       success: true,
       message: "League configuration successfully updated.",
       config: updatedConfig,
+      counts: {
+        div1Active: div1ActiveCount,
+        div2Active: div2ActiveCount,
+        div3Active: div3ActiveCount,
+        pending: pendingCount,
+        reserve: reserveCount,
+      },
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

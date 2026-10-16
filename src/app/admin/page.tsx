@@ -109,17 +109,26 @@ export default async function AdminPage() {
       },
     }),
     prisma.standing.findMany({
-      where: { division: "Division 1" },
+      where: {
+        division: "Division 1",
+        player: { status: { in: ["ACTIVE", "WARNING"] }, division: "Division 1" },
+      },
       include: { player: true },
       orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
     prisma.standing.findMany({
-      where: { division: "Division 2" },
+      where: {
+        division: "Division 2",
+        player: { status: { in: ["ACTIVE", "WARNING"] }, division: "Division 2" },
+      },
       include: { player: true },
       orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
     prisma.standing.findMany({
-      where: { division: "Division 3" },
+      where: {
+        division: "Division 3",
+        player: { status: { in: ["ACTIVE", "WARNING"] }, division: "Division 3" },
+      },
       include: { player: true },
       orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
