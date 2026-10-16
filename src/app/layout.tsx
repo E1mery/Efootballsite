@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/next";
+import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body className={`${font.className} bg-background text-foreground min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white`}>
         {/* Subtle background ambient mesh */}
         <div className="fixed inset-0 pointer-events-none -z-10 bg-hero-glow" />
+        <ChunkErrorRecovery />
         
         <Navbar />
         <main className="flex-1">

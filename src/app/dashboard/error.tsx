@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, RefreshCw, RotateCcw, Home } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,48 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [isChunkError, setIsChunkError] = useState(false);
+
   useEffect(() => {
     console.error("Dashboard Client-Side Exception Caught:", error);
+
+    const errorMessage = error?.message?.toLowerCase() || "";
+    const isChunk =
+      error?.name === "ChunkLoadError" ||
+      errorMessage.includes("loading chunk") ||
+      errorMessage.includes("failed to fetch dynamically imported module") ||
+      errorMessage.includes("error loading dynamic script");
+
+    if (isChunk) {
+      setIsChunkError(true);
+      if (typeof window !== "undefined") {
+        const reloadKey = "efrl_dashboard_chunk_error_ts";
+        const lastReload = sessionStorage.getItem(reloadKey);
+        const now = Date.now();
+        if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+          sessionStorage.setItem(reloadKey, String(now));
+          window.location.reload();
+        }
+      }
+    }
   }, [error]);
+
+  const handleRetry = () => {
+    if (typeof window !== "undefined" && isChunkError) {
+      window.location.reload();
+      return;
+    }
+    reset();
+  };
 
   const handleClearCacheAndReload = () => {
     try {
       if (typeof window !== "undefined") {
-        // Clear cached keys that could cause corrupted state
         localStorage.removeItem("efrl_draw_sound_muted");
         sessionStorage.clear();
         window.location.reload();
       }
-    } catch (e) {
+    } catch {
       window.location.reload();
     }
   };
@@ -42,11 +71,13 @@ export default function DashboardError({
           <span className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-destructive/20 text-destructive border border-destructive/40">
             Player Dashboard Sync
           </span>
-          <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight">
-            Dashboard Interface Refresh Needed
+          <h2 className="text-xl sm:text-2xl font-black uppercase text-foreground tracking-tight">
+            {isChunkError ? "Dashboard Update Detected" : "Dashboard Interface Refresh Needed"}
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-            A temporary client state issue was encountered. Click below to recover your dashboard session.
+            {isChunkError
+              ? "A fresh build was deployed. Please reload your dashboard to load the newest features and assets."
+              : "A temporary client state issue was encountered. Click below to recover your dashboard session."}
           </p>
         </div>
 
@@ -60,11 +91,11 @@ export default function DashboardError({
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <Button
             type="button"
-            onClick={() => reset()}
-            className="font-bold text-xs gap-2 py-2.5 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/30 transition-all"
+            onClick={handleRetry}
+            className="font-bold text-xs gap-2 py-2.5 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Try Again</span>
+            <span>{isChunkError ? "Reload Dashboard" : "Try Again"}</span>
           </Button>
 
           <Button
@@ -78,7 +109,7 @@ export default function DashboardError({
 
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-white bg-card border border-border transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground bg-card border border-border transition-all"
           >
             <Home className="h-4 w-4" />
             <span>Home</span>

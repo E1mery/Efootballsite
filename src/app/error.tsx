@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, RefreshCw, RotateCcw, Home } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -12,9 +12,51 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [isChunkError, setIsChunkError] = useState(false);
+
   useEffect(() => {
     console.error("Global Application Exception Caught:", error);
+
+    const errorMessage = error?.message?.toLowerCase() || "";
+    const isChunk =
+      error?.name === "ChunkLoadError" ||
+      errorMessage.includes("loading chunk") ||
+      errorMessage.includes("failed to fetch dynamically imported module") ||
+      errorMessage.includes("error loading dynamic script");
+
+    if (isChunk) {
+      setIsChunkError(true);
+      if (typeof window !== "undefined") {
+        const reloadKey = "efrl_chunk_error_auto_reloaded";
+        const lastReload = sessionStorage.getItem(reloadKey);
+        const now = Date.now();
+        // Automatically attempt a fresh reload once to fetch the latest deployment chunks
+        if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+          sessionStorage.setItem(reloadKey, String(now));
+          window.location.reload();
+        }
+      }
+    }
   }, [error]);
+
+  const handleRetry = () => {
+    if (typeof window !== "undefined" && isChunkError) {
+      window.location.reload();
+      return;
+    }
+    reset();
+  };
+
+  const handleClearCacheAndReload = () => {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.clear();
+      } catch {
+        // ignore storage errors
+      }
+      window.location.reload();
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -26,17 +68,23 @@ export default function GlobalError({
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight">
-            Application Exception Encountered
+          <h2 className="text-xl sm:text-2xl font-black uppercase text-foreground tracking-tight">
+            {isChunkError
+              ? "Application Update Detected"
+              : "Application Exception Encountered"}
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-            A temporary interface error occurred. Please click below to reload and continue.
+            {isChunkError
+              ? "A newer version of the league platform was deployed. Please reload to fetch the latest assets and continue."
+              : "A temporary interface error occurred. Please click below to reload and continue."}
           </p>
         </div>
 
         {error?.message && (
           <div className="p-3.5 rounded-2xl bg-background/80 border border-border text-left font-mono text-xs text-destructive overflow-x-auto max-h-28">
-            <span className="text-muted-foreground block text-xs uppercase font-bold mb-1">Diagnostic:</span>
+            <span className="text-muted-foreground block text-xs uppercase font-bold mb-1">
+              Diagnostic:
+            </span>
             {error.message}
           </div>
         )}
@@ -44,16 +92,25 @@ export default function GlobalError({
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <Button
             type="button"
-            onClick={() => reset()}
-            className="font-bold text-xs gap-2 py-2.5 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/30 transition-all"
+            onClick={handleRetry}
+            className="font-bold text-xs gap-2 py-2.5 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Try Again</span>
+            <span>{isChunkError ? "Reload Application" : "Try Again"}</span>
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleClearCacheAndReload}
+            className="font-bold text-xs gap-2 py-2.5 px-5 rounded-xl bg-muted hover:bg-accent text-foreground border border-border shadow-md transition-all"
+          >
+            <RotateCcw className="h-4 w-4" />
+            <span>Clear Cache & Reload</span>
           </Button>
 
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-white bg-card border border-border transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground bg-card border border-border transition-all"
           >
             <Home className="h-4 w-4" />
             <span>Home</span>
