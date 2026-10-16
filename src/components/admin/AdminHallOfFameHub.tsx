@@ -884,7 +884,17 @@ export default function AdminHallOfFameHub({
                   <label className="text-xs font-bold uppercase text-muted-foreground">Tournament Title *</label>
                   <select
                     value={hofTournament}
-                    onChange={(e) => setHofTournament(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setHofTournament(val);
+                      if (val.includes("Super Cup")) {
+                        setHofTrophyType("SUPER_CUP");
+                      } else if (val.includes("UCL") || val.includes("Champions League")) {
+                        setHofTrophyType("UCL");
+                      } else if (val.includes("Europa")) {
+                        setHofTrophyType("EUROPA");
+                      }
+                    }}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:ring-1 focus:ring-secondary"
                     required
                   >
@@ -893,6 +903,7 @@ export default function AdminHallOfFameHub({
                     <option value="EFRL Division 3 (Conference)">EFRL Division 3 (Conference)</option>
                     <option value="eFootball Rwanda Champions League (UCL)">eFootball Rwanda Champions League (UCL)</option>
                     <option value="EFRL Europa League">EFRL Europa League</option>
+                    <option value="UEFA Super Cup">UEFA Super Cup</option>
                   </select>
                 </div>
 
@@ -917,6 +928,7 @@ export default function AdminHallOfFameHub({
                     <option value="GOLD">Gold Cup / League 1st Place</option>
                     <option value="UCL">Champions League (UCL) Cup</option>
                     <option value="EUROPA">Europa League Cup</option>
+                    <option value="SUPER_CUP">UEFA Super Cup Trophy</option>
                     <option value="SILVER">Silver Cup / Runner-up</option>
                   </select>
                 </div>

@@ -186,6 +186,99 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
 }
 
 /**
+ * Ensures any completed Super Cup match winner is inducted into Hall of Fame.
+ * Auto-synchronizes winner profile, player avatar, runner-up, and sets trophyType to "SUPER_CUP".
+ */
+export async function syncSuperCupWinnerToHallOfFame() {
+  try {
+    const finishedSuperCupMatches = await prisma.match.findMany({
+      where: {
+        OR: [
+          { division: "SUPER_CUP" },
+          { round: { contains: "Super Cup", mode: "insensitive" } },
+        ],
+        status: { in: ["FINISHED", "FORFEIT"] },
+        homeScore: { not: null },
+        awayScore: { not: null },
+      },
+      include: {
+        homePlayer: true,
+        awayPlayer: true,
+        tournament: true,
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    for (const match of finishedSuperCupMatches) {
+      if (!match.homePlayer || !match.awayPlayer) continue;
+
+      const hScore = match.aggregateHomeScore ?? match.homeScore ?? 0;
+      const aScore = match.aggregateAwayScore ?? match.awayScore ?? 0;
+      if (hScore === aScore) continue;
+
+      const winner = hScore > aScore ? match.homePlayer : match.awayPlayer;
+      const runnerUp = hScore > aScore ? match.awayPlayer : match.homePlayer;
+
+      const config = await prisma.leagueConfig.findUnique({ where: { id: "default" } }).catch(() => null);
+      const seasonName = match.tournament?.season || config?.season || "Season 1 (2026)";
+
+      // Check if already in Hall of Fame
+      const existingHof = await prisma.hallOfFame.findFirst({
+        where: {
+          OR: [
+            { tournamentName: { contains: "Super Cup", mode: "insensitive" } },
+            { trophyType: "SUPER_CUP" },
+          ],
+          season: seasonName,
+        },
+      });
+
+      const winnerAvatar = (winner.avatar && !winner.avatar.includes("dicebear.com"))
+        ? winner.avatar
+        : null;
+
+      if (!existingHof) {
+        await prisma.hallOfFame.create({
+          data: {
+            tournamentName: "UEFA Super Cup",
+            season: seasonName,
+            championName: winner.gamerTag,
+            championRealName: winner.fullName,
+            playerImage: winnerAvatar,
+            runnerUp: runnerUp.gamerTag,
+            trophyType: "SUPER_CUP",
+            prizeWon: "1,500,000 RWF + Super Cup Trophy",
+            notes: `Winner of the ${seasonName} UEFA Super Cup`,
+            playerId: winner.id,
+            isInducted: true,
+            isFeatured: true,
+            sourceType: "AUTOMATIC",
+          },
+        });
+      } else {
+        const updates: any = {};
+        if (existingHof.trophyType !== "SUPER_CUP") updates.trophyType = "SUPER_CUP";
+        if (!existingHof.playerId && winner.id) updates.playerId = winner.id;
+        if (!existingHof.championName) updates.championName = winner.gamerTag;
+        if (!existingHof.runnerUp && runnerUp?.gamerTag) updates.runnerUp = runnerUp.gamerTag;
+        if ((!existingHof.playerImage || existingHof.playerImage.includes("dicebear.com")) && winnerAvatar) {
+          updates.playerImage = winnerAvatar;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await prisma.hallOfFame.update({
+            where: { id: existingHof.id },
+            data: updates,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[syncSuperCupWinnerToHallOfFame] Error syncing Super Cup winner:", err);
+  }
+}
+
+/**
  * Returns comprehensive Super Cup state including finalists, match, and past winners.
  */
 export async function getSuperCupOverview(season: string = "Season 1 (2026)") {
@@ -214,6 +307,9 @@ export async function getSuperCupOverview(season: string = "Season 1 (2026)") {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // Automatically sync any completed Super Cup match winner to Hall of Fame
+  await syncSuperCupWinnerToHallOfFame();
 
   // Past Super Cup winners
   const pastSuperCupWinners = await prisma.hallOfFame.findMany({

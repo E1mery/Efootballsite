@@ -17,13 +17,21 @@ export const metadata: Metadata = {
 export default async function HallOfFamePage() {
   await redirectAdminToPortal();
 
+  // Auto-sync any completed Super Cup match winner to Hall of Fame
+  try {
+    const { syncSuperCupWinnerToHallOfFame } = await import("@/lib/superCupService");
+    await syncSuperCupWinnerToHallOfFame();
+  } catch (err) {
+    console.error("Super Cup auto-sync error:", err);
+  }
+
   let hallOfFameEntries: any[] = [];
   let stats: any = null;
   let leagueConfig: any = null;
   let tournaments: any[] = [];
 
   try {
-    const [entriesData, statsData, configData, tournamentsData] = await Promise.all([
+    const [entriesData, statsData, configData, tournamentsData, finishedSuperCup] = await Promise.all([
       prisma.hallOfFame.findMany({
         orderBy: [{ season: "desc" }, { createdAt: "desc" }],
       }),
@@ -35,9 +43,59 @@ export default async function HallOfFamePage() {
         select: { id: true, name: true, season: true, format: true, type: true },
         orderBy: { createdAt: "desc" },
       }),
+      prisma.match.findFirst({
+        where: {
+          OR: [
+            { division: "SUPER_CUP" },
+            { round: { contains: "Super Cup", mode: "insensitive" } },
+          ],
+          status: { in: ["FINISHED", "FORFEIT"] },
+          homeScore: { not: null },
+          awayScore: { not: null },
+        },
+        include: { homePlayer: true, awayPlayer: true, tournament: true },
+        orderBy: { updatedAt: "desc" },
+      }),
     ]);
 
     hallOfFameEntries = await enrichAndSyncHallOfFameEntries(entriesData);
+
+    // Fallback: If a Super Cup match is finished in Match table but not in HallOfFame table yet
+    if (finishedSuperCup && finishedSuperCup.homePlayer && finishedSuperCup.awayPlayer) {
+      const hScore = finishedSuperCup.aggregateHomeScore ?? finishedSuperCup.homeScore ?? 0;
+      const aScore = finishedSuperCup.aggregateAwayScore ?? finishedSuperCup.awayScore ?? 0;
+      if (hScore !== aScore) {
+        const winner = hScore > aScore ? finishedSuperCup.homePlayer : finishedSuperCup.awayPlayer;
+        const runnerUp = hScore > aScore ? finishedSuperCup.awayPlayer : finishedSuperCup.homePlayer;
+        const scSeason = finishedSuperCup.tournament?.season || configData?.season || "Season 1 (2026)";
+
+        const hasScEntry = hallOfFameEntries.some(
+          (e) =>
+            (e.trophyType === "SUPER_CUP" || e.tournamentName?.toUpperCase().includes("SUPER")) &&
+            e.championName?.toLowerCase() === winner.gamerTag.toLowerCase()
+        );
+
+        if (!hasScEntry) {
+          hallOfFameEntries.unshift({
+            id: `temp-supercup-${finishedSuperCup.id}`,
+            tournamentName: "UEFA Super Cup",
+            season: scSeason,
+            championName: winner.gamerTag,
+            championRealName: winner.fullName,
+            playerImage: winner.avatar && !winner.avatar.includes("dicebear.com") ? winner.avatar : null,
+            runnerUp: runnerUp.gamerTag,
+            trophyType: "SUPER_CUP",
+            prizeWon: "1,500,000 RWF + Super Cup Trophy",
+            notes: `Winner of the ${scSeason} UEFA Super Cup`,
+            playerId: winner.id,
+            isInducted: true,
+            isFeatured: true,
+            createdAt: finishedSuperCup.updatedAt || new Date(),
+          });
+        }
+      }
+    }
+
     stats = statsData;
     leagueConfig = configData;
     tournaments = tournamentsData;
@@ -46,7 +104,17 @@ export default async function HallOfFamePage() {
   }
 
   // Calculate dynamic trophy cabinet data from real DB entries & tournaments
-  const competitionMap = new Map<string, { winners: Set<string>; seasons: Set<string>; latestChampion?: string }>();
+  const competitionMap = new Map<
+    string,
+    {
+      winners: Set<string>;
+      seasons: Set<string>;
+      latestChampion?: string;
+      latestChampionAvatar?: string | null;
+      latestChampionRealName?: string | null;
+      latestChampionSeason?: string | null;
+    }
+  >();
 
   // Ensure primary canonical competitions exist
   const defaultComps = ["Division 1", "UCL", "EUROPA", "Division 2", "Division 3", "SUPER_CUP"];
@@ -58,12 +126,12 @@ export default async function HallOfFamePage() {
   tournaments.forEach((t) => {
     let compKey = t.name;
     const upper = t.name.toUpperCase();
-    if (upper.includes("DIVISION 1") || upper.includes("PREMIER")) compKey = "Division 1";
+    if (upper.includes("SUPER")) compKey = "SUPER_CUP";
+    else if (upper.includes("DIVISION 1") || upper.includes("PREMIER")) compKey = "Division 1";
     else if (upper.includes("DIVISION 2")) compKey = "Division 2";
     else if (upper.includes("DIVISION 3")) compKey = "Division 3";
     else if (upper.includes("UCL") || upper.includes("CHAMPIONS")) compKey = "UCL";
     else if (upper.includes("EUROPA")) compKey = "EUROPA";
-    else if (upper.includes("SUPER")) compKey = "SUPER_CUP";
 
     if (!competitionMap.has(compKey)) {
       competitionMap.set(compKey, { winners: new Set(), seasons: new Set() });
@@ -75,13 +143,15 @@ export default async function HallOfFamePage() {
   // Populate winners from HallOfFame table
   hallOfFameEntries.forEach((entry) => {
     let compKey = entry.tournamentName;
-    const upper = entry.tournamentName.toUpperCase();
-    if (upper.includes("DIVISION 1") || upper.includes("PREMIER")) compKey = "Division 1";
+    const upper = (entry.tournamentName || "").toUpperCase();
+    const trophyUpper = (entry.trophyType || "").toUpperCase();
+
+    if (upper.includes("SUPER") || trophyUpper.includes("SUPER") || trophyUpper === "SUPER_CUP") compKey = "SUPER_CUP";
+    else if (upper.includes("DIVISION 1") || upper.includes("PREMIER")) compKey = "Division 1";
     else if (upper.includes("DIVISION 2")) compKey = "Division 2";
     else if (upper.includes("DIVISION 3")) compKey = "Division 3";
-    else if (upper.includes("UCL") || upper.includes("CHAMPIONS")) compKey = "UCL";
-    else if (upper.includes("EUROPA")) compKey = "EUROPA";
-    else if (upper.includes("SUPER")) compKey = "SUPER_CUP";
+    else if (upper.includes("UCL") || upper.includes("CHAMPIONS") || trophyUpper === "UCL") compKey = "UCL";
+    else if (upper.includes("EUROPA") || trophyUpper === "EUROPA") compKey = "EUROPA";
 
     if (!competitionMap.has(compKey)) {
       competitionMap.set(compKey, { winners: new Set(), seasons: new Set() });
@@ -91,6 +161,9 @@ export default async function HallOfFamePage() {
     if (entry.season) item.seasons.add(entry.season);
     if (!item.latestChampion) {
       item.latestChampion = entry.championName;
+      item.latestChampionAvatar = entry.playerImage || null;
+      item.latestChampionRealName = entry.championRealName || null;
+      item.latestChampionSeason = entry.season || null;
     }
   });
 
@@ -117,6 +190,9 @@ export default async function HallOfFamePage() {
       winnersCount: data.winners.size,
       seasonsCount: data.seasons.size,
       latestChampion: data.latestChampion || null,
+      latestChampionAvatar: data.latestChampionAvatar || null,
+      latestChampionRealName: data.latestChampionRealName || null,
+      latestChampionSeason: data.latestChampionSeason || null,
     }))
     .sort((a, b) => {
       const indexA = orderedKeys.indexOf(a.competition);

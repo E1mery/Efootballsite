@@ -2820,13 +2820,15 @@ export default function DashboardClient({
                   alt="Today's Match Pitch and Stadium"
                   fill
                   sizes="(max-width: 1200px) 100vw, 1200px"
-                  className="object-cover object-bottom opacity-40 md:opacity-50"
+                  className="object-cover object-center opacity-20 md:opacity-25"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/35" />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/85 to-background/95" />
               </div>
 
               {/* Background ambient lighting */}
               <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10">
 
               {/* Priority Backlog Matches Selector (if replacement player has multiple backlog fixtures to complete) */}
               {replacementBacklogMatches.length > 1 && (
@@ -2888,7 +2890,7 @@ export default function DashboardClient({
                       </Badge>
                     )}
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-white uppercase">
+                  <h2 className="text-xl sm:text-2xl font-black text-foreground uppercase tracking-tight">
                     {isAwaitingDrop
                       ? `First Fixture Drops on ${new Date(activeMatch.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali" })} at 12:00 AM (CAT)`
                       : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
@@ -2902,17 +2904,17 @@ export default function DashboardClient({
                 </div>
 
                 {/* Countdown Clock */}
-                <div className={`rounded-2xl border p-3 sm:px-5 text-right ${
+                <div className={`rounded-2xl border p-3 sm:px-5 text-right backdrop-blur-md shadow-sm ${
                   isAwaitingDrop
-                    ? "border-primary/50 bg-primary/10"
+                    ? "border-primary/50 bg-card/90"
                     : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
-                    ? "border-secondary/40 bg-secondary/10"
+                    ? "border-secondary/40 bg-card/90"
                     : isWaitingForSub
-                    ? "border-secondary/30 bg-background/80"
-                    : "border-primary/40 bg-background/80"
+                    ? "border-secondary/30 bg-card/90"
+                    : "border-border bg-card/90"
                 }`}>
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest block flex items-center gap-1.5 justify-end">
-                    <Clock className="h-3 w-3 text-secondary" />
+                  <span className="text-xs font-bold text-foreground/80 uppercase tracking-widest block flex items-center gap-1.5 justify-end">
+                    <Clock className="h-3.5 w-3.5 text-secondary" />
                     {isAwaitingDrop
                       ? "Drops In (12:00 AM Midnight)"
                       : activeMatch?.notes?.includes("REPLACEMENT_BACKLOG")
@@ -2955,7 +2957,7 @@ export default function DashboardClient({
               {/* Opponent & Match Coordination Card */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4">
                 {/* Your Profile */}
-                <div className="lg:col-span-4 rounded-2xl bg-background/70 border border-border p-4 sm:p-5 text-center sm:text-left">
+                <div className="lg:col-span-4 rounded-2xl bg-card/90 backdrop-blur-md border border-border p-4 sm:p-5 text-center sm:text-left shadow-lg">
                   <span className="text-xs font-black uppercase tracking-widest text-primary block mb-2">
                     {isHomePlayer ? "HOME ATHLETE (YOU)" : "AWAY ATHLETE (YOU)"}
                   </span>
@@ -2972,37 +2974,37 @@ export default function DashboardClient({
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg sm:text-xl font-black text-white truncate">{player.gamerTag}</h3>
+                      <h3 className="text-lg sm:text-xl font-black text-foreground truncate">{player.gamerTag}</h3>
                       {player.realTeam && (
-                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold truncate max-w-full">
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/15 border border-secondary/35 text-secondary text-xs font-bold truncate max-w-full">
                           <span className="truncate">{findTeam(player.realTeam)?.name || player.realTeam}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 truncate">{player.fullName}</p>
+                  <p className="text-xs text-foreground/80 font-medium mt-2.5 truncate">{player.fullName}</p>
                   <span className="font-mono text-xs text-muted-foreground block mt-1 truncate">
-                    Konami ID: {player.efootballId}
+                    Konami ID: <span className="text-foreground/90 font-semibold">{player.efootballId}</span>
                   </span>
                 </div>
 
                 {/* VS Badge */}
                 <div className="lg:col-span-4 flex flex-col items-center justify-center text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted border border-border font-black text-white text-sm shadow-inner mb-2">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-card border border-border font-black text-foreground text-sm shadow-inner mb-2">
                     VS
                   </div>
-                  <span className="text-xs text-muted-foreground font-medium">
+                  <span className="text-xs text-foreground/80 font-semibold">
                     {activeMatch.division} • 10 Mins Match
                   </span>
                 </div>
 
                 {/* Opponent Card with WhatsApp Connect */}
-                <div className="lg:col-span-4 rounded-2xl bg-background/90 border-2 border-primary/40 p-4 sm:p-5 space-y-3">
+                <div className="lg:col-span-4 rounded-2xl bg-card/90 backdrop-blur-md border border-border/90 p-4 sm:p-5 space-y-3.5 shadow-xl">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-widest text-primary">
                       YOUR OPPONENT
                     </span>
-                    <Badge variant="green" className="text-xs">
+                    <Badge variant="outline" className="text-xs font-bold border-secondary/40 bg-secondary/15 text-secondary">
                       READY TO CHAT
                     </Badge>
                   </div>
@@ -3020,32 +3022,32 @@ export default function DashboardClient({
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg sm:text-xl font-black text-white truncate">{opponent?.gamerTag || "Unknown Opponent"}</h3>
+                      <h3 className="text-lg sm:text-xl font-black text-foreground truncate">{opponent?.gamerTag || "Unknown Opponent"}</h3>
                       {opponent?.realTeam && (
-                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold truncate max-w-full">
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-secondary/15 border border-secondary/35 text-secondary text-xs font-bold truncate max-w-full">
                           <span className="truncate">{findTeam(opponent?.realTeam)?.name || opponent?.realTeam}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 truncate">{opponent?.fullName}</p>
+                  <p className="text-xs text-foreground/80 font-medium mt-2 truncate">{opponent?.fullName}</p>
                   <span className="font-mono text-xs text-muted-foreground block mt-0.5 truncate">
-                    Konami ID: {opponent?.efootballId}
+                    Konami ID: <span className="text-foreground/90 font-semibold">{opponent?.efootballId}</span>
                   </span>
 
                   {/* Opponent Group / Division Table Position */}
                   {opponentStanding && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-xs font-bold text-muted-foreground">Position:</span>
-                      <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/30">
+                    <div className="flex items-center gap-1.5 mt-1 text-xs">
+                      <span className="text-muted-foreground font-medium">Position:</span>
+                      <span className="font-mono font-bold text-foreground">
                         #{opponentStanding.rank || opponentStanding.position || 1} in {opponentStanding.division}
-                      </Badge>
+                      </span>
                     </div>
                   )}
 
                   {/* Opponent Last 3 Match Results Form */}
                   {opponentPreviousMatches && opponentPreviousMatches.length > 0 && (
-                      <div className="pt-2 border-t border-border space-y-1">
+                      <div className="pt-2 border-t border-border/80 space-y-1">
                       <span className="text-xs font-mono uppercase text-muted-foreground block font-bold">
                         Opponent Recent Form (Last {opponentPreviousMatches.length} Matches):
                       </span>
@@ -3064,7 +3066,7 @@ export default function DashboardClient({
                               title={`vs @${rivalTag || "rival"} (${oppScore}-${rivalScore})`}
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono font-bold border ${
                                 won
-                                  ? "bg-primary/20 text-primary border-primary/40"
+                                  ? "bg-secondary/20 text-secondary border-secondary/40"
                                   : drew
                                   ? "bg-muted text-muted-foreground border-border"
                                   : "bg-destructive/20 text-destructive border-destructive/40"
@@ -3080,10 +3082,10 @@ export default function DashboardClient({
                   )}
 
                   {/* Opponent WhatsApp Direct Chat */}
-                  <div className="pt-2 border-t border-border space-y-2">
+                  <div className="pt-2.5 border-t border-border/80 space-y-2.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground font-medium">WhatsApp:</span>
-                      <span className="font-mono font-bold text-primary">
+                      <span className="font-mono font-bold text-secondary text-sm">
                         {opponent?.whatsapp}
                       </span>
                     </div>
@@ -3097,23 +3099,23 @@ export default function DashboardClient({
                         stagger
                         icon={<MessageSquare className="h-3.5 w-3.5" />}
                         iconPosition="left"
-                        className="py-2 px-3 rounded-xl bg-primary hover:bg-primary text-white font-bold text-xs shadow-lg transition-all"
+                        className="py-2.5 px-3 rounded-xl bg-primary hover:bg-primary text-primary-foreground font-bold text-xs shadow-lg transition-all"
                       />
 
                       <button
                         type="button"
                         onClick={() => handleCopyWhatsApp(opponent?.whatsapp)}
-                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-muted hover:bg-muted text-foreground font-semibold text-xs border border-border transition-all"
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-bold text-xs border border-border shadow-sm transition-all"
                       >
                         {copied ? (
                           <>
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                            Copied!
+                            <Check className="h-3.5 w-3.5 text-secondary" />
+                            <span>Copied!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="h-3.5 w-3.5" />
-                            Copy Number
+                            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Copy Number</span>
                           </>
                         )}
                       </button>
@@ -3308,7 +3310,7 @@ export default function DashboardClient({
 
               {/* Match Action Buttons (Result Upload & Forfeit Proof) */}
               <div className="mt-6 pt-6 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground max-w-md">
+                <p className="text-xs text-foreground/80 leading-relaxed max-w-md">
                   Coordinate with your opponent on WhatsApp, complete the match on eFootball Mobile, and upload a screenshot of the post-game score screen before the 24-hour timer expires.
                 </p>
 
@@ -3478,6 +3480,7 @@ export default function DashboardClient({
                     </Button>
                   </div>
                 )}
+              </div>
               </div>
             </div>
           ) : isSuspended ? (

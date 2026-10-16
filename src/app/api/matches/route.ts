@@ -82,6 +82,19 @@ export async function POST(req: Request) {
       }
     }
 
+    // If UEFA Super Cup match was finished or forfeited, induct champion into Hall of Fame
+    if (
+      (status === "FINISHED" || status === "FORFEIT") &&
+      (updatedMatch.division === "SUPER_CUP" || updatedMatch.round?.toLowerCase().includes("super cup"))
+    ) {
+      try {
+        const { syncSuperCupWinnerToHallOfFame } = await import("@/lib/superCupService");
+        await syncSuperCupWinnerToHallOfFame();
+      } catch (err) {
+        console.error("[POST /api/matches] Error syncing Super Cup winner:", err);
+      }
+    }
+
     // 2. If finished or forfeit, recalculate standings for this tournament/division
     if (
       (status === "FINISHED" || status === "FORFEIT") &&

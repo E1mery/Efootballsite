@@ -105,6 +105,16 @@ export async function POST(req: Request) {
         console.error("[batch-update-scores] Error syncing social result:", socialErr);
       }
 
+      // If Super Cup match, sync winner to Hall of Fame
+      if (match.division === "SUPER_CUP" || match.round?.toLowerCase().includes("super cup")) {
+        try {
+          const { syncSuperCupWinnerToHallOfFame } = await import("@/lib/superCupService");
+          await syncSuperCupWinnerToHallOfFame();
+        } catch (scErr) {
+          console.error("[batch-update-scores] Error syncing Super Cup winner:", scErr);
+        }
+      }
+
       updatedMatchIds.push(matchId);
 
       const targetDiv = match.stage === "GROUP" && match.groupName

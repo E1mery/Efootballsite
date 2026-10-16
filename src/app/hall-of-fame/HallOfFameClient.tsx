@@ -38,6 +38,16 @@ export default function HallOfFameClient({
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<"SHOWCASE" | "RECORDS">("SHOWCASE");
   const [selectedPlayerForAudit, setSelectedPlayerForAudit] = useState<PlayerCareerStats | null>(null);
+  const [selectedTimelineComp, setSelectedTimelineComp] = useState<string>("ALL");
+
+  const handleSelectCompetitionFromCabinet = (compKey: string) => {
+    setActiveTab("SHOWCASE");
+    setSelectedTimelineComp(compKey);
+    const timelineEl = document.getElementById("hall-of-fame-timeline");
+    if (timelineEl) {
+      timelineEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   // Combined records: automatic + manual
   const allRecords = useMemo(() => {
@@ -153,9 +163,7 @@ export default function HallOfFameClient({
           {/* Section 4: Trophy Cabinet */}
           <TrophyCabinet
             competitions={trophyCabinet}
-            onSelectCompetition={() => {
-              setActiveTab("RECORDS");
-            }}
+            onSelectCompetition={handleSelectCompetitionFromCabinet}
           />
 
           {/* Section 5: All-Time Records (RENDERED ONLY ONCE) */}
@@ -175,6 +183,8 @@ export default function HallOfFameClient({
           <HallOfFameTimeline
             entries={entries}
             availableCompetitions={trophyCabinet.map((c) => c.competition)}
+            selectedCompetition={selectedTimelineComp}
+            onSelectCompetition={setSelectedTimelineComp}
           />
 
           {/* Section 8: CTA Banner */}
@@ -316,6 +326,12 @@ export default function HallOfFameClient({
                 <span><strong>{selectedPlayerForAudit.uclTitles}</strong> UCL</span>
                 <span>•</span>
                 <span><strong>{selectedPlayerForAudit.europaTitles}</strong> Europa</span>
+                {selectedPlayerForAudit.superCupTitles > 0 && (
+                  <>
+                    <span>•</span>
+                    <span><strong>{selectedPlayerForAudit.superCupTitles}</strong> Super Cup</span>
+                  </>
+                )}
                 <span>•</span>
                 <span><strong>{selectedPlayerForAudit.d2Titles + selectedPlayerForAudit.d3Titles}</strong> Lower Tier</span>
               </div>

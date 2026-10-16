@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Trophy, Crown, Award, Shield, ChevronRight } from "lucide-react";
+import { Trophy, Crown, Award, Shield, ChevronRight, User } from "lucide-react";
 import { BRANDING_ASSETS, getTrophyForCompetition } from "@/lib/assets.config";
 
 export interface CompetitionTrophyCardData {
@@ -10,6 +10,9 @@ export interface CompetitionTrophyCardData {
   winnersCount: number;
   seasonsCount: number;
   latestChampion?: string | null;
+  latestChampionAvatar?: string | null;
+  latestChampionRealName?: string | null;
+  latestChampionSeason?: string | null;
 }
 
 interface TrophyCabinetProps {
@@ -120,12 +123,34 @@ export default function TrophyCabinet({
                     </span>
                   </div>
 
-                  {item.latestChampion && (
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Latest Champion:</span>
-                      <span className="font-semibold text-secondary truncate max-w-32">
-                        {item.latestChampion}
-                      </span>
+                  {item.latestChampion ? (
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-card/60 border border-secondary/30">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border border-secondary/40 bg-card flex items-center justify-center shrink-0">
+                        {item.latestChampionAvatar ? (
+                          <Image
+                            src={item.latestChampionAvatar}
+                            alt={item.latestChampion}
+                            fill
+                            className="object-cover"
+                            sizes="32px"
+                          />
+                        ) : (
+                          <User className="w-4 h-4 text-secondary/70" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1 text-xs uppercase font-bold text-secondary">
+                          <Crown className="w-3 h-3 text-secondary shrink-0" />
+                          <span>Champion</span>
+                        </div>
+                        <span className="font-bold text-xs text-foreground truncate block">
+                          {item.latestChampion}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic py-1 text-center">
+                      No champion crowned yet
                     </div>
                   )}
 

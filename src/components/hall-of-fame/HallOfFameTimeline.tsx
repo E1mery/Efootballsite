@@ -18,23 +18,115 @@ import { BRANDING_ASSETS } from "@/lib/assets.config";
 interface HallOfFameTimelineProps {
   entries: HallOfFameEntry[];
   availableCompetitions?: string[];
+  selectedCompetition?: string;
+  onSelectCompetition?: (competition: string) => void;
+}
+
+const CANONICAL_COMPETITION_OPTIONS = [
+  { key: "ALL", label: "All Competitions" },
+  { key: "Division 1", label: "Division 1 (Premiership)" },
+  { key: "Division 2", label: "Division 2" },
+  { key: "Division 3", label: "Division 3" },
+  { key: "EUROPA", label: "Europa League" },
+  { key: "UCL", label: "Champions League (UCL)" },
+  { key: "SUPER_CUP", label: "UEFA Super Cup" },
+];
+
+function matchesCompetition(entry: HallOfFameEntry, targetComp: string): boolean {
+  if (targetComp === "ALL") return true;
+  const tourUpper = (entry.tournamentName || "").toUpperCase();
+  const trophyUpper = (entry.trophyType || "").toUpperCase();
+  const targetUpper = targetComp.toUpperCase();
+
+  // UEFA Super Cup
+  if (targetUpper.includes("SUPER") || targetUpper === "SUPER_CUP") {
+    return (
+      tourUpper.includes("SUPER") ||
+      trophyUpper.includes("SUPER") ||
+      trophyUpper === "SUPER_CUP"
+    );
+  }
+
+  // Champions League / UCL
+  if (targetUpper.includes("UCL") || targetUpper.includes("CHAMPIONS")) {
+    return (
+      tourUpper.includes("UCL") ||
+      tourUpper.includes("CHAMPIONS") ||
+      trophyUpper.includes("UCL")
+    );
+  }
+
+  // Europa League
+  if (targetUpper.includes("EUROPA")) {
+    return tourUpper.includes("EUROPA") || trophyUpper.includes("EUROPA");
+  }
+
+  // Division 1 / Premiership
+  if (targetUpper.includes("DIVISION 1") || targetUpper.includes("PREMIER")) {
+    return (
+      tourUpper.includes("DIVISION 1") ||
+      tourUpper.includes("PREMIER") ||
+      trophyUpper.includes("DIVISION 1")
+    );
+  }
+
+  // Division 2
+  if (targetUpper.includes("DIVISION 2")) {
+    return tourUpper.includes("DIVISION 2") || trophyUpper.includes("DIVISION 2");
+  }
+
+  // Division 3
+  if (targetUpper.includes("DIVISION 3")) {
+    return tourUpper.includes("DIVISION 3") || trophyUpper.includes("DIVISION 3");
+  }
+
+  return tourUpper.includes(targetUpper) || trophyUpper.includes(targetUpper);
 }
 
 export default function HallOfFameTimeline({
   entries = [],
   availableCompetitions = [],
+  selectedCompetition,
+  onSelectCompetition,
 }: HallOfFameTimelineProps) {
-  const [selectedComp, setSelectedComp] = useState<string>("ALL");
+  const [internalSelectedComp, setInternalSelectedComp] = useState<string>("ALL");
+  const selectedComp = selectedCompetition !== undefined ? selectedCompetition : internalSelectedComp;
 
-  // Derive unique competitions from entries if not explicitly provided
-  const competitions = useMemo(() => {
-    const list = new Set<string>();
+  const handleCompChange = (val: string) => {
+    if (onSelectCompetition) {
+      onSelectCompetition(val);
+    } else {
+      setInternalSelectedComp(val);
+    }
+  };
+
+  // Build competition dropdown list
+  const competitionOptions = useMemo(() => {
+    const defaultKeys = new Set(CANONICAL_COMPETITION_OPTIONS.map((o) => o.key));
+    const extraOptions: Array<{ key: string; label: string }> = [];
+
     entries.forEach((e) => {
-      if (e.tournamentName) list.add(e.tournamentName);
+      const name = e.tournamentName;
+      if (name) {
+        const upper = name.toUpperCase();
+        if (
+          !upper.includes("SUPER") &&
+          !upper.includes("UCL") &&
+          !upper.includes("CHAMPIONS") &&
+          !upper.includes("EUROPA") &&
+          !upper.includes("DIVISION 1") &&
+          !upper.includes("DIVISION 2") &&
+          !upper.includes("DIVISION 3") &&
+          !defaultKeys.has(name)
+        ) {
+          defaultKeys.add(name);
+          extraOptions.push({ key: name, label: name });
+        }
+      }
     });
-    availableCompetitions.forEach((c) => list.add(c));
-    return ["ALL", ...Array.from(list)];
-  }, [entries, availableCompetitions]);
+
+    return [...CANONICAL_COMPETITION_OPTIONS, ...extraOptions];
+  }, [entries]);
 
   // Count total titles per champion across all entries to indicate multi-title winners with stars
   const championTitleCounts = useMemo(() => {
@@ -50,16 +142,14 @@ export default function HallOfFameTimeline({
 
   // Filter entries
   const filteredEntries = useMemo(() => {
-    if (selectedComp === "ALL") return entries;
-    return entries.filter(
-      (e) =>
-        e.tournamentName.toLowerCase().includes(selectedComp.toLowerCase()) ||
-        (e.trophyType && e.trophyType.toLowerCase() === selectedComp.toLowerCase())
-    );
+    return entries.filter((e) => matchesCompetition(e, selectedComp));
   }, [entries, selectedComp]);
 
   return (
-    <section className="relative rounded-3xl overflow-hidden border border-border/60 bg-card/30 p-6 sm:p-10 my-6 sm:my-8">
+    <section
+      id="hall-of-fame-timeline"
+      className="relative rounded-3xl overflow-hidden border border-border/60 bg-card/30 p-6 sm:p-10 my-6 sm:my-8"
+    >
       {/* Historical Timeline Stadium Background */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <Image
@@ -98,17 +188,14 @@ export default function HallOfFameTimeline({
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <select
             value={selectedComp}
-            onChange={(e) => setSelectedComp(e.target.value)}
+            onChange={(e) => handleCompChange(e.target.value)}
             className="bg-card/80 border border-border rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-foreground focus:outline-none focus:border-secondary"
           >
-            <option value="ALL">All Competitions</option>
-            {competitions
-              .filter((c) => c !== "ALL")
-              .map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+            {competitionOptions.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

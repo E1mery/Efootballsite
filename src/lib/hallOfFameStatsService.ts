@@ -25,6 +25,7 @@ export interface PlayerCareerStats {
   leagueTitles: number; // Division 1 titles
   uclTitles: number;
   europaTitles: number;
+  superCupTitles: number;
   d2Titles: number;
   d3Titles: number;
   totalTrophies: number;
@@ -136,6 +137,7 @@ export interface HallOfFameStatsResult {
 function normalizeCompetition(rawName?: string | null): string {
   if (!rawName) return "Division 1";
   const upper = rawName.toUpperCase();
+  if (upper.includes("SUPER")) return "SUPER_CUP";
   if (upper.includes("DIVISION 1") || upper.includes("PREMIERSHIP")) return "Division 1";
   if (upper.includes("DIVISION 2") || upper.includes("CHAMPIONSHIP")) return "Division 2";
   if (upper.includes("DIVISION 3") || upper.includes("CONFERENCE")) return "Division 3";
@@ -240,6 +242,7 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
         leagueTitles: 0,
         uclTitles: 0,
         europaTitles: 0,
+        superCupTitles: 0,
         d2Titles: 0,
         d3Titles: 0,
         totalTrophies: 0,
@@ -597,6 +600,7 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
       if (normComp === "Division 1") stats.leagueTitles += 1;
       else if (normComp === "UCL") stats.uclTitles += 1;
       else if (normComp === "EUROPA") stats.europaTitles += 1;
+      else if (normComp === "SUPER_CUP") stats.superCupTitles += 1;
       else if (normComp === "Division 2") stats.d2Titles += 1;
       else if (normComp === "Division 3") stats.d3Titles += 1;
     }
@@ -606,13 +610,22 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
   for (const hof of hallOfFameEntries) {
     const stats = getOrCreatePlayerStats(hof.championName);
     const tournamentUpper = hof.tournamentName.toUpperCase();
-    const isUcl = hof.trophyType === "UCL" || tournamentUpper.includes("UCL") || tournamentUpper.includes("CHAMPIONS LEAGUE");
-    const isEuropa = hof.trophyType === "EUROPA" || tournamentUpper.includes("EUROPA");
-    const isDiv1 = tournamentUpper.includes("DIVISION 1") || tournamentUpper.includes("PREMIERSHIP");
-    const isDiv2 = tournamentUpper.includes("DIVISION 2") || tournamentUpper.includes("CHAMPIONSHIP");
-    const isDiv3 = tournamentUpper.includes("DIVISION 3") || tournamentUpper.includes("CONFERENCE");
+    const trophyUpper = (hof.trophyType || "").toUpperCase();
 
-    if (isDiv1) stats.leagueTitles += 1;
+    const isSuperCup =
+      trophyUpper === "SUPER_CUP" ||
+      trophyUpper.includes("SUPER") ||
+      tournamentUpper.includes("SUPER CUP") ||
+      tournamentUpper.includes("SUPER_CUP") ||
+      tournamentUpper.includes("SUPER");
+    const isUcl = !isSuperCup && (trophyUpper === "UCL" || tournamentUpper.includes("UCL") || tournamentUpper.includes("CHAMPIONS LEAGUE"));
+    const isEuropa = !isSuperCup && (trophyUpper === "EUROPA" || tournamentUpper.includes("EUROPA"));
+    const isDiv1 = !isSuperCup && (tournamentUpper.includes("DIVISION 1") || tournamentUpper.includes("PREMIERSHIP"));
+    const isDiv2 = !isSuperCup && (tournamentUpper.includes("DIVISION 2") || tournamentUpper.includes("CHAMPIONSHIP"));
+    const isDiv3 = !isSuperCup && (tournamentUpper.includes("DIVISION 3") || tournamentUpper.includes("CONFERENCE"));
+
+    if (isSuperCup) stats.superCupTitles += 1;
+    else if (isDiv1) stats.leagueTitles += 1;
     else if (isUcl) stats.uclTitles += 1;
     else if (isEuropa) stats.europaTitles += 1;
     else if (isDiv2) stats.d2Titles += 1;
@@ -625,7 +638,7 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
     if (stats.seasonBreakdown[season]) {
       stats.seasonBreakdown[season].trophiesWon += 1;
     }
-    const compName = isUcl ? "UCL" : isEuropa ? "EUROPA" : isDiv2 ? "Division 2" : isDiv3 ? "Division 3" : "Division 1";
+    const compName = isSuperCup ? "SUPER_CUP" : isUcl ? "UCL" : isEuropa ? "EUROPA" : isDiv2 ? "Division 2" : isDiv3 ? "Division 3" : "Division 1";
     if (stats.competitionBreakdown[compName]) {
       stats.competitionBreakdown[compName].trophiesWon += 1;
     }
@@ -642,6 +655,7 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
       stats.leagueTitles +
       stats.uclTitles +
       stats.europaTitles +
+      stats.superCupTitles +
       stats.d2Titles +
       stats.d3Titles;
 
