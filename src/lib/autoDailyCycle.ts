@@ -15,6 +15,146 @@ export interface DailyCycleResult {
 }
 
 /**
+ * Processes unplayed scheduled matches whose deadline has passed (or for a specified round).
+ * Sets them to 0-0 Draw, awards 1 point each in standings, and adds 1 missed match to both players.
+ */
+export async function processOverdueUnplayedMatches(options: { round?: string } = {}): Promise<{
+  processedMatchesCount: number;
+  processedMatchIds: string[];
+}> {
+  const now = new Date();
+  const roundFilter = options.round ? { round: options.round } : undefined;
+
+  // Find all scheduled matches whose deadline has passed (or matching the specified round)
+  // Exclude matches on hold for replacement (WAITING_FOR_SUB) or replacement backlog
+  const expiredMatches = await prisma.match.findMany({
+    where: {
+      status: "SCHEDULED",
+      ...(roundFilter || { deadlineDate: { lte: now } }),
+      AND: [
+        {
+          OR: [
+            { notes: null },
+            {
+              AND: [
+                { notes: { not: { contains: "WAITING_FOR_SUB" } } },
+                { notes: { not: { contains: "REPLACEMENT_BACKLOG" } } },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    include: { homePlayer: true, awayPlayer: true },
+  });
+
+  const affectedDivisions = new Map<string, { tournamentId: string; division: string }>();
+  const processedMatchIds: string[] = [];
+
+  for (const match of expiredMatches) {
+    await prisma.match.update({
+      where: { id: match.id },
+      data: {
+        homeScore: 0,
+        awayScore: 0,
+        status: "FINISHED",
+        notes: `Automatic 0-0 Draw (1 pt each): 24-hour midnight window elapsed without submitted score. Both players assigned 1 missed match.`,
+      },
+    });
+
+    processedMatchIds.push(match.id);
+
+    const divToRecalc = match.stage === "GROUP" && match.groupName
+      ? `${match.division} ${match.groupName}`
+      : match.division;
+    const divKey = `${match.tournamentId}__${divToRecalc}`;
+    if (!affectedDivisions.has(divKey)) {
+      affectedDivisions.set(divKey, { tournamentId: match.tournamentId, division: divToRecalc });
+    }
+
+    // Increment consecutiveMissed count for both players (disqualifying if >= 3)
+    for (const player of [match.homePlayer, match.awayPlayer]) {
+      const freshPlayer = (await prisma.player.findUnique({ where: { id: player.id } })) || player;
+      const newMissed = (freshPlayer.consecutiveMissed || 0) + 1;
+      const isDisqualified = newMissed >= 3;
+
+      await prisma.player.update({
+        where: { id: freshPlayer.id },
+        data: {
+          consecutiveMissed: newMissed,
+          isDisqualified,
+          status: isDisqualified ? "DISQUALIFIED" : newMissed >= 2 ? "WARNING" : "ACTIVE",
+          disqualificationReason: isDisqualified
+            ? "Missed 3 consecutive league fixtures without submitting results or claiming forfeit."
+            : null,
+        },
+      });
+
+      await prisma.standing.updateMany({
+        where: { playerId: freshPlayer.id },
+        data: {
+          consecutiveMissed: newMissed,
+          isDisqualified,
+        },
+      });
+
+      if (isDisqualified) {
+        // Private notification to suspended player
+        await prisma.announcement.create({
+          data: {
+            title: `🚨 ACCOUNT SUSPENDED: 3 Missed Matches`,
+            content: `Hello ${freshPlayer.gamerTag}. You have reached 3 missed matches without submitting results or claiming forfeit. In accordance with league rules, you have been removed from active match fixtures until the League Admin assigns a replacement.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: freshPlayer.id,
+            isPinned: true,
+          },
+        });
+
+        // Mark all upcoming scheduled matches for this player as WAITING_FOR_SUB and notify opponents
+        const upcomingMatches = await prisma.match.findMany({
+          where: {
+            OR: [{ homePlayerId: freshPlayer.id }, { awayPlayerId: freshPlayer.id }],
+            status: "SCHEDULED",
+          },
+        });
+
+        for (const upm of upcomingMatches) {
+          await prisma.match.update({
+            where: { id: upm.id },
+            data: {
+              notes: "WAITING_FOR_SUB: Opponent reached 3 missed matches. Awaiting Admin replacement.",
+            },
+          });
+
+          const opponentId = upm.homePlayerId === freshPlayer.id ? upm.awayPlayerId : upm.homePlayerId;
+          if (opponentId) {
+            await prisma.announcement.create({
+              data: {
+                title: `⏳ Match on Hold — Waiting for Sub (${upm.round})`,
+                content: `Your scheduled match against @${freshPlayer.gamerTag} for ${upm.round} is on hold because your opponent reached 3 missed matches. The League Admin is currently assigning a replacement player. You will receive a 48-hour window once the substitute arrives.`,
+                type: "INDIVIDUAL",
+                targetPlayerId: opponentId,
+                isPinned: true,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Recalculate standings for all affected divisions so both players officially receive 1 point each
+  for (const { tournamentId, division } of affectedDivisions.values()) {
+    await recalculateStandings(tournamentId, division);
+  }
+
+  return {
+    processedMatchesCount: expiredMatches.length,
+    processedMatchIds,
+  };
+}
+
+/**
  * Checks if the current matchday deadline has expired (12:00 AM midnight passed)
  * and automatically rolls over to the next matchday without requiring Admin intervention.
  * 
@@ -40,6 +180,9 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     await cleanupExpiredRepliedMessages();
     await cleanupExpiredAnnouncements();
 
+    // Always process any overdue unplayed matches whose deadline has elapsed across all rounds
+    const overdueResult = await processOverdueUnplayedMatches();
+
     const now = new Date();
 
     if (!force) {
@@ -55,6 +198,7 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
           advanced: false,
           currentMatchday,
           message: "No scheduled matches found for the current matchday.",
+          processedMatchesCount: overdueResult.processedMatchesCount,
         };
       }
 
@@ -64,114 +208,19 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
         return {
           advanced: false,
           currentMatchday,
-          message: "Matchday deadline has not yet arrived. Fixtures are still active.",
+          message: overdueResult.processedMatchesCount > 0
+            ? `Processed ${overdueResult.processedMatchesCount} overdue unsubmitted matches. Current matchday deadline has not yet arrived.`
+            : "Matchday deadline has not yet arrived. Fixtures are still active.",
+          processedMatchesCount: overdueResult.processedMatchesCount,
         };
       }
     }
 
     // DEADLINE EXPIRED (Past 12:00 AM) or FORCE ADVANCE: Execute automatic transition
 
-    // 1. Process unplayed matches from the expired matchday
-    // Exclude matches that are WAITING_FOR_SUB (on hold for admin replacement)
-    // and REPLACEMENT_BACKLOG matches (which have their own 48-hour deadline)
-    const expiredMatches = await prisma.match.findMany({
-      where: {
-        round: previousRoundName,
-        status: "SCHEDULED",
-        NOT: [
-          { notes: { contains: "WAITING_FOR_SUB" } },
-          { notes: { contains: "REPLACEMENT_BACKLOG" } },
-        ],
-      },
-      include: { homePlayer: true, awayPlayer: true },
-    });
-
-    for (const match of expiredMatches) {
-      await prisma.match.update({
-        where: { id: match.id },
-        data: {
-          homeScore: 0,
-          awayScore: 0,
-          status: "FINISHED",
-          notes: "Automatic 0-0 Draw (1 pt each): 24-hour midnight window elapsed without submitted score. Both players assigned 1 missed match.",
-        },
-      });
-
-      // Recalculate standings so both players officially receive 1 point each for the 0-0 draw
-      const divToRecalc = match.stage === "GROUP" && match.groupName
-        ? `${match.division} ${match.groupName}`
-        : match.division;
-      await recalculateStandings(match.tournamentId, divToRecalc);
-
-      // Increment consecutiveMissed count for both players (disqualifying if >= 3)
-      for (const player of [match.homePlayer, match.awayPlayer]) {
-        const newMissed = (player.consecutiveMissed || 0) + 1;
-        const isDisqualified = newMissed >= 3;
-
-        await prisma.player.update({
-          where: { id: player.id },
-          data: {
-            consecutiveMissed: newMissed,
-            isDisqualified,
-            status: isDisqualified ? "DISQUALIFIED" : newMissed >= 2 ? "WARNING" : "ACTIVE",
-            disqualificationReason: isDisqualified
-              ? "Missed 3 consecutive league fixtures without submitting results or claiming forfeit."
-              : null,
-          },
-        });
-
-        await prisma.standing.updateMany({
-          where: { playerId: player.id },
-          data: {
-            consecutiveMissed: newMissed,
-            isDisqualified,
-          },
-        });
-
-        if (isDisqualified) {
-          // Private notification to suspended player
-          await prisma.announcement.create({
-            data: {
-              title: `🚨 ACCOUNT SUSPENDED: 3 Missed Matches`,
-              content: `Hello ${player.gamerTag}. You have reached 3 missed matches without submitting results or claiming forfeit. In accordance with league rules, you have been removed from active match fixtures until the League Admin assigns a replacement.`,
-              type: "INDIVIDUAL",
-              targetPlayerId: player.id,
-              isPinned: true,
-            },
-          });
-
-          // Mark all upcoming scheduled matches for this player as WAITING_FOR_SUB and notify opponents
-          const upcomingMatches = await prisma.match.findMany({
-            where: {
-              OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-              status: "SCHEDULED",
-            },
-          });
-
-          for (const upm of upcomingMatches) {
-            await prisma.match.update({
-              where: { id: upm.id },
-              data: {
-                notes: "WAITING_FOR_SUB: Opponent reached 3 missed matches. Awaiting Admin replacement.",
-              },
-            });
-
-            const opponentId = upm.homePlayerId === player.id ? upm.awayPlayerId : upm.homePlayerId;
-            if (opponentId) {
-              await prisma.announcement.create({
-                data: {
-                  title: `⏳ Match on Hold — Waiting for Sub (${upm.round})`,
-                  content: `Your scheduled match against @${player.gamerTag} for ${upm.round} is on hold because your opponent reached 3 missed matches. The League Admin is currently assigning a replacement player. You will receive a 48-hour window once the substitute arrives.`,
-                  type: "INDIVIDUAL",
-                  targetPlayerId: opponentId,
-                  isPinned: true,
-                },
-              });
-            }
-          }
-        }
-      }
-    }
+    // 1. Process unplayed matches for the ending matchday
+    const roundExpired = await processOverdueUnplayedMatches({ round: previousRoundName });
+    const totalProcessed = overdueResult.processedMatchesCount + roundExpired.processedMatchesCount;
 
     // Process any REPLACEMENT_BACKLOG matches whose 48-hour deadline has expired
     const expiredReplacementMatches = await prisma.match.findMany({
@@ -258,7 +307,7 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
         advanced: false,
         currentMatchday,
         message: "Season concluded. Final promotions executed.",
-        processedMatchesCount: expiredMatches.length,
+        processedMatchesCount: totalProcessed,
         activatedMatchesCount: 0,
       };
     }
@@ -317,8 +366,8 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     return {
       advanced: true,
       currentMatchday: nextMatchday,
-      message: `Successfully advanced to ${nextRoundName}. Activated ${updatedMatches.count} fixtures. Processed ${expiredMatches.length} expired unplayed matches.`,
-      processedMatchesCount: expiredMatches.length,
+      message: `Successfully advanced to ${nextRoundName}. Activated ${updatedMatches.count} fixtures. Processed ${totalProcessed} expired unplayed matches.`,
+      processedMatchesCount: totalProcessed,
       activatedMatchesCount: updatedMatches.count,
     };
   } catch (error: any) {
