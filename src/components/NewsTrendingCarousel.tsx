@@ -1203,14 +1203,26 @@ const CoverflowCard = memo(function CoverflowCard({
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-muted-foreground font-semibold">
-                    Match of the Day • {slide.data.division} • {slide.data.round}
+                    {[
+                      "Match of the Day",
+                      slide.data.division,
+                      slide.data.round
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
                   </span>
                 </div>
 
                 <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
-                  {slide.data.homePlayer?.gamerTag}{" "}
-                  <span className="text-secondary">vs</span>{" "}
-                  {slide.data.awayPlayer?.gamerTag}
+                  {slide.data.homePlayer?.gamerTag && slide.data.awayPlayer?.gamerTag ? (
+                    <>
+                      {slide.data.homePlayer.gamerTag}{" "}
+                      <span className="text-secondary">vs</span>{" "}
+                      {slide.data.awayPlayer.gamerTag}
+                    </>
+                  ) : (
+                    slide.title || "Match of the Day"
+                  )}
                 </h2>
 
                 <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
@@ -1242,17 +1254,17 @@ const CoverflowCard = memo(function CoverflowCard({
                   <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
                     <img
                       src={resolvePlayerAvatar(slide.data.homePlayer)}
-                      alt={slide.data.homePlayer?.gamerTag}
+                      alt={slide.data.homePlayer?.gamerTag || "Home Player"}
                       className="h-full w-full object-contain aspect-square"
                       loading="lazy"
                     />
                   </div>
                   <div>
                     <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                      {slide.data.homePlayer?.gamerTag}
+                      {slide.data.homePlayer?.gamerTag || "HOME"}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono font-bold">
-                      HOME
+                    <span className="text-xs text-muted-foreground font-mono font-bold block truncate max-w-20 sm:max-w-28">
+                      {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "HOME"}
                     </span>
                   </div>
                 </div>
@@ -1270,17 +1282,17 @@ const CoverflowCard = memo(function CoverflowCard({
                   <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
                     <img
                       src={resolvePlayerAvatar(slide.data.awayPlayer)}
-                      alt={slide.data.awayPlayer?.gamerTag}
+                      alt={slide.data.awayPlayer?.gamerTag || "Away Player"}
                       className="h-full w-full object-contain aspect-square"
                       loading="lazy"
                     />
                   </div>
                   <div>
                     <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                      {slide.data.awayPlayer?.gamerTag}
+                      {slide.data.awayPlayer?.gamerTag || "AWAY"}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono font-bold">
-                      AWAY
+                    <span className="text-xs text-muted-foreground font-mono font-bold block truncate max-w-20 sm:max-w-28">
+                      {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "AWAY"}
                     </span>
                   </div>
                 </div>
@@ -1296,7 +1308,13 @@ const CoverflowCard = memo(function CoverflowCard({
               <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-muted-foreground font-semibold">
-                    Final Result • {slide.data.division} • {slide.data.round}
+                    {[
+                      "Final Result",
+                      slide.data.division,
+                      slide.data.round
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
                   </span>
                 </div>
 
@@ -1331,10 +1349,10 @@ const CoverflowCard = memo(function CoverflowCard({
               <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
                 <div className="text-right min-w-16 sm:min-w-24">
                   <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                    {slide.data.homePlayer?.gamerTag}
+                    {slide.data.homePlayer?.gamerTag || "HOME"}
                   </span>
-                  <span className="text-xs text-muted-foreground font-bold">
-                    HOME
+                  <span className="text-xs text-muted-foreground font-bold block truncate max-w-20 sm:max-w-28">
+                    {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "HOME"}
                   </span>
                 </div>
 
@@ -1344,10 +1362,10 @@ const CoverflowCard = memo(function CoverflowCard({
 
                 <div className="text-left min-w-16 sm:min-w-24">
                   <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                    {slide.data.awayPlayer?.gamerTag}
+                    {slide.data.awayPlayer?.gamerTag || "AWAY"}
                   </span>
-                  <span className="text-xs text-muted-foreground font-bold">
-                    AWAY
+                  <span className="text-xs text-muted-foreground font-bold block truncate max-w-20 sm:max-w-28">
+                    {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "AWAY"}
                   </span>
                 </div>
               </div>

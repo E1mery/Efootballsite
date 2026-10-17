@@ -463,9 +463,9 @@ export async function syncSystemNewsToCarousel() {
             data: {
               id: motdId,
               title: `Match of the Day: ${motdMatch.homePlayer.gamerTag} vs ${motdMatch.awayPlayer.gamerTag}`,
-              category: "Match",
+              category: "Match of the Day",
               description: `Featured showdown in ${motdMatch.division} (${motdMatch.round}). Matches must be scheduled and concluded inside the 24-hour cycle window.`,
-              featuredImage: motdMatch.homePlayer.avatar || motdMatch.awayPlayer.avatar || "/images/carousel-stadium-bg.jpg",
+              featuredImage: motdMatch.homePlayer.avatar || motdMatch.awayPlayer.avatar || "/images/today-match-bg.png",
               buttonText: "Match Center",
               buttonUrl: `/fixtures?highlight=${motdMatch.id}`,
               status: "PUBLISHED",
@@ -475,8 +475,33 @@ export async function syncSystemNewsToCarousel() {
             },
           });
           synced.push(item);
+        } else if (!existing.showOnCarousel) {
+          await prisma.news.update({
+            where: { id: motdId },
+            data: { showOnCarousel: true },
+          });
         }
       }
+
+      // Hide older active MOTD announcements from carousel
+      await prisma.news.updateMany({
+        where: {
+          id: { startsWith: "sys-motd-", not: motdId },
+          NOT: { id: { startsWith: "sys-motd-result-" } },
+          showOnCarousel: true,
+        },
+        data: { showOnCarousel: false },
+      });
+    } else {
+      // If no active MOTD, hide active MOTD slides from carousel
+      await prisma.news.updateMany({
+        where: {
+          id: { startsWith: "sys-motd-" },
+          NOT: { id: { startsWith: "sys-motd-result-" } },
+          showOnCarousel: true,
+        },
+        data: { showOnCarousel: false },
+      });
     }
 
     // =========================================================================
@@ -500,11 +525,11 @@ export async function syncSystemNewsToCarousel() {
             data: {
               id: motdResultId,
               title: `Result: ${latestFinishedMatch.homePlayer.gamerTag} ${homeScore} - ${awayScore} ${latestFinishedMatch.awayPlayer.gamerTag}`,
-              category: "Match",
+              category: "Match of the Day",
               description: `Official MOTD concluded in ${latestFinishedMatch.division}. Result: ${winner}. Full league standings have been updated with verified statistics.`,
-              featuredImage: latestFinishedMatch.homePlayer.avatar || "/images/carousel-stadium-bg.jpg",
+              featuredImage: latestFinishedMatch.homePlayer.avatar || "/images/today-match-bg.png",
               buttonText: "View Standings",
-              buttonUrl: "/standings",
+              buttonUrl: `/fixtures?highlight=${latestFinishedMatch.id}`,
               status: "PUBLISHED",
               publishDate: now,
               expirationDate: new Date(now.getTime() + 48 * 60 * 60 * 1000),
@@ -514,6 +539,15 @@ export async function syncSystemNewsToCarousel() {
           synced.push(item);
         }
       }
+
+      // Hide older finished MOTD announcements from carousel
+      await prisma.news.updateMany({
+        where: {
+          id: { startsWith: "sys-motd-result-", not: motdResultId },
+          showOnCarousel: true,
+        },
+        data: { showOnCarousel: false },
+      });
     }
 
     // =========================================================================

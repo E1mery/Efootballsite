@@ -302,6 +302,18 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         return explicit;
       }
 
+      const isMotd =
+        item.id?.startsWith("sys-motd-") ||
+        text.includes("match of the day") ||
+        text.includes("motd");
+
+      if (isMotd) {
+        if (!explicit || explicit === "/images/carousel-stadium-bg.jpg") {
+          return "/images/today-match-bg.png";
+        }
+        return explicit;
+      }
+
       if (isEuropa) {
         if (!explicit || explicit === "/images/carousel-stadium-bg.jpg" || explicit === "/images/ucl-stadium-bg.jpg") {
           return "/images/europa-stadium-bg.jpg";
@@ -708,17 +720,69 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       }
 
       // 5. MOTD Concluded Result
-      if (item.id.startsWith("sys-motd-result-")) {
+      if (
+        item.id.startsWith("sys-motd-result-") ||
+        (item.category === "Match" &&
+          (item.title || "").toLowerCase().includes("result: ") &&
+          (item.description || "").toLowerCase().includes("motd"))
+      ) {
+        const matchId = item.buttonUrl?.includes("highlight=")
+          ? item.buttonUrl.split("highlight=")[1]?.split("&")[0]
+          : item.id.replace("sys-motd-result-", "");
+
+        let motdMatch = matchId
+          ? await prisma.match.findUnique({
+              where: { id: matchId },
+              include: { homePlayer: true, awayPlayer: true },
+            })
+          : null;
+
+        if (!motdMatch) {
+          motdMatch = await prisma.match.findFirst({
+            where: { isMatchOfTheDay: true, status: "FINISHED" },
+            include: { homePlayer: true, awayPlayer: true },
+            orderBy: { matchDate: "desc" },
+          });
+        }
+
+        if (motdMatch && motdMatch.homePlayer && motdMatch.awayPlayer) {
+          return {
+            id: item.id,
+            type: "MOTD_RESULT",
+            badge: "MOTD FINAL RESULT",
+            category: "Match",
+            tabLabel: "MOTD Result",
+            title: item.title,
+            subtitle: "Match of the Day Concluded",
+            description: item.description,
+            featuredImage: resolveSlideFeaturedImage(item),
+            buttonText: item.buttonText || "Fixture Archive",
+            buttonUrl: item.buttonUrl || `/fixtures?highlight=${motdMatch.id}`,
+            publishDate: item.publishDate,
+            expirationDate: item.expirationDate,
+            data: {
+              ...item,
+              matchId: motdMatch.id,
+              division: motdMatch.division,
+              round: motdMatch.round,
+              homePlayer: motdMatch.homePlayer,
+              awayPlayer: motdMatch.awayPlayer,
+              homeScore: motdMatch.homeScore ?? 0,
+              awayScore: motdMatch.awayScore ?? 0,
+            },
+          };
+        }
+
         return {
           id: item.id,
-          type: "MOTD_RESULT",
+          type: "SYSTEM_ANNOUNCEMENT",
           badge: "MOTD FINAL RESULT",
-          category: "Match",
+          category: item.category || "Match",
           tabLabel: "MOTD Result",
           title: item.title,
           subtitle: "Match of the Day Concluded",
           description: item.description,
-          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          featuredImage: resolveSlideFeaturedImage(item),
           buttonText: item.buttonText || "Fixture Archive",
           buttonUrl: item.buttonUrl || "/fixtures",
           publishDate: item.publishDate,
@@ -728,17 +792,65 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
       }
 
       // 6. MOTD Active Match
-      if (item.id.startsWith("sys-motd-")) {
+      if (
+        item.id.startsWith("sys-motd-") ||
+        item.category === "Match of the Day" ||
+        (item.category === "Match" && (item.title || "").toLowerCase().includes("match of the day"))
+      ) {
+        const matchId = item.buttonUrl?.includes("highlight=")
+          ? item.buttonUrl.split("highlight=")[1]?.split("&")[0]
+          : item.id.replace("sys-motd-", "");
+
+        let motdMatch = matchId
+          ? await prisma.match.findUnique({
+              where: { id: matchId },
+              include: { homePlayer: true, awayPlayer: true },
+            })
+          : null;
+
+        if (!motdMatch) {
+          motdMatch = await prisma.match.findFirst({
+            where: { isMatchOfTheDay: true, status: { in: ["SCHEDULED", "LIVE"] } },
+            include: { homePlayer: true, awayPlayer: true },
+          });
+        }
+
+        if (motdMatch && motdMatch.homePlayer && motdMatch.awayPlayer) {
+          return {
+            id: item.id,
+            type: "MOTD",
+            badge: "MATCH OF THE DAY",
+            category: "Match",
+            tabLabel: "Match of the Day",
+            title: item.title,
+            subtitle: item.description,
+            description: item.description,
+            featuredImage: resolveSlideFeaturedImage(item),
+            buttonText: item.buttonText || "Match Center",
+            buttonUrl: item.buttonUrl || `/fixtures?highlight=${motdMatch.id}`,
+            publishDate: item.publishDate,
+            expirationDate: item.expirationDate,
+            data: {
+              ...item,
+              matchId: motdMatch.id,
+              division: motdMatch.division,
+              round: motdMatch.round,
+              homePlayer: motdMatch.homePlayer,
+              awayPlayer: motdMatch.awayPlayer,
+            },
+          };
+        }
+
         return {
           id: item.id,
-          type: "MOTD",
+          type: "SYSTEM_ANNOUNCEMENT",
           badge: "MATCH OF THE DAY",
-          category: "Match",
+          category: item.category || "Match",
           tabLabel: "Match of the Day",
           title: item.title,
           subtitle: item.description,
           description: item.description,
-          featuredImage: item.featuredImage || "/images/carousel-stadium-bg.jpg",
+          featuredImage: resolveSlideFeaturedImage(item),
           buttonText: item.buttonText || "Match Center",
           buttonUrl: item.buttonUrl || "/fixtures",
           publishDate: item.publishDate,
@@ -1091,6 +1203,8 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
         if (s.type === "SUPER_CUP") return 100;
         if (s.type === "DERBY") return 96;
         if (s.type === "MOTW") return 95;
+        if (s.type === "MOTD") return 90;
+        if (s.type === "MOTD_RESULT") return 85;
         if (s.type === "SYSTEM_ANNOUNCEMENT") return 80;
         if (s.type === "LEAGUE_TABLE") return 70;
         return 50;
