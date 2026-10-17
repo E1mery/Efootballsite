@@ -79,9 +79,9 @@ export default function AdminShell({
       matches: matches.length,
       players: allPlayers.length,
       hallOfFame: initialHallOfFame.length,
-      news: initialNews.length,
-      pendingSubmissions: pendingSubmissions.length,
-      pendingForfeits: pendingForfeits.length,
+      pendingSubmissions: pendingSubmissions.filter(
+        (s: any) => !s.match?.deadlineDate || new Date(s.match.deadlineDate).getTime() > Date.now()
+      ).length,
       activeMessages: initialPlayerMessages.length,
       pendingMessages: initialPlayerMessages.filter(
         (m: any) => m.status === "PENDING" && !m.adminReply

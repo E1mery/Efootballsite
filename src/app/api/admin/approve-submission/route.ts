@@ -195,57 +195,98 @@ export async function POST(req: Request) {
           message: `Match scores (Official: ${officialHomeScore} - ${officialAwayScore}${officialAggHome !== null ? `, Agg: ${officialAggHome} - ${officialAggAway}` : ""}) officially verified and saved.`,
         });
       } else {
-        await prisma.matchSubmission.update({
+        // Permanently delete the rejected submission from database
+        await prisma.matchSubmission.delete({
           where: { id: submissionId },
-          data: { status: "REJECTED", adminNotes },
         });
 
-        // Revert match if it was completed
-        if (sub.match.status === "FINISHED") {
-          const revertedMatch = await prisma.match.update({
-            where: { id: sub.matchId },
-            data: {
-              status: "SCHEDULED",
-              homeScore: null,
-              awayScore: null,
-              leg2HomeScore: null,
-              leg2AwayScore: null,
-              aggregateHomeScore: null,
-              aggregateAwayScore: null,
-              screenshotUrl: null,
-              leg2ScreenshotUrl: null,
-              notes: adminNotes || "Submission invalidated by Admin Office. Fixture reset to SCHEDULED.",
-            },
-          });
+        // Revert match fixture: clear scores & screenshots, reset status to SCHEDULED, and enable late submission permission so both players can re-upload
+        const revertedMatch = await prisma.match.update({
+          where: { id: sub.matchId },
+          data: {
+            status: "SCHEDULED",
+            homeScore: null,
+            awayScore: null,
+            leg2HomeScore: null,
+            leg2AwayScore: null,
+            aggregateHomeScore: null,
+            aggregateAwayScore: null,
+            screenshotUrl: null,
+            leg2ScreenshotUrl: null,
+            allowLateSubmission: true,
+            notes: adminNotes || "Submission rejected and deleted by Admin Office. Upload window reopened for both players.",
+          },
+        });
 
-          const divToRecalc =
-            revertedMatch.stage === "GROUP" && revertedMatch.groupName
-              ? `${revertedMatch.division} ${revertedMatch.groupName}`
-              : revertedMatch.division;
-          await recalculateStandings(revertedMatch.tournamentId, divToRecalc);
-          await invalidateHallOfFameCache().catch(() => {});
+        const divToRecalc =
+          revertedMatch.stage === "GROUP" && revertedMatch.groupName
+            ? `${revertedMatch.division} ${revertedMatch.groupName}`
+            : revertedMatch.division;
+        await recalculateStandings(revertedMatch.tournamentId, divToRecalc);
+        await invalidateHallOfFameCache().catch(() => {});
 
-          await notifyStandingsUpdate({
-            tournamentType: revertedMatch.division,
-            competitionName: revertedMatch.division,
-            groupName: revertedMatch.groupName,
-            matchSummary: "Result Reverted (Match Reset)",
-          });
+        await notifyStandingsUpdate({
+          tournamentType: revertedMatch.division,
+          competitionName: revertedMatch.division,
+          groupName: revertedMatch.groupName,
+          matchSummary: "Result Reverted (Match Reset)",
+        });
 
-          // Revert social result posts if previously published
-          try {
-            const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
-            await syncSocialResultForMatch(revertedMatch.id, "SCHEDULED");
-          } catch (socialErr) {
-            console.error("[approve-submission] Error reverting social result:", socialErr);
-          }
+        // Revert social result posts if previously published
+        try {
+          const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
+          await syncSocialResultForMatch(revertedMatch.id, "SCHEDULED");
+        } catch (socialErr) {
+          console.error("[approve-submission] Error reverting social result:", socialErr);
+        }
+
+        // Notify both athletes that the submission was rejected and deleted, and re-upload is unlocked
+        try {
+          const reasonText = adminNotes ? ` (Reason: "${adminNotes}")` : "";
+          const notifPromises = [revertedMatch.homePlayerId, revertedMatch.awayPlayerId].map((pid) =>
+            prisma.announcement.create({
+              data: {
+                title: `⚠️ Match Result Rejected — Re-upload Allowed`,
+                content: `The previously submitted match result for your fixture (${revertedMatch.round}) was rejected by the League Admin${reasonText}. The submission has been deleted and the fixture is reopened. Both athletes can now re-upload the correct result and proof screenshot.`,
+                type: "INDIVIDUAL",
+                targetPlayerId: pid,
+                isPinned: true,
+              },
+            })
+          );
+          await Promise.all(notifPromises);
+        } catch (notifErr) {
+          console.error("[approve-submission] Error sending rejection announcements:", notifErr);
         }
 
         return NextResponse.json({
           success: true,
-          message: "Match result submission rejected, scores reverted, and table recalculated.",
+          message: "Match result submission deleted, scores reverted, and re-upload unlocked for both players.",
         });
       }
+    }
+
+    // 1c. Clean Historical Match Submissions (Past Deadlines)
+    if (actionType === "CLEAN_SUBMISSION_HISTORY") {
+      const now = new Date();
+      const expiredMatches = await prisma.match.findMany({
+        where: {
+          deadlineDate: { lte: now },
+        },
+        select: { id: true },
+      });
+      const expiredMatchIds = expiredMatches.map((m) => m.id);
+
+      const deleted = await prisma.matchSubmission.deleteMany({
+        where: {
+          matchId: { in: expiredMatchIds },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully cleaned ${deleted.count} historical match submission records.`,
+      });
     }
 
     // 1b. Direct Score Entry by Admin (Without or Overriding Player Submission)

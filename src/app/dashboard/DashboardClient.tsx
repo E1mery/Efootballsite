@@ -1402,12 +1402,11 @@ export default function DashboardClient({
   // Linked submission & forfeit status for this match (shared between both athletes)
   const sharedSubmission =
     activeMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
-    activeMatch?.submissions?.[0] ||
     null;
-  const hasSubmittedResult = Boolean(sharedSubmission && sharedSubmission.status !== "REPLACED");
+  const hasSubmittedResult = Boolean(sharedSubmission);
   const isSubmissionPending = sharedSubmission?.status === "PENDING";
   const isSubmissionApproved =
-    sharedSubmission?.status === "APPROVED" || activeMatch?.status === "FINISHED";
+    sharedSubmission?.status === "APPROVED" || (Boolean(sharedSubmission) && activeMatch?.status === "FINISHED");
 
   const sharedForfeit =
     activeMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
@@ -5154,8 +5153,7 @@ export default function DashboardClient({
       {showResultModal && (() => {
         const modalMatch = actionMatch || activeMatch;
         const modalSub =
-          modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED") ||
-          modalMatch?.submissions?.[0] ||
+          modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
           null;
         const modalHasSubmittedResult = Boolean(modalSub);
         const modalSubmitterGamerTag =
@@ -5517,8 +5515,7 @@ export default function DashboardClient({
       {showForfeitModal && (() => {
         const modalMatch = actionMatch || activeMatch;
         const modalSub =
-          modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED") ||
-          modalMatch?.submissions?.[0] ||
+          modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
           null;
         const modalHasSubmittedResult = Boolean(modalSub);
         const modalSubmitterGamerTag =

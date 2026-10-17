@@ -54,6 +54,7 @@ import {
   Image as ImageIcon,
   Flame,
   BarChart2,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -901,7 +902,44 @@ export default function AdminClient({
 
   // Score verification inputs state: submissionId -> { home: number, away: number }
   const [submissionScores, setSubmissionScores] = useState<Record<string, { home: number; away: number }>>({});
-  const [scoreQueueSubTab, setScoreQueueSubTab] = useState<"SUBMISSIONS" | "DIRECT_ENTRY">("SUBMISSIONS");
+  const [scoreQueueSubTab, setScoreQueueSubTab] = useState<"ACTIVE" | "HISTORY" | "DIRECT_ENTRY">("ACTIVE");
+  const [historyRoundFilter, setHistoryRoundFilter] = useState<string>("ALL");
+  const [historyDivisionFilter, setHistoryDivisionFilter] = useState<string>("ALL");
+  const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
+  const [cleaningHistory, setCleaningHistory] = useState(false);
+
+  const activeSubmissions = useMemo(() => {
+    const nowMs = Date.now();
+    return pendingSubmissions.filter((sub) => {
+      if (!sub.match?.deadlineDate) return true;
+      return new Date(sub.match.deadlineDate).getTime() > nowMs;
+    });
+  }, [pendingSubmissions]);
+
+  const historySubmissions = useMemo(() => {
+    const nowMs = Date.now();
+    return pendingSubmissions.filter((sub) => {
+      if (!sub.match?.deadlineDate) return false;
+      return new Date(sub.match.deadlineDate).getTime() <= nowMs;
+    });
+  }, [pendingSubmissions]);
+
+  const filteredHistorySubmissions = useMemo(() => {
+    return historySubmissions.filter((sub) => {
+      if (historyRoundFilter !== "ALL" && sub.match?.round !== historyRoundFilter) return false;
+      if (historyDivisionFilter !== "ALL" && sub.match?.division !== historyDivisionFilter) return false;
+      if (historySearchQuery.trim()) {
+        const q = historySearchQuery.toLowerCase();
+        const homeTag = sub.match?.homePlayer?.gamerTag?.toLowerCase() || "";
+        const awayTag = sub.match?.awayPlayer?.gamerTag?.toLowerCase() || "";
+        const submitterTag = sub.submittedByPlayer?.gamerTag?.toLowerCase() || "";
+        if (!homeTag.includes(q) && !awayTag.includes(q) && !submitterTag.includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [historySubmissions, historyRoundFilter, historyDivisionFilter, historySearchQuery]);
   const [matchScores, setMatchScores] = useState<Record<string, { home: number; away: number; touched?: boolean }>>({});
   const [selectedMatchdayRound, setSelectedMatchdayRound] = useState<string>(`Matchday ${leagueConfig.currentMatchday}`);
   const [selectedMatchDivision, setSelectedMatchDivision] = useState<string>("ALL");
@@ -1622,13 +1660,25 @@ export default function AdminClient({
     }
   };
 
-  // Review Result Submission with Verified Score (Goals) Insertion
+  // Review Result Submission with Verified Score (Goals) Insertion or Rejection & Deletion
   const handleReviewSubmission = async (
     submissionId: string,
     decision: "APPROVE" | "REJECT",
     defaultHome: number = 0,
     defaultAway: number = 0
   ) => {
+    let adminNotes: string | undefined = undefined;
+    if (decision === "REJECT") {
+      const confirmed = confirm(
+        "Are you sure you want to REJECT and DELETE this uploaded result? This will delete the submission from the system, reset the fixture to SCHEDULED, and reopen the upload window for BOTH players to re-upload."
+      );
+      if (!confirmed) return;
+
+      const reason = prompt("Enter an optional rejection reason for both players:");
+      if (reason === null) return; // user cancelled prompt
+      adminNotes = reason.trim() || undefined;
+    }
+
     setReviewLoading(submissionId);
     try {
       const verifiedHomeScore =
@@ -1647,6 +1697,7 @@ export default function AdminClient({
           actionType: "RESULT_SUBMISSION",
           submissionId,
           decision,
+          adminNotes,
           verifiedHomeScore,
           verifiedAwayScore,
         }),
@@ -1661,6 +1712,36 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setReviewLoading(null);
+    }
+  };
+
+  // Clean historical match submissions whose deadlines have passed
+  const handleCleanSubmissionHistory = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to clean past matchday results history? This will delete all historical submission proof records whose deadlines have passed. Standings and scores on the table will be preserved."
+      )
+    ) {
+      return;
+    }
+
+    setCleaningHistory(true);
+    try {
+      const res = await fetch("/api/admin/approve-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "CLEAN_SUBMISSION_HISTORY",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clean history");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setCleaningHistory(false);
     }
   };
 
@@ -2350,9 +2431,9 @@ export default function AdminClient({
         >
           <Upload className="h-4 w-4" />
           <span>Score Verification</span>
-          {pendingSubmissions.length > 0 && (
+          {activeSubmissions.length > 0 && (
             <Badge variant="live" className="text-xs px-1.5 py-0">
-              {pendingSubmissions.length}
+              {activeSubmissions.length}
             </Badge>
           )}
         </button>
@@ -5516,25 +5597,47 @@ export default function AdminClient({
               </div>
 
               {/* Sub-tab Switcher */}
-              <div className="flex items-center gap-2 bg-card/90 p-1 rounded-xl border border-border self-start md:self-auto">
+              <div className="flex flex-wrap items-center gap-2 bg-card/90 p-1 rounded-xl border border-border self-start md:self-auto">
                 <button
                   type="button"
-                  onClick={() => setScoreQueueSubTab("SUBMISSIONS")}
+                  onClick={() => setScoreQueueSubTab("ACTIVE")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-                    scoreQueueSubTab === "SUBMISSIONS"
+                    scoreQueueSubTab === "ACTIVE"
                       ? "bg-primary text-white shadow-md"
                       : "text-muted-foreground hover:text-white"
                   }`}
                 >
-                  <span>Uploaded Results & Proofs</span>
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span>Active Round Uploads</span>
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
-                      scoreQueueSubTab === "SUBMISSIONS"
+                      scoreQueueSubTab === "ACTIVE"
                         ? "bg-background text-primary"
                         : "bg-muted text-foreground"
                     }`}
                   >
-                    {pendingSubmissions.length}
+                    {activeSubmissions.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScoreQueueSubTab("HISTORY")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    scoreQueueSubTab === "HISTORY"
+                      ? "bg-primary text-white shadow-md"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
+                >
+                  <History className="h-3.5 w-3.5 text-secondary" />
+                  <span>Results History</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
+                      scoreQueueSubTab === "HISTORY"
+                        ? "bg-background text-primary"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {historySubmissions.length}
                   </span>
                 </button>
                 <button
@@ -5553,20 +5656,20 @@ export default function AdminClient({
             </div>
           </div>
 
-          {/* SUB-TAB 1: UPLOADED RESULTS & PROOF SCREENSHOTS */}
-          {scoreQueueSubTab === "SUBMISSIONS" && (
+          {/* SUB-TAB 1: ACTIVE ROUND UPLOADED RESULTS */}
+          {scoreQueueSubTab === "ACTIVE" && (
             <div className="space-y-6">
-              {pendingSubmissions.length > 0 && (
+              {activeSubmissions.length > 0 && (
                 <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/40 via-background to-primary/30 p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary animate-pulse" />
                       <span className="text-sm font-black text-white uppercase tracking-wider">
-                        Uploaded Match Results & Screenshot Proofs ({pendingSubmissions.length})
+                        Active Round Uploaded Results ({activeSubmissions.length})
                       </span>
                     </div>
                     <p className="text-xs text-foreground">
-                      Table standings update automatically upon player submission. Inspect the proof screenshots below to verify scores, or change and adjust match goals at any time.
+                      Table standings update automatically upon player submission. When the 24-hour deadline arrives (12:00 AM midnight), results automatically transition to History to keep the queue clean for the next round. You can inspect proofs and adjust goals here at any time.
                     </p>
                   </div>
                   <Button
@@ -5579,28 +5682,33 @@ export default function AdminClient({
                     ) : (
                       <CheckCircle2 className="h-4 w-4 text-white" />
                     )}
-                    Save All {pendingSubmissions.length} Match Goals & Update Tables
+                    Save All {activeSubmissions.length} Match Goals & Update Tables
                   </Button>
                 </div>
               )}
 
-              {pendingSubmissions.length === 0 ? (
+              {activeSubmissions.length === 0 ? (
                 <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
                   <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
-                  <p className="font-bold text-foreground">No uploaded match results to review.</p>
+                  <p className="font-bold text-foreground">No active round uploads pending.</p>
                   <p className="text-xs text-muted-foreground">
-                    Player uploaded match results and proof screenshots will appear here. Switch to the "Direct Matchday Scoring" tab to enter goals for any matchday fixtures directly.
+                    Results whose 24-hour deadlines have passed have been automatically moved to the <button type="button" onClick={() => setScoreQueueSubTab("HISTORY")} className="text-primary underline font-bold">Results History</button> tab. New incoming uploads for the active round will appear here.
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {pendingSubmissions.map((sub) => (
+                  {activeSubmissions.map((sub) => (
                     <div
                       key={sub.id}
                       className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl relative"
                     >
                       <div className="flex items-center justify-between border-b border-border/80 pb-3">
-                        <span className="text-xs font-mono text-primary font-bold">{sub.match.round}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-primary font-bold">{sub.match.round}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {sub.match.division}
+                          </Badge>
+                        </div>
                         <Badge variant="live" className="text-xs">
                           Submitted by: {sub.submittedByPlayer.gamerTag}
                         </Badge>
@@ -5736,7 +5844,7 @@ export default function AdminClient({
                         </div>
                       )}
 
-                      {/* Official Score & Goals Verification Inputs */}
+                      {/* Official Score & Goals Adjustment Inputs */}
                       <div className="rounded-xl bg-background border border-primary/30 p-3 space-y-2">
                         <span className="text-xs font-mono font-bold text-primary uppercase tracking-widest block">
                           Verified Match Goals (Change / Adjust Goals):
@@ -5797,21 +5905,353 @@ export default function AdminClient({
                           size="sm"
                           disabled={reviewLoading === sub.id}
                           onClick={() => handleReviewSubmission(sub.id, "REJECT")}
-                          className="font-bold gap-1 text-xs"
+                          className="font-bold gap-1 text-xs border-destructive/40 text-destructive hover:bg-destructive/20"
                         >
-                          <XCircle className="h-4 w-4" />
-                          Reject & Invalidate
+                          <Trash2 className="h-4 w-4" />
+                          Reject & Delete
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           disabled={reopeningMatchId === sub.matchId}
                           onClick={() => handleReopenSubmissions(sub.matchId)}
-                          className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
+                          className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20 col-span-2"
                           title="Reopen submission buttons for this fixture"
                         >
                           <Unlock className="h-3.5 w-3.5 text-primary" />
-                          Reopen
+                          Reopen Upload For Both
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-TAB 2: RESULTS HISTORY (PAST ROUNDS & DEADLINES PASSED) */}
+          {scoreQueueSubTab === "HISTORY" && (
+            <div className="space-y-6">
+              {/* History Filter and Clean Bar */}
+              <div className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-secondary" />
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                        Match Results History ({filteredHistorySubmissions.length} of {historySubmissions.length})
+                      </h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      When a fixture's 24-hour deadline elapses, its uploaded results automatically move to this history section. You can inspect proofs and make changes to any match goals again at any time. Standings recalculate immediately upon saving.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={handleCleanSubmissionHistory}
+                    disabled={cleaningHistory || historySubmissions.length === 0}
+                    variant="outline"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/20 font-bold text-xs gap-1.5 self-start lg:self-auto shrink-0"
+                  >
+                    <Trash2 className={`h-3.5 w-3.5 ${cleaningHistory ? "animate-spin" : ""}`} />
+                    <span>{cleaningHistory ? "Cleaning..." : "Clean History"}</span>
+                  </Button>
+                </div>
+
+                {/* Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-border">
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Filter by Round
+                    </label>
+                    <select
+                      value={historyRoundFilter}
+                      onChange={(e) => setHistoryRoundFilter(e.target.value)}
+                      className="w-full bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
+                    >
+                      <option value="ALL">All Past Rounds ({historySubmissions.length})</option>
+                      {Array.from(new Set(historySubmissions.map((s) => s.match?.round))).filter(Boolean).map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Filter by Division
+                    </label>
+                    <select
+                      value={historyDivisionFilter}
+                      onChange={(e) => setHistoryDivisionFilter(e.target.value)}
+                      className="w-full bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
+                    >
+                      <option value="ALL">All Divisions</option>
+                      <option value="Division 1">Division 1</option>
+                      <option value="Division 2">Division 2</option>
+                      <option value="Division 3">Division 3</option>
+                      <option value="UCL">UEFA Champions League</option>
+                      <option value="EUROPA">UEFA Europa League</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Search Athlete
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Search gamer tag..."
+                        value={historySearchQuery}
+                        onChange={(e) => setHistorySearchQuery(e.target.value)}
+                        className="pl-9 bg-card border-border text-xs h-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {filteredHistorySubmissions.length === 0 ? (
+                <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
+                  <History className="h-10 w-10 mx-auto text-secondary" />
+                  <p className="font-bold text-foreground">No historical match results found.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {historySubmissions.length === 0
+                      ? "When matchday deadlines pass (12:00 AM midnight), results will automatically appear in this history archive."
+                      : "No results matched your selected filters. Try choosing 'All Past Rounds' or clearing your search."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredHistorySubmissions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl relative"
+                    >
+                      <div className="flex items-center justify-between border-b border-border/80 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-primary font-bold">{sub.match.round}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {sub.match.division}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            History
+                          </Badge>
+                        </div>
+                        <Badge variant="live" className="text-xs">
+                          Submitted by: {sub.submittedByPlayer.gamerTag}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 text-center gap-2">
+                        <div className="flex-1 text-left flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                            <img
+                              src={resolvePlayerAvatar(sub.match.homePlayer)}
+                              alt={sub.match.homePlayer?.realTeam || sub.match.homePlayer?.gamerTag || "Home"}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.homePlayer?.gamerTag || "player")}`;
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
+                            {sub.match.homePlayer?.realTeam && (
+                              <span className="text-xs text-secondary font-bold block">
+                                {findTeam(sub.match.homePlayer.realTeam)?.shortName || sub.match.homePlayer.realTeam}
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground block">{sub.match.homePlayer.whatsapp}</span>
+                          </div>
+                        </div>
+                        <div className="px-3 py-1 rounded-xl bg-card border border-border font-mono text-xs text-muted-foreground shrink-0">
+                          Final: {sub.match?.homeScore ?? sub.homeScore} - {sub.match?.awayScore ?? sub.awayScore}
+                        </div>
+                        <div className="flex-1 text-right flex items-center justify-end gap-2">
+                          <div>
+                            <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
+                            {sub.match.awayPlayer?.realTeam && (
+                              <span className="text-xs text-secondary font-bold block">
+                                {findTeam(sub.match.awayPlayer.realTeam)?.shortName || sub.match.awayPlayer.realTeam}
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground block">{sub.match.awayPlayer.whatsapp}</span>
+                          </div>
+                          <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                            <img
+                              src={resolvePlayerAvatar(sub.match.awayPlayer)}
+                              alt={sub.match.awayPlayer?.realTeam || sub.match.awayPlayer?.gamerTag || "Away"}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.awayPlayer?.gamerTag || "player")}`;
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {sub.leg2ScreenshotUrl ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-secondary">2-Legged Match Proofs (Both Legs):</span>
+                            {sub.aggregateHomeScore !== null && (
+                              <span className="font-mono font-bold text-primary text-xs">
+                                Agg: {sub.match?.aggregateHomeScore ?? sub.aggregateHomeScore} - {sub.match?.aggregateAwayScore ?? sub.aggregateAwayScore}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Leg 1 Screenshot</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setInspectImage(sub.screenshotUrl)}
+                                  className="text-primary hover:underline"
+                                >
+                                  Zoom
+                                </button>
+                              </div>
+                              <div
+                                className="rounded-xl overflow-hidden border border-border h-36 cursor-pointer"
+                                onClick={() => setInspectImage(sub.screenshotUrl)}
+                              >
+                                <img
+                                  src={sub.screenshotUrl}
+                                  alt="Leg 1 screenshot"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Leg 2 Screenshot</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setInspectImage(sub.leg2ScreenshotUrl)}
+                                  className="text-secondary hover:underline"
+                                >
+                                  Zoom
+                                </button>
+                              </div>
+                              <div
+                                className="rounded-xl overflow-hidden border border-border h-36 cursor-pointer"
+                                onClick={() => setInspectImage(sub.leg2ScreenshotUrl)}
+                              >
+                                <img
+                                  src={sub.leg2ScreenshotUrl}
+                                  alt="Leg 2 screenshot"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : sub.screenshotUrl && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-foreground">Konami Full-Time Screenshot:</span>
+                            <button
+                              type="button"
+                              onClick={() => setInspectImage(sub.screenshotUrl)}
+                              className="text-primary hover:underline flex items-center gap-1 text-xs"
+                            >
+                              <Eye className="h-3 w-3" /> View Fullscreen
+                            </button>
+                          </div>
+                          <div
+                            className="rounded-xl overflow-hidden border border-border h-44 cursor-pointer"
+                            onClick={() => setInspectImage(sub.screenshotUrl)}
+                          >
+                            <img
+                              src={sub.screenshotUrl}
+                              alt="Full time score screenshot"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Official Score & Goals Modification Inputs */}
+                      <div className="rounded-xl bg-background border border-secondary/30 p-3 space-y-2">
+                        <span className="text-xs font-mono font-bold text-secondary uppercase tracking-widest block">
+                          Check & Make Changes (Modify Match Goals):
+                        </span>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 text-center">
+                            <span className="text-xs font-bold text-foreground block mb-1">
+                              {sub.match.homePlayer.gamerTag} (Home)
+                            </span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="40"
+                              value={submissionScores[sub.id]?.home ?? sub.match?.homeScore ?? sub.homeScore}
+                              onChange={(e) => handleScoreChange(sub.id, "home", Number(e.target.value))}
+                              className="text-center font-mono text-lg font-black bg-card border-secondary/40 text-secondary h-9"
+                            />
+                          </div>
+
+                          <span className="text-xl font-black text-muted-foreground mt-4">-</span>
+
+                          <div className="flex-1 text-center">
+                            <span className="text-xs font-bold text-foreground block mb-1">
+                              {sub.match.awayPlayer.gamerTag} (Away)
+                            </span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="40"
+                              value={submissionScores[sub.id]?.away ?? sub.match?.awayScore ?? sub.awayScore}
+                              onChange={(e) => handleScoreChange(sub.id, "away", Number(e.target.value))}
+                              className="text-center font-mono text-lg font-black bg-card border-secondary/40 text-secondary h-9"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={reviewLoading === sub.id}
+                          onClick={() =>
+                            handleReviewSubmission(
+                              sub.id,
+                              "APPROVE",
+                              submissionScores[sub.id]?.home ?? sub.match?.homeScore ?? sub.homeScore,
+                              submissionScores[sub.id]?.away ?? sub.match?.awayScore ?? sub.awayScore
+                            )
+                          }
+                          className="bg-primary hover:bg-primary text-white font-black text-xs gap-1.5 shadow-lg"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                          Save Changes & Update Table
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reviewLoading === sub.id}
+                          onClick={() => handleReviewSubmission(sub.id, "REJECT")}
+                          className="font-bold gap-1 text-xs border-destructive/40 text-destructive hover:bg-destructive/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Reject & Delete
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reopeningMatchId === sub.matchId}
+                          onClick={() => handleReopenSubmissions(sub.matchId)}
+                          className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20 col-span-2"
+                          title="Reopen submission buttons for this fixture"
+                        >
+                          <Unlock className="h-3.5 w-3.5 text-primary" />
+                          Reopen Upload For Both
                         </Button>
                       </div>
                     </div>
