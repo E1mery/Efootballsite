@@ -208,24 +208,43 @@ export async function POST(req: Request) {
       }
     }
 
-    // 5. REOPEN MISSED MATCHES (FORFEITS & AUTOMATIC DRAWS) FOR REPLACEMENT ATHLETE
-    // The replacement athlete must begin with those backlog matches, with 48 hours to complete them!
+    // 5. REOPEN / ACTIVATE MATCHES FOR REPLACEMENT ATHLETE
+    // The substitute player strictly gets the matches of the round we're on only!
+    const leagueConfig = await prisma.leagueConfig.findUnique({ where: { id: "default" } });
+    const currentMatchday = leagueConfig?.currentMatchday || 1;
+    const currentRoundName = `Matchday ${currentMatchday}`;
+
+    // Clean up any WAITING_FOR_SUB notes on future matches (rounds beyond currentRound)
+    // so they remain clean, scheduled future matches
+    await prisma.match.updateMany({
+      where: {
+        OR: [
+          { homePlayerId: activeReplacementPlayerId },
+          { awayPlayerId: activeReplacementPlayerId },
+        ],
+        round: { not: currentRoundName },
+        notes: { contains: "WAITING_FOR_SUB" },
+      },
+      data: {
+        notes: null,
+      },
+    });
+
     const playerIdsToCheck = [targetPlayer.id, activeReplacementPlayerId];
-    const candidateMatches = await prisma.match.findMany({
+    // Strictly find matches for the round we are currently on!
+    const currentRoundMatches = await prisma.match.findMany({
       where: {
         OR: [
           { homePlayerId: { in: playerIdsToCheck } },
           { awayPlayerId: { in: playerIdsToCheck } },
         ],
+        round: currentRoundName,
       },
       include: { homePlayer: true, awayPlayer: true },
     });
 
     const now = new Date();
-    const deadline48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    let reopenedCount = 0;
-
-    for (const m of candidateMatches) {
+    const candidateMatches = currentRoundMatches.filter((m) => {
       const isForfeit = m.status === "FORFEIT";
       const isDrawFromMiss =
         m.status === "FINISHED" &&
@@ -235,44 +254,80 @@ export async function POST(req: Request) {
           m.notes?.includes("elapsed without submitted score"));
       const isWaitingSub = m.notes?.includes("WAITING_FOR_SUB");
       const isUnplayedScheduled = m.status === "SCHEDULED";
+      return isForfeit || isDrawFromMiss || isWaitingSub || isUnplayedScheduled;
+    });
 
-      if (isForfeit || isDrawFromMiss || isWaitingSub || isUnplayedScheduled) {
-        // Re-link to the active replacement player if needed
-        let newHomeId = m.homePlayerId;
-        let newAwayId = m.awayPlayerId;
-        if (m.homePlayerId === targetPlayer.id) newHomeId = activeReplacementPlayerId;
-        if (m.awayPlayerId === targetPlayer.id) newAwayId = activeReplacementPlayerId;
+    // RULE: A 48-hour window must strictly be given only if the substitute player has more than 2 matches to play!
+    // If there is still time and matches <= 2, maintain normal matchday scheduled deadline.
+    const give48Hours = candidateMatches.length > 2;
+    const deadline48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    let activatedCount = 0;
 
-        // Reopen match for 48 hours
-        await prisma.match.update({
-          where: { id: m.id },
-          data: {
-            homePlayerId: newHomeId,
-            awayPlayerId: newAwayId,
-            status: "SCHEDULED",
-            homeScore: null,
-            awayScore: null,
-            leg2HomeScore: null,
-            leg2AwayScore: null,
-            aggregateHomeScore: null,
-            aggregateAwayScore: null,
-            screenshotUrl: null,
-            leg2ScreenshotUrl: null,
-            allowLateSubmission: true,
-            notes: `REPLACEMENT_BACKLOG: Reopened for replacement athlete @${replacementGamerTag}. 48-hour completion window.`,
-            matchDate: now,
-            deadlineDate: deadline48h,
-            extendedDeadlineDate: deadline48h,
-          },
-        });
+    for (const m of candidateMatches) {
+      // Re-link to the active replacement player if needed
+      let newHomeId = m.homePlayerId;
+      let newAwayId = m.awayPlayerId;
+      if (m.homePlayerId === targetPlayer.id) newHomeId = activeReplacementPlayerId;
+      if (m.awayPlayerId === targetPlayer.id) newAwayId = activeReplacementPlayerId;
 
-        // Clear any old submissions or forfeit claims for this match
-        await prisma.matchSubmission.deleteMany({ where: { matchId: m.id } }).catch(() => {});
-        await prisma.forfeitClaim.deleteMany({ where: { matchId: m.id } }).catch(() => {});
+      let targetDeadline = m.deadlineDate;
+      let targetNotes: string | null = null;
+      let allowLate = false;
+      let extendedDeadline: Date | null = null;
 
-        // Identify the opponent
-        const opponentId = newHomeId === activeReplacementPlayerId ? newAwayId : newHomeId;
+      if (give48Hours) {
+        targetDeadline = deadline48h;
+        extendedDeadline = deadline48h;
+        targetNotes = `REPLACEMENT_BACKLOG: Reopened for replacement athlete @${replacementGamerTag}. 48-hour completion window.`;
+        allowLate = true;
+      } else {
+        // <= 2 matches to play
+        // If scheduled deadline is still in the future, retain it (there is still time).
+        // If deadline already passed, give standard 24 hours.
+        const isTimeRemaining = m.deadlineDate && new Date(m.deadlineDate).getTime() > now.getTime();
+        if (isTimeRemaining) {
+          targetDeadline = m.deadlineDate;
+          extendedDeadline = null;
+          targetNotes = null;
+          allowLate = false;
+        } else {
+          targetDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          extendedDeadline = targetDeadline;
+          targetNotes = null;
+          allowLate = true;
+        }
+      }
 
+      await prisma.match.update({
+        where: { id: m.id },
+        data: {
+          homePlayerId: newHomeId,
+          awayPlayerId: newAwayId,
+          status: "SCHEDULED",
+          homeScore: null,
+          awayScore: null,
+          leg2HomeScore: null,
+          leg2AwayScore: null,
+          aggregateHomeScore: null,
+          aggregateAwayScore: null,
+          screenshotUrl: null,
+          leg2ScreenshotUrl: null,
+          allowLateSubmission: allowLate,
+          notes: targetNotes,
+          ...(give48Hours ? { matchDate: now } : {}),
+          deadlineDate: targetDeadline,
+          extendedDeadlineDate: extendedDeadline,
+        },
+      });
+
+      // Clear any old submissions or forfeit claims for this match
+      await prisma.matchSubmission.deleteMany({ where: { matchId: m.id } }).catch(() => {});
+      await prisma.forfeitClaim.deleteMany({ where: { matchId: m.id } }).catch(() => {});
+
+      // Identify the opponent
+      const opponentId = newHomeId === activeReplacementPlayerId ? newAwayId : newHomeId;
+
+      if (give48Hours) {
         // Notify the opponent that the substitute has arrived and the match has a 48-hour window
         if (opponentId) {
           await prisma.announcement.create({
@@ -296,9 +351,31 @@ export async function POST(req: Request) {
             isPinned: true,
           },
         });
+      } else {
+        if (opponentId) {
+          await prisma.announcement.create({
+            data: {
+              title: `⚡ Replacement Match Ready (${m.round})`,
+              content: `Athlete @${replacementGamerTag} has officially arrived as the substitute. Your match for ${m.round} is now active! Please play and upload your result screenshots before the deadline.`,
+              type: "INDIVIDUAL",
+              targetPlayerId: opponentId,
+              isPinned: true,
+            },
+          });
+        }
 
-        reopenedCount++;
+        await prisma.announcement.create({
+          data: {
+            title: `⚡ Scheduled Match Ready (${m.round})`,
+            content: `Welcome @${replacementGamerTag}! Your match for ${m.round} is now active. Please play and upload your result screenshots before the deadline.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: activeReplacementPlayerId,
+            isPinned: true,
+          },
+        });
       }
+
+      activatedCount++;
     }
 
     // 6. Recalculate standings so old 0-0/forfeit points are reset and reflected accurately
@@ -329,7 +406,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully replaced ${oldGamerTag} with ${replacementGamerTag}. Reopened ${reopenedCount} backlog match(es) with a 48-hour window!`,
+      message: `Successfully replaced ${oldGamerTag} with ${replacementGamerTag}. Activated ${activatedCount} fixture(s) for ${currentRoundName}.`,
     });
   } catch (err: any) {
     console.error("replace-player error:", err);
