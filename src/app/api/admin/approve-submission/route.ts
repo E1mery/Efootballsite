@@ -242,19 +242,36 @@ export async function POST(req: Request) {
 
         // Notify both athletes that the submission was rejected and deleted, and re-upload is unlocked
         try {
+          const [homePlayer, awayPlayer] = await Promise.all([
+            prisma.player.findUnique({ where: { id: revertedMatch.homePlayerId } }),
+            prisma.player.findUnique({ where: { id: revertedMatch.awayPlayerId } }),
+          ]);
           const reasonText = adminNotes ? ` (Reason: "${adminNotes}")` : "";
-          const notifPromises = [revertedMatch.homePlayerId, revertedMatch.awayPlayerId].map((pid) =>
-            prisma.announcement.create({
-              data: {
-                title: `⚠️ Match Result Rejected — Re-upload Allowed`,
-                content: `The previously submitted match result for your fixture (${revertedMatch.round}) was rejected by the League Admin${reasonText}. The submission has been deleted and the fixture is reopened. Both athletes can now re-upload the correct result and proof screenshot.`,
-                type: "INDIVIDUAL",
-                targetPlayerId: pid,
-                isPinned: true,
-              },
-            })
+
+          const notifs = [
+            {
+              targetId: revertedMatch.homePlayerId,
+              opponentTag: awayPlayer?.gamerTag || "your opponent",
+            },
+            {
+              targetId: revertedMatch.awayPlayerId,
+              opponentTag: homePlayer?.gamerTag || "your opponent",
+            },
+          ];
+
+          await Promise.all(
+            notifs.map((n) =>
+              prisma.announcement.create({
+                data: {
+                  title: `🚨 Match Result Rejected — Re-upload Allowed (${revertedMatch.round})`,
+                  content: `Your previously submitted match result for fixture ${revertedMatch.round} vs @${n.opponentTag} was rejected by the League Admin${reasonText}. The submission has been deleted and the fixture is reopened. Both athletes can now re-upload the correct match result and proof screenshot.`,
+                  type: "INDIVIDUAL",
+                  targetPlayerId: n.targetId,
+                  isPinned: true,
+                },
+              })
+            )
           );
-          await Promise.all(notifPromises);
         } catch (notifErr) {
           console.error("[approve-submission] Error sending rejection announcements:", notifErr);
         }

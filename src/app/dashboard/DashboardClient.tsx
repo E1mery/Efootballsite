@@ -1956,6 +1956,40 @@ export default function DashboardClient({
         </div>
       )}
 
+      {/* URGENT REJECTED RESULT NOTIFICATION BANNER */}
+      {activeMatch?.notes?.toLowerCase().includes("rejected") && activeMatch.status !== "FINISHED" && (
+        <div className="rounded-2xl border border-destructive/50 bg-gradient-to-r from-destructive/20 via-card to-destructive/10 p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-destructive/20 border border-destructive/40 text-destructive shrink-0 mt-0.5 sm:mt-0">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <span>Match Result Rejected by Admin</span>
+                <Badge variant="destructive" className="text-xs px-2 py-0.5">
+                  Action Required
+                </Badge>
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                {activeMatch.notes || "The previous result uploaded for this fixture was rejected by the League Admin. The submission has been deleted and the fixture is reopened. Please re-upload your match result and screenshot proof."}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="yellow"
+            size="sm"
+            onClick={() => {
+              setActionMatch(activeMatch);
+              setShowResultModal(true);
+            }}
+            className="font-bold text-xs gap-2 shrink-0 self-stretch sm:self-auto shadow-lg"
+          >
+            <Upload className="h-4 w-4" />
+            Re-upload Result Now
+          </Button>
+        </div>
+      )}
+
       {/* Sidebar owns navigation inside PlayerShell; legacy tab bar only for standalone usage */}
       {!onOpenSidebar && (
       <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -3327,17 +3361,31 @@ export default function DashboardClient({
                   </div>
                 ) : isAdminPermissionGranted && activeMatch?.status !== "FINISHED" ? (
                   <div className="w-full sm:w-auto space-y-3">
-                    <div className="p-3 rounded-2xl bg-primary/30 border border-primary/40 text-xs text-primary flex items-center gap-2.5">
-                      <Unlock className="h-5 w-5 text-primary shrink-0" />
-                      <div>
-                        <span className="font-bold text-white block">
-                          Commissioner Submission Permission Active
-                        </span>
-                        <span className="text-xs text-primary">
-                          The League Commissioner has granted permission to upload/re-upload scores and screenshot proof for this match.
-                        </span>
+                    {activeMatch?.notes?.toLowerCase().includes("rejected") ? (
+                      <div className="p-3.5 rounded-2xl bg-destructive/20 border border-destructive/40 text-xs text-destructive flex items-center gap-2.5">
+                        <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+                        <div>
+                          <span className="font-black text-white block uppercase tracking-wider">
+                            ⚠️ Uploaded Result Rejected by Admin
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {activeMatch.notes || "The uploaded result was rejected by the League Admin. The upload window is reopened for both athletes to re-upload."}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-3 rounded-2xl bg-primary/30 border border-primary/40 text-xs text-primary flex items-center gap-2.5">
+                        <Unlock className="h-5 w-5 text-primary shrink-0" />
+                        <div>
+                          <span className="font-bold text-white block">
+                            Commissioner Submission Permission Active
+                          </span>
+                          <span className="text-xs text-primary">
+                            The League Commissioner has granted permission to upload/re-upload scores and screenshot proof for this match.
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-3">
                       <Button
                         variant="yellow"
@@ -3346,10 +3394,14 @@ export default function DashboardClient({
                           setActionMatch(activeMatch);
                           setShowResultModal(true);
                         }}
-                        className="font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto"
+                        className="font-bold text-xs sm:text-sm gap-2 w-full sm:w-auto shadow-lg"
                       >
                         <Upload className="h-4 w-4" />
-                        {hasSubmittedResult ? "Re-upload Match Result Screenshot" : "Upload Match Result Screenshot"}
+                        {activeMatch?.notes?.toLowerCase().includes("rejected")
+                          ? "Re-upload Match Result Screenshot"
+                          : hasSubmittedResult
+                          ? "Re-upload Match Result Screenshot"
+                          : "Upload Match Result Screenshot"}
                       </Button>
 
                       <Button
@@ -5217,6 +5269,20 @@ export default function DashboardClient({
               {resultSuccessMsg && (
                 <div className="p-3 rounded-xl bg-primary/20 text-primary border border-primary/40 text-xs font-bold">
                   {resultSuccessMsg}
+                </div>
+              )}
+
+              {modalMatch?.notes?.toLowerCase().includes("rejected") && (
+                <div className="p-3.5 rounded-xl bg-destructive/20 border border-destructive/40 text-xs text-destructive flex items-start gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-white block uppercase tracking-wider">
+                      ⚠️ Previous Result Rejected by Admin
+                    </span>
+                    <span className="text-muted-foreground block mt-0.5">
+                      {modalMatch.notes || "The previous result was rejected. Both athletes are permitted to re-upload. Please ensure your Konami full-time screenshot clearly shows final scores."}
+                    </span>
+                  </div>
                 </div>
               )}
 
