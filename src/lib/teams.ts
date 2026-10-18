@@ -959,6 +959,23 @@ export function findTeam(idOrName?: string | null): RealFootballTeam | undefined
   );
 }
 
+// Safe in-memory SVG avatar fallback that never triggers network requests or onError loops
+export const DEFAULT_AVATAR_FALLBACK =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E";
+
+/**
+ * Safe error handler for athlete avatars and crests.
+ * Always clears onerror before assigning a fallback to eliminate infinite loops.
+ */
+export function handleAvatarError(
+  e: { currentTarget: HTMLImageElement },
+  _gamerTag?: string
+) {
+  const target = e.currentTarget;
+  target.onerror = null;
+  target.src = DEFAULT_AVATAR_FALLBACK;
+}
+
 /**
  * Resolves avatar or team crest for a player
  */

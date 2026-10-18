@@ -60,15 +60,33 @@ import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
-import AdminHallOfFameHub from "@/components/admin/AdminHallOfFameHub";
-import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
-import AdminNewsManager from "@/components/AdminNewsManager";
-import AdminLeagueTablePublisher from "@/components/AdminLeagueTablePublisher";
-import AdminMotwManager from "@/components/AdminMotwManager";
-import AdminDerbyManager from "@/components/admin/AdminDerbyManager";
-import AdminFinalsSocialManager from "@/components/admin/AdminFinalsSocialManager";
-import AdminSocialFeedManager from "@/components/admin/AdminSocialFeedManager";
+import dynamic from "next/dynamic";
+import { getTeamsForDivision, resolvePlayerAvatar, findTeam, handleAvatarError, DEFAULT_AVATAR_FALLBACK } from "@/lib/teams";
+
+const AdminHallOfFameHub = dynamic(() => import("@/components/admin/AdminHallOfFameHub"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Hall of Fame...</div>,
+});
+const ContinentalDrawExperience = dynamic(() => import("@/components/ContinentalDrawExperience"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Continental Draw...</div>,
+});
+const AdminNewsManager = dynamic(() => import("@/components/AdminNewsManager"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading News Manager...</div>,
+});
+const AdminLeagueTablePublisher = dynamic(() => import("@/components/AdminLeagueTablePublisher"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Table Publisher...</div>,
+});
+const AdminMotwManager = dynamic(() => import("@/components/AdminMotwManager"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading MOTW Manager...</div>,
+});
+const AdminDerbyManager = dynamic(() => import("@/components/admin/AdminDerbyManager"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Derby Manager...</div>,
+});
+const AdminFinalsSocialManager = dynamic(() => import("@/components/admin/AdminFinalsSocialManager"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Finals Social...</div>,
+});
+const AdminSocialFeedManager = dynamic(() => import("@/components/admin/AdminSocialFeedManager"), {
+  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Social Feed...</div>,
+});
 import {
   getTomorrowInRwandaString,
   formatRwandanDate,
@@ -289,6 +307,8 @@ export default function AdminClient({
   const [allMatchesFilterDiv, setAllMatchesFilterDiv] = useState<string>("ALL");
   const [allMatchesFilterStatus, setAllMatchesFilterStatus] = useState<string>("ALL");
   const [allMatchesSearch, setAllMatchesSearch] = useState<string>("");
+  const [allMatchesPage, setAllMatchesPage] = useState<number>(1);
+  const MATCHES_PER_PAGE = 24;
 
   // Direct Match Goals Editor Modal State
   const [editingMatchGoals, setEditingMatchGoals] = useState<any | null>(null);
@@ -430,6 +450,7 @@ export default function AdminClient({
     let isMounted = true;
     const fetchLiveStats = async () => {
       try {
+        if (typeof document !== "undefined" && document.hidden) return;
         const res = await fetch("/api/admin/config");
         if (!res.ok) return;
         const data = await res.json();
@@ -458,7 +479,7 @@ export default function AdminClient({
       }
     };
 
-    const interval = setInterval(fetchLiveStats, 6000);
+    const interval = setInterval(fetchLiveStats, 30000);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -2223,9 +2244,9 @@ export default function AdminClient({
                               src={resolvePlayerAvatar(s.player)}
                               alt={s.player.realTeam || s.player.gamerTag || "Team Crest"}
                               className="w-full h-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player.gamerTag || "player")}`;
-                              }}
+                              loading="lazy"
+                              decoding="async"
+                              onError={handleAvatarError}
                             />
                           </div>
                           <span>{s.player.gamerTag}</span>
@@ -4403,9 +4424,9 @@ export default function AdminClient({
                                         src={resolvePlayerAvatar(slot.player)}
                                         alt={slot.player?.realTeam || slot.player?.gamerTag || "Team"}
                                         className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(slot.player?.gamerTag || "player")}`;
-                                        }}
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={handleAvatarError}
                                       />
                                     </div>
                                     <div>
@@ -4544,9 +4565,9 @@ export default function AdminClient({
                                         src={resolvePlayerAvatar(slot.player)}
                                         alt={slot.player?.realTeam || slot.player?.gamerTag || "Team"}
                                         className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(slot.player?.gamerTag || "player")}`;
-                                        }}
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={handleAvatarError}
                                       />
                                     </div>
                                     <div>
@@ -4698,7 +4719,10 @@ export default function AdminClient({
               {/* Round filter */}
               <select
                 value={allMatchesFilterRound}
-                onChange={(e) => setAllMatchesFilterRound(e.target.value)}
+                onChange={(e) => {
+                  setAllMatchesFilterRound(e.target.value);
+                  setAllMatchesPage(1);
+                }}
                 className="bg-card border border-border text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="ALL">All Matchday Rounds</option>
@@ -4719,7 +4743,10 @@ export default function AdminClient({
               {/* Division filter */}
               <select
                 value={allMatchesFilterDiv}
-                onChange={(e) => setAllMatchesFilterDiv(e.target.value)}
+                onChange={(e) => {
+                  setAllMatchesFilterDiv(e.target.value);
+                  setAllMatchesPage(1);
+                }}
                 className="bg-card border border-border text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="ALL">All Divisions</option>
@@ -4733,7 +4760,10 @@ export default function AdminClient({
               {/* Status filter */}
               <select
                 value={allMatchesFilterStatus}
-                onChange={(e) => setAllMatchesFilterStatus(e.target.value)}
+                onChange={(e) => {
+                  setAllMatchesFilterStatus(e.target.value);
+                  setAllMatchesPage(1);
+                }}
                 className="bg-card border border-border text-xs font-bold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="ALL">All Statuses</option>
@@ -4751,12 +4781,18 @@ export default function AdminClient({
                 type="text"
                 placeholder="Search athlete, WA, ID..."
                 value={allMatchesSearch}
-                onChange={(e) => setAllMatchesSearch(e.target.value)}
+                onChange={(e) => {
+                  setAllMatchesSearch(e.target.value);
+                  setAllMatchesPage(1);
+                }}
                 className="w-full pl-9 pr-3 py-2 rounded-xl bg-card border border-border text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               />
               {allMatchesSearch && (
                 <button
-                  onClick={() => setAllMatchesSearch("")}
+                  onClick={() => {
+                    setAllMatchesSearch("");
+                    setAllMatchesPage(1);
+                  }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold"
                 >
                   ×
@@ -4810,14 +4846,48 @@ export default function AdminClient({
               );
             }
 
+            const totalPages = Math.ceil(filtered.length / MATCHES_PER_PAGE) || 1;
+            const currentPage = Math.min(Math.max(1, allMatchesPage), totalPages);
+            const paginatedMatches = filtered.slice(
+              (currentPage - 1) * MATCHES_PER_PAGE,
+              currentPage * MATCHES_PER_PAGE
+            );
+
             return (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                  <span>Showing <strong>{filtered.length}</strong> of {matches.length} fixtures</span>
+                  <span>
+                    Showing <strong>{filtered.length > 0 ? (currentPage - 1) * MATCHES_PER_PAGE + 1 : 0}–{Math.min(currentPage * MATCHES_PER_PAGE, filtered.length)}</strong> of {filtered.length} fixtures
+                  </span>
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={currentPage <= 1}
+                        onClick={() => setAllMatchesPage((p) => Math.max(1, p - 1))}
+                        className="text-xs h-7 px-2.5"
+                      >
+                        Previous
+                      </Button>
+                      <span className="font-mono text-foreground font-bold">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setAllMatchesPage((p) => Math.min(totalPages, p + 1))}
+                        className="text-xs h-7 px-2.5"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filtered.map((m: any) => {
+                  {paginatedMatches.map((m: any) => {
                     const isFinished = m.status === "FINISHED";
                     const isForfeit = m.status === "FORFEIT";
                     const sub = m.submissions?.[0];
@@ -4879,9 +4949,9 @@ export default function AdminClient({
                                   src={resolvePlayerAvatar(m.homePlayer)}
                                   alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
                                   className="w-full h-full object-contain"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
-                                  }}
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={handleAvatarError}
                                 />
                               </div>
                               <span className="font-black text-white text-sm block truncate">
@@ -4933,9 +5003,9 @@ export default function AdminClient({
                                   src={resolvePlayerAvatar(m.awayPlayer)}
                                   alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
                                   className="w-full h-full object-contain"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
-                                  }}
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={handleAvatarError}
                                 />
                               </div>
                             </div>
@@ -4991,6 +5061,34 @@ export default function AdminClient({
                     );
                   })}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border/80 pt-4 px-1">
+                    <span className="text-xs text-muted-foreground">
+                      Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({filtered.length} fixtures total)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={currentPage <= 1}
+                        onClick={() => setAllMatchesPage((p) => Math.max(1, p - 1))}
+                        className="text-xs h-7 px-2.5"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setAllMatchesPage((p) => Math.min(totalPages, p + 1))}
+                        className="text-xs h-7 px-2.5"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -5718,22 +5816,22 @@ export default function AdminClient({
                         <div className="flex-1 text-left flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
-                              src={resolvePlayerAvatar(sub.match.homePlayer)}
-                              alt={sub.match.homePlayer?.realTeam || sub.match.homePlayer?.gamerTag || "Home"}
+                              src={resolvePlayerAvatar(sub.match?.homePlayer)}
+                              alt={sub.match?.homePlayer?.realTeam || sub.match?.homePlayer?.gamerTag || "Home"}
                               className="w-full h-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.homePlayer?.gamerTag || "player")}`;
-                              }}
+                              loading="lazy"
+                              decoding="async"
+                              onError={handleAvatarError}
                             />
                           </div>
                           <div>
-                            <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
-                            {sub.match.homePlayer?.realTeam && (
+                            <span className="font-black text-white text-sm block">{sub.match?.homePlayer?.gamerTag}</span>
+                            {sub.match?.homePlayer?.realTeam && (
                               <span className="text-xs text-secondary font-bold block">
                                 {findTeam(sub.match.homePlayer.realTeam)?.shortName || sub.match.homePlayer.realTeam}
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground block">{sub.match.homePlayer.whatsapp}</span>
+                            <span className="text-xs text-muted-foreground block">{sub.match?.homePlayer?.whatsapp}</span>
                           </div>
                         </div>
                         <div className="px-3 py-1 rounded-xl bg-card border border-border font-mono text-xs text-muted-foreground shrink-0">
@@ -5741,22 +5839,22 @@ export default function AdminClient({
                         </div>
                         <div className="flex-1 text-right flex items-center justify-end gap-2">
                           <div>
-                            <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
-                            {sub.match.awayPlayer?.realTeam && (
+                            <span className="font-black text-white text-sm block">{sub.match?.awayPlayer?.gamerTag}</span>
+                            {sub.match?.awayPlayer?.realTeam && (
                               <span className="text-xs text-secondary font-bold block">
                                 {findTeam(sub.match.awayPlayer.realTeam)?.shortName || sub.match.awayPlayer.realTeam}
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground block">{sub.match.awayPlayer.whatsapp}</span>
+                            <span className="text-xs text-muted-foreground block">{sub.match?.awayPlayer?.whatsapp}</span>
                           </div>
                           <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
-                              src={resolvePlayerAvatar(sub.match.awayPlayer)}
-                              alt={sub.match.awayPlayer?.realTeam || sub.match.awayPlayer?.gamerTag || "Away"}
+                              src={resolvePlayerAvatar(sub.match?.awayPlayer)}
+                              alt={sub.match?.awayPlayer?.realTeam || sub.match?.awayPlayer?.gamerTag || "Away"}
                               className="w-full h-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.awayPlayer?.gamerTag || "player")}`;
-                              }}
+                              loading="lazy"
+                              decoding="async"
+                              onError={handleAvatarError}
                             />
                           </div>
                         </div>
@@ -5791,7 +5889,12 @@ export default function AdminClient({
                                 <img
                                   src={sub.screenshotUrl}
                                   alt="Leg 1 screenshot"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).onerror = null;
+                                  }}
                                 />
                               </div>
                             </div>
@@ -5813,7 +5916,12 @@ export default function AdminClient({
                                 <img
                                   src={sub.leg2ScreenshotUrl}
                                   alt="Leg 2 screenshot"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).onerror = null;
+                                  }}
                                 />
                               </div>
                             </div>
@@ -5838,7 +5946,12 @@ export default function AdminClient({
                             <img
                               src={sub.screenshotUrl}
                               alt="Full time score screenshot"
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).onerror = null;
+                              }}
                             />
                           </div>
                         </div>
@@ -6050,22 +6163,22 @@ export default function AdminClient({
                         <div className="flex-1 text-left flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
-                              src={resolvePlayerAvatar(sub.match.homePlayer)}
-                              alt={sub.match.homePlayer?.realTeam || sub.match.homePlayer?.gamerTag || "Home"}
+                              src={resolvePlayerAvatar(sub.match?.homePlayer)}
+                              alt={sub.match?.homePlayer?.realTeam || sub.match?.homePlayer?.gamerTag || "Home"}
                               className="w-full h-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.homePlayer?.gamerTag || "player")}`;
-                              }}
+                              loading="lazy"
+                              decoding="async"
+                              onError={handleAvatarError}
                             />
                           </div>
                           <div>
-                            <span className="font-black text-white text-sm block">{sub.match.homePlayer.gamerTag}</span>
-                            {sub.match.homePlayer?.realTeam && (
+                            <span className="font-black text-white text-sm block">{sub.match?.homePlayer?.gamerTag}</span>
+                            {sub.match?.homePlayer?.realTeam && (
                               <span className="text-xs text-secondary font-bold block">
                                 {findTeam(sub.match.homePlayer.realTeam)?.shortName || sub.match.homePlayer.realTeam}
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground block">{sub.match.homePlayer.whatsapp}</span>
+                            <span className="text-xs text-muted-foreground block">{sub.match?.homePlayer?.whatsapp}</span>
                           </div>
                         </div>
                         <div className="px-3 py-1 rounded-xl bg-card border border-border font-mono text-xs text-muted-foreground shrink-0">
@@ -6073,22 +6186,22 @@ export default function AdminClient({
                         </div>
                         <div className="flex-1 text-right flex items-center justify-end gap-2">
                           <div>
-                            <span className="font-black text-white text-sm block">{sub.match.awayPlayer.gamerTag}</span>
-                            {sub.match.awayPlayer?.realTeam && (
+                            <span className="font-black text-white text-sm block">{sub.match?.awayPlayer?.gamerTag}</span>
+                            {sub.match?.awayPlayer?.realTeam && (
                               <span className="text-xs text-secondary font-bold block">
                                 {findTeam(sub.match.awayPlayer.realTeam)?.shortName || sub.match.awayPlayer.realTeam}
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground block">{sub.match.awayPlayer.whatsapp}</span>
+                            <span className="text-xs text-muted-foreground block">{sub.match?.awayPlayer?.whatsapp}</span>
                           </div>
                           <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                             <img
-                              src={resolvePlayerAvatar(sub.match.awayPlayer)}
-                              alt={sub.match.awayPlayer?.realTeam || sub.match.awayPlayer?.gamerTag || "Away"}
+                              src={resolvePlayerAvatar(sub.match?.awayPlayer)}
+                              alt={sub.match?.awayPlayer?.realTeam || sub.match?.awayPlayer?.gamerTag || "Away"}
                               className="w-full h-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sub.match.awayPlayer?.gamerTag || "player")}`;
-                              }}
+                              loading="lazy"
+                              decoding="async"
+                              onError={handleAvatarError}
                             />
                           </div>
                         </div>
@@ -6123,7 +6236,12 @@ export default function AdminClient({
                                 <img
                                   src={sub.screenshotUrl}
                                   alt="Leg 1 screenshot"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).onerror = null;
+                                  }}
                                 />
                               </div>
                             </div>
@@ -6145,7 +6263,12 @@ export default function AdminClient({
                                 <img
                                   src={sub.leg2ScreenshotUrl}
                                   alt="Leg 2 screenshot"
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).onerror = null;
+                                  }}
                                 />
                               </div>
                             </div>
@@ -6170,7 +6293,12 @@ export default function AdminClient({
                             <img
                               src={sub.screenshotUrl}
                               alt="Full time score screenshot"
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).onerror = null;
+                              }}
                             />
                           </div>
                         </div>
@@ -6412,9 +6540,9 @@ export default function AdminClient({
                                     src={resolvePlayerAvatar(match.homePlayer)}
                                     alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag || "Home"}
                                     className="w-full h-full object-contain"
-                                    onError={(e) => {
-                                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
-                                    }}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={handleAvatarError}
                                   />
                                 </div>
                                 <span className="text-xs font-black text-white block truncate">
@@ -6463,9 +6591,9 @@ export default function AdminClient({
                                     src={resolvePlayerAvatar(match.awayPlayer)}
                                     alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag || "Away"}
                                     className="w-full h-full object-contain"
-                                    onError={(e) => {
-                                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
-                                    }}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={handleAvatarError}
                                   />
                                 </div>
                               </div>

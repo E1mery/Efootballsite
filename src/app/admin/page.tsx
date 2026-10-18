@@ -12,6 +12,33 @@ import { syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 
 export const dynamic = "force-dynamic";
 
+// In-memory throttling for periodic maintenance so it never blocks page renders
+let lastMaintenanceTime = 0;
+const MAINTENANCE_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+
+function triggerAdminBackgroundMaintenance() {
+  const now = Date.now();
+  if (now - lastMaintenanceTime < MAINTENANCE_COOLDOWN_MS) return;
+  lastMaintenanceTime = now;
+
+  // Run in background without awaiting to keep admin load instant
+  (async () => {
+    try {
+      await Promise.allSettled([
+        cleanupExpiredRepliedMessages(),
+        cleanupExpiredAnnouncements(),
+        ensureNewsTable(),
+        ensureDerbyTable(),
+        syncSystemNewsToCarousel(),
+        syncPlayerDiscipline(),
+        ensurePasswordResetTable(),
+      ]);
+    } catch (err) {
+      console.error("Background maintenance task error:", err);
+    }
+  })();
+}
+
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const sessionUserId = cookieStore.get("efrl_session")?.value;
@@ -28,13 +55,8 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // Automatically purge replied player messages and announcements older than 24 hours
-  await cleanupExpiredRepliedMessages();
-  await cleanupExpiredAnnouncements();
-  await ensureNewsTable();
-  await ensureDerbyTable();
-  await syncSystemNewsToCarousel();
-  await syncPlayerDiscipline();
+  // Trigger maintenance tasks non-blocking so the admin portal renders immediately
+  triggerAdminBackgroundMaintenance();
 
   const [
     matches,
@@ -44,17 +66,14 @@ export default async function AdminPage() {
     announcements,
     flaggedPlayers,
     leagueConfig,
-    div1Standings,
-    div2Standings,
-    div3Standings,
-    uclSlots,
-    europaSlots,
-    pendingPlayers,
-    reservePlayers,
+    allDivisionStandings,
+    allGroupSlots,
+    nonActivePlayers,
     hallOfFameEntries,
     playerMessages,
     reviews,
     newsArticles,
+    rawPasswordResets,
   ] = await Promise.all([
     prisma.match.findMany({
       include: {
@@ -112,50 +131,25 @@ export default async function AdminPage() {
     }),
     prisma.standing.findMany({
       where: {
-        division: "Division 1",
-        player: { status: { in: ["ACTIVE", "WARNING"] }, division: "Division 1" },
-      },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-    }),
-    prisma.standing.findMany({
-      where: {
-        division: "Division 2",
-        player: { status: { in: ["ACTIVE", "WARNING"] }, division: "Division 2" },
-      },
-      include: { player: true },
-      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-    }),
-    prisma.standing.findMany({
-      where: {
-        division: "Division 3",
-        player: { status: { in: ["ACTIVE", "WARNING"] }, division: "Division 3" },
+        division: { in: ["Division 1", "Division 2", "Division 3"] },
+        player: { status: { in: ["ACTIVE", "WARNING"] } },
       },
       include: { player: true },
       orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     }),
     prisma.uclGroupSlot.findMany({
-      where: { competition: "UCL" },
-      include: { player: true },
-      orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
-    }),
-    prisma.uclGroupSlot.findMany({
-      where: { competition: "EUROPA" },
+      where: { competition: { in: ["UCL", "EUROPA"] } },
       include: { player: true },
       orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
     }),
     prisma.player.findMany({
-      where: { status: "PENDING_APPROVAL" },
-      include: { user: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.player.findMany({
-      where: { status: "RESERVED" },
+      where: { status: { in: ["PENDING_APPROVAL", "RESERVED"] } },
       include: { user: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.hallOfFame.findMany({
       orderBy: [{ season: "desc" }, { createdAt: "desc" }],
+      take: 50,
     }),
     (prisma as any).playerMessage.findMany({
       include: {
@@ -171,6 +165,7 @@ export default async function AdminPage() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     }),
     prisma.feedbackReview.findMany({
       include: {
@@ -185,25 +180,33 @@ export default async function AdminPage() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     }),
     prisma.news.findMany({
       orderBy: { createdAt: "desc" },
+      take: 50,
     }),
+    (prisma as any).passwordResetRequest.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }).catch(() => []),
   ]);
 
-  // Safely fetch password reset requests without risking crashing the admin portal
-  let passwordResets: any[] = [];
-  try {
-    await ensurePasswordResetTable();
-    passwordResets = await (prisma as any).passwordResetRequest.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-  } catch (err) {
-    console.error("Safely caught passwordResetRequest query error:", err);
-    passwordResets = [];
-  }
+  // Split merged standings
+  const div1Standings = allDivisionStandings.filter((s) => s.division === "Division 1");
+  const div2Standings = allDivisionStandings.filter((s) => s.division === "Division 2");
+  const div3Standings = allDivisionStandings.filter((s) => s.division === "Division 3");
+
+  // Split merged continental slots
+  const uclSlots = allGroupSlots.filter((s) => s.competition === "UCL");
+  const europaSlots = allGroupSlots.filter((s) => s.competition === "EUROPA");
+
+  // Split merged pending and reserve players
+  const pendingPlayers = nonActivePlayers.filter((p) => p.status === "PENDING_APPROVAL");
+  const reservePlayers = nonActivePlayers.filter((p) => p.status === "RESERVED");
 
   // Enrich password reset requests with user and athlete details
+  const passwordResets = rawPasswordResets || [];
   const resetEmails: string[] = Array.from(
     new Set(passwordResets.map((r: any) => String(r.email)).filter(Boolean))
   );
