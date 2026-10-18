@@ -192,12 +192,16 @@ export default async function DashboardPage({
   // Generated matches are strictly available to players actively participating in the league, NOT players in the reserve pool.
   // When the season is awaiting kickoff, division matches remain strictly sealed until the drop date at 12:00 AM!
   if (isParticipating && !isSeasonAwaitingKickoff) {
-    // 0. PRIORITY BACKLOG REPLACEMENT MATCH: If player has an open 48-hr replacement match, they must begin with that!
+    // 0. PRIORITY BACKLOG REPLACEMENT OR REOPENED MATCH: If player has an open backlog or reopened match, prioritize it!
     const priorityBacklogMatch = await prisma.match.findFirst({
       where: {
         OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
         status: { in: ["SCHEDULED", "LIVE"] },
-        notes: { contains: "REPLACEMENT_BACKLOG" },
+        OR: [
+          { notes: { contains: "REPLACEMENT_BACKLOG" } },
+          { notes: { contains: "ADMIN_REOPENED" } },
+          { allowLateSubmission: true },
+        ],
       },
       include: matchInclude,
       orderBy: [{ deadlineDate: "asc" }, { matchDate: "asc" }],

@@ -215,7 +215,7 @@ export async function POST(req: Request) {
     // If reopened by admin and has prior claims, mark them replaced
     if (isReopenedByAdmin && match.forfeitClaims.length > 0) {
       await prisma.forfeitClaim.updateMany({
-        where: { matchId: match.id, status: "PENDING" },
+        where: { matchId: match.id, status: { in: ["PENDING", "APPROVED"] } },
         data: { status: "REJECTED", adminNotes: "Superseded by reopened claim" },
       });
     }

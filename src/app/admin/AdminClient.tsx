@@ -4913,7 +4913,7 @@ export default function AdminClient({
                   {paginatedMatches.map((m: any) => {
                     const isFinished = m.status === "FINISHED";
                     const isForfeit = m.status === "FORFEIT";
-                    const sub = m.submissions?.[0];
+                    const sub = m.submissions?.find((s: any) => s.status !== "REPLACED" && s.status !== "REJECTED");
                     const hasScreenshot = Boolean(m.screenshotUrl || sub?.screenshotUrl);
                     const screenshotToInspect = m.screenshotUrl || sub?.screenshotUrl;
 
@@ -4933,6 +4933,11 @@ export default function AdminClient({
                             </Badge>
                           </div>
                           <div className="flex items-center gap-2">
+                            {m.notes?.includes("ADMIN_REOPENED") && (
+                              <Badge variant="secondary" className="text-xs text-primary bg-primary/20 border-primary/30">
+                                🔓 REOPENED
+                              </Badge>
+                            )}
                             {m.allowLateSubmission && (
                               <Badge variant="secondary" className="text-xs text-primary bg-primary/30 border-primary/30">
                                 ⏰ LATE UPLOAD ON

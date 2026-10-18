@@ -224,10 +224,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // If reopened by admin and has prior pending submission, supersede them
+    // If reopened by admin and has prior submissions, supersede them so new upload is registered
     if (isReopenedByAdmin && match.submissions.length > 0) {
       await prisma.matchSubmission.updateMany({
-        where: { matchId: match.id, status: "PENDING" },
+        where: { matchId: match.id, status: { in: ["PENDING", "APPROVED"] } },
         data: { status: "REPLACED", adminNotes: "Superseded by reopened submission" },
       });
     }
