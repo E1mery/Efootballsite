@@ -111,6 +111,32 @@ function drawCoverImage(
 }
 
 /**
+ * Safely creates a rounded rectangle path on canvas with beginPath to prevent path accumulation
+ */
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radii: number | number[]
+) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, w, h, radii);
+  } else {
+    const r = typeof radii === "number" ? radii : radii[0] || 0;
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+}
+
+/**
  * Export Standings Table as a Branded PNG
  */
 export async function exportStandingsTablePng({
@@ -213,9 +239,7 @@ export async function exportStandingsTablePng({
   const startY = 210;
 
   ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
-  ctx.roundRect
-    ? ctx.roundRect(tableX, startY, tableW, tableHeaderHeight, [8, 8, 0, 0])
-    : ctx.fillRect(tableX, startY, tableW, tableHeaderHeight);
+  drawRoundedRect(ctx, tableX, startY, tableW, tableHeaderHeight, [8, 8, 0, 0]);
   ctx.fill();
 
   // Table Column Headers
@@ -442,9 +466,7 @@ export async function exportFixturesPng({
     matches.forEach((m) => {
       // Fixture Card Container
       ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
-      ctx.roundRect
-        ? ctx.roundRect(cardX, curY, cardW, fixtureHeight, 12)
-        : ctx.fillRect(cardX, curY, cardW, fixtureHeight);
+      drawRoundedRect(ctx, cardX, curY, cardW, fixtureHeight, 12);
       ctx.fill();
 
       // Card Border
@@ -464,9 +486,7 @@ export async function exportFixturesPng({
       const centerBoxH = fixtureHeight - 28;
 
       ctx.fillStyle = isFinished ? "rgba(245, 158, 11, 0.15)" : "rgba(255, 255, 255, 0.06)";
-      ctx.roundRect
-        ? ctx.roundRect(centerBoxX, centerBoxY, centerBoxW, centerBoxH, 8)
-        : ctx.fillRect(centerBoxX, centerBoxY, centerBoxW, centerBoxH);
+      drawRoundedRect(ctx, centerBoxX, centerBoxY, centerBoxW, centerBoxH, 8);
       ctx.fill();
 
       ctx.textAlign = "center";
