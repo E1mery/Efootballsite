@@ -560,12 +560,14 @@ export function generateWhatsAppBroadcastText({
   standings,
   fixtures,
   roundName,
+  tableRoundName,
   season = "Season 1 (2026)",
 }: {
   division: string;
   standings?: ExportStandingItem[];
   fixtures?: ExportFixtureItem[];
   roundName: string;
+  tableRoundName?: string;
   season?: string;
 }): string {
   const lines: string[] = [];
@@ -575,7 +577,7 @@ export function generateWhatsAppBroadcastText({
   lines.push(``);
 
   if (fixtures && fixtures.length > 0) {
-    lines.push(`⚽ *${roundName.toUpperCase()} FIXTURES & RESULTS:*`);
+    lines.push(`⚽ *${roundName.toUpperCase()} FIXTURES & SCHEDULE:*`);
     fixtures.forEach((f) => {
       const homeInfo = `${f.homeGamerTag}${f.homeTeam ? ` (${f.homeTeam})` : ""}`;
       const awayInfo = `${f.awayGamerTag}${f.awayTeam ? ` (${f.awayTeam})` : ""}`;
@@ -589,7 +591,8 @@ export function generateWhatsAppBroadcastText({
   }
 
   if (standings && standings.length > 0) {
-    lines.push(`📊 *CURRENT STANDINGS (TOP 8):*`);
+    const tableHeader = tableRoundName ? `CURRENT STANDINGS (AFTER ${tableRoundName.toUpperCase()}):` : "CURRENT STANDINGS (TOP 8):";
+    lines.push(`📊 *${tableHeader}*`);
     standings.slice(0, 8).forEach((s) => {
       const gd = s.goalDifference > 0 ? `+${s.goalDifference}` : `${s.goalDifference}`;
       lines.push(`${s.rank}. *${s.gamerTag}* (${s.realTeam || "Club"}) — *${s.points} PTS* | P:${s.played} GD:${gd}`);

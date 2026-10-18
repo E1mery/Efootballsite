@@ -218,6 +218,7 @@ export default function AdminClient({
   const [auditingTeams, setAuditingTeams] = useState(false);
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
   const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
+  const [closingMatchId, setClosingMatchId] = useState<string | null>(null);
   const [uclDrawInput, setUclDrawInput] = useState<string>(
     toLocalDatetimeInput(leagueConfig?.uclDrawTime)
   );
@@ -1269,6 +1270,33 @@ export default function AdminClient({
       alert(err.message);
     } finally {
       setReopeningMatchId(null);
+    }
+  };
+
+  // Manually Close Submissions for a Match (Locks Submissions and Ends Extended Window)
+  const handleCloseSubmissions = async (matchId: string) => {
+    if (
+      !confirm(
+        "Close submissions for this fixture? This will cancel the extended submission window and lock upload buttons for both players."
+      )
+    ) {
+      return;
+    }
+    setClosingMatchId(matchId);
+    try {
+      const res = await fetch("/api/admin/close-submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to close submissions");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setClosingMatchId(null);
     }
   };
 
@@ -5076,13 +5104,27 @@ export default function AdminClient({
                               size="sm"
                               variant="outline"
                               onClick={() => handleReopenSubmissions(m.id)}
-                              disabled={reopeningMatchId === m.id}
+                              disabled={reopeningMatchId === m.id || closingMatchId === m.id}
                               className="text-xs h-7 px-2.5 font-bold border-primary/40 text-primary hover:bg-primary/30"
                               title="Reopen submission and forfeit buttons for both athletes"
                             >
                               <Unlock className="h-3 w-3 mr-1" />
                               {reopeningMatchId === m.id ? "Reopening..." : "Reopen Submissions"}
                             </Button>
+
+                            {(m.notes?.includes("ADMIN_REOPENED") || m.allowLateSubmission) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCloseSubmissions(m.id)}
+                                disabled={closingMatchId === m.id || reopeningMatchId === m.id}
+                                className="text-xs h-7 px-2.5 font-bold border-destructive/40 text-destructive hover:bg-destructive/20"
+                                title="Manually close reopened submission window and lock upload buttons"
+                              >
+                                <Lock className="h-3 w-3 mr-1" />
+                                {closingMatchId === m.id ? "Closing..." : "Close Submissions"}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

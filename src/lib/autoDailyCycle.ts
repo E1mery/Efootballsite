@@ -37,11 +37,23 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
       AND: [
         {
           OR: [
+            { allowLateSubmission: false },
+            { deadlineDate: { lte: now } },
+          ],
+        },
+        {
+          OR: [
             { notes: null },
             {
               AND: [
                 { notes: { not: { contains: "WAITING_FOR_SUB" } } },
                 { notes: { not: { contains: "REPLACEMENT_BACKLOG" } } },
+                {
+                  OR: [
+                    { notes: { not: { contains: "ADMIN_REOPENED" } } },
+                    { deadlineDate: { lte: now } },
+                  ],
+                },
               ],
             },
           ],

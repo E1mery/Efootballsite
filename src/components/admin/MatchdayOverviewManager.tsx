@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Trophy,
   Calendar,
@@ -15,6 +16,8 @@ import {
   MessageSquare,
   Sparkles,
   ExternalLink,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,12 +48,77 @@ export default function MatchdayOverviewManager({
   allMatches,
   uclGroupSlots = [],
 }: MatchdayOverviewProps) {
+  const router = useRouter();
   const currentMatchdayNum = leagueConfig.currentMatchday || 1;
-  const [selectedRound, setSelectedRound] = useState<string>(`Matchday ${currentMatchdayNum}`);
+  const nextMatchdayNum = currentMatchdayNum + 1;
+  const nextMatchdayRoundName = `Matchday ${nextMatchdayNum}`;
+
+  // Find active matchday deadline timestamp
+  const currentMatchdayDeadline = useMemo(() => {
+    const curRoundName = `Matchday ${currentMatchdayNum}`.toLowerCase();
+    for (const m of allMatches) {
+      if ((m.round || "").toLowerCase().trim() === curRoundName && m.deadlineDate) {
+        return new Date(m.deadlineDate);
+      }
+    }
+    return null;
+  }, [allMatches, currentMatchdayNum]);
+
+  const [now, setNow] = useState<Date>(() => new Date());
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Periodic clock check for deadline arrival
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isCurrentMatchdayDeadlinePassed = useMemo(() => {
+    if (!currentMatchdayDeadline) return false;
+    return now >= currentMatchdayDeadline;
+  }, [currentMatchdayDeadline, now]);
+
+  // Default selected round: if deadline already elapsed, default to the upcoming next matchday
+  const [selectedRound, setSelectedRound] = useState<string>(() => {
+    if (currentMatchdayDeadline && new Date() >= currentMatchdayDeadline) {
+      return `Matchday ${currentMatchdayNum + 1}`;
+    }
+    return `Matchday ${currentMatchdayNum}`;
+  });
   const [selectedDivisionTab, setSelectedDivisionTab] = useState<string>("ALL");
   const [copiedDivision, setCopiedDivision] = useState<string | null>(null);
   const [exportingState, setExportingState] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // Trigger manual sync or server auto-advance
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await fetch("/api/admin/daily-cycle", { method: "POST" });
+      router.refresh();
+    } catch (err) {
+      console.error("Auto sync error:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Real-time automatic daily cycle sync when deadline expires on screen
+  useEffect(() => {
+    if (!currentMatchdayDeadline) return;
+    const ms = currentMatchdayDeadline.getTime() - Date.now();
+    if (ms > 0 && ms < 86400000) {
+      const timer = setTimeout(async () => {
+        try {
+          await fetch("/api/admin/daily-cycle", { method: "POST" });
+        } catch {}
+        router.refresh();
+      }, ms + 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentMatchdayDeadline, router]);
 
   // Extract distinct rounds available in matches
   const availableRounds = useMemo(() => {
@@ -112,49 +180,80 @@ export default function MatchdayOverviewManager({
     return map;
   }, [allStandings]);
 
-  // Filter matches for the selected round and group by division
-  const matchesByDivision = useMemo(() => {
-    const map: Record<string, ExportFixtureItem[]> = {
-      "Division 1": [],
-      "Division 2": [],
-      "Division 3": [],
-      UCL: [],
-      EUROPA: [],
-    };
+  // Helper to extract matches for a specific round dynamically
+  const getMatchesForRound = useCallback(
+    (roundName: string) => {
+      const map: Record<string, ExportFixtureItem[]> = {
+        "Division 1": [],
+        "Division 2": [],
+        "Division 3": [],
+        UCL: [],
+        EUROPA: [],
+      };
 
-    const targetRound = selectedRound.toLowerCase().trim();
+      const targetRound = roundName.toLowerCase().trim();
 
-    allMatches.forEach((m: any) => {
-      const matchRound = (m.round || "").toLowerCase().trim();
-      if (matchRound !== targetRound) return;
+      allMatches.forEach((m: any) => {
+        const matchRound = (m.round || "").toLowerCase().trim();
+        if (matchRound !== targetRound) return;
 
-      const div = m.division || "Division 1";
-      const key = div.toUpperCase().includes("UCL")
-        ? "UCL"
-        : div.toUpperCase().includes("EUROPA")
-        ? "EUROPA"
-        : div;
+        const div = m.division || "Division 1";
+        const key = div.toUpperCase().includes("UCL")
+          ? "UCL"
+          : div.toUpperCase().includes("EUROPA")
+          ? "EUROPA"
+          : div;
 
-      if (!map[key]) map[key] = [];
+        if (!map[key]) map[key] = [];
 
-      map[key].push({
-        id: m.id,
-        round: m.round,
-        division: m.division,
-        homeGamerTag: m.homePlayer?.gamerTag || "TBD",
-        homeTeam: m.homePlayer?.realTeam || null,
-        awayGamerTag: m.awayPlayer?.gamerTag || "TBD",
-        awayTeam: m.awayPlayer?.realTeam || null,
-        homeScore: m.homeScore,
-        awayScore: m.awayScore,
-        status: m.status || "SCHEDULED",
-        matchDate: m.matchDate,
-        deadlineDate: m.deadlineDate,
+        map[key].push({
+          id: m.id,
+          round: m.round,
+          division: m.division,
+          homeGamerTag: m.homePlayer?.gamerTag || "TBD",
+          homeTeam: m.homePlayer?.realTeam || null,
+          awayGamerTag: m.awayPlayer?.gamerTag || "TBD",
+          awayTeam: m.awayPlayer?.realTeam || null,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+          status: m.status || "SCHEDULED",
+          matchDate: m.matchDate,
+          deadlineDate: m.deadlineDate,
+        });
       });
-    });
 
-    return map;
-  }, [allMatches, selectedRound]);
+      return map;
+    },
+    [allMatches]
+  );
+
+  // Filter matches for the selected round and group by division (active UI view)
+  const matchesByDivision = useMemo(() => {
+    return getMatchesForRound(selectedRound);
+  }, [getMatchesForRound, selectedRound]);
+
+  // Round resolution for downloads:
+  // When deadline has elapsed for the current matchday, the fixtures download targets next matchday!
+  const fixturesRoundName = useMemo(() => {
+    if (isCurrentMatchdayDeadlinePassed && selectedRound === `Matchday ${currentMatchdayNum}`) {
+      if (availableRounds.includes(nextMatchdayRoundName)) {
+        return nextMatchdayRoundName;
+      }
+    }
+    return selectedRound;
+  }, [isCurrentMatchdayDeadlinePassed, selectedRound, currentMatchdayNum, nextMatchdayRoundName, availableRounds]);
+
+  // Standings table represents the concluded round
+  const tableRoundName = useMemo(() => {
+    if (selectedRound === `Matchday ${currentMatchdayNum}`) {
+      return isCurrentMatchdayDeadlinePassed
+        ? `Matchday ${currentMatchdayNum}`
+        : currentMatchdayNum > 1
+        ? `Matchday ${currentMatchdayNum - 1}`
+        : `Matchday 1`;
+    }
+    return selectedRound;
+  }, [selectedRound, currentMatchdayNum, isCurrentMatchdayDeadlinePassed]);
 
   // Divisions to render based on user tab filter
   const activeCompetitions = useMemo(() => {
@@ -184,7 +283,7 @@ export default function MatchdayOverviewManager({
       await exportStandingsTablePng({
         division,
         standings,
-        roundName: selectedRound,
+        roundName: tableRoundName,
         season: leagueConfig.season,
       });
     } catch (err) {
@@ -199,11 +298,12 @@ export default function MatchdayOverviewManager({
     const key = `fixtures-${division}`;
     setExportingState(key);
     try {
-      const fixtures = matchesByDivision[division] || [];
+      const targetMatchesMap = getMatchesForRound(fixturesRoundName);
+      const fixtures = targetMatchesMap[division] || [];
       await exportFixturesPng({
         division,
         matches: fixtures,
-        roundName: selectedRound,
+        roundName: fixturesRoundName,
         season: leagueConfig.season,
       });
     } catch (err) {
@@ -216,12 +316,14 @@ export default function MatchdayOverviewManager({
   // Handle Copy WhatsApp Broadcast
   const handleCopyWhatsApp = (division: string) => {
     const standings = divisionStandingsMap[division] || [];
-    const fixtures = matchesByDivision[division] || [];
+    const targetMatchesMap = getMatchesForRound(fixturesRoundName);
+    const fixtures = targetMatchesMap[division] || [];
     const text = generateWhatsAppBroadcastText({
       division,
       standings,
       fixtures,
-      roundName: selectedRound,
+      roundName: fixturesRoundName,
+      tableRoundName: tableRoundName,
       season: leagueConfig.season,
     });
 
@@ -242,7 +344,7 @@ export default function MatchdayOverviewManager({
           await exportStandingsTablePng({
             division: comp.id,
             standings,
-            roundName: selectedRound,
+            roundName: tableRoundName,
             season: leagueConfig.season,
           });
           // Small pause between downloads to prevent browser throttling
@@ -258,13 +360,14 @@ export default function MatchdayOverviewManager({
   const handleExportAllFixtures = async () => {
     setExportingState("all-fixtures");
     try {
+      const targetMatchesMap = getMatchesForRound(fixturesRoundName);
       for (const comp of activeCompetitions) {
-        const fixtures = matchesByDivision[comp.id] || [];
+        const fixtures = targetMatchesMap[comp.id] || [];
         if (fixtures.length > 0) {
           await exportFixturesPng({
             division: comp.id,
             matches: fixtures,
-            roundName: selectedRound,
+            roundName: fixturesRoundName,
             season: leagueConfig.season,
           });
           await new Promise((r) => setTimeout(r, 350));
@@ -305,6 +408,33 @@ export default function MatchdayOverviewManager({
           </Link>
         </div>
       </div>
+
+      {/* Deadline Rollover Status Alert */}
+      {isCurrentMatchdayDeadlinePassed && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-secondary/30 bg-secondary/10 text-xs text-foreground shadow-sm">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-secondary shrink-0" />
+            <div>
+              <p className="font-bold text-foreground">
+                Matchday {currentMatchdayNum} deadline has arrived.
+              </p>
+              <p className="text-muted-foreground mt-0.5">
+                Downloads automatically target updated standings (after Matchday {currentMatchdayNum}) and upcoming {nextMatchdayRoundName} fixtures.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleManualSync}
+            size="sm"
+            variant="outline"
+            className="text-xs h-8 px-3 font-bold shrink-0 self-start sm:self-center"
+            disabled={isSyncing}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isSyncing ? "animate-spin" : ""}`} />
+            <span>{isSyncing ? "Syncing..." : "Sync & Advance"}</span>
+          </Button>
+        </div>
+      )}
 
       {/* Control Strip: Round Selector, Competition Filter, and Master Downloads */}
       <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-lg space-y-4">
@@ -349,6 +479,7 @@ export default function MatchdayOverviewManager({
               disabled={exportingState !== null}
               size="sm"
               className="bg-primary hover:bg-primary text-primary-foreground text-xs font-bold gap-1.5 shadow-md"
+              title={`Export all standings tables PNG (${tableRoundName})`}
             >
               <Download className="h-3.5 w-3.5" />
               <span>{exportingState === "all-tables" ? "Exporting..." : "Export All Tables (PNG)"}</span>
@@ -359,9 +490,16 @@ export default function MatchdayOverviewManager({
               size="sm"
               variant="outline"
               className="text-xs font-bold gap-1.5"
+              title={`Export all fixtures PNG (${fixturesRoundName})`}
             >
               <Download className="h-3.5 w-3.5 text-secondary" />
-              <span>{exportingState === "all-fixtures" ? "Exporting..." : "Export All Fixtures (PNG)"}</span>
+              <span>
+                {exportingState === "all-fixtures"
+                  ? "Exporting..."
+                  : fixturesRoundName !== selectedRound
+                  ? `Export ${fixturesRoundName} Fixtures (PNG)`
+                  : "Export All Fixtures (PNG)"}
+              </span>
             </Button>
           </div>
         </div>
@@ -500,7 +638,7 @@ export default function MatchdayOverviewManager({
                       disabled={exportingState !== null}
                       size="sm"
                       className="bg-primary hover:bg-primary text-primary-foreground text-xs font-bold gap-1.5 shadow-md"
-                      title="Download clean branded PNG with official stadium background"
+                      title={`Download clean branded PNG with official stadium background (${tableRoundName})`}
                     >
                       <Download className="h-3.5 w-3.5" />
                       <span>{exportingState === `table-${comp.id}` ? "Exporting..." : "Download Table (PNG)"}</span>
@@ -512,10 +650,16 @@ export default function MatchdayOverviewManager({
                       size="sm"
                       variant="outline"
                       className="text-xs font-bold gap-1.5"
-                      title="Download matchday fixtures PNG card"
+                      title={fixturesRoundName !== selectedRound ? `Deadline reached: Download upcoming ${fixturesRoundName} fixtures PNG card` : `Download ${fixturesRoundName} fixtures PNG card`}
                     >
                       <Calendar className="h-3.5 w-3.5 text-secondary" />
-                      <span>{exportingState === `fixtures-${comp.id}` ? "Exporting..." : "Download Fixtures (PNG)"}</span>
+                      <span>
+                        {exportingState === `fixtures-${comp.id}`
+                          ? "Exporting..."
+                          : fixturesRoundName !== selectedRound
+                          ? `Download ${fixturesRoundName} (PNG)`
+                          : "Download Fixtures (PNG)"}
+                      </span>
                     </Button>
 
                     <Button

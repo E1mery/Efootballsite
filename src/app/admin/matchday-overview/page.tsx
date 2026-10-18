@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import MatchdayOverviewManager from "@/components/admin/MatchdayOverviewManager";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,13 @@ export default async function AdminMatchdayOverviewPage() {
 
   if (!user || user.role !== "ADMIN") {
     redirect("/login");
+  }
+
+  // Ensure league cycle has automatically rolled over if the active matchday deadline has passed
+  try {
+    await checkAndAutoAdvanceDailyCycle({ force: false });
+  } catch (cycleErr) {
+    console.error("Matchday overview auto-advance check error:", cycleErr);
   }
 
   // Fetch league configuration, standings, matches, and continental slots in parallel

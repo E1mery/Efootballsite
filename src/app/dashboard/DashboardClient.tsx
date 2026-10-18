@@ -695,6 +695,25 @@ export default function DashboardClient({
     );
   }, [allPlayerMatches]);
 
+  const activeRoundLabel = currentRoundName || `Matchday ${leagueConfig?.currentMatchday || 1}`;
+
+  const currentRoundMatch = useMemo(() => {
+    return (allPlayerMatches || []).find(
+      (m: any) =>
+        m.round === activeRoundLabel &&
+        (m.division === "UCL" || m.division === "EUROPA" || new Date(m.matchDate).getTime() <= Date.now())
+    );
+  }, [allPlayerMatches, activeRoundLabel]);
+
+  // Combined playable matches: Reopened previous matches + Today's active matchday fixture
+  const playableMatches = useMemo(() => {
+    const list: any[] = [...replacementBacklogMatches];
+    if (currentRoundMatch && !list.some((m) => m.id === currentRoundMatch.id)) {
+      list.push(currentRoundMatch);
+    }
+    return list;
+  }, [replacementBacklogMatches, currentRoundMatch]);
+
   // Compute robust active match:
   // 1. If reserved, rest day, or suspended, activeMatch is strictly null
   // 2. If a specific backlog match is selected, use it
@@ -716,15 +735,6 @@ export default function DashboardClient({
       return replacementBacklogMatches[0];
     }
 
-    const currentRound = `Matchday ${leagueConfig?.currentMatchday || 1}`;
-    // STRICT 1 MATCH PER DAY (24HRS) FOR DIVISION LEAGUE:
-    // Prioritize today's current round match (whether scheduled, live, pending, or finished).
-    // The player must complete this match and wait for the 24-hr deadline at 12:00 AM midnight before the next round drops.
-    const currentRoundMatch = allPlayerMatches.find(
-      (m: any) =>
-        m.round === currentRound &&
-        (m.division === "UCL" || m.division === "EUROPA" || new Date(m.matchDate).getTime() <= Date.now())
-    );
     if (currentRoundMatch) return currentRoundMatch;
 
     if (initialActiveMatch) {
@@ -2885,27 +2895,33 @@ export default function DashboardClient({
 
               <div className="relative z-10">
 
-              {/* Priority Backlog Matches Selector (if replacement player has multiple backlog fixtures to complete) */}
-              {replacementBacklogMatches.length > 1 && (
+              {/* Active Playable Fixtures Selector (switch between reopened fixtures and today's fixture) */}
+              {playableMatches.length > 1 && (
                 <div className="flex items-center gap-2 mb-4 p-2.5 rounded-2xl bg-secondary/10 border border-secondary/30 overflow-x-auto no-scrollbar">
                   <span className="text-xs font-black uppercase text-secondary shrink-0 flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Priority Backlog Matches ({replacementBacklogMatches.length}):
+                    Active Fixtures ({playableMatches.length}):
                   </span>
                   <div className="flex items-center gap-1.5">
-                    {replacementBacklogMatches.map((bm: any) => {
+                    {playableMatches.map((bm: any) => {
                       const isSelected = activeMatch?.id === bm.id;
+                      const isReopened = bm.allowLateSubmission || bm.notes?.includes("ADMIN_REOPENED");
                       return (
                         <button
                           key={bm.id}
                           onClick={() => setSelectedBacklogMatchId(bm.id)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
                             isSelected
                               ? "bg-secondary text-secondary-foreground shadow-md font-black"
                               : "bg-card text-muted-foreground hover:bg-muted border border-border"
                           }`}
                         >
-                          {bm.round}
+                          <span>{bm.round}</span>
+                          {isReopened ? (
+                            <span className="text-xs text-primary font-bold">🔓 Reopened</span>
+                          ) : (
+                            <span className="text-xs opacity-75">Today</span>
+                          )}
                         </button>
                       );
                     })}
