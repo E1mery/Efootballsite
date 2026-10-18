@@ -1,7 +1,7 @@
 "use client";
 
 import { Award, Flame, Zap, Shield, Smartphone } from "lucide-react";
-import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 
 interface PlayerProps {
   player: {
@@ -68,9 +68,8 @@ export default function PlayerCard({ player, rank }: PlayerProps) {
             alt={player.realTeam || player.gamerTag}
             className="h-full w-full object-contain filter drop-shadow-sm"
             loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
-            }}
+            decoding="async"
+            onError={handleAvatarError}
           />
         </div>
         <div className="min-w-0 flex-1">

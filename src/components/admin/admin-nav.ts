@@ -2,6 +2,7 @@ import {
   Bell,
   Calendar,
   Crown,
+  Download,
   Flame,
   Globe,
   KeyRound,
@@ -60,6 +61,7 @@ export type AdminNavItem = {
   count?: number;
   alert?: number;
   badgeVariant?: "yellow" | "destructive" | "live" | "secondary";
+  href?: string;
 };
 
 export type AdminNavGroup = {
@@ -121,6 +123,13 @@ export function buildAdminNav(counts: AdminSidebarCounts): AdminNavGroup[] {
       label: "Competition",
       items: [
         { id: "TABLES", title: "All League Tables", icon: Trophy },
+        {
+          id: "TABLES",
+          title: "Matchday & Graphics Hub",
+          icon: Download,
+          href: "/admin/matchday-overview",
+          badgeVariant: "secondary",
+        },
         {
           id: "ALL_MATCHES",
           title: "All Generated Matches",

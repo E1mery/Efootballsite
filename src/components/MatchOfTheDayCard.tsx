@@ -3,7 +3,7 @@ import { Trophy, Flame, Phone, Calendar, Clock, Sparkles, MessageCircle } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MotdPredictionPoll from "@/components/MotdPredictionPoll";
-import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 import { detectDerby } from "@/lib/derbyCore";
 
 interface MotdProps {
@@ -117,9 +117,8 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
                   className="h-full w-full object-contain"
                   loading="lazy"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
-                  }}
+                  decoding="async"
+                  onError={handleAvatarError}
                 />
               ) : (
                 <span className="text-primary font-black text-xl">HM</span>
@@ -192,9 +191,8 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
                   alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
                   className="h-full w-full object-contain"
                   loading="lazy"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
-                  }}
+                  decoding="async"
+                  onError={handleAvatarError}
                 />
               ) : (
                 <span className="text-primary font-black text-xl">AW</span>

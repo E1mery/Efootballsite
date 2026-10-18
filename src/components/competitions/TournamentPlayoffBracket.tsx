@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Trophy, Shield, Flame, CheckCircle, Clock, Calendar, ChevronRight, Crown } from "lucide-react";
-import { resolvePlayerAvatar } from "@/lib/teams";
+import { resolvePlayerAvatar, handleAvatarError } from "@/lib/teams";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -80,9 +80,7 @@ function BracketTeamRow({
               alt={player?.gamerTag || "Team"}
               className="h-full w-full object-contain"
               loading="lazy"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player?.gamerTag || "player")}`;
-              }}
+              onError={handleAvatarError}
             />
           ) : (
             <Shield className="h-3.5 w-3.5 text-muted-foreground" />
@@ -372,9 +370,7 @@ export default function TournamentPlayoffBracket({
                   src={resolvePlayerAvatar(champion)}
                   alt={champion.gamerTag}
                   className="h-full w-full object-contain"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(champion?.gamerTag || "player")}`;
-                  }}
+                  onError={handleAvatarError}
                 />
               </div>
               <Crown className="h-5 w-5 text-secondary absolute -top-2 -right-2 animate-bounce" />

@@ -294,7 +294,9 @@ export default function SocialPostCard({
                 height={36}
                 className="object-contain"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = "/favicon.ico";
                 }}
               />
             </div>

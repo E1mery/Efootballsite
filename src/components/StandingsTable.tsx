@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Globe, ArrowUp, ArrowDown, Minus, AlertTriangle, ShieldAlert, Shield } from "lucide-react";
-import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 
 interface StandingRow {
   id: string;
@@ -359,9 +359,8 @@ export default function StandingsTable({
                               alt={realTeam || gamerTag}
                               className="h-full w-full object-contain filter drop-shadow-sm"
                               loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(gamerTag)}`;
-                              }}
+                              decoding="async"
+                              onError={handleAvatarError}
                             />
                           ) : (
                             <span className="font-black text-xs text-primary">

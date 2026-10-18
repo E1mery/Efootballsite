@@ -17,7 +17,7 @@ import {
   Flame,
   Award,
 } from "lucide-react";
-import { resolvePlayerAvatar } from "@/lib/teams";
+import { resolvePlayerAvatar, handleAvatarError } from "@/lib/teams";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import SuperCupPredictionPoll from "./SuperCupPredictionPoll";
@@ -244,9 +244,7 @@ export default function SuperCupView({
                     src={resolvePlayerAvatar(superCupWinner)}
                     alt={superCupWinner.gamerTag}
                     className="h-full w-full object-contain"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(superCupWinner?.gamerTag || "player")}`;
-                    }}
+                    onError={handleAvatarError}
                   />
                 </div>
                 <Crown className="h-6 w-6 text-secondary absolute -top-2.5 -right-2.5 animate-bounce" />
@@ -336,9 +334,7 @@ export default function SuperCupView({
                         src={resolvePlayerAvatar(uclChampion)}
                         alt={uclChampion.gamerTag}
                         className="h-full w-full object-contain"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uclChampion.gamerTag)}`;
-                        }}
+                        onError={handleAvatarError}
                       />
                     </div>
                     <div>
@@ -435,9 +431,7 @@ export default function SuperCupView({
                         src={resolvePlayerAvatar(europaChampion)}
                         alt={europaChampion.gamerTag}
                         className="h-full w-full object-contain"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(europaChampion.gamerTag)}`;
-                        }}
+                        onError={handleAvatarError}
                       />
                     </div>
                     <div>

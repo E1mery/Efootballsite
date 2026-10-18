@@ -80,6 +80,7 @@ export default async function AdminPage() {
         homePlayer: true,
         awayPlayer: true,
         submissions: {
+          where: { status: { not: "REPLACED" } },
           include: { submittedByPlayer: true },
           orderBy: { createdAt: "desc" },
         },

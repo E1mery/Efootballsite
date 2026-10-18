@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 import { drawAudio } from "@/lib/drawAudio";
 
 export interface DrawAthlete {
@@ -562,9 +562,8 @@ export default function ContinentalDrawExperience({
                           alt={athlete.gamerTag}
                           className="h-full w-full object-contain"
                           loading="lazy"
-                          onError={(e: any) => {
-                            e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
-                          }}
+                          decoding="async"
+                          onError={handleAvatarError}
                         />
                       </div>
                       <span className="font-bold text-white truncate">
@@ -622,9 +621,8 @@ export default function ContinentalDrawExperience({
                       alt={currentDrawnAthlete.gamerTag}
                       className="h-full w-full object-contain"
                       loading="lazy"
-                      onError={(e: any) => {
-                        e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentDrawnAthlete.gamerTag || "player")}`;
-                      }}
+                      decoding="async"
+                      onError={handleAvatarError}
                     />
                   </div>
                   <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-black font-mono">
@@ -762,9 +760,8 @@ export default function ContinentalDrawExperience({
                             alt={athlete.gamerTag}
                             className="h-full w-full object-contain"
                             loading="lazy"
-                            onError={(e: any) => {
-                              e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(athlete.gamerTag || "player")}`;
-                            }}
+                            decoding="async"
+                            onError={handleAvatarError}
                           />
                         </div>
                         <div className="min-w-0 flex-1">

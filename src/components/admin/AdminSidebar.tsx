@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronDown, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,28 @@ function NavButton({
   onNavigate: (tab: AdminTab) => void;
 }) {
   const Icon = item.icon;
+
+  if (item.href) {
+    return (
+      <Link
+        href={item.href}
+        title={collapsed ? item.title : undefined}
+        className={cn(
+          "relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors text-muted-foreground hover:bg-muted hover:text-foreground",
+          collapsed && "justify-center px-2"
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0 text-secondary" />
+        {!collapsed && <span className="flex-1 truncate text-left">{item.title}</span>}
+        {!collapsed && (
+          <Badge variant="secondary" className="px-1.5 py-0 text-xs font-bold">
+            Hub
+          </Badge>
+        )}
+      </Link>
+    );
+  }
+
   return (
     <button
       onClick={() => onNavigate(item.id)}

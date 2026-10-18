@@ -14,6 +14,7 @@ import {
   X,
   Trophy,
   Calendar,
+  Download,
   Send,
   User,
   Users,
@@ -4108,6 +4109,28 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "TABLES" && (
         <div className="space-y-6">
+          {/* Matchday Central & Graphics Export Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-secondary/40 bg-card/90 shadow-xl">
+            <div className="space-y-1">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-secondary">
+                Broadcast & WhatsApp Graphics
+              </span>
+              <h3 className="text-base font-black uppercase text-foreground flex items-center gap-2">
+                <Download className="h-4 w-4 text-secondary" />
+                <span>Download Division Tables & Matchday Fixtures</span>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Export branded PNG cards with official competition stadium backgrounds or copy formatted WhatsApp broadcasts for your community.
+              </p>
+            </div>
+            <Link href="/admin/matchday-overview">
+              <Button size="sm" className="bg-primary hover:bg-primary text-primary-foreground font-bold text-xs gap-1.5 shadow-md shrink-0">
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span>Open Matchday Hub</span>
+              </Button>
+            </Link>
+          </div>
+
           {/* Publish Any League Table directly to the Homepage Carousel */}
           <AdminLeagueTablePublisher onRefreshNews={() => router.refresh()} />
 
@@ -7636,313 +7659,6 @@ export default function AdminClient({
                     </div>
                   );
                 })}
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB: ALL GENERATED MATCHES */}
-      {/* ========================================================================= */}
-      {activeTab === "ALL_MATCHES" && (
-        <div className="space-y-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-primary" />
-                <span>All Generated Tournament Matches ({matches.length})</span>
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-                Browse, search, and manage all scheduled and finished matches across all matchday rounds and divisions. You can extend deadlines to permit late submissions or directly enter verified scores.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Button
-                onClick={() => handleRecalculateStandings("ALL")}
-                disabled={recalculatingStandings}
-                className="bg-primary hover:bg-primary text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 shadow-lg"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${recalculatingStandings ? "animate-spin" : ""}`} />
-                {recalculatingStandings ? "Updating..." : "⚡ Update Standings"}
-              </Button>
-
-              <Button
-                onClick={() => handleResetTournament("ALL")}
-                disabled={resettingTournament}
-                variant="destructive"
-                className="font-bold text-xs uppercase tracking-wider px-4 py-2.5 gap-1.5 shadow-lg"
-              >
-                <RotateCcw className={`h-3.5 w-3.5 ${resettingTournament ? "animate-spin" : ""}`} />
-                {resettingTournament ? "Resetting..." : "Reset All Matches"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Filters Bar */}
-          <div className="rounded-2xl border border-border bg-background/80 p-4 shadow-xl">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search player or Konami ID..."
-                  value={allMatchesSearch}
-                  onChange={(e) => setAllMatchesSearch(e.target.value)}
-                  className="pl-9 bg-card border-border text-xs text-white"
-                />
-              </div>
-
-              {/* Round Filter */}
-              <div>
-                <select
-                  value={allMatchesFilterRound}
-                  onChange={(e) => setAllMatchesFilterRound(e.target.value)}
-                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-primary"
-                >
-                  <option value="ALL">All Matchday Rounds</option>
-                  {Array.from(new Set(matches.map((m: any) => m.round)))
-                    .filter(Boolean)
-                    .sort((a: any, b: any) => {
-                      const numA = parseInt(a.replace(/\D/g, "") || "0", 10);
-                      const numB = parseInt(b.replace(/\D/g, "") || "0", 10);
-                      return numA - numB;
-                    })
-                    .map((r: any) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* Division Filter */}
-              <div>
-                <select
-                  value={allMatchesFilterDiv}
-                  onChange={(e) => setAllMatchesFilterDiv(e.target.value)}
-                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-primary"
-                >
-                  <option value="ALL">All Divisions</option>
-                  <option value="Division 1">Division 1 (Premiership)</option>
-                  <option value="Division 2">Division 2 (Championship)</option>
-                  <option value="Division 3">Division 3 (Academy)</option>
-                  <option value="UCL">UCL</option>
-                  <option value="Europa">Europa</option>
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <select
-                  value={allMatchesFilterStatus}
-                  onChange={(e) => setAllMatchesFilterStatus(e.target.value)}
-                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-primary"
-                >
-                  <option value="ALL">All Match Statuses</option>
-                  <option value="SCHEDULED">SCHEDULED (Unplayed)</option>
-                  <option value="FINISHED">FINISHED (Played & Verified)</option>
-                  <option value="FORFEIT">FORFEIT (Walkover)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Matches List */}
-          {(() => {
-            const filtered = matches.filter((m: any) => {
-              const matchesRound = allMatchesFilterRound === "ALL" || m.round === allMatchesFilterRound;
-              const matchesDiv = allMatchesFilterDiv === "ALL" || m.division === allMatchesFilterDiv;
-              const matchesStatus = allMatchesFilterStatus === "ALL" || m.status === allMatchesFilterStatus;
-              const q = allMatchesSearch.trim().toLowerCase();
-              const matchesSearch =
-                !q ||
-                m.homePlayer?.gamerTag?.toLowerCase().includes(q) ||
-                m.awayPlayer?.gamerTag?.toLowerCase().includes(q) ||
-                m.homePlayer?.efootballId?.toLowerCase().includes(q) ||
-                m.awayPlayer?.efootballId?.toLowerCase().includes(q);
-              return matchesRound && matchesDiv && matchesStatus && matchesSearch;
-            });
-
-            if (filtered.length === 0) {
-              return (
-                <div className="rounded-3xl border border-border bg-background/60 p-12 text-center space-y-3">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto" />
-                  <h4 className="text-base font-bold text-white uppercase">No Matches Found</h4>
-                  <p className="text-xs text-muted-foreground">
-                    No tournament fixtures match your current filter criteria.
-                  </p>
-                </div>
-              );
-            }
-
-            return (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-2 font-mono">
-                  <span>Showing {filtered.length} of {matches.length} matches</span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  {filtered.map((match: any) => {
-                    const isFinished = match.status === "FINISHED";
-                    const isForfeit = match.status === "FORFEIT";
-                    const isLateAllowed = match.allowLateSubmission;
-                    const cleanDeadline = `${formatRwandanDateTime(match.deadlineDate)} (CAT)`;
-
-                    return (
-                      <div
-                        key={match.id}
-                        className="rounded-2xl border border-border bg-background/80 p-4 sm:p-5 hover:border-border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="yellow" className="text-xs font-mono">
-                              {match.round}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {match.division}
-                            </Badge>
-                            {isFinished ? (
-                              <Badge variant="green" className="text-xs font-black">
-                                COMPLETED
-                              </Badge>
-                            ) : isForfeit ? (
-                              <Badge variant="destructive" className="text-xs font-black">
-                                FORFEIT
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs border-primary/40 text-primary">
-                                SCHEDULED
-                              </Badge>
-                            )}
-                            {isLateAllowed && (
-                              <Badge variant="yellow" className="text-xs bg-secondary/20 border-secondary/40 text-secondary">
-                                ⏰ LATE UPLOAD ALLOWED
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Teams and Scores */}
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 text-right">
-                              <div>
-                                <span className="font-bold text-sm text-white block">{match.homePlayer?.gamerTag}</span>
-                                {match.homePlayer?.realTeam && (
-                                  <span className="text-xs text-secondary font-bold block">
-                                    {findTeam(match.homePlayer.realTeam)?.shortName || match.homePlayer.realTeam}
-                                  </span>
-                                )}
-                                <span className="text-xs text-muted-foreground block font-mono">{match.homePlayer?.efootballId}</span>
-                              </div>
-                              <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
-                                <img
-                                  src={resolvePlayerAvatar(match.homePlayer)}
-                                  alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag || "Home"}
-                                  className="w-full h-full object-contain"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="px-3 py-1 rounded-xl bg-card border border-border text-center w-20">
-                              {isFinished || isForfeit ? (
-                                <span className="font-mono text-base font-black text-primary">
-                                  {match.homeScore ?? 0} - {match.awayScore ?? 0}
-                                </span>
-                              ) : (
-                                <span className="text-xs font-black text-muted-foreground">VS</span>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-card border border-border/80 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
-                                <img
-                                  src={resolvePlayerAvatar(match.awayPlayer)}
-                                  alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag || "Away"}
-                                  className="w-full h-full object-contain"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
-                                  }}
-                                />
-                              </div>
-                              <div>
-                                <span className="font-bold text-sm text-white block">{match.awayPlayer?.gamerTag}</span>
-                                {match.awayPlayer?.realTeam && (
-                                  <span className="text-xs text-secondary font-bold block">
-                                    {findTeam(match.awayPlayer.realTeam)?.shortName || match.awayPlayer.realTeam}
-                                  </span>
-                                )}
-                                <span className="text-xs text-muted-foreground block font-mono">{match.awayPlayer?.efootballId}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Match Info & Actions */}
-                        <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
-                          <div className="text-right mr-2 hidden lg:block">
-                            <span className="text-xs text-muted-foreground block font-mono">Deadline</span>
-                            <span className="text-xs text-foreground font-mono">{cleanDeadline}</span>
-                          </div>
-
-                          {match.screenshotUrl && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setInspectImage(match.screenshotUrl)}
-                              className="text-xs gap-1 h-8"
-                            >
-                              <Eye className="h-3.5 w-3.5 text-primary" />
-                              <span>Screenshot</span>
-                            </Button>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingMatchGoals(match);
-                              setEditMatchHomeScore(match.homeScore ?? 0);
-                              setEditMatchAwayScore(match.awayScore ?? 0);
-                            }}
-                            className="text-xs gap-1 h-8 border-primary/40 text-primary hover:bg-primary/20 font-bold"
-                            title="Change match goals and recalculate standings"
-                          >
-                            <Trophy className="h-3.5 w-3.5 text-primary" />
-                            <span>Change Goals</span>
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleExtendDeadline(match.id, 24)}
-                            disabled={extendingMatchId === match.id}
-                            className="text-xs gap-1 h-8 border-secondary/40 text-secondary hover:bg-secondary/20"
-                            title="Extend deadline and permit player to upload scores"
-                          >
-                            <Clock className="h-3.5 w-3.5 text-secondary" />
-                            <span>{extendingMatchId === match.id ? "Extending..." : "Extend Deadline"}</span>
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleReopenSubmissions(match.id, 24)}
-                            disabled={reopeningMatchId === match.id}
-                            className="text-xs gap-1 h-8 border-primary/40 text-primary hover:bg-primary/20"
-                            title="Reopen submission and forfeit buttons for both players"
-                          >
-                            <Unlock className="h-3.5 w-3.5 text-primary" />
-                            <span>{reopeningMatchId === match.id ? "Reopening..." : "Reopen Submissions"}</span>
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             );
           })()}

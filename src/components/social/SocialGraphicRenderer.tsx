@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SocialGraphicData, SocialEventCategory } from "@/lib/socialFeedTypes";
 import { getBackgroundByKeyOrPath } from "@/lib/socialBackgroundEngine";
+import { handleAvatarError } from "@/lib/teams";
 
 interface SocialGraphicRendererProps {
   data: SocialGraphicData;
@@ -121,9 +122,7 @@ export default function SocialGraphicRenderer({
                   src={data.homeLogo || "/logo.png"}
                   alt={data.homeGamerTag}
                   className="h-full w-full object-contain filter drop-shadow-md"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(data.homeGamerTag || "Home")}`;
-                  }}
+                  onError={handleAvatarError}
                 />
               </div>
               <div className="space-y-0.5 max-w-full">
@@ -176,9 +175,7 @@ export default function SocialGraphicRenderer({
                   src={data.awayLogo || "/logo.png"}
                   alt={data.awayGamerTag}
                   className="h-full w-full object-contain filter drop-shadow-md"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(data.awayGamerTag || "Away")}`;
-                  }}
+                  onError={handleAvatarError}
                 />
               </div>
               <div className="space-y-0.5 max-w-full">

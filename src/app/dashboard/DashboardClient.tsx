@@ -51,7 +51,7 @@ import EfootballLoader from "@/components/EfootballLoader";
 import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import QuickGuideModal from "@/components/QuickGuideModal";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
-import { getTeamsForDivision, resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { getTeamsForDivision, resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 import type { PlayerDashboardTab } from "@/components/player/player-nav";
 import ChampionsLeagueView from "@/components/competitions/ChampionsLeagueView";
 import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
@@ -435,9 +435,7 @@ function ContinentalGroupStandingsView({
                                     alt={s.player?.realTeam || s.player?.gamerTag || "Team Crest"}
                                     className="w-full h-full object-contain"
                                     loading="lazy"
-                                    onError={(e) => {
-                                      (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(s.player?.gamerTag || "player")}`;
-                                    }}
+                                    onError={handleAvatarError}
                                   />
                                 </div>
                                 <div className="truncate w-32 sm:w-40">
@@ -1799,9 +1797,7 @@ export default function DashboardClient({
                 alt={currentPlayer.realTeam || currentPlayer.gamerTag}
                 className="h-full w-full object-contain"
                 loading="lazy"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
-                }}
+                onError={handleAvatarError}
               />
             ) : (
               <span className="font-black text-xl sm:text-2xl md:text-3xl text-secondary">
@@ -2467,9 +2463,7 @@ export default function DashboardClient({
                                   src={resolvePlayerAvatar(row.player)}
                                   alt=""
                                   className="h-full w-full object-contain"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(row.player?.gamerTag || "player")}`;
-                                  }}
+                                  onError={handleAvatarError}
                                 />
                               </div>
                               <span className="truncate max-w-36 sm:max-w-48">{row.player?.gamerTag}</span>
@@ -2507,9 +2501,7 @@ export default function DashboardClient({
                                   src={resolvePlayerAvatar(myStanding.player)}
                                   alt=""
                                   className="h-full w-full object-contain"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(myStanding.player?.gamerTag || "player")}`;
-                                  }}
+                                  onError={handleAvatarError}
                                 />
                               </div>
                               <span className="truncate max-w-36 sm:max-w-48">{myStanding.player?.gamerTag}</span>
@@ -3028,9 +3020,7 @@ export default function DashboardClient({
                         alt={player.realTeam || player.gamerTag || "Team Crest"}
                         className="w-full h-full object-contain"
                         loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
-                        }}
+                        onError={handleAvatarError}
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -3076,9 +3066,7 @@ export default function DashboardClient({
                         alt={opponent?.realTeam || opponent?.gamerTag || "Opponent Crest"}
                         className="w-full h-full object-contain"
                         loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(opponent?.gamerTag || "opponent")}`;
-                        }}
+                        onError={handleAvatarError}
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -4419,9 +4407,7 @@ export default function DashboardClient({
                             alt={m.homePlayer?.realTeam || m.homePlayer?.gamerTag || "Home"}
                             className="w-full h-full object-contain"
                             loading="lazy"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.homePlayer?.gamerTag || "player")}`;
-                            }}
+                            onError={handleAvatarError}
                           />
                         </div>
                         <span className="text-xs sm:text-sm font-extrabold text-white truncate">{m.homePlayer.gamerTag}</span>
@@ -4439,9 +4425,7 @@ export default function DashboardClient({
                             alt={m.awayPlayer?.realTeam || m.awayPlayer?.gamerTag || "Away"}
                             className="w-full h-full object-contain"
                             loading="lazy"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.awayPlayer?.gamerTag || "player")}`;
-                            }}
+                            onError={handleAvatarError}
                           />
                         </div>
                         <span className="text-xs sm:text-sm font-extrabold text-white truncate">{m.awayPlayer.gamerTag}</span>
@@ -4665,9 +4649,7 @@ export default function DashboardClient({
                               alt={player.realTeam || player.gamerTag || "Team"}
                               className="w-full h-full object-contain"
                               loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.gamerTag || "player")}`;
-                              }}
+                              onError={handleAvatarError}
                             />
                           </div>
                           <div className="min-w-0">
@@ -4709,9 +4691,7 @@ export default function DashboardClient({
                               alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
                               className="w-full h-full object-contain"
                               loading="lazy"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(matchOpponent?.gamerTag || "opponent")}`;
-                              }}
+                              onError={handleAvatarError}
                             />
                           </div>
                           <div className="min-w-0">
@@ -4872,9 +4852,7 @@ export default function DashboardClient({
                         alt={currentPlayer.realTeam || currentPlayer.gamerTag}
                         className="h-full w-full object-contain"
                         loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentPlayer.gamerTag || "player")}`;
-                        }}
+                        onError={handleAvatarError}
                       />
                     ) : (
                       <div className="h-full w-full rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center font-black text-xl sm:text-2xl text-white">

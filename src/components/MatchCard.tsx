@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Tv, Smartphone, Calendar, ShieldAlert, Eye, MessageSquare, Flame } from "lucide-react";
-import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 import { detectDerby } from "@/lib/derbyCore";
 
 interface PlayerInfo {
@@ -175,9 +175,8 @@ export default function MatchCard({ match }: MatchProps) {
                 alt={match.homePlayer?.realTeam || match.homePlayer?.gamerTag}
                 className="h-full w-full object-contain filter drop-shadow-sm"
                 loading="lazy"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.homePlayer?.gamerTag || "player")}`;
-                }}
+                decoding="async"
+                onError={handleAvatarError}
               />
             ) : (
               "HM"
@@ -213,9 +212,8 @@ export default function MatchCard({ match }: MatchProps) {
                 alt={match.awayPlayer?.realTeam || match.awayPlayer?.gamerTag}
                 className="h-full w-full object-contain filter drop-shadow-sm"
                 loading="lazy"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(match.awayPlayer?.gamerTag || "player")}`;
-                }}
+                decoding="async"
+                onError={handleAvatarError}
               />
             ) : (
               "AW"

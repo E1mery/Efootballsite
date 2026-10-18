@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, PanelLeftClose, PanelLeftOpen, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Menu, PanelLeftClose, PanelLeftOpen, RefreshCw, Trophy } from "lucide-react";
 import AdminAlerts, { type AdminAlertItem } from "@/components/admin-alerts";
 import UserAvatarMenu from "@/components/UserAvatarMenu";
 import type { AdminTab } from "@/components/admin/admin-nav";
@@ -65,6 +66,15 @@ export default function AdminTopbar({
         </p>
         <h1 className="truncate text-sm sm:text-base font-bold text-foreground">{title}</h1>
       </div>
+
+      <Link
+        href="/admin/matchday-overview"
+        title="Open Matchday Central & Graphics Hub"
+        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-bold text-foreground transition-colors shrink-0"
+      >
+        <Trophy className="h-4 w-4 text-secondary" />
+        <span>Matchday Hub</span>
+      </Link>
 
       <button
         onClick={onRefresh}

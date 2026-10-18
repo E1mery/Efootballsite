@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { resolvePlayerAvatar, findTeam } from "@/lib/teams";
+import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 
 interface FinalCompetitionData {
   competition: "SUPER_CUP" | "UCL" | "EUROPA";
@@ -326,7 +326,9 @@ export default function AdminFinalsSocialManager({ onRefresh }: AdminFinalsSocia
                           alt={item.meta.title}
                           className="h-full w-full object-contain"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/logo.png";
+                            const target = e.currentTarget as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = "/logo.png";
                           }}
                         />
                       </div>
@@ -365,9 +367,7 @@ export default function AdminFinalsSocialManager({ onRefresh }: AdminFinalsSocia
                               src={match.homePlayer?.avatar || resolvePlayerAvatar(match.homePlayer || undefined)}
                               alt={match.homePlayer?.gamerTag || "Home"}
                               className="h-full w-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
-                              }}
+                              onError={handleAvatarError}
                             />
                           </div>
                           <div className="min-w-0">
@@ -406,9 +406,7 @@ export default function AdminFinalsSocialManager({ onRefresh }: AdminFinalsSocia
                               src={match.awayPlayer?.avatar || resolvePlayerAvatar(match.awayPlayer || undefined)}
                               alt={match.awayPlayer?.gamerTag || "Away"}
                               className="h-full w-full object-contain"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
-                              }}
+                              onError={handleAvatarError}
                             />
                           </div>
                         </div>
@@ -692,7 +690,9 @@ export default function AdminFinalsSocialManager({ onRefresh }: AdminFinalsSocia
                       alt={comp.meta.title}
                       className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "/images/home-stadium-bg.jpg";
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "/images/home-stadium-bg.jpg";
                       }}
                     />
 
@@ -747,9 +747,7 @@ export default function AdminFinalsSocialManager({ onRefresh }: AdminFinalsSocia
                                 src={match.homePlayer?.avatar || resolvePlayerAvatar(match.homePlayer || undefined)}
                                 alt={match.homePlayer?.gamerTag || "Home"}
                                 className="h-full w-full object-contain"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
-                                }}
+                                onError={handleAvatarError}
                               />
                             </div>
                             <p className="font-black text-xs text-white truncate max-w-full">
@@ -788,9 +786,7 @@ export default function AdminFinalsSocialManager({ onRefresh }: AdminFinalsSocia
                                 src={match.awayPlayer?.avatar || resolvePlayerAvatar(match.awayPlayer || undefined)}
                                 alt={match.awayPlayer?.gamerTag || "Away"}
                                 className="h-full w-full object-contain"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
-                                }}
+                                onError={handleAvatarError}
                               />
                             </div>
                             <p className="font-black text-xs text-white truncate max-w-full">
