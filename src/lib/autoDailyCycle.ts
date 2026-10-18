@@ -5,6 +5,7 @@ import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
 import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 import { recalculateStandings } from "@/lib/recalculateStandings";
+import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
 
 export interface DailyCycleResult {
   advanced: boolean;
@@ -18,19 +19,21 @@ export interface DailyCycleResult {
  * Processes unplayed scheduled matches whose deadline has passed (or for a specified round).
  * Sets them to 0-0 Draw, awards 1 point each in standings, and adds 1 missed match to both players.
  */
-export async function processOverdueUnplayedMatches(options: { round?: string } = {}): Promise<{
+export async function processOverdueUnplayedMatches(options: { round?: string; force?: boolean } = {}): Promise<{
   processedMatchesCount: number;
   processedMatchIds: string[];
 }> {
   const now = new Date();
-  const roundFilter = options.round ? { round: options.round } : undefined;
+  const roundFilter = options.round ? { round: options.round } : {};
+  const deadlineFilter = options.force ? {} : { deadlineDate: { lte: now } };
 
   // Find all scheduled matches whose deadline has passed (or matching the specified round)
   // Exclude matches on hold for replacement (WAITING_FOR_SUB) or replacement backlog
   const expiredMatches = await prisma.match.findMany({
     where: {
       status: "SCHEDULED",
-      ...(roundFilter || { deadlineDate: { lte: now } }),
+      ...roundFilter,
+      ...deadlineFilter,
       AND: [
         {
           OR: [
@@ -72,10 +75,10 @@ export async function processOverdueUnplayedMatches(options: { round?: string } 
       affectedDivisions.set(divKey, { tournamentId: match.tournamentId, division: divToRecalc });
     }
 
-    // Increment consecutiveMissed count for both players (disqualifying if >= 3)
+    // Compute accurate consecutiveMissed count for both players (disqualifying if >= 3)
     for (const player of [match.homePlayer, match.awayPlayer]) {
       const freshPlayer = (await prisma.player.findUnique({ where: { id: player.id } })) || player;
-      const newMissed = (freshPlayer.consecutiveMissed || 0) + 1;
+      const newMissed = await computeConsecutiveMissedForPlayer(freshPlayer.id);
       const isDisqualified = newMissed >= 3;
 
       await prisma.player.update({
@@ -97,6 +100,28 @@ export async function processOverdueUnplayedMatches(options: { round?: string } 
           isDisqualified,
         },
       });
+
+      if (newMissed === 2 && !isDisqualified) {
+        // Private warning notification directly to the player's portal inbox
+        const existingWarning = await prisma.announcement.findFirst({
+          where: {
+            targetPlayerId: freshPlayer.id,
+            title: { contains: "DISCIPLINARY WARNING: 2/3 Missed Matches" },
+          },
+        });
+
+        if (!existingWarning) {
+          await prisma.announcement.create({
+            data: {
+              title: `⚠️ DISCIPLINARY WARNING: 2/3 Missed Matches`,
+              content: `Hello @${freshPlayer.gamerTag}. You have missed 2 consecutive scheduled fixtures without administrative approval. This is your FINAL WARNING. EFRL regulations mandate immediate disqualification and roster replacement upon reaching 3 missed matches. Please ensure you play your next fixture and submit results before the deadline.`,
+              type: "INDIVIDUAL",
+              targetPlayerId: freshPlayer.id,
+              isPinned: true,
+            },
+          });
+        }
+      }
 
       if (isDisqualified) {
         // Private notification to suspended player
@@ -219,7 +244,7 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     // DEADLINE EXPIRED (Past 12:00 AM) or FORCE ADVANCE: Execute automatic transition
 
     // 1. Process unplayed matches for the ending matchday
-    const roundExpired = await processOverdueUnplayedMatches({ round: previousRoundName });
+    const roundExpired = await processOverdueUnplayedMatches({ round: previousRoundName, force });
     const totalProcessed = overdueResult.processedMatchesCount + roundExpired.processedMatchesCount;
 
     // Process any REPLACEMENT_BACKLOG matches whose 48-hour deadline has expired

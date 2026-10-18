@@ -2533,7 +2533,34 @@ export default function DashboardClient({
 
         return (
           <div className="space-y-8">
-          {/* CONTINENTAL QUALIFICATION & ELIMINATION STATUS BANNER */}
+            {/* DISCIPLINARY FINAL WARNING BANNER (2 MISSED MATCHES) - EXCLUSIVE TO THIS PLAYER'S PORTAL */}
+            {((currentPlayer?.consecutiveMissed || player.consecutiveMissed || 0) >= 2 || currentPlayer?.status === "WARNING" || player.status === "WARNING") && !isSuspended && (
+              <div className="rounded-3xl border border-destructive/40 bg-gradient-to-r from-destructive/20 via-background to-card p-5 sm:p-6 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4 min-w-0">
+                  <div className="p-3 rounded-2xl border border-destructive/40 bg-destructive/20 text-destructive shrink-0 mt-0.5 sm:mt-0">
+                    <AlertTriangle className="h-6 w-6 animate-pulse" />
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-xs uppercase text-destructive font-mono">
+                        Disciplinary Alert ({currentPlayer?.consecutiveMissed ?? player.consecutiveMissed}/3 Missed Matches)
+                      </span>
+                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-destructive text-white">
+                        FINAL WARNING
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white">
+                      You Are 1 Missed Match Away From Immediate Disqualification
+                    </h3>
+                    <p className="text-xs text-foreground leading-relaxed max-w-3xl">
+                      You have missed 2 consecutive scheduled fixtures without administrative approval. EFRL rule mandates immediate disqualification and roster replacement upon reaching 3 missed matches. Please play your scheduled fixture and submit your score before the deadline.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CONTINENTAL QUALIFICATION & ELIMINATION STATUS BANNER */}
           {continentalStatus && continentalStatus.title && (
             <div
               className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-lg ${

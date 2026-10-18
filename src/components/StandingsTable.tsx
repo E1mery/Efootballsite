@@ -384,17 +384,12 @@ export default function StandingsTable({
                               </span>
                             )}
 
-                            {missed >= 3 ? (
+                            {missed >= 3 && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-black bg-destructive/20 text-destructive border border-destructive/40 animate-pulse">
                                 <ShieldAlert className="h-3 w-3" />
                                 3/3 Missed (Disqualified)
                               </span>
-                            ) : missed === 2 ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold bg-secondary/20 text-secondary border border-secondary/40">
-                                <AlertTriangle className="h-3 w-3" />
-                                2/3 Missed Warning
-                              </span>
-                            ) : null}
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">

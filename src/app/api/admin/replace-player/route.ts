@@ -129,6 +129,14 @@ export async function POST(req: Request) {
         },
       });
 
+      await prisma.standing.updateMany({
+        where: { playerId: reservePlayer.id },
+        data: {
+          consecutiveMissed: 0,
+          isDisqualified: false,
+        },
+      });
+
       // 4. Handle outgoing player
       if (outgoingAction === "MOVE_TO_RESERVE") {
         await prisma.player.update({
@@ -178,6 +186,14 @@ export async function POST(req: Request) {
           consecutiveMissed: 0,
           status: "ACTIVE",
           disqualificationReason: null,
+        },
+      });
+
+      await prisma.standing.updateMany({
+        where: { playerId: targetPlayer.id },
+        data: {
+          consecutiveMissed: 0,
+          isDisqualified: false,
         },
       });
 

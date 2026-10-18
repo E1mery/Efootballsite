@@ -8,6 +8,7 @@ import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 import { syncSystemNewsToCarousel } from "@/lib/systemNewsService";
 import { ensureDerbyTable } from "@/lib/derbyService";
+import { syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function AdminPage() {
   await ensureNewsTable();
   await ensureDerbyTable();
   await syncSystemNewsToCarousel();
+  await syncPlayerDiscipline();
 
   const [
     matches,

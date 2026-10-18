@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
+import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
 
 export async function POST(req: Request) {
   try {
@@ -478,8 +479,8 @@ export async function POST(req: Request) {
           },
         });
 
-        // Increment accused player's consecutive missed matches
-        const newMissed = claim.accusedPlayer.consecutiveMissed + 1;
+        // Compute accused player's accurate consecutive missed matches
+        const newMissed = await computeConsecutiveMissedForPlayer(claim.accusedPlayerId);
         const isDisq = newMissed >= 3;
 
         await prisma.player.update({
@@ -501,6 +502,26 @@ export async function POST(req: Request) {
             isDisqualified: isDisq,
           },
         });
+
+        if (newMissed === 2 && !isDisq) {
+          const existingWarning = await prisma.announcement.findFirst({
+            where: {
+              targetPlayerId: claim.accusedPlayerId,
+              title: { contains: "DISCIPLINARY WARNING: 2/3 Missed Matches" },
+            },
+          });
+          if (!existingWarning) {
+            await prisma.announcement.create({
+              data: {
+                title: `⚠️ DISCIPLINARY WARNING: 2/3 Missed Matches`,
+                content: `Hello @${claim.accusedPlayer.gamerTag}. You have reached 2 missed/forfeited fixtures without administrative approval. This is your FINAL WARNING. EFRL regulations mandate immediate disqualification and roster replacement upon reaching 3 missed matches. Please ensure you play your next fixture and submit results before the deadline.`,
+                type: "INDIVIDUAL",
+                targetPlayerId: claim.accusedPlayerId,
+                isPinned: true,
+              },
+            });
+          }
+        }
 
         // Reset claimant's consecutive missed counter since they fulfilled their match obligation
         await prisma.player.update({
