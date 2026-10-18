@@ -687,7 +687,11 @@ export default function DashboardClient({
 
   const replacementBacklogMatches = useMemo(() => {
     return (allPlayerMatches || []).filter(
-      (m: any) => m.notes?.includes("REPLACEMENT_BACKLOG") && m.status === "SCHEDULED"
+      (m: any) =>
+        (m.notes?.includes("REPLACEMENT_BACKLOG") ||
+          m.notes?.includes("ADMIN_REOPENED") ||
+          m.allowLateSubmission) &&
+        m.status === "SCHEDULED"
     );
   }, [allPlayerMatches]);
 
@@ -1408,9 +1412,8 @@ export default function DashboardClient({
 
   const sharedForfeit =
     activeMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
-    activeMatch?.forfeitClaims?.[0] ||
     null;
-  const hasClaimedForfeit = Boolean(sharedForfeit);
+  const hasClaimedForfeit = Boolean(sharedForfeit) && !isAdminPermissionGranted;
 
   const submitterGamerTag =
     sharedSubmission?.submittedByPlayer?.gamerTag ||
@@ -5209,9 +5212,16 @@ export default function DashboardClient({
       {/* MODAL 1: UPLOAD MATCH RESULT SCREENSHOT */}
       {showResultModal && (() => {
         const modalMatch = actionMatch || activeMatch;
-        const modalSub =
-          modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
-          null;
+        const isModalReopened = Boolean(
+          modalMatch?.allowLateSubmission ||
+          modalMatch?.notes?.includes("ADMIN_REOPENED") ||
+          modalMatch?.notes?.includes("REOPEN") ||
+          isAdminPermissionGranted
+        );
+        const modalSub = isModalReopened
+          ? null
+          : modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
+            null;
         const modalHasSubmittedResult = Boolean(modalSub);
         const modalSubmitterGamerTag =
           modalSub?.submittedByPlayer?.gamerTag ||
@@ -5221,10 +5231,10 @@ export default function DashboardClient({
             ? modalMatch?.awayPlayer?.gamerTag
             : modalMatch?.homePlayer?.gamerTag || "Opponent");
 
-        const modalForfeit =
-          modalMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
-          modalMatch?.forfeitClaims?.[0] ||
-          null;
+        const modalForfeit = isModalReopened
+          ? null
+          : modalMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
+            null;
         const modalHasClaimedForfeit = Boolean(modalForfeit);
         const modalClaimantGamerTag =
           modalForfeit?.claimantPlayer?.gamerTag ||
@@ -5237,9 +5247,7 @@ export default function DashboardClient({
         const isModalDeadlineExpired = Boolean(
           modalMatch?.deadlineDate &&
           new Date(modalMatch.deadlineDate).getTime() <= Date.now() &&
-          !modalMatch.allowLateSubmission &&
-          !modalMatch.notes?.includes("ADMIN_REOPENED") &&
-          !isAdminPermissionGranted
+          !isModalReopened
         );
 
         return (
@@ -5585,9 +5593,16 @@ export default function DashboardClient({
       {/* MODAL 2: CLAIM OPPONENT NO-SHOW / FORFEIT */}
       {showForfeitModal && (() => {
         const modalMatch = actionMatch || activeMatch;
-        const modalSub =
-          modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
-          null;
+        const isModalReopened = Boolean(
+          modalMatch?.allowLateSubmission ||
+          modalMatch?.notes?.includes("ADMIN_REOPENED") ||
+          modalMatch?.notes?.includes("REOPEN") ||
+          isAdminPermissionGranted
+        );
+        const modalSub = isModalReopened
+          ? null
+          : modalMatch?.submissions?.find((s: any) => s.status !== "REJECTED" && s.status !== "REPLACED") ||
+            null;
         const modalHasSubmittedResult = Boolean(modalSub);
         const modalSubmitterGamerTag =
           modalSub?.submittedByPlayer?.gamerTag ||
@@ -5597,10 +5612,10 @@ export default function DashboardClient({
             ? modalMatch?.awayPlayer?.gamerTag
             : modalMatch?.homePlayer?.gamerTag || "Opponent");
 
-        const modalForfeit =
-          modalMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
-          modalMatch?.forfeitClaims?.[0] ||
-          null;
+        const modalForfeit = isModalReopened
+          ? null
+          : modalMatch?.forfeitClaims?.find((f: any) => f.status !== "REJECTED") ||
+            null;
         const modalHasClaimedForfeit = Boolean(modalForfeit);
         const modalClaimantGamerTag =
           modalForfeit?.claimantPlayer?.gamerTag ||
@@ -5613,20 +5628,13 @@ export default function DashboardClient({
         const isModalForfeitDeadlineExpired = Boolean(
           modalMatch?.deadlineDate &&
           new Date(modalMatch.deadlineDate).getTime() <= Date.now() &&
-          !modalMatch.allowLateSubmission &&
-          !modalMatch.notes?.includes("ADMIN_REOPENED") &&
-          !isAdminPermissionGranted
+          !isModalReopened
         );
 
         const modalDeadline = modalMatch?.deadlineDate
           ? new Date(modalMatch.deadlineDate).getTime()
           : 0;
         const modalTimeUntilDeadline = modalDeadline ? modalDeadline - Date.now() : 0;
-        const isModalReopened = Boolean(
-          modalMatch?.allowLateSubmission ||
-          modalMatch?.notes?.includes("ADMIN_REOPENED") ||
-          isAdminPermissionGranted
-        );
         const isModalForfeitWindowOpen = Boolean(
           isModalReopened ||
           (modalDeadline > 0 &&

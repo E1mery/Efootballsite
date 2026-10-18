@@ -195,12 +195,16 @@ export default async function DashboardPage({
     // 0. PRIORITY BACKLOG REPLACEMENT OR REOPENED MATCH: If player has an open backlog or reopened match, prioritize it!
     const priorityBacklogMatch = await prisma.match.findFirst({
       where: {
-        OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }],
-        status: { in: ["SCHEDULED", "LIVE"] },
-        OR: [
-          { notes: { contains: "REPLACEMENT_BACKLOG" } },
-          { notes: { contains: "ADMIN_REOPENED" } },
-          { allowLateSubmission: true },
+        AND: [
+          { OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }] },
+          { status: { in: ["SCHEDULED", "LIVE"] } },
+          {
+            OR: [
+              { notes: { contains: "REPLACEMENT_BACKLOG" } },
+              { notes: { contains: "ADMIN_REOPENED" } },
+              { allowLateSubmission: true },
+            ],
+          },
         ],
       },
       include: matchInclude,
