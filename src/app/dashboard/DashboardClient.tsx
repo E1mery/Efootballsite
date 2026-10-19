@@ -1640,6 +1640,7 @@ export default function DashboardClient({
   // Handle Forfeit Submission
   const handleSubmitForfeit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingForfeit) return;
     if (uploadingForfeit) {
       alert("Proof screenshot is currently uploading to Cloudflare R2 storage. Please wait a few seconds.");
       return;

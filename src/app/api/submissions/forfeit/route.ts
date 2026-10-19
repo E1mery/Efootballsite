@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     if (!user || !user.player) {
       return NextResponse.json({ error: "Player profile not found" }, { status: 404 });
     }
+    const claimantPlayerId = user.player.id;
 
     const body = await req.json();
     const { matchId, proofScreenshotUrl, reason } = body;
@@ -180,9 +181,9 @@ export async function POST(req: Request) {
     }
 
     // If match is already completed
-    if ((match.status === "FINISHED" || match.status === "FORFEIT") && !isReopenedByAdmin) {
+    if (match.status === "FINISHED" || match.status === "FORFEIT") {
       return NextResponse.json(
-        { error: "This match is already finalized. Submissions are closed unless reopened by the Commissioner." },
+        { error: "This match is already finalized. Submissions are closed." },
         { status: 400 }
       );
     }
@@ -200,24 +201,40 @@ export async function POST(req: Request) {
       );
     }
 
-    // If either player has already lodged a forfeit claim
-    if (match.forfeitClaims.length > 0 && !isReopenedByAdmin) {
-      const activeClaim = match.forfeitClaims[0];
-      const claimant = activeClaim.claimantPlayer?.gamerTag || "an athlete";
+    // STRICT ANTI-DUPLICATION: Check if any forfeit claim is already PENDING for this fixture
+    const activePendingClaim = await prisma.forfeitClaim.findFirst({
+      where: {
+        matchId: match.id,
+        status: "PENDING",
+      },
+      include: { claimantPlayer: true },
+    });
+
+    if (activePendingClaim) {
+      const claimant = activePendingClaim.claimantPlayer?.gamerTag || "an athlete";
       return NextResponse.json(
         {
-          error: `A forfeit claim has already been lodged by @${claimant}. The upload window is closed for both players while under league arbitration.`,
+          error: `A forfeit claim has already been lodged by @${claimant} and is currently awaiting administrator decision. Additional claims cannot be filed.`,
         },
         { status: 400 }
       );
     }
 
-    // If reopened by admin and has prior claims, mark them replaced
-    if (isReopenedByAdmin && match.forfeitClaims.length > 0) {
-      await prisma.forfeitClaim.updateMany({
-        where: { matchId: match.id, status: { in: ["PENDING", "APPROVED"] } },
-        data: { status: "REJECTED", adminNotes: "Superseded by reopened claim" },
-      });
+    // Check if an approved forfeit claim already exists
+    const activeApprovedClaim = await prisma.forfeitClaim.findFirst({
+      where: {
+        matchId: match.id,
+        status: "APPROVED",
+      },
+    });
+
+    if (activeApprovedClaim) {
+      return NextResponse.json(
+        {
+          error: "A 3-0 forfeit walkover has already been approved and recorded for this fixture.",
+        },
+        { status: 400 }
+      );
     }
 
     const accusedPlayerId =
@@ -225,15 +242,32 @@ export async function POST(req: Request) {
 
     const finalProofScreenshotUrl = await ensureR2FileUrl(proofScreenshotUrl, "forfeits");
 
-    const claim = await prisma.forfeitClaim.create({
-      data: {
-        matchId,
-        claimantPlayerId: user.player.id,
-        accusedPlayerId,
-        proofScreenshotUrl: finalProofScreenshotUrl,
-        reason,
-        status: "PENDING",
-      },
+    // Atomic creation with concurrent lock check
+    const claim = await prisma.$transaction(async (tx) => {
+      const concurrentPending = await tx.forfeitClaim.findFirst({
+        where: { matchId: match.id, status: "PENDING" },
+      });
+      if (concurrentPending) {
+        throw new Error("A forfeit claim has already been lodged for this fixture.");
+      }
+
+      if (isReopenedByAdmin && match.forfeitClaims.length > 0) {
+        await tx.forfeitClaim.updateMany({
+          where: { matchId: match.id, status: { in: ["PENDING", "APPROVED"] } },
+          data: { status: "REJECTED", adminNotes: "Superseded by reopened claim" },
+        });
+      }
+
+      return tx.forfeitClaim.create({
+        data: {
+          matchId,
+          claimantPlayerId,
+          accusedPlayerId,
+          proofScreenshotUrl: finalProofScreenshotUrl,
+          reason,
+          status: "PENDING",
+        },
+      });
     });
 
     // Notify accused player that a forfeit claim has been submitted

@@ -992,8 +992,31 @@ export default function AdminClient({
 
   // Forfeits history & screenshot processing
   const allForfeitItems = useMemo(() => {
-    const claimMatchIds = new Set((allForfeits || []).map((f: any) => f.matchId));
-    const items = [...(allForfeits || [])];
+    // Deduplicate claims per matchId (prioritize APPROVED, then PENDING, then latest REJECTED)
+    const matchClaimMap = new Map<string, any>();
+    for (const c of allForfeits || []) {
+      const matchId = c.matchId;
+      if (!matchId) continue;
+      const existing = matchClaimMap.get(matchId);
+      if (!existing) {
+        matchClaimMap.set(matchId, c);
+      } else {
+        if (existing.status !== "APPROVED" && c.status === "APPROVED") {
+          matchClaimMap.set(matchId, c);
+        } else if (existing.status === "REJECTED" && c.status === "PENDING") {
+          matchClaimMap.set(matchId, c);
+        } else if (
+          existing.status === c.status &&
+          new Date(c.createdAt).getTime() > new Date(existing.createdAt).getTime()
+        ) {
+          matchClaimMap.set(matchId, c);
+        }
+      }
+    }
+
+    const deduplicatedClaims = Array.from(matchClaimMap.values());
+    const claimMatchIds = new Set(deduplicatedClaims.map((f: any) => f.matchId));
+    const items = [...deduplicatedClaims];
 
     // Any matches with status === "FORFEIT" that have screenshotUrl and not in claims
     const forfeitMatchesWithoutClaims = (matches || []).filter(

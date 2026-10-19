@@ -236,7 +236,15 @@ export default async function AdminPage() {
     };
   });
 
-  const pendingForfeits = allForfeitClaims.filter((c: any) => c.status === "PENDING");
+  // Deduplicate and filter pending forfeit claims: only active, unfinalized fixtures with unique matchIds
+  const seenPendingMatches = new Set<string>();
+  const pendingForfeits = allForfeitClaims.filter((c: any) => {
+    if (c.status !== "PENDING") return false;
+    if (c.match?.status === "FINISHED" || c.match?.status === "FORFEIT") return false;
+    if (seenPendingMatches.has(c.matchId)) return false;
+    seenPendingMatches.add(c.matchId);
+    return true;
+  });
 
   return (
     <AdminShell

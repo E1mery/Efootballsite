@@ -11,6 +11,7 @@ export interface DuplicateReport {
   deletedPlayers: string[];
   standardizedPhones: number;
   deletedDuplicateStandings: number;
+  deletedDuplicateForfeits: number;
 }
 
 export async function verifyAndCleanDuplicates(dryRun = false): Promise<DuplicateReport> {
@@ -23,6 +24,7 @@ export async function verifyAndCleanDuplicates(dryRun = false): Promise<Duplicat
     deletedPlayers: [],
     standardizedPhones: 0,
     deletedDuplicateStandings: 0,
+    deletedDuplicateForfeits: 0,
   };
 
   // 1. Fetch all users and players with full activity relations
@@ -241,6 +243,59 @@ export async function verifyAndCleanDuplicates(dryRun = false): Promise<Duplicat
           await prisma.standing.delete({ where: { id: dup.id } }).catch(() => {});
         }
         report.deletedDuplicateStandings++;
+      }
+    }
+  }
+
+  // 6. Check and deduplicate Forfeit Claims and close lingering pending claims on finished fixtures
+  const allMatchesWithForfeits = await prisma.match.findMany({
+    include: {
+      forfeitClaims: { orderBy: { createdAt: "desc" } },
+    },
+  });
+
+  for (const m of allMatchesWithForfeits) {
+    // If match is finished or forfeit, close any pending claims
+    if (m.status === "FINISHED" || m.status === "FORFEIT") {
+      const pendingClaims = m.forfeitClaims.filter((c) => c.status === "PENDING");
+      for (const pending of pendingClaims) {
+        console.log(`[Deduplicate] Closing lingering pending forfeit claim ${pending.id} for concluded match ${m.id}`);
+        if (!dryRun) {
+          await prisma.forfeitClaim.update({
+            where: { id: pending.id },
+            data: {
+              status: "REJECTED",
+              adminNotes: `Closed automatically: Match is already concluded (${m.status}).`,
+            },
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // Deduplicate multiple claims for the same fixture & claimant
+    if (m.forfeitClaims.length > 1) {
+      const byClaimant = new Map<string, typeof m.forfeitClaims>();
+      for (const c of m.forfeitClaims) {
+        if (!byClaimant.has(c.claimantPlayerId)) {
+          byClaimant.set(c.claimantPlayerId, []);
+        }
+        byClaimant.get(c.claimantPlayerId)!.push(c);
+      }
+
+      for (const [claimantId, claimantClaims] of byClaimant.entries()) {
+        if (claimantClaims.length > 1) {
+          const approved = claimantClaims.find((c) => c.status === "APPROVED");
+          const keeper = approved || claimantClaims[0];
+          const dups = claimantClaims.filter((c) => c.id !== keeper.id);
+
+          console.log(`[Deduplicate] Match ${m.id}: Found ${dups.length} duplicate claims for claimant ${claimantId}`);
+          for (const dup of dups) {
+            if (!dryRun) {
+              await prisma.forfeitClaim.delete({ where: { id: dup.id } }).catch(() => {});
+            }
+            report.deletedDuplicateForfeits++;
+          }
+        }
       }
     }
   }

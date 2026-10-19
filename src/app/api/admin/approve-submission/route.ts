@@ -88,11 +88,21 @@ export async function POST(req: Request) {
             aggregateHomeScore: officialAggHome,
             aggregateAwayScore: officialAggAway,
             status: "FINISHED",
+            allowLateSubmission: false,
             screenshotUrl: sub.screenshotUrl,
             leg2ScreenshotUrl: sub.leg2ScreenshotUrl,
             notes: adminNotes || (officialLeg2Home !== null
               ? `Verified 2-Leg Match (Leg 1: ${officialHomeScore}-${officialAwayScore}, Leg 2: ${officialLeg2Home}-${officialLeg2Away}, Agg: ${officialAggHome}-${officialAggAway})`
               : `Verified by Admin Office (${officialHomeScore} - ${officialAwayScore})`),
+          },
+        });
+
+        // Auto-close any pending forfeit claims for this match as it is now officially finished
+        await prisma.forfeitClaim.updateMany({
+          where: { matchId: sub.matchId, status: "PENDING" },
+          data: {
+            status: "REJECTED",
+            adminNotes: `Match played and verified (${officialHomeScore} - ${officialAwayScore}). Forfeit claim closed.`,
           },
         });
 
@@ -356,7 +366,17 @@ export async function POST(req: Request) {
           aggregateHomeScore: officialAggHome,
           aggregateAwayScore: officialAggAway,
           status: "FINISHED",
+          allowLateSubmission: false,
           notes: notes || `Direct score entry by Admin Office (${homeScore} - ${awayScore})`,
+        },
+      });
+
+      // Auto-close any pending forfeit claims for this match
+      await prisma.forfeitClaim.updateMany({
+        where: { matchId, status: "PENDING" },
+        data: {
+          status: "REJECTED",
+          adminNotes: `Direct score registered (${homeScore} - ${awayScore}). Forfeit claim closed.`,
         },
       });
 
@@ -474,8 +494,22 @@ export async function POST(req: Request) {
             homeScore,
             awayScore,
             status: "FORFEIT",
+            allowLateSubmission: false,
             screenshotUrl: claim.proofScreenshotUrl,
             notes: `3-0 Walkover awarded to ${claim.claimantPlayer.gamerTag}. Opponent ${claim.accusedPlayer.gamerTag} forfeited (unresponsive).`,
+          },
+        });
+
+        // Automatically resolve any other pending forfeit claims for this match
+        await prisma.forfeitClaim.updateMany({
+          where: {
+            matchId: claim.matchId,
+            id: { not: claimId },
+            status: "PENDING",
+          },
+          data: {
+            status: "REJECTED",
+            adminNotes: `Superseded: 3-0 forfeit walkover already awarded via claim ${claimId}`,
           },
         });
 
@@ -563,6 +597,20 @@ export async function POST(req: Request) {
         await prisma.forfeitClaim.update({
           where: { id: claimId },
           data: { status: "REJECTED", adminNotes },
+        });
+
+        // Also reject any duplicate pending claims from the same claimant for this fixture
+        await prisma.forfeitClaim.updateMany({
+          where: {
+            matchId: claim.matchId,
+            claimantPlayerId: claim.claimantPlayerId,
+            id: { not: claimId },
+            status: "PENDING",
+          },
+          data: {
+            status: "REJECTED",
+            adminNotes: adminNotes || "Claim rejected by League Administrator",
+          },
         });
 
         return NextResponse.json({

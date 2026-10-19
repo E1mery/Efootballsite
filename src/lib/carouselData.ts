@@ -6,7 +6,7 @@ import {
   formatRwandanTime,
   formatRwandanDateTime,
 } from "@/lib/rwandanTime";
-import { resolvePlayerAvatar } from "@/lib/teams";
+import { findTeam, resolvePlayerAvatar } from "@/lib/teams";
 import { enrichAndSyncHallOfFameEntries } from "@/lib/hallOfFameStatsService";
 import { getSuperCupOverview } from "@/lib/superCupService";
 import type { CarouselSlide } from "@/components/NewsTrendingCarousel";
@@ -745,15 +745,26 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           });
         }
 
-        if (motdMatch && motdMatch.homePlayer && motdMatch.awayPlayer) {
+        const homePlayer = motdMatch?.homePlayer || (motdMatch?.homePlayerId ? await prisma.player.findUnique({ where: { id: motdMatch.homePlayerId } }) : null);
+        const awayPlayer = motdMatch?.awayPlayer || (motdMatch?.awayPlayerId ? await prisma.player.findUnique({ where: { id: motdMatch.awayPlayerId } }) : null);
+
+        if (motdMatch && homePlayer && awayPlayer) {
+          const homeGamerTag = homePlayer.gamerTag?.trim() || "Home Contender";
+          const awayGamerTag = awayPlayer.gamerTag?.trim() || "Away Contender";
+          const homeTeam = findTeam(homePlayer.realTeam);
+          const awayTeam = findTeam(awayPlayer.realTeam);
+          const homeScore = motdMatch.homeScore ?? 0;
+          const awayScore = motdMatch.awayScore ?? 0;
+          const winner = homeScore > awayScore ? homePlayer : awayScore > homeScore ? awayPlayer : null;
+
           return {
             id: item.id,
             type: "MOTD_RESULT",
             badge: "MOTD FINAL RESULT",
             category: "Match",
             tabLabel: "MOTD Result",
-            title: item.title,
-            subtitle: "Match of the Day Concluded",
+            title: `${homeGamerTag} ${homeScore} - ${awayScore} ${awayGamerTag}`,
+            subtitle: winner ? `@${winner.gamerTag} wins the Match of the Day showdown!` : "Match of the Day ends in a draw!",
             description: item.description,
             featuredImage: resolveSlideFeaturedImage(item),
             buttonText: item.buttonText || "Fixture Archive",
@@ -765,10 +776,15 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
               matchId: motdMatch.id,
               division: motdMatch.division,
               round: motdMatch.round,
-              homePlayer: motdMatch.homePlayer,
-              awayPlayer: motdMatch.awayPlayer,
-              homeScore: motdMatch.homeScore ?? 0,
-              awayScore: motdMatch.awayScore ?? 0,
+              homePlayer,
+              awayPlayer,
+              homeGamerTag,
+              awayGamerTag,
+              homeTeam,
+              awayTeam,
+              homeScore,
+              awayScore,
+              winner,
             },
           };
         }
@@ -815,15 +831,88 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
           });
         }
 
-        if (motdMatch && motdMatch.homePlayer && motdMatch.awayPlayer) {
+        const homePlayer = motdMatch?.homePlayer || (motdMatch?.homePlayerId ? await prisma.player.findUnique({ where: { id: motdMatch.homePlayerId } }) : null);
+        const awayPlayer = motdMatch?.awayPlayer || (motdMatch?.awayPlayerId ? await prisma.player.findUnique({ where: { id: motdMatch.awayPlayerId } }) : null);
+
+        if (motdMatch && homePlayer && awayPlayer) {
+          // Fetch standings for division to determine rank, points, and form
+          const standings = await prisma.standing.findMany({
+            where: { division: motdMatch.division },
+            orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+            include: { player: true },
+          });
+
+          const homeStandingIdx = standings.findIndex((s) => s.playerId === motdMatch.homePlayerId);
+          const awayStandingIdx = standings.findIndex((s) => s.playerId === motdMatch.awayPlayerId);
+          const homeStanding = homeStandingIdx >= 0 ? standings[homeStandingIdx] : null;
+          const awayStanding = awayStandingIdx >= 0 ? standings[awayStandingIdx] : null;
+          const homeRank = homeStandingIdx >= 0 ? homeStandingIdx + 1 : 1;
+          const awayRank = awayStandingIdx >= 0 ? awayStandingIdx + 1 : 2;
+          const homePoints = homeStanding?.points ?? 0;
+          const awayPoints = awayStanding?.points ?? 0;
+
+          const parseForm = (formStr?: string | null) =>
+            (formStr || "")
+              .split(",")
+              .map((f: string) => f.trim().toUpperCase())
+              .filter(Boolean)
+              .slice(-5);
+          const homeForm = parseForm(homeStanding?.form);
+          const awayForm = parseForm(awayStanding?.form);
+
+          const homeGamerTag = homePlayer.gamerTag?.trim() || "Home Contender";
+          const awayGamerTag = awayPlayer.gamerTag?.trim() || "Away Contender";
+          const homeTeam = findTeam(homePlayer.realTeam);
+          const awayTeam = findTeam(awayPlayer.realTeam);
+
+          const { detectDerby } = await import("@/lib/derbyService");
+          const detected = (motdMatch as any).isDerby && (motdMatch as any).derbyName
+            ? { name: (motdMatch as any).derbyName }
+            : detectDerby(homePlayer, awayPlayer);
+          const derbyName = (motdMatch as any).derbyName || detected?.name || null;
+
+          const motdHeadline = derbyName
+            ? `${derbyName} • Historic Rivalry Showdown`
+            : homeRank <= 2 && awayRank <= 2
+            ? `Top of the Table Blockbuster (#${homeRank} vs #${awayRank})`
+            : homeRank <= 4 && awayRank <= 4
+            ? `Top 4 Battle (#${homeRank} vs #${awayRank})`
+            : `${motdMatch.division} Showdown (#${homeRank} vs #${awayRank})`;
+
+          const kickoffDate = motdMatch.matchDate;
+          const formattedKickoffDate = kickoffDate
+            ? formatRwandanDate(kickoffDate, { weekday: "short", month: "short", day: "numeric" })
+            : null;
+          const formattedKickoffTime = kickoffDate ? formatRwandanTime(kickoffDate) : null;
+          const formattedKickoffFull = formattedKickoffDate && formattedKickoffTime
+            ? `${formattedKickoffDate} • ${formattedKickoffTime} (CAT)`
+            : "24-Hour Cycle Active";
+
+          let pollStats = { totalVotes: 0, homeVotes: 0, drawVotes: 0, awayVotes: 0, homePct: 45, drawPct: 15, awayPct: 40 };
+          try {
+            const votes = await prisma.motdPollVote.findMany({
+              where: { matchId: motdMatch.id },
+            });
+            const total = votes.length;
+            if (total > 0) {
+              const hVotes = votes.filter((v) => v.prediction === "HOME").length;
+              const dVotes = votes.filter((v) => v.prediction === "DRAW").length;
+              const aVotes = votes.filter((v) => v.prediction === "AWAY").length;
+              const hPct = Math.round((hVotes / total) * 100);
+              const dPct = Math.round((dVotes / total) * 100);
+              const aPct = Math.max(0, 100 - hPct - dPct);
+              pollStats = { totalVotes: total, homeVotes: hVotes, drawVotes: dVotes, awayVotes: aVotes, homePct: hPct, drawPct: dPct, awayPct: aPct };
+            }
+          } catch {}
+
           return {
             id: item.id,
             type: "MOTD",
-            badge: "MATCH OF THE DAY",
+            badge: derbyName ? `${derbyName.toUpperCase()} • MOTD` : "MATCH OF THE DAY",
             category: "Match",
             tabLabel: "Match of the Day",
-            title: item.title,
-            subtitle: item.description,
+            title: `${homeGamerTag} vs ${awayGamerTag}`,
+            subtitle: `Featured showdown in ${motdMatch.division} (${motdMatch.round}). Standings: #${homeRank} (${homePoints} pts) vs #${awayRank} (${awayPoints} pts).`,
             description: item.description,
             featuredImage: resolveSlideFeaturedImage(item),
             buttonText: item.buttonText || "Match Center",
@@ -835,8 +924,25 @@ export async function getCarouselSlides(): Promise<CarouselSlide[]> {
               matchId: motdMatch.id,
               division: motdMatch.division,
               round: motdMatch.round,
-              homePlayer: motdMatch.homePlayer,
-              awayPlayer: motdMatch.awayPlayer,
+              status: motdMatch.status,
+              homeScore: motdMatch.homeScore ?? null,
+              awayScore: motdMatch.awayScore ?? null,
+              homePlayer,
+              awayPlayer,
+              homeGamerTag,
+              awayGamerTag,
+              homeTeam,
+              awayTeam,
+              homeRank,
+              awayRank,
+              homePoints,
+              awayPoints,
+              homeForm,
+              awayForm,
+              derbyName,
+              motdHeadline,
+              formattedKickoffFull,
+              pollStats,
             },
           };
         }

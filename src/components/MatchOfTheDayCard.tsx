@@ -126,7 +126,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight truncate">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-foreground tracking-tight truncate">
                   {match.homePlayer?.gamerTag}
                 </h3>
                 {match.homePlayer?.realTeam && (
@@ -200,7 +200,7 @@ export default function MatchOfTheDayCard({ match }: MotdProps) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight truncate">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-foreground tracking-tight truncate">
                   {match.awayPlayer?.gamerTag}
                 </h3>
                 {match.awayPlayer?.realTeam && (

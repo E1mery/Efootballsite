@@ -313,6 +313,251 @@ const SuperCupCarouselPrediction = memo(function SuperCupCarouselPrediction({
   );
 });
 
+interface MotdCarouselPredictionProps {
+  matchId: string;
+  homeGamerTag: string;
+  awayGamerTag: string;
+  initialPollStats?: {
+    totalVotes?: number;
+    homeVotes?: number;
+    drawVotes?: number;
+    awayVotes?: number;
+    homePct?: number;
+    drawPct?: number;
+    awayPct?: number;
+  };
+  isFinished?: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
+}
+
+const MotdCarouselPrediction = memo(function MotdCarouselPrediction({
+  matchId,
+  homeGamerTag,
+  awayGamerTag,
+  initialPollStats,
+  isFinished = false,
+  homeScore,
+  awayScore,
+}: MotdCarouselPredictionProps) {
+  const [voterId, setVoterId] = useState<string>("");
+  const [userPrediction, setUserPrediction] = useState<"HOME" | "DRAW" | "AWAY" | null>(null);
+  const [voting, setVoting] = useState(false);
+  const [pollStats, setPollStats] = useState({
+    totalVotes: initialPollStats?.totalVotes || 0,
+    homeVotes: initialPollStats?.homeVotes || 0,
+    drawVotes: initialPollStats?.drawVotes || 0,
+    awayVotes: initialPollStats?.awayVotes || 0,
+    homePct: initialPollStats?.homePct ?? 45,
+    drawPct: initialPollStats?.drawPct ?? 15,
+    awayPct: initialPollStats?.awayPct ?? 40,
+  });
+
+  useEffect(() => {
+    let vid = "";
+    try {
+      const stored = localStorage.getItem("efrl_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id) vid = parsed.id;
+      }
+    } catch {}
+
+    if (!vid) {
+      let guestId = localStorage.getItem("efrl_voter_id");
+      if (!guestId) {
+        guestId = "voter_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+        localStorage.setItem("efrl_voter_id", guestId);
+      }
+      vid = guestId;
+    }
+    setVoterId(vid);
+
+    if (matchId) {
+      fetch(`/api/matches/motd/poll?matchId=${encodeURIComponent(matchId)}&voterId=${encodeURIComponent(vid)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success) {
+            if (data.userPrediction) setUserPrediction(data.userPrediction);
+            setPollStats({
+              totalVotes: data.totalVotes || 0,
+              homeVotes: data.homeVotes || 0,
+              drawVotes: data.drawVotes || 0,
+              awayVotes: data.awayVotes || 0,
+              homePct: data.homePercent ?? 45,
+              drawPct: data.drawPercent ?? 15,
+              awayPct: data.awayPercent ?? 40,
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [matchId]);
+
+  const handleVote = async (prediction: "HOME" | "DRAW" | "AWAY") => {
+    if (!voterId || voting || isFinished || !matchId) return;
+    setVoting(true);
+
+    const prevVotes = { ...pollStats };
+    const prevPrediction = userPrediction;
+
+    let newHome = prevVotes.homeVotes;
+    let newDraw = prevVotes.drawVotes;
+    let newAway = prevVotes.awayVotes;
+    let newTotal = prevVotes.totalVotes;
+
+    if (!prevPrediction) {
+      newTotal += 1;
+      if (prediction === "HOME") newHome += 1;
+      else if (prediction === "DRAW") newDraw += 1;
+      else newAway += 1;
+    } else if (prevPrediction !== prediction) {
+      if (prevPrediction === "HOME") newHome = Math.max(0, newHome - 1);
+      else if (prevPrediction === "DRAW") newDraw = Math.max(0, newDraw - 1);
+      else newAway = Math.max(0, newAway - 1);
+
+      if (prediction === "HOME") newHome += 1;
+      else if (prediction === "DRAW") newDraw += 1;
+      else newAway += 1;
+    }
+
+    const homePct = newTotal > 0 ? Math.round((newHome / newTotal) * 100) : 45;
+    const drawPct = newTotal > 0 ? Math.round((newDraw / newTotal) * 100) : 15;
+    const awayPct = newTotal > 0 ? Math.max(0, 100 - homePct - drawPct) : 40;
+
+    setUserPrediction(prediction);
+    setPollStats({
+      totalVotes: newTotal,
+      homeVotes: newHome,
+      drawVotes: newDraw,
+      awayVotes: newAway,
+      homePct,
+      drawPct,
+      awayPct,
+    });
+
+    try {
+      const res = await fetch("/api/matches/motd/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, voterId, prediction }),
+      });
+      if (!res.ok) throw new Error("Vote failed");
+    } catch {
+      setUserPrediction(prevPrediction);
+      setPollStats(prevVotes);
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  if (isFinished) {
+    const winnerGamerTag =
+      typeof homeScore === "number" && typeof awayScore === "number"
+        ? homeScore > awayScore
+          ? homeGamerTag
+          : awayScore > homeScore
+          ? awayGamerTag
+          : null
+        : null;
+
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-mono text-secondary font-bold">
+        <Trophy className="h-3.5 w-3.5 text-secondary shrink-0" />
+        <span className="truncate">
+          {winnerGamerTag ? `Winner: @${winnerGamerTag} • Full Time` : "Full Time Draw"}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-xs sm:max-w-sm space-y-1">
+      <div className="flex items-center justify-between text-xs font-mono font-bold">
+        <span className="text-primary truncate">
+          {pollStats.homePct}%
+        </span>
+        <span className="text-muted-foreground text-xs font-normal">
+          Prediction ({pollStats.totalVotes} votes)
+        </span>
+        <span className="text-secondary truncate">
+          {pollStats.awayPct}%
+        </span>
+      </div>
+
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden flex shadow-inner border border-border/40">
+        {/* eslint-disable shadcn/no-inline-styles -- dynamic prediction poll percentage */}
+        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${pollStats.homePct}%` }} />
+        <div className="h-full bg-muted-foreground/50 transition-all duration-500" style={{ width: `${pollStats.drawPct}%` }} />
+        <div className="h-full bg-secondary transition-all duration-500" style={{ width: `${pollStats.awayPct}%` }} />
+        {/* eslint-enable shadcn/no-inline-styles */}
+      </div>
+
+      <div className="flex items-center justify-center gap-1.5 pt-0.5">
+        <button
+          type="button"
+          disabled={voting}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleVote("HOME");
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={cn(
+            "text-xs font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer pointer-events-auto flex items-center gap-1",
+            userPrediction === "HOME"
+              ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+              : "bg-card/90 text-foreground border-border/70 hover:border-primary/50"
+          )}
+        >
+          {userPrediction === "HOME" && <CheckCircle2 className="h-2.5 w-2.5 text-primary-foreground shrink-0" />}
+          <span>{userPrediction === "HOME" ? "Picked Home" : "Home Win"}</span>
+        </button>
+
+        <button
+          type="button"
+          disabled={voting}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleVote("DRAW");
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={cn(
+            "text-xs font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer pointer-events-auto flex items-center gap-1",
+            userPrediction === "DRAW"
+              ? "bg-muted-foreground text-background border-muted-foreground font-bold shadow-sm"
+              : "bg-card/90 text-foreground border-border/70 hover:border-muted-foreground/50"
+          )}
+        >
+          {userPrediction === "DRAW" && <CheckCircle2 className="h-2.5 w-2.5 text-background shrink-0" />}
+          <span>{userPrediction === "DRAW" ? "Picked Draw" : "Draw"}</span>
+        </button>
+
+        <button
+          type="button"
+          disabled={voting}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleVote("AWAY");
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={cn(
+            "text-xs font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer pointer-events-auto flex items-center gap-1",
+            userPrediction === "AWAY"
+              ? "bg-secondary text-secondary-foreground border-secondary font-bold shadow-sm"
+              : "bg-card/90 text-foreground border-border/70 hover:border-secondary/50"
+          )}
+        >
+          {userPrediction === "AWAY" && <CheckCircle2 className="h-2.5 w-2.5 text-secondary-foreground shrink-0" />}
+          <span>{userPrediction === "AWAY" ? "Picked Away" : "Away Win"}</span>
+        </button>
+      </div>
+    </div>
+  );
+});
+
 const CoverflowCard = memo(function CoverflowCard({
   slide,
   index,
@@ -436,6 +681,14 @@ const CoverflowCard = memo(function CoverflowCard({
     (slide.tabLabel?.toLowerCase().includes("match of the week"))
   );
 
+  const isMotdSlide = !isSuperCupSlide && !isDerbySlide && !isMotwSlide && Boolean(
+    slide.type === "MOTD" ||
+    slide.type === "MOTD_RESULT" ||
+    slide.badge?.toLowerCase().includes("match of the day") ||
+    (slide.category?.toLowerCase() === "match" && (slide.title || "").toLowerCase().includes("match of the day")) ||
+    (slide.tabLabel?.toLowerCase().includes("match of the day"))
+  );
+
   const isCustomFeaturedImage = Boolean(
     slide.featuredImage &&
     slide.featuredImage !== "/images/carousel-stadium-bg.jpg" &&
@@ -450,6 +703,8 @@ const CoverflowCard = memo(function CoverflowCard({
     ? "/images/super-cup-bg.jpg"
     : (isMotwSlide || isDerbySlide)
     ? (slide.featuredImage || "/images/motw-stadium-bg.jpg")
+    : isMotdSlide
+    ? (slide.featuredImage || "/images/today-match-bg.png")
     : isCustomFeaturedImage
     ? slide.featuredImage
     : isEuropaSlide
@@ -462,7 +717,7 @@ const CoverflowCard = memo(function CoverflowCard({
     ? slide.featuredImage
     : isSuperCupSlide
     ? (slide.featuredImage && slide.featuredImage !== "/images/super-cup-bg.jpg" && slide.featuredImage !== "/images/super-cup-stadium-bg.jpg" ? slide.featuredImage : null)
-    : (isMotwSlide || isDerbySlide)
+    : (isMotwSlide || isDerbySlide || isMotdSlide)
     ? null
     : isEuropaSlide
     ? "/images/europa-stadium-bg.jpg"
@@ -475,7 +730,7 @@ const CoverflowCard = memo(function CoverflowCard({
       key={slide.id || index}
       className={cn(
         "carousel-slide-card absolute will-change-transform select-none cursor-pointer bg-background border border-border shadow-2xl rounded-3xl pointer-events-auto",
-        isCenter && (isSuperCupSlide ? "border-secondary/60 carousel-card-supercup" : "carousel-card-active")
+        isCenter && (isSuperCupSlide ? "border-secondary/60 carousel-card-supercup" : isMotdSlide ? "border-secondary/50 carousel-card-active" : "carousel-card-active")
       )}
       /* eslint-disable shadcn/no-inline-styles -- framer-motion reactive 3D transform bindings */
       style={{
@@ -499,7 +754,7 @@ const CoverflowCard = memo(function CoverflowCard({
       <div
         className={cn(
           "absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-500",
-          isSuperCupSlide ? "opacity-95" : isMotwSlide ? "opacity-90" : "opacity-30"
+          isSuperCupSlide ? "opacity-95" : isMotwSlide ? "opacity-90" : isMotdSlide ? "opacity-85" : "opacity-30"
         )}
       >
         <img
@@ -508,7 +763,7 @@ const CoverflowCard = memo(function CoverflowCard({
           aria-hidden="true"
           className={cn(
             "h-full w-full object-cover",
-            isSuperCupSlide ? "object-center" : isMotwSlide ? "object-center" : ""
+            isSuperCupSlide ? "object-center" : isMotwSlide ? "object-center" : isMotdSlide ? "object-center" : ""
           )}
         />
       </div>
@@ -519,6 +774,8 @@ const CoverflowCard = memo(function CoverflowCard({
             ? "bg-gradient-to-t from-background/95 via-background/60 to-background/25 sm:from-background/90 sm:via-background/40 sm:to-transparent"
             : isMotwSlide
             ? "bg-gradient-to-t from-background/90 via-background/35 to-background/20 sm:from-background/85 sm:via-background/20 sm:to-background/10"
+            : isMotdSlide
+            ? "bg-gradient-to-t from-background/90 via-background/40 to-background/20 sm:from-background/85 sm:via-background/25 sm:to-background/10"
             : "bg-gradient-to-t from-background via-background/80 to-transparent"
         )}
       />
@@ -1198,136 +1455,433 @@ const CoverflowCard = memo(function CoverflowCard({
           {/* ========================================================================= */}
           {/* 1. MATCH OF THE DAY AUTOMATED SYSTEM SHOWDOWN */}
           {/* ========================================================================= */}
-          {slide.type === "MOTD" && slide.data && (
-            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
-              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-muted-foreground font-semibold">
-                    {[
-                      "Match of the Day",
-                      slide.data.division,
-                      slide.data.round
-                    ]
-                      .filter(Boolean)
-                      .join(" • ")}
+          {slide.type === "MOTD" && slide.data && (() => {
+            const motdData = slide.data || {};
+            const homePlayer = motdData.homePlayer || null;
+            const awayPlayer = motdData.awayPlayer || null;
+            const homeGamerTag = motdData.homeGamerTag || homePlayer?.gamerTag?.trim() || "Home Contender";
+            const awayGamerTag = motdData.awayGamerTag || awayPlayer?.gamerTag?.trim() || "Away Contender";
+            const homeTeam = motdData.homeTeam || findTeam(homePlayer?.realTeam);
+            const awayTeam = motdData.awayTeam || findTeam(awayPlayer?.realTeam);
+            const homeRank = motdData.homeRank || 1;
+            const awayRank = motdData.awayRank || 2;
+            const homePoints = motdData.homePoints ?? 0;
+            const awayPoints = motdData.awayPoints ?? 0;
+            const homeForm = motdData.homeForm || [];
+            const awayForm = motdData.awayForm || [];
+            const matchStatus = motdData.status || "SCHEDULED";
+            const isLive = matchStatus === "LIVE";
+            const isFinished = matchStatus === "FINISHED";
+            const homeScore = motdData.homeScore ?? null;
+            const awayScore = motdData.awayScore ?? null;
+            const headline = motdData.motdHeadline || `${homeGamerTag} vs ${awayGamerTag}`;
+            const derbyName = motdData.derbyName || null;
+            const formattedKickoff = motdData.formattedKickoffFull || "24-Hour Match Window Active";
+            const matchId = motdData.matchId || slide.id.replace("sys-motd-", "");
+
+            return (
+              <div className="w-full flex-1 flex flex-col justify-between my-auto py-1 sm:py-2 gap-2 sm:gap-3.5 h-full">
+                {/* TOP HEADER ROW: Badges & Kickoff / 24H Deadline Indicator */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-1.5 shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/15 border border-secondary/40 text-secondary font-mono text-xs font-bold uppercase tracking-wider">
+                      <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                      <span>{slide.badge || (derbyName ? `${derbyName} • MOTD` : "MATCH OF THE DAY")}</span>
+                    </span>
+
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-card/80 border border-border text-foreground font-mono text-xs font-semibold">
+                      <span>{motdData.division || "League"}</span>
+                      {motdData.round && <span>• {motdData.round}</span>}
+                    </span>
+
+                    {isFinished ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/20 border border-secondary/40 text-secondary font-mono text-xs font-bold">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-secondary" />
+                        <span>Match Concluded</span>
+                      </span>
+                    ) : isLive ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-destructive/20 border border-destructive/50 text-destructive font-mono text-xs font-black animate-pulse">
+                        <span className="h-2 w-2 rounded-full bg-destructive" />
+                        <span>LIVE SHOWDOWN</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-card/80 border border-secondary/30 text-secondary font-mono text-xs font-medium">
+                        <Zap className="h-3 w-3 text-secondary" />
+                        <span>24H Cycle Active</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Calendar className="h-3.5 w-3.5 text-secondary shrink-0" />
+                    <span>{formattedKickoff}</span>
                   </span>
                 </div>
 
-                <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
-                  {slide.data.homePlayer?.gamerTag && slide.data.awayPlayer?.gamerTag ? (
-                    <>
-                      {slide.data.homePlayer.gamerTag}{" "}
-                      <span className="text-secondary">vs</span>{" "}
-                      {slide.data.awayPlayer.gamerTag}
-                    </>
-                  ) : (
-                    slide.title || "Match of the Day"
-                  )}
-                </h2>
+                {/* SHOWDOWN HEADLINE & SUBTITLE */}
+                <div className="space-y-0.5 text-left sm:text-center shrink-0">
+                  <h2 className="text-sm sm:text-lg md:text-xl font-black text-foreground uppercase tracking-tight leading-tight drop-shadow-sm">
+                    {headline}
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-medium line-clamp-1 hidden sm:block">
+                    {slide.subtitle || slide.description || "Highest stakes matchup based on current table rankings."}
+                  </p>
+                </div>
 
-                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                  {slide.subtitle || slide.description}
-                </p>
+                {/* MAIN CONTENT: Esports Head-to-Head Arena */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 items-center flex-1 my-auto">
+                  {/* LEFT: Home Athlete Card */}
+                  <div className="rounded-2xl p-2.5 sm:p-3 md:p-3.5 bg-card/90 backdrop-blur-xl border border-primary/40 hover:border-primary/60 transition-all flex md:flex-col items-center justify-between md:justify-center gap-2 sm:gap-2.5 text-left md:text-center shadow-lg relative overflow-hidden md:col-span-4">
+                    <div className="w-full flex items-center justify-between md:justify-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono font-black text-primary uppercase tracking-wide px-2 py-0.5 rounded-md bg-primary/15 border border-primary/30">
+                        <span>Rank #{homeRank}</span>
+                        <span>•</span>
+                        <span>{homePoints} PTS</span>
+                      </span>
+                    </div>
 
-                {slide.buttonText && slide.buttonUrl && (
-                  <div className="pt-1">
-                    <Link
-                      href={slide.buttonUrl}
-                      tabIndex={isCenter ? 0 : -1}
-                      onClick={(e) => e.stopPropagation()}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      className={cn(
-                        buttonVariants({ variant: "yellow", size: "default" }),
-                        "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center"
+                    <div className="relative my-0.5 sm:my-1 shrink-0">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-2xl bg-background/95 border border-primary/50 flex items-center justify-center overflow-hidden shadow-xl p-1">
+                        <img
+                          src={resolvePlayerAvatar(homePlayer)}
+                          alt={homeGamerTag}
+                          className="h-full w-full object-contain aspect-square"
+                          loading="lazy"
+                        />
+                      </div>
+                      {homeTeam?.logo && (
+                        <div className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-background border border-border p-0.5 shadow-md flex items-center justify-center">
+                          <img
+                            src={homeTeam.logo}
+                            alt={homeTeam.name}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
                       )}
-                    >
-                      <span>{slide.buttonText}</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
+                    </div>
+
+                    <div className="min-w-0 flex-1 md:flex-initial">
+                      <span className="text-xs sm:text-sm md:text-base font-black text-foreground block truncate">
+                        @{homeGamerTag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold block truncate">
+                        {homeTeam?.shortName || homeTeam?.name || homePlayer?.realTeam || "Home Athlete"}
+                      </span>
+                      {homeForm.length > 0 && (
+                        <div className="hidden sm:flex items-center justify-center gap-1 mt-1">
+                          {homeForm.map((f: string, i: number) => (
+                            <span
+                              key={i}
+                              className={cn(
+                                "text-xs font-mono font-bold px-1.5 py-0.5 rounded",
+                                f === "W"
+                                  ? "bg-secondary/20 text-secondary border border-secondary/40"
+                                  : f === "D"
+                                  ? "bg-muted text-muted-foreground border border-border"
+                                  : "bg-destructive/20 text-destructive border border-destructive/30"
+                              )}
+                            >
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {(isLive || isFinished) && (
+                      <div className="md:mt-0.5 px-3 py-0.5 sm:py-1 rounded-xl bg-background border border-border text-base sm:text-xl font-mono font-black text-foreground shadow-inner">
+                        {homeScore ?? 0}
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* CENTER: VS Nexus & Interactive Prediction Poll */}
+                  <div className="flex flex-col items-center justify-center text-center gap-1.5 sm:gap-2 py-0.5 md:col-span-4">
+                    {isFinished ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="px-3 sm:px-4 py-0.5 sm:py-1 rounded-xl bg-secondary/15 border border-secondary/40 text-foreground font-mono text-sm sm:text-lg font-black tracking-widest shadow-inner">
+                          {homeScore ?? 0} - {awayScore ?? 0}
+                        </div>
+                        <span className="text-xs font-mono uppercase font-bold text-secondary tracking-widest">
+                          FINAL RESULT
+                        </span>
+                      </div>
+                    ) : isLive ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="px-3 sm:px-4 py-0.5 sm:py-1 rounded-xl bg-destructive/20 border border-destructive/50 text-foreground font-mono text-sm sm:text-lg font-black tracking-widest shadow-inner animate-pulse">
+                          {homeScore ?? 0} - {awayScore ?? 0}
+                        </div>
+                        <span className="text-xs font-mono uppercase font-black text-destructive tracking-widest">
+                          LIVE IN PLAY
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="relative flex items-center justify-center">
+                          <div className="px-3 sm:px-4 py-1 rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
+                            VS
+                          </div>
+                        </div>
+                        <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">
+                          24H Cycle
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Community Prediction Poll */}
+                    <div className="w-full flex justify-center">
+                      <MotdCarouselPrediction
+                        matchId={matchId}
+                        homeGamerTag={homeGamerTag}
+                        awayGamerTag={awayGamerTag}
+                        initialPollStats={motdData.pollStats}
+                        isFinished={isFinished}
+                        homeScore={homeScore}
+                        awayScore={awayScore}
+                      />
+                    </div>
+                  </div>
+
+                  {/* RIGHT: Away Athlete Card */}
+                  <div className="rounded-2xl p-2.5 sm:p-3 md:p-3.5 bg-card/90 backdrop-blur-xl border border-secondary/40 hover:border-secondary/60 transition-all flex md:flex-col items-center justify-between md:justify-center gap-2 sm:gap-2.5 text-left md:text-center shadow-lg relative overflow-hidden md:col-span-4">
+                    <div className="w-full flex items-center justify-between md:justify-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono font-black text-secondary uppercase tracking-wide px-2 py-0.5 rounded-md bg-secondary/15 border border-secondary/30">
+                        <span>Rank #{awayRank}</span>
+                        <span>•</span>
+                        <span>{awayPoints} PTS</span>
+                      </span>
+                    </div>
+
+                    <div className="relative my-0.5 sm:my-1 shrink-0">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-2xl bg-background/95 border border-secondary/50 flex items-center justify-center overflow-hidden shadow-xl p-1">
+                        <img
+                          src={resolvePlayerAvatar(awayPlayer)}
+                          alt={awayGamerTag}
+                          className="h-full w-full object-contain aspect-square"
+                          loading="lazy"
+                        />
+                      </div>
+                      {awayTeam?.logo && (
+                        <div className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-background border border-border p-0.5 shadow-md flex items-center justify-center">
+                          <img
+                            src={awayTeam.logo}
+                            alt={awayTeam.name}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 md:flex-initial">
+                      <span className="text-xs sm:text-sm md:text-base font-black text-foreground block truncate">
+                        @{awayGamerTag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold block truncate">
+                        {awayTeam?.shortName || awayTeam?.name || awayPlayer?.realTeam || "Away Athlete"}
+                      </span>
+                      {awayForm.length > 0 && (
+                        <div className="hidden sm:flex items-center justify-center gap-1 mt-1">
+                          {awayForm.map((f: string, i: number) => (
+                            <span
+                              key={i}
+                              className={cn(
+                                "text-xs font-mono font-bold px-1.5 py-0.5 rounded",
+                                f === "W"
+                                  ? "bg-secondary/20 text-secondary border border-secondary/40"
+                                  : f === "D"
+                                  ? "bg-muted text-muted-foreground border border-border"
+                                  : "bg-destructive/20 text-destructive border border-destructive/30"
+                              )}
+                            >
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {(isLive || isFinished) && (
+                      <div className="md:mt-0.5 px-3 py-0.5 sm:py-1 rounded-xl bg-background border border-border text-base sm:text-xl font-mono font-black text-foreground shadow-inner">
+                        {awayScore ?? 0}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* BOTTOM ACTION CTA */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border/40 pt-2 shrink-0">
+                  <div className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                    <Trophy className="h-3.5 w-3.5 text-secondary shrink-0" />
+                    <span className="truncate">Selected automatically from official league table standings.</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {slide.buttonUrl && (
+                      <Link
+                        href={slide.buttonUrl}
+                        tabIndex={isCenter ? 0 : -1}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className={cn(
+                          buttonVariants({ variant: "yellow", size: "default" }),
+                          "carousel-cta-btn font-black text-secondary-foreground text-xs sm:text-sm gap-2 rounded-xl shadow-lg cursor-pointer pointer-events-auto inline-flex items-center shrink-0 w-full sm:w-auto justify-center"
+                        )}
+                      >
+                        <span>{slide.buttonText || "Match Center"}</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </div>
-
-              {/* Head-to-Head Card with Auto Ratio Avatars */}
-              <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-secondary/30 shadow-xl shrink-0">
-                <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
-                  <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                    <img
-                      src={resolvePlayerAvatar(slide.data.homePlayer)}
-                      alt={slide.data.homePlayer?.gamerTag || "Home Player"}
-                      className="h-full w-full object-contain aspect-square"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                      {slide.data.homePlayer?.gamerTag || "HOME"}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono font-bold block truncate max-w-20 sm:max-w-28">
-                      {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "HOME"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-0.5 sm:gap-1">
-                  <div className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl bg-secondary/20 border border-secondary/40 font-mono text-xs sm:text-sm font-black text-secondary shadow-inner">
-                    VS
-                  </div>
-                  <span className="text-xs font-mono text-muted-foreground font-semibold">
-                    24H CYCLE
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-center min-w-16 sm:min-w-24">
-                  <div className="h-11 w-11 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-background/90 border border-primary/40 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                    <img
-                      src={resolvePlayerAvatar(slide.data.awayPlayer)}
-                      alt={slide.data.awayPlayer?.gamerTag || "Away Player"}
-                      className="h-full w-full object-contain aspect-square"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                      {slide.data.awayPlayer?.gamerTag || "AWAY"}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono font-bold block truncate max-w-20 sm:max-w-28">
-                      {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "AWAY"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ========================================================================= */}
           {/* 2. MOTD FINAL RESULT AUTOMATED UPDATE */}
           {/* ========================================================================= */}
-          {slide.type === "MOTD_RESULT" && slide.data && (
-            <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-6 my-auto">
-              <div className="space-y-2.5 sm:space-y-3 text-left max-w-xl w-full">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-muted-foreground font-semibold">
-                    {[
-                      "Final Result",
-                      slide.data.division,
-                      slide.data.round
-                    ]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </span>
+          {slide.type === "MOTD_RESULT" && slide.data && (() => {
+            const motdData = slide.data || {};
+            const homePlayer = motdData.homePlayer || null;
+            const awayPlayer = motdData.awayPlayer || null;
+            const homeGamerTag = motdData.homeGamerTag || homePlayer?.gamerTag?.trim() || "Home Contender";
+            const awayGamerTag = motdData.awayGamerTag || awayPlayer?.gamerTag?.trim() || "Away Contender";
+            const homeTeam = motdData.homeTeam || findTeam(homePlayer?.realTeam);
+            const awayTeam = motdData.awayTeam || findTeam(awayPlayer?.realTeam);
+            const homeScore = motdData.homeScore ?? 0;
+            const awayScore = motdData.awayScore ?? 0;
+            const winner = motdData.winner || (homeScore > awayScore ? homePlayer : awayScore > homeScore ? awayPlayer : null);
+            const isDraw = homeScore === awayScore;
+
+            return (
+              <div className="w-full flex-1 flex flex-col justify-between my-auto py-1 sm:py-2 gap-2 sm:gap-3.5 h-full">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-1.5 shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/20 border border-secondary/40 text-secondary font-mono text-xs font-bold uppercase tracking-wider">
+                      <Trophy className="h-3.5 w-3.5 text-secondary" />
+                      <span>{slide.badge || "MOTD FINAL RESULT"}</span>
+                    </span>
+
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-card/80 border border-border text-foreground font-mono text-xs font-semibold">
+                      <span>{motdData.division || "League"}</span>
+                      {motdData.round && <span>• {motdData.round}</span>}
+                    </span>
+
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/15 border border-secondary/30 text-secondary font-mono text-xs font-bold">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-secondary" />
+                      <span>Official Result Verified</span>
+                    </span>
+                  </div>
                 </div>
 
-                <h2 className="carousel-headline font-black text-foreground drop-shadow-sm">
-                  Match of the Day Concluded
-                </h2>
+                <div className="space-y-0.5 text-left sm:text-center shrink-0">
+                  <h2 className="text-sm sm:text-lg md:text-xl font-black text-foreground uppercase tracking-tight leading-tight drop-shadow-sm">
+                    {winner
+                      ? `🏆 @${winner.gamerTag} Wins Match of the Day!`
+                      : isDraw
+                      ? `Honors Even: ${homeGamerTag} ${homeScore} - ${awayScore} ${awayGamerTag}`
+                      : `Match of the Day Concluded: ${homeGamerTag} ${homeScore} - ${awayScore} ${awayGamerTag}`}
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-medium line-clamp-1 hidden sm:block">
+                    {slide.subtitle || slide.description || "Final verified result. Official league standings have been updated with points and goal differences."}
+                  </p>
+                </div>
 
-                <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                  {slide.subtitle || slide.description}
-                </p>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 items-center flex-1 my-auto">
+                  {/* Home Athlete */}
+                  <div className="rounded-2xl p-2.5 sm:p-3 md:p-3.5 bg-card/90 backdrop-blur-xl border border-border transition-all flex md:flex-col items-center justify-between md:justify-center gap-2 sm:gap-2.5 text-left md:text-center shadow-lg relative overflow-hidden md:col-span-4">
+                    <div className="relative my-0.5 sm:my-1 shrink-0">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-2xl bg-background/95 border border-border flex items-center justify-center overflow-hidden shadow-xl p-1">
+                        <img
+                          src={resolvePlayerAvatar(homePlayer)}
+                          alt={homeGamerTag}
+                          className="h-full w-full object-contain aspect-square"
+                          loading="lazy"
+                        />
+                      </div>
+                      {homeTeam?.logo && (
+                        <div className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-background border border-border p-0.5 shadow-md flex items-center justify-center">
+                          <img
+                            src={homeTeam.logo}
+                            alt={homeTeam.name}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                    </div>
 
-                {slide.buttonText && slide.buttonUrl && (
-                  <div className="pt-1">
+                    <div className="min-w-0 flex-1 md:flex-initial">
+                      <span className="text-xs sm:text-sm md:text-base font-black text-foreground block truncate">
+                        @{homeGamerTag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold block truncate">
+                        {homeTeam?.shortName || homeTeam?.name || homePlayer?.realTeam || "Home"}
+                      </span>
+                    </div>
+
+                    <div className="md:mt-0.5 px-3 py-0.5 sm:py-1 rounded-xl bg-background border border-border text-base sm:text-xl font-mono font-black text-foreground shadow-inner">
+                      {homeScore}
+                    </div>
+                  </div>
+
+                  {/* Center Scoreboard */}
+                  <div className="flex flex-col items-center justify-center text-center gap-1 sm:gap-2 py-0.5 md:col-span-4">
+                    <div className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl bg-background/90 border border-secondary/40 font-mono text-base sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
+                      {homeScore} : {awayScore}
+                    </div>
+                    <span className="text-xs font-mono uppercase font-bold text-secondary tracking-widest">
+                      FINAL WHISTLE
+                    </span>
+                  </div>
+
+                  {/* Away Athlete */}
+                  <div className="rounded-2xl p-2.5 sm:p-3 md:p-3.5 bg-card/90 backdrop-blur-xl border border-border transition-all flex md:flex-col items-center justify-between md:justify-center gap-2 sm:gap-2.5 text-left md:text-center shadow-lg relative overflow-hidden md:col-span-4">
+                    <div className="relative my-0.5 sm:my-1 shrink-0">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-2xl bg-background/95 border border-border flex items-center justify-center overflow-hidden shadow-xl p-1">
+                        <img
+                          src={resolvePlayerAvatar(awayPlayer)}
+                          alt={awayGamerTag}
+                          className="h-full w-full object-contain aspect-square"
+                          loading="lazy"
+                        />
+                      </div>
+                      {awayTeam?.logo && (
+                        <div className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-background border border-border p-0.5 shadow-md flex items-center justify-center">
+                          <img
+                            src={awayTeam.logo}
+                            alt={awayTeam.name}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 md:flex-initial">
+                      <span className="text-xs sm:text-sm md:text-base font-black text-foreground block truncate">
+                        @{awayGamerTag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold block truncate">
+                        {awayTeam?.shortName || awayTeam?.name || awayPlayer?.realTeam || "Away"}
+                      </span>
+                    </div>
+
+                    <div className="md:mt-0.5 px-3 py-0.5 sm:py-1 rounded-xl bg-background border border-border text-base sm:text-xl font-mono font-black text-foreground shadow-inner">
+                      {awayScore}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border/40 pt-2 shrink-0">
+                  <div className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-secondary shrink-0" />
+                    <span className="truncate">Points and goal differences calculated and applied to the table.</span>
+                  </div>
+
+                  {slide.buttonUrl && (
                     <Link
                       href={slide.buttonUrl}
                       tabIndex={isCenter ? 0 : -1}
@@ -1335,42 +1889,17 @@ const CoverflowCard = memo(function CoverflowCard({
                       onMouseDown={(e) => e.stopPropagation()}
                       className={cn(
                         buttonVariants({ variant: "outline", size: "default" }),
-                        "carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center"
+                        "carousel-cta-btn font-semibold text-xs border-border gap-1.5 rounded-xl cursor-pointer pointer-events-auto inline-flex items-center shrink-0 w-full sm:w-auto justify-center"
                       )}
                     >
-                      <span>{slide.buttonText}</span>
+                      <span>{slide.buttonText || "Fixture Archive"}</span>
                       <ArrowRight className="h-4 w-4" />
                     </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* Scoreboard Card */}
-              <div className="w-full md:w-auto flex items-center justify-center gap-3 sm:gap-6 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-card/85 backdrop-blur-xl border border-border shadow-xl font-mono shrink-0">
-                <div className="text-right min-w-16 sm:min-w-24">
-                  <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                    {slide.data.homePlayer?.gamerTag || "HOME"}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-bold block truncate max-w-20 sm:max-w-28">
-                    {findTeam(slide.data.homePlayer?.realTeam)?.shortName || slide.data.homePlayer?.realTeam || "HOME"}
-                  </span>
-                </div>
-
-                <div className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-background/90 border border-border text-base sm:text-2xl font-black text-secondary tracking-widest shadow-inner">
-                  {slide.data.homeScore ?? 0} : {slide.data.awayScore ?? 0}
-                </div>
-
-                <div className="text-left min-w-16 sm:min-w-24">
-                  <span className="text-xs sm:text-sm font-black text-foreground block truncate max-w-20 sm:max-w-28">
-                    {slide.data.awayPlayer?.gamerTag || "AWAY"}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-bold block truncate max-w-20 sm:max-w-28">
-                    {findTeam(slide.data.awayPlayer?.realTeam)?.shortName || slide.data.awayPlayer?.realTeam || "AWAY"}
-                  </span>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ========================================================================= */}
           {/* 3. IN-FORM ATHLETES AUTOMATED UPDATE */}
