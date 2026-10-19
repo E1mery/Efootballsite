@@ -42,26 +42,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Match fixture not found." }, { status: 404 });
     }
 
-    // Clean notes from reopened markers
-    let updatedNotes = match.notes || "";
-    if (updatedNotes.includes("ADMIN_REOPENED")) {
-      updatedNotes = updatedNotes
-        .replace(/ADMIN_REOPENED_FOR_[^:\n]+:\s*[^\n]*/g, "")
-        .replace(/ADMIN_REOPENED:\s*[^\n]*/g, "")
-        .trim();
-    }
-    const finalNotes = updatedNotes ? `${updatedNotes} [CLOSED_BY_ADMIN: ${reason}]` : `[CLOSED_BY_ADMIN: ${reason}]`;
+    // Clean notes completely from all reopened markers
+    let updatedNotes = (match.notes || "")
+      .replace(/ADMIN_REOPENED_FOR_[^:\n]+:\s*[^\n]*/g, "")
+      .replace(/ADMIN_REOPENED:\s*[^\n]*/g, "")
+      .replace(/\[CLOSED_BY_ADMIN:[^\]]*\]/g, "")
+      .trim();
 
-    // Expire/close the submission window
-    // Setting deadlineDate to now (or matchDate if in past) and allowLateSubmission to false
-    const closedDeadline = new Date(Date.now() - 1000); // 1 second ago so it is strictly past
+    const finalNotes = updatedNotes.length > 0 ? updatedNotes : null;
+
+    // Reset extended submission window so match reverts to normal played/scheduled match
+    const originalDate = match.matchDate ? new Date(match.matchDate) : new Date();
 
     const updatedMatch = await prisma.match.update({
       where: { id: matchId },
       data: {
         allowLateSubmission: false,
         extendedDeadlineDate: null,
-        deadlineDate: closedDeadline,
+        deadlineDate: originalDate,
         notes: finalNotes,
       },
       include: {

@@ -572,6 +572,32 @@ export async function POST(req: Request) {
       }
     }
 
+    // 2b. Delete Individual Forfeit Claim
+    if (actionType === "DELETE_FORFEIT_CLAIM") {
+      const { claimId } = body;
+      if (!claimId) {
+        return NextResponse.json({ error: "claimId is required" }, { status: 400 });
+      }
+      await prisma.forfeitClaim.delete({
+        where: { id: claimId },
+      });
+      return NextResponse.json({
+        success: true,
+        message: "Forfeit claim record deleted.",
+      });
+    }
+
+    // 2c. Clean Resolved Forfeit History
+    if (actionType === "CLEAN_FORFEIT_HISTORY") {
+      const deleted = await prisma.forfeitClaim.deleteMany({
+        where: { status: { in: ["APPROVED", "REJECTED"] } },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `Successfully cleaned ${deleted.count} historical forfeit claim records.`,
+      });
+    }
+
     // 3. Drop New Daily Fixtures (12:00 AM Cycle)
     if (actionType === "DROP_DAILY_FIXTURES") {
       const { division } = body;

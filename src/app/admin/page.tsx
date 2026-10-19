@@ -61,7 +61,7 @@ export default async function AdminPage() {
   const [
     matches,
     pendingSubmissions,
-    pendingForfeits,
+    allForfeitClaims,
     allPlayers,
     announcements,
     flaggedPlayers,
@@ -96,7 +96,6 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.forfeitClaim.findMany({
-      where: { status: "PENDING" },
       include: {
         match: { include: { homePlayer: true, awayPlayer: true } },
         claimantPlayer: true,
@@ -237,11 +236,14 @@ export default async function AdminPage() {
     };
   });
 
+  const pendingForfeits = allForfeitClaims.filter((c: any) => c.status === "PENDING");
+
   return (
     <AdminShell
       matches={matches}
       pendingSubmissions={pendingSubmissions}
       pendingForfeits={pendingForfeits}
+      allForfeits={allForfeitClaims}
       allPlayers={allPlayers}
       announcements={announcements}
       flaggedPlayers={flaggedPlayers}

@@ -126,6 +126,7 @@ export type AdminClientTab =
   | "CONTINENTAL"
   | "RESULTS_QUEUE"
   | "FORFEITS_QUEUE"
+  | "FORFEIT_HISTORY"
   | "ANNOUNCEMENTS"
   | "PLAYERS"
   | "HALL_OF_FAME"
@@ -138,6 +139,7 @@ export default function AdminClient({
   matches,
   pendingSubmissions,
   pendingForfeits,
+  allForfeits = [],
   allPlayers,
   announcements,
   flaggedPlayers,
@@ -161,6 +163,7 @@ export default function AdminClient({
   matches: any[];
   pendingSubmissions: any[];
   pendingForfeits: any[];
+  allForfeits?: any[];
   allPlayers: any[];
   announcements: any[];
   flaggedPlayers: any[];
@@ -198,6 +201,15 @@ export default function AdminClient({
   const [passwordResets, setPasswordResets] = useState<any[]>(initialPasswordResets);
   const [newsArticles, setNewsArticles] = useState<any[]>(initialNews || []);
 
+  // Forfeit Claims & History State
+  const [forfeitSubTab, setForfeitSubTab] = useState<"ACTIVE" | "HISTORY">("ACTIVE");
+  const [forfeitStatusFilter, setForfeitStatusFilter] = useState<string>("ALL");
+  const [forfeitDivisionFilter, setForfeitDivisionFilter] = useState<string>("ALL");
+  const [forfeitRoundFilter, setForfeitRoundFilter] = useState<string>("ALL");
+  const [forfeitSearchQuery, setForfeitSearchQuery] = useState<string>("");
+  const [cleaningForfeitHistory, setCleaningForfeitHistory] = useState<boolean>(false);
+  const [deletingForfeitClaimId, setDeletingForfeitClaimId] = useState<string | null>(null);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -206,9 +218,23 @@ export default function AdminClient({
         setActiveTab("NEWS");
       } else if (tabParam === "DERBIES") {
         setActiveTab("DERBIES");
+      } else if (
+        tabParam === "FORFEIT_HISTORY" ||
+        tabParam === "FORFEITS_HISTORY" ||
+        tabParam === "FORFEIT-HISTORY" ||
+        tabParam === "FORFEITS"
+      ) {
+        setActiveTab("FORFEIT_HISTORY");
+        setForfeitSubTab("HISTORY");
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "FORFEIT_HISTORY") {
+      setForfeitSubTab("HISTORY");
+    }
+  }, [activeTab]);
 
   // New admin operations state
   const [recalculatingStandings, setRecalculatingStandings] = useState(false);
@@ -963,6 +989,74 @@ export default function AdminClient({
       return true;
     });
   }, [historySubmissions, historyRoundFilter, historyDivisionFilter, historySearchQuery]);
+
+  // Forfeits history & screenshot processing
+  const allForfeitItems = useMemo(() => {
+    const claimMatchIds = new Set((allForfeits || []).map((f: any) => f.matchId));
+    const items = [...(allForfeits || [])];
+
+    // Any matches with status === "FORFEIT" that have screenshotUrl and not in claims
+    const forfeitMatchesWithoutClaims = (matches || []).filter(
+      (m: any) => m.status === "FORFEIT" && m.screenshotUrl && !claimMatchIds.has(m.id)
+    );
+
+    for (const m of forfeitMatchesWithoutClaims) {
+      items.push({
+        id: `match-${m.id}`,
+        matchId: m.id,
+        match: m,
+        claimantPlayer: m.homeScore === 3 ? m.homePlayer : m.awayPlayer,
+        accusedPlayer: m.homeScore === 3 ? m.awayPlayer : m.homePlayer,
+        proofScreenshotUrl: m.screenshotUrl,
+        reason: m.notes || "Official walkover recorded by League Administrator",
+        status: "APPROVED",
+        adminNotes: m.notes,
+        createdAt: m.updatedAt || m.matchDate,
+        isDirectMatchForfeit: true,
+      });
+    }
+
+    return items.sort(
+      (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [allForfeits, matches]);
+
+  const recentForfeitScreenshots = useMemo(() => {
+    return allForfeitItems.filter((item: any) => Boolean(item.proofScreenshotUrl));
+  }, [allForfeitItems]);
+
+  const uniqueForfeitRounds = useMemo(() => {
+    return Array.from(new Set(allForfeitItems.map((item: any) => item.match?.round).filter(Boolean)));
+  }, [allForfeitItems]);
+
+  const filteredHistoryForfeits = useMemo(() => {
+    return allForfeitItems.filter((item: any) => {
+      if (forfeitStatusFilter !== "ALL" && item.status !== forfeitStatusFilter) {
+        return false;
+      }
+      if (forfeitDivisionFilter !== "ALL" && item.match?.division !== forfeitDivisionFilter) {
+        return false;
+      }
+      if (forfeitRoundFilter !== "ALL" && item.match?.round !== forfeitRoundFilter) {
+        return false;
+      }
+      if (forfeitSearchQuery.trim()) {
+        const query = forfeitSearchQuery.toLowerCase().trim();
+        const claimantMatch =
+          item.claimantPlayer?.gamerTag?.toLowerCase().includes(query) ||
+          item.claimantPlayer?.whatsapp?.toLowerCase().includes(query);
+        const accusedMatch =
+          item.accusedPlayer?.gamerTag?.toLowerCase().includes(query) ||
+          item.accusedPlayer?.whatsapp?.toLowerCase().includes(query);
+        const reasonMatch = item.reason?.toLowerCase().includes(query);
+        if (!claimantMatch && !accusedMatch && !reasonMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allForfeitItems, forfeitStatusFilter, forfeitDivisionFilter, forfeitRoundFilter, forfeitSearchQuery]);
+
   const [matchScores, setMatchScores] = useState<Record<string, { home: number; away: number; touched?: boolean }>>({});
   const [selectedMatchdayRound, setSelectedMatchdayRound] = useState<string>(`Matchday ${leagueConfig.currentMatchday}`);
   const [selectedMatchDivision, setSelectedMatchDivision] = useState<string>("ALL");
@@ -1953,6 +2047,59 @@ export default function AdminClient({
     }
   };
 
+  // Delete Individual Forfeit Claim
+  const handleDeleteForfeitClaim = async (claimId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this forfeit claim record?")) return;
+    setDeletingForfeitClaimId(claimId);
+    try {
+      const res = await fetch("/api/admin/approve-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "DELETE_FORFEIT_CLAIM",
+          claimId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete claim");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setDeletingForfeitClaimId(null);
+    }
+  };
+
+  // Clean Resolved Forfeit History
+  const handleCleanForfeitHistory = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to clean past resolved forfeit claim history? This will delete all historical APPROVED and REJECTED forfeit claims. Standings, walkovers, and table scores will be preserved."
+      )
+    ) {
+      return;
+    }
+    setCleaningForfeitHistory(true);
+    try {
+      const res = await fetch("/api/admin/approve-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "CLEAN_FORFEIT_HISTORY",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clean forfeit history");
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setCleaningForfeitHistory(false);
+    }
+  };
+
   // Post Announcement
   const handlePostAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2489,9 +2636,12 @@ export default function AdminClient({
         </button>
 
         <button
-          onClick={() => setActiveTab("FORFEITS_QUEUE")}
+          onClick={() => {
+            setActiveTab("FORFEITS_QUEUE");
+            setForfeitSubTab("ACTIVE");
+          }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
-            activeTab === "FORFEITS_QUEUE"
+            activeTab === "FORFEITS_QUEUE" && forfeitSubTab === "ACTIVE"
               ? "bg-primary text-white shadow-lg"
               : "text-muted-foreground hover:text-white hover:bg-card"
           }`}
@@ -2502,6 +2652,26 @@ export default function AdminClient({
             <Badge variant="destructive" className="text-xs px-1.5 py-0">
               {pendingForfeits.length}
             </Badge>
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("FORFEIT_HISTORY");
+            setForfeitSubTab("HISTORY");
+          }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 h-11 ${
+            activeTab === "FORFEIT_HISTORY" || (activeTab === "FORFEITS_QUEUE" && forfeitSubTab === "HISTORY")
+              ? "bg-primary text-white shadow-lg"
+              : "text-muted-foreground hover:text-white hover:bg-card"
+          }`}
+        >
+          <History className="h-4 w-4" />
+          <span>Forfeit History</span>
+          {recentForfeitScreenshots.length > 0 && (
+            <span className="text-xs px-1.5 py-0 rounded-full bg-muted text-foreground font-mono">
+              {recentForfeitScreenshots.length}
+            </span>
           )}
         </button>
 
@@ -5119,9 +5289,8 @@ export default function AdminClient({
                                 onClick={() => handleCloseSubmissions(m.id)}
                                 disabled={closingMatchId === m.id || reopeningMatchId === m.id}
                                 className="text-xs h-7 px-2.5 font-bold border-destructive/40 text-destructive hover:bg-destructive/20"
-                                title="Manually close reopened submission window and lock upload buttons"
+                                title="Close reopened submission window and revert match to normal"
                               >
-                                <Lock className="h-3 w-3 mr-1" />
                                 {closingMatchId === m.id ? "Closing..." : "Close Submissions"}
                               </Button>
                             )}
@@ -6695,120 +6864,718 @@ export default function AdminClient({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 5: FORFEIT CLAIMS QUEUE */}
+      {/* TAB 5: FORFEIT CLAIMS & FORFEIT HISTORY HUB */}
       {/* ========================================================================= */}
-      {activeTab === "FORFEITS_QUEUE" && (
+      {(activeTab === "FORFEITS_QUEUE" || activeTab === "FORFEIT_HISTORY") && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-border pb-4 gap-4">
             <div>
-              <h3 className="text-lg font-black uppercase text-white">Forfeit Claims Arbitration</h3>
-              <p className="text-xs text-muted-foreground">
-                Inspect proof that an opponent was unavailable or uncommunicative on WhatsApp. Approving awards a 3-0 walkover.
+              <h3 className="text-lg font-black uppercase text-white tracking-wide flex items-center gap-2">
+                <ShieldAlert className="h-5 w-5 text-destructive" />
+                <span>Forfeit Arbitration & History Hub</span>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Inspect WhatsApp chat evidence, adjudicate 3-0 walkover disputes, and review recent uploaded screenshots.
               </p>
             </div>
-            <Badge variant="destructive">{pendingForfeits.length} Claims</Badge>
+
+            {/* Sub-tab Switcher */}
+            <div className="flex flex-wrap items-center gap-2 bg-card/90 p-1 rounded-xl border border-border self-start lg:self-auto">
+              <button
+                type="button"
+                onClick={() => setForfeitSubTab("ACTIVE")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                  forfeitSubTab === "ACTIVE"
+                    ? "bg-primary text-white shadow-md"
+                    : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                <ShieldAlert className="h-3.5 w-3.5 text-primary" />
+                <span>Active Dispute Claims</span>
+                {pendingForfeits.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-xs font-black bg-destructive text-destructive-foreground">
+                    {pendingForfeits.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setForfeitSubTab("HISTORY")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                  forfeitSubTab === "HISTORY"
+                    ? "bg-primary text-white shadow-md"
+                    : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                <History className="h-3.5 w-3.5 text-secondary" />
+                <span>Forfeit History & Screenshots</span>
+                <span className="px-1.5 py-0.5 rounded-full text-xs font-black bg-muted text-foreground font-mono">
+                  {allForfeitItems.length}
+                </span>
+              </button>
+            </div>
           </div>
 
-          {pendingForfeits.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
-              <CheckCircle2 className="h-10 w-10 mx-auto text-muted-foreground" />
-              <p className="font-bold">No active forfeit disputes reported.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {pendingForfeits.map((claim) => (
-                <div
-                  key={claim.id}
-                  className="rounded-2xl border border-destructive/30 bg-background/90 p-5 space-y-4 shadow-xl"
-                >
-                  <div className="flex items-center justify-between border-b border-border pb-3">
-                    <span className="text-xs font-mono text-destructive font-bold">{claim.match.round}</span>
-                    <Badge variant="destructive" className="text-xs">
-                      Dispute Claim
-                    </Badge>
-                  </div>
+          {/* SUB-TAB 1: ACTIVE PENDING FORFEIT CLAIMS */}
+          {forfeitSubTab === "ACTIVE" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-black uppercase text-white tracking-wider">
+                    Pending Claims Awaiting Decision
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Review unresponsiveness claims filed by athletes in the final 15 minutes before cutoff.
+                  </p>
+                </div>
+                {pendingForfeits.length > 0 && (
+                  <Badge variant="destructive">{pendingForfeits.length} Pending</Badge>
+                )}
+              </div>
 
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Claimant (Reporting Player):</span>
-                      <p className="font-bold text-primary">
-                        {claim.claimantPlayer.gamerTag} ({claim.claimantPlayer.whatsapp})
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Accused (Non-responsive Opponent):</span>
-                      <p className="font-bold text-destructive">
-                        {claim.accusedPlayer.gamerTag} ({claim.accusedPlayer.whatsapp})
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Claimant Statement:</span>
-                      <p className="p-2.5 rounded-xl bg-card border border-border text-foreground">
-                        {claim.reason}
-                      </p>
-                    </div>
-                  </div>
+              {pendingForfeits.length === 0 ? (
+                <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
+                  <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
+                  <p className="font-bold text-foreground">No active forfeit disputes reported.</p>
+                  <p className="text-xs text-muted-foreground">
+                    All matches are either played normally or resolved. You can inspect previous walkovers and evidence proofs in the history tab.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setForfeitSubTab("HISTORY")}
+                    className="text-xs font-bold gap-1.5 border-border"
+                  >
+                    <History className="h-3.5 w-3.5 text-secondary" />
+                    <span>View Forfeit History & Screenshots ({allForfeitItems.length})</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {pendingForfeits.map((claim) => (
+                    <div
+                      key={claim.id}
+                      className="rounded-2xl border border-destructive/30 bg-background/90 p-5 space-y-4 shadow-xl"
+                    >
+                      <div className="flex items-center justify-between border-b border-border pb-3">
+                        <span className="text-xs font-mono text-destructive font-bold">{claim.match.round}</span>
+                        <Badge variant="destructive" className="text-xs">
+                          Dispute Claim
+                        </Badge>
+                      </div>
 
-                  {claim.proofScreenshotUrl && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-foreground">WhatsApp / Room Proof Screenshot:</span>
-                        <button
-                          type="button"
-                          onClick={() => setInspectImage(claim.proofScreenshotUrl)}
-                          className="text-primary hover:underline flex items-center gap-1 text-xs"
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Claimant (Reporting Player):</span>
+                          <p className="font-bold text-primary">
+                            {claim.claimantPlayer.gamerTag} ({claim.claimantPlayer.whatsapp})
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Accused (Non-responsive Opponent):</span>
+                          <p className="font-bold text-destructive">
+                            {claim.accusedPlayer.gamerTag} ({claim.accusedPlayer.whatsapp})
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Claimant Statement:</span>
+                          <p className="p-2.5 rounded-xl bg-card border border-border text-foreground">
+                            {claim.reason}
+                          </p>
+                        </div>
+                      </div>
+
+                      {claim.proofScreenshotUrl && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-foreground">WhatsApp / Room Proof Screenshot:</span>
+                            <button
+                              type="button"
+                              onClick={() => setInspectImage(claim.proofScreenshotUrl)}
+                              className="text-primary hover:underline flex items-center gap-1 text-xs"
+                            >
+                              <Eye className="h-3 w-3" /> View Fullscreen
+                            </button>
+                          </div>
+                          <div
+                            className="rounded-xl overflow-hidden border border-border h-44 cursor-pointer relative group bg-black/40"
+                            onClick={() => setInspectImage(claim.proofScreenshotUrl)}
+                          >
+                            <img
+                              src={claim.proofScreenshotUrl}
+                              alt="Forfeit proof screenshot"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <span className="px-2.5 py-1 rounded-lg bg-background/90 text-white text-xs font-bold flex items-center gap-1">
+                                <Eye className="h-3 w-3 text-primary" /> Inspect Proof
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={reviewLoading === claim.id}
+                          onClick={() => handleReviewForfeit(claim.id, "APPROVE")}
+                          className="font-bold gap-1 text-xs"
                         >
-                          <Eye className="h-3 w-3" /> View Fullscreen
-                        </button>
-                      </div>
-                      <div
-                        className="rounded-xl overflow-hidden border border-border h-44 cursor-pointer"
-                        onClick={() => setInspectImage(claim.proofScreenshotUrl)}
-                      >
-                        <img
-                          src={claim.proofScreenshotUrl}
-                          alt="Forfeit proof screenshot"
-                          className="w-full h-full object-cover"
-                        />
+                          <CheckCircle2 className="h-4 w-4" />
+                          Approve 3-0
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reviewLoading === claim.id}
+                          onClick={() => handleReviewForfeit(claim.id, "REJECT")}
+                          className="font-bold gap-1 text-xs"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Reject Claim
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reopeningMatchId === claim.matchId}
+                          onClick={() => handleReopenSubmissions(claim.matchId)}
+                          className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
+                          title="Clear forfeit and reopen submission buttons for both athletes"
+                        >
+                          <Unlock className="h-3.5 w-3.5 text-primary" />
+                          Reopen Match
+                        </Button>
                       </div>
                     </div>
-                  )}
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={reviewLoading === claim.id}
-                      onClick={() => handleReviewForfeit(claim.id, "APPROVE")}
-                      className="font-bold gap-1 text-xs"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Approve 3-0
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={reviewLoading === claim.id}
-                      onClick={() => handleReviewForfeit(claim.id, "REJECT")}
-                      className="font-bold gap-1 text-xs"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reject Claim
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={reopeningMatchId === claim.matchId}
-                      onClick={() => handleReopenSubmissions(claim.matchId)}
-                      className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
-                      title="Clear forfeit and reopen submission buttons for both athletes"
-                    >
-                      <Unlock className="h-3.5 w-3.5 text-primary" />
-                      Reopen Match
-                    </Button>
+          {/* SUB-TAB 2: FORFEIT HISTORY & RECENT UPLOADED SCREENSHOTS */}
+          {forfeitSubTab === "HISTORY" && (
+            <div className="space-y-8">
+              {/* Top Overview & Clean History Bar */}
+              <div className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-secondary" />
+                      <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                        Forfeit Records & Screenshot Evidence Archive
+                      </h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Audited record of all dispute walkovers, resolutions, and chat proof screenshots uploaded by athletes across divisions.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={handleCleanForfeitHistory}
+                    disabled={cleaningForfeitHistory || allForfeitItems.length === 0}
+                    variant="outline"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/20 font-bold text-xs gap-1.5 self-start lg:self-auto shrink-0"
+                  >
+                    <Trash2 className={`h-3.5 w-3.5 ${cleaningForfeitHistory ? "animate-spin" : ""}`} />
+                    <span>{cleaningForfeitHistory ? "Cleaning..." : "Clean Resolved History"}</span>
+                  </Button>
+                </div>
+
+                {/* Stat Counters */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
+                  <div className="rounded-xl border border-border bg-card/60 p-3">
+                    <span className="text-xs text-muted-foreground font-bold uppercase block">Total Forfeits</span>
+                    <span className="text-xl font-black text-white font-mono mt-0.5 block">{allForfeitItems.length}</span>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card/60 p-3">
+                    <span className="text-xs text-muted-foreground font-bold uppercase block">Proof Screenshots</span>
+                    <span className="text-xl font-black text-primary font-mono mt-0.5 block">{recentForfeitScreenshots.length}</span>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card/60 p-3">
+                    <span className="text-xs text-muted-foreground font-bold uppercase block">Approved 3-0</span>
+                    <span className="text-xl font-black text-secondary font-mono mt-0.5 block">
+                      {allForfeitItems.filter((i: any) => i.status === "APPROVED").length}
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card/60 p-3">
+                    <span className="text-xs text-muted-foreground font-bold uppercase block">Rejected Disputes</span>
+                    <span className="text-xl font-black text-muted-foreground font-mono mt-0.5 block">
+                      {allForfeitItems.filter((i: any) => i.status === "REJECTED").length}
+                    </span>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* RECENT UPLOADED SCREENSHOTS GALLERY */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                      Recent Uploaded Proof Screenshots
+                    </h4>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-mono font-bold">
+                      {recentForfeitScreenshots.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Click any screenshot to inspect in high-resolution fullscreen.
+                  </p>
+                </div>
+
+                {recentForfeitScreenshots.length === 0 ? (
+                  <div className="rounded-2xl border border-border bg-background/60 p-8 text-center text-muted-foreground space-y-2">
+                    <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-xs font-bold text-foreground">No forfeit proof screenshots uploaded yet.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Screenshots uploaded by players claiming forfeit walkovers will appear here in chronological order.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {recentForfeitScreenshots.map((item: any) => {
+                      const claimantTag = item.claimantPlayer?.gamerTag || "Unknown";
+                      const accusedTag = item.accusedPlayer?.gamerTag || "Unknown";
+                      const statusVariant =
+                        item.status === "APPROVED"
+                          ? "secondary"
+                          : item.status === "REJECTED"
+                          ? "outline"
+                          : "destructive";
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="group relative rounded-2xl border border-border bg-card/80 overflow-hidden shadow-md hover:border-primary/50 transition-all flex flex-col cursor-pointer"
+                          onClick={() => setInspectImage(item.proofScreenshotUrl)}
+                        >
+                          {/* Image Thumbnail Container */}
+                          <div className="relative aspect-video w-full overflow-hidden bg-black/60">
+                            <img
+                              src={item.proofScreenshotUrl}
+                              alt={`Forfeit proof from ${claimantTag}`}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                            {/* Top Badges Overlay */}
+                            <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1 pointer-events-none">
+                              <span className="px-2 py-0.5 rounded-md bg-background/90 text-white font-mono text-xs font-bold shadow-sm backdrop-blur-sm truncate max-w-xs">
+                                {item.match?.round || "Match"}
+                              </span>
+                              <Badge
+                                variant={statusVariant}
+                                className="text-xs px-1.5 py-0 font-bold backdrop-blur-sm shadow-sm"
+                              >
+                                {item.status}
+                              </Badge>
+                            </div>
+
+                            {/* Hover Overlay with Action Buttons */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setInspectImage(item.proofScreenshotUrl);
+                                }}
+                                className="p-2 rounded-xl bg-background/90 text-white hover:text-primary transition-colors shadow-lg"
+                                title="Inspect Fullscreen"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <a
+                                href={item.proofScreenshotUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 rounded-xl bg-background/90 text-white hover:text-secondary transition-colors shadow-lg"
+                                title="Open Full Image in New Tab"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Card Footer Details */}
+                          <div className="p-3 space-y-1.5 flex-1 flex flex-col justify-between border-t border-border/80">
+                            <div>
+                              <div className="flex items-center justify-between gap-1 text-xs">
+                                <span className="font-bold text-primary truncate flex-1" title={claimantTag}>
+                                  @{claimantTag}
+                                </span>
+                                <span className="text-xs text-muted-foreground font-mono">vs</span>
+                                <span className="font-bold text-destructive truncate flex-1 text-right" title={accusedTag}>
+                                  @{accusedTag}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {item.match?.division || "Division Match"}
+                              </p>
+                            </div>
+
+                            <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground font-mono">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatRwandanDate(item.createdAt)}
+                              </span>
+                              <span className="text-primary font-bold">Inspect</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* FILTERS & SEARCH TOOLBAR */}
+              <div className="rounded-2xl border border-border bg-background/90 p-4 space-y-3 shadow-xl">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Filter className="h-3.5 w-3.5 text-primary" />
+                    <span>Filter & Search Forfeit Archive</span>
+                  </span>
+                  {(forfeitStatusFilter !== "ALL" ||
+                    forfeitDivisionFilter !== "ALL" ||
+                    forfeitRoundFilter !== "ALL" ||
+                    forfeitSearchQuery.trim()) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForfeitStatusFilter("ALL");
+                        setForfeitDivisionFilter("ALL");
+                        setForfeitRoundFilter("ALL");
+                        setForfeitSearchQuery("");
+                      }}
+                      className="text-xs text-primary hover:underline font-bold"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={forfeitStatusFilter}
+                      onChange={(e) => setForfeitStatusFilter(e.target.value)}
+                      className="w-full bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
+                    >
+                      <option value="ALL">All Statuses ({allForfeitItems.length})</option>
+                      <option value="APPROVED">Approved 3-0 Walkovers</option>
+                      <option value="REJECTED">Rejected Claims</option>
+                      <option value="PENDING">Pending Arbitration</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Division
+                    </label>
+                    <select
+                      value={forfeitDivisionFilter}
+                      onChange={(e) => setForfeitDivisionFilter(e.target.value)}
+                      className="w-full bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
+                    >
+                      <option value="ALL">All Divisions</option>
+                      <option value="Division 1">Division 1</option>
+                      <option value="Division 2">Division 2</option>
+                      <option value="Division 3">Division 3</option>
+                      <option value="UCL">UEFA Champions League</option>
+                      <option value="EUROPA">UEFA Europa League</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Round
+                    </label>
+                    <select
+                      value={forfeitRoundFilter}
+                      onChange={(e) => setForfeitRoundFilter(e.target.value)}
+                      className="w-full bg-card border border-border text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-primary"
+                    >
+                      <option value="ALL">All Rounds</option>
+                      {uniqueForfeitRounds.map((r: any) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono font-bold text-muted-foreground uppercase block mb-1">
+                      Search Athlete / WhatsApp
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Search gamer tag..."
+                        value={forfeitSearchQuery}
+                        onChange={(e) => setForfeitSearchQuery(e.target.value)}
+                        className="pl-9 bg-card border-border text-xs h-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DETAILED FORFEIT RECORDS FEED */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                    Detailed Forfeit History Records ({filteredHistoryForfeits.length})
+                  </h4>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    Showing {filteredHistoryForfeits.length} of {allForfeitItems.length}
+                  </span>
+                </div>
+
+                {filteredHistoryForfeits.length === 0 ? (
+                  <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
+                    <History className="h-10 w-10 mx-auto text-muted-foreground" />
+                    <p className="font-bold text-foreground">No forfeit history records found.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Try resetting your status, division, or round filters above.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {filteredHistoryForfeits.map((item: any) => {
+                      const claimantTag = item.claimantPlayer?.gamerTag || "Unknown";
+                      const accusedTag = item.accusedPlayer?.gamerTag || "Unknown";
+                      const statusVariant =
+                        item.status === "APPROVED"
+                          ? "secondary"
+                          : item.status === "REJECTED"
+                          ? "outline"
+                          : "destructive";
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border border-border bg-background/90 p-5 space-y-4 shadow-xl hover:border-border/80 transition"
+                        >
+                          {/* Header */}
+                          <div className="flex items-center justify-between border-b border-border pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-foreground">
+                                {item.match?.round || "Match"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <span className="text-xs text-muted-foreground font-bold">
+                                {item.match?.division || "Division"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {formatRwandanDateTime(item.createdAt)}
+                              </span>
+                              <Badge variant={statusVariant} className="text-xs">
+                                {item.status === "APPROVED"
+                                  ? "3-0 Walkover"
+                                  : item.status === "REJECTED"
+                                  ? "Dispute Rejected"
+                                  : "Pending"}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {/* Athletes Info */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div className="p-3 rounded-xl bg-card/60 border border-border space-y-1">
+                              <span className="text-xs text-muted-foreground uppercase font-bold block">
+                                Claimant (Winner 3-0)
+                              </span>
+                              <p className="font-extrabold text-primary text-sm truncate">
+                                {claimantTag}
+                              </p>
+                              {item.claimantPlayer?.whatsapp && (
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  {item.claimantPlayer.whatsapp}
+                                </p>
+                              )}
+                              {item.claimantPlayer?.realTeam && (
+                                <span className="text-xs text-secondary font-bold block truncate">
+                                  {findTeam(item.claimantPlayer.realTeam)?.name || item.claimantPlayer.realTeam}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="p-3 rounded-xl bg-card/60 border border-border space-y-1">
+                              <span className="text-xs text-muted-foreground uppercase font-bold block">
+                                Accused (Opponent)
+                              </span>
+                              <p className="font-extrabold text-destructive text-sm truncate">
+                                {accusedTag}
+                              </p>
+                              {item.accusedPlayer?.whatsapp && (
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  {item.accusedPlayer.whatsapp}
+                                </p>
+                              )}
+                              {item.accusedPlayer?.realTeam && (
+                                <span className="text-xs text-secondary font-bold block truncate">
+                                  {findTeam(item.accusedPlayer.realTeam)?.name || item.accusedPlayer.realTeam}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Reason & Admin Notes */}
+                          <div className="space-y-2 text-xs">
+                            {item.reason && (
+                              <div>
+                                <span className="text-muted-foreground font-bold block mb-1">
+                                  Submitted Reason:
+                                </span>
+                                <p className="p-2.5 rounded-xl bg-card border border-border text-foreground leading-relaxed">
+                                  {item.reason}
+                                </p>
+                              </div>
+                            )}
+
+                            {item.adminNotes && (
+                              <div>
+                                <span className="text-muted-foreground font-bold block mb-1">
+                                  Administrative Resolution:
+                                </span>
+                                <p className="p-2.5 rounded-xl bg-card/50 border border-border/80 text-secondary text-xs italic">
+                                  &quot;{item.adminNotes}&quot;
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Uploaded Screenshot Proof */}
+                          {item.proofScreenshotUrl && (
+                            <div className="space-y-1.5 pt-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-foreground flex items-center gap-1.5">
+                                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                                  <span>Proof Screenshot Evidence:</span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setInspectImage(item.proofScreenshotUrl)}
+                                    className="text-primary hover:underline flex items-center gap-1 text-xs font-bold"
+                                  >
+                                    <Eye className="h-3 w-3" /> Fullscreen
+                                  </button>
+                                  <a
+                                    href={item.proofScreenshotUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-secondary hover:underline flex items-center gap-1 text-xs"
+                                  >
+                                    <ExternalLink className="h-3 w-3" /> Link
+                                  </a>
+                                </div>
+                              </div>
+                              <div
+                                className="rounded-xl overflow-hidden border border-border h-48 cursor-pointer relative group bg-black/40"
+                                onClick={() => setInspectImage(item.proofScreenshotUrl)}
+                              >
+                                <img
+                                  src={item.proofScreenshotUrl}
+                                  alt="Forfeit proof screenshot"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <span className="px-3 py-1.5 rounded-xl bg-background/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-xl">
+                                    <Eye className="h-4 w-4 text-primary" />
+                                    <span>Click to Inspect Fullscreen</span>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Toolbar */}
+                          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+                            {item.status === "PENDING" && (
+                              <>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={reviewLoading === item.id}
+                                  onClick={() => handleReviewForfeit(item.id, "APPROVE")}
+                                  className="font-bold gap-1 text-xs"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Approve 3-0
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={reviewLoading === item.id}
+                                  onClick={() => handleReviewForfeit(item.id, "REJECT")}
+                                  className="font-bold gap-1 text-xs"
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                  Reject Claim
+                                </Button>
+                              </>
+                            )}
+
+                            {item.status === "REJECTED" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={reviewLoading === item.id}
+                                onClick={() => handleReviewForfeit(item.id, "APPROVE")}
+                                className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                                Re-evaluate & Award 3-0
+                              </Button>
+                            )}
+
+                            {item.matchId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={reopeningMatchId === item.matchId}
+                                onClick={() => handleReopenSubmissions(item.matchId)}
+                                className="font-bold gap-1 text-xs border-primary/40 text-primary hover:bg-primary/20"
+                                title="Clear forfeit and reopen submission buttons for both athletes"
+                              >
+                                <Unlock className="h-3.5 w-3.5 text-primary" />
+                                Reopen Match
+                              </Button>
+                            )}
+
+                            {!item.isDirectMatchForfeit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={deletingForfeitClaimId === item.id}
+                                onClick={() => handleDeleteForfeitClaim(item.id)}
+                                className="font-bold gap-1 text-xs border-destructive/40 text-destructive hover:bg-destructive/20 ml-auto"
+                                title="Delete this forfeit record permanently"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                <span>{deletingForfeitClaimId === item.id ? "Deleting..." : "Delete Record"}</span>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

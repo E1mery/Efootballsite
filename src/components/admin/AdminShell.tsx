@@ -17,6 +17,7 @@ export default function AdminShell({
   matches,
   pendingSubmissions,
   pendingForfeits,
+  allForfeits = [],
   allPlayers,
   announcements,
   flaggedPlayers,
@@ -38,6 +39,7 @@ export default function AdminShell({
   matches: any[];
   pendingSubmissions: any[];
   pendingForfeits: any[];
+  allForfeits?: any[];
   allPlayers: any[];
   announcements: any[];
   flaggedPlayers: any[];
@@ -84,6 +86,7 @@ export default function AdminShell({
         (s: any) => !s.match?.deadlineDate || new Date(s.match.deadlineDate).getTime() > Date.now()
       ).length,
       pendingForfeits: pendingForfeits.length,
+      forfeitHistory: (allForfeits || []).length,
       activeMessages: initialPlayerMessages.length,
       pendingMessages: initialPlayerMessages.filter(
         (m: any) => m.status === "PENDING" && !m.adminReply
@@ -103,6 +106,7 @@ export default function AdminShell({
       initialNews,
       pendingSubmissions,
       pendingForfeits,
+      allForfeits,
       initialPlayerMessages,
       initialReviews,
       initialPasswordResets,
@@ -248,6 +252,7 @@ export default function AdminShell({
               matches={matches}
               pendingSubmissions={pendingSubmissions}
               pendingForfeits={pendingForfeits}
+              allForfeits={allForfeits}
               allPlayers={allPlayers}
               announcements={announcements}
               flaggedPlayers={flaggedPlayers}

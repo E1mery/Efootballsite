@@ -5,6 +5,7 @@ import {
   Download,
   Flame,
   Globe,
+  History,
   KeyRound,
   MessageSquare,
   Newspaper,
@@ -31,6 +32,7 @@ export type AdminTab =
   | "CONTINENTAL"
   | "RESULTS_QUEUE"
   | "FORFEITS_QUEUE"
+  | "FORFEIT_HISTORY"
   | "ANNOUNCEMENTS"
   | "PLAYERS"
   | "HALL_OF_FAME"
@@ -47,6 +49,7 @@ export type AdminSidebarCounts = {
   news: number;
   pendingSubmissions: number;
   pendingForfeits: number;
+  forfeitHistory: number;
   activeMessages: number;
   pendingMessages: number;
   reviews: number;
@@ -81,6 +84,7 @@ export const ADMIN_TAB_TITLES: Record<AdminTab, string> = {
   CONTINENTAL: "UCL & Europa Hub",
   RESULTS_QUEUE: "Score Verification",
   FORFEITS_QUEUE: "Forfeit Claims",
+  FORFEIT_HISTORY: "Forfeit History",
   ANNOUNCEMENTS: "Announcements",
   NEWS: "News",
   MESSAGES: "Player Inquiries",
@@ -151,6 +155,12 @@ export function buildAdminNav(counts: AdminSidebarCounts): AdminNavGroup[] {
           icon: ShieldAlert,
           count: counts.pendingForfeits,
           badgeVariant: "destructive",
+        },
+        {
+          id: "FORFEIT_HISTORY",
+          title: "Forfeit History",
+          icon: History,
+          count: counts.forfeitHistory,
         },
       ],
     },
