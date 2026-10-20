@@ -5,6 +5,7 @@ import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
 import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 import { recalculateStandings } from "@/lib/recalculateStandings";
+import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
 
 export interface DailyCycleResult {
@@ -183,6 +184,14 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
   // Recalculate standings for all affected divisions so both players officially receive 1 point each
   for (const { tournamentId, division } of affectedDivisions.values()) {
     await recalculateStandings(tournamentId, division);
+    const compType = division.includes("EUROPA") ? "EUROPA" : division.includes("UCL") ? "UCL" : "DIVISION";
+    const grpMatch = division.match(/Group [A-D]/i);
+    await notifyStandingsUpdate({
+      tournamentType: compType,
+      competitionName: division,
+      groupName: grpMatch ? grpMatch[0] : null,
+      matchSummary: "Overdue matchday resolution (0-0 draw)",
+    }).catch(() => {});
   }
 
   return {
@@ -279,6 +288,14 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
         },
       });
       await recalculateStandings(rm.tournamentId, rm.division);
+      const compType = rm.division.includes("EUROPA") ? "EUROPA" : rm.division.includes("UCL") ? "UCL" : "DIVISION";
+      const grpMatch = rm.division.match(/Group [A-D]/i);
+      await notifyStandingsUpdate({
+        tournamentType: compType,
+        competitionName: rm.division,
+        groupName: grpMatch ? grpMatch[0] : null,
+        matchSummary: "Replacement match elapsed (0-0 draw)",
+      }).catch(() => {});
     }
 
     // 2. Activate next matchday fixtures (24-hour countdown starting now)

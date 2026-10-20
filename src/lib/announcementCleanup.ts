@@ -8,6 +8,17 @@ export async function cleanupExpiredAnnouncements(): Promise<number> {
   try {
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    // Automatically purge legacy broadcast table update announcements so non-participants are never notified
+    await prisma.announcement.deleteMany({
+      where: {
+        type: "BROADCAST",
+        OR: [
+          { title: { contains: "Standings Updated" } },
+          { title: { contains: "Table Updated" } },
+        ],
+      },
+    }).catch(() => {});
+
     const deleted = await prisma.announcement.deleteMany({
       where: {
         createdAt: { lt: cutoff24h },
