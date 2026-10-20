@@ -37,11 +37,13 @@ import { resolvePlayerAvatar, isCustomUploadedHofImage } from "@/lib/teams";
 interface AdminHallOfFameHubProps {
   initialHallOfFame: any[];
   allPlayers?: any[];
+  reservePlayers?: any[];
 }
 
 export default function AdminHallOfFameHub({
   initialHallOfFame = [],
   allPlayers = [],
+  reservePlayers = [],
 }: AdminHallOfFameHubProps) {
   const [activeSubTab, setActiveSubTab] = useState<
     "STATISTICS" | "INDUCTEES" | "MANUAL_RECORDS" | "ELIGIBILITY"
@@ -141,6 +143,40 @@ export default function AdminHallOfFameHub({
     setHofAvatarFilter("ALL");
   };
 
+  // Unified players list including both active division players and standby reserve pool athletes
+  const allAvailablePlayers = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const p of allPlayers) {
+      if (p?.id) {
+        map.set(p.id, {
+          ...p,
+          isReserve: p.status === "RESERVED",
+        });
+      }
+    }
+    for (const p of reservePlayers) {
+      if (p?.id) {
+        const existing = map.get(p.id);
+        map.set(p.id, {
+          ...(existing || {}),
+          ...p,
+          isReserve: true,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      (a.gamerTag || "").localeCompare(b.gamerTag || "", undefined, { sensitivity: "base" })
+    );
+  }, [allPlayers, reservePlayers]);
+
+  const reservePlayersList = useMemo(() => {
+    return allAvailablePlayers.filter((p) => p.isReserve || p.status === "RESERVED");
+  }, [allAvailablePlayers]);
+
+  const activePlayersList = useMemo(() => {
+    return allAvailablePlayers.filter((p) => !p.isReserve && p.status !== "RESERVED");
+  }, [allAvailablePlayers]);
+
   const filteredHallOfFame = useMemo(() => {
     return hallOfFame.filter((entry) => {
       // Search query (champion name, real name, notes, season, tournament)
@@ -187,7 +223,7 @@ export default function AdminHallOfFameHub({
 
       // Avatar status filter
       if (hofAvatarFilter !== "ALL") {
-        const matchedPlayer = allPlayers.find(
+        const matchedPlayer = allAvailablePlayers.find(
           (p) =>
             (entry.playerId && p.id === entry.playerId) ||
             p.gamerTag?.toLowerCase() === entry.championName?.toLowerCase()
@@ -215,7 +251,7 @@ export default function AdminHallOfFameHub({
     });
   }, [
     hallOfFame,
-    allPlayers,
+    allAvailablePlayers,
     hofSearchQuery,
     hofTournamentFilter,
     hofSeasonFilter,
@@ -290,7 +326,7 @@ export default function AdminHallOfFameHub({
   };
 
   // Find currently selected player object from system
-  const currentSelectedPlayer = allPlayers.find(
+  const currentSelectedPlayer = allAvailablePlayers.find(
     (p) => p.id === selectedPlayerId || p.gamerTag.toLowerCase() === hofChampion.trim().toLowerCase()
   );
 
@@ -323,7 +359,7 @@ export default function AdminHallOfFameHub({
     if (!playerId) {
       return;
     }
-    const found = allPlayers.find((p) => p.id === playerId);
+    const found = allAvailablePlayers.find((p) => p.id === playerId);
     if (found) {
       setHofChampion(found.gamerTag);
       if (found.fullName) {
@@ -974,11 +1010,22 @@ export default function AdminHallOfFameHub({
                       className="w-full rounded-xl border border-secondary/30 bg-background px-3 py-2 text-xs font-bold text-foreground focus:ring-1 focus:ring-secondary"
                     >
                       <option value="">-- Choose a registered player from system --</option>
-                      {allPlayers.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.gamerTag} ({p.fullName || "Player"} • {p.division || "Division 1"})
-                        </option>
-                      ))}
+                      {reservePlayersList.length > 0 && (
+                        <optgroup label={`Standby Reserve Pool (${reservePlayersList.length})`}>
+                          {reservePlayersList.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.gamerTag} ({p.fullName || "Player"} • Reserve Pool)
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label={`Active Division Athletes (${activePlayersList.length})`}>
+                        {activePlayersList.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.gamerTag} ({p.fullName || "Player"} • {p.division || "Division 1"})
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 
@@ -998,7 +1045,9 @@ export default function AdminHallOfFameHub({
                       <div className="min-w-0 flex-1 truncate">
                         <span className="font-bold text-foreground">{currentSelectedPlayer.gamerTag}</span>
                         <span className="text-muted-foreground block text-xs truncate">
-                          Team Logo: {currentSelectedPlayer.realTeam || "Standard"}
+                          {currentSelectedPlayer.status === "RESERVED" || currentSelectedPlayer.isReserve
+                            ? "Reserve Pool (Standby)"
+                            : `Team Logo: ${currentSelectedPlayer.realTeam || "Standard"}`}
                         </span>
                       </div>
                       <Badge variant="yellow" className="text-xs shrink-0 font-mono">
@@ -1426,7 +1475,7 @@ export default function AdminHallOfFameHub({
                       </div>
 
                       {(() => {
-                        const matchedPlayer = allPlayers.find(
+                        const matchedPlayer = allAvailablePlayers.find(
                           (p) =>
                             (entry.playerId && p.id === entry.playerId) ||
                             p.gamerTag?.toLowerCase() === entry.championName?.toLowerCase()

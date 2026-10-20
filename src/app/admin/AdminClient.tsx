@@ -8177,6 +8177,7 @@ export default function AdminClient({
         <AdminHallOfFameHub
           initialHallOfFame={hallOfFame}
           allPlayers={allPlayers}
+          reservePlayers={reservePlayers}
         />
       )}
 
