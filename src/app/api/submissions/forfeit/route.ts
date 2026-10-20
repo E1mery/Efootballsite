@@ -97,25 +97,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // STRICT 15-MINUTE FORFEIT CLAIM PROTOCOL:
-    // Players are able to claim for forfeit (including screenshot upload) 15 minutes before the deadline only.
+    // STRICT 1-HOUR (11:00 PM TO CUTOFF) FORFEIT CLAIM PROTOCOL:
+    // Players are able to claim for forfeit (including screenshot upload) starting 1 hour before the deadline (from 11:00 PM to 12:00 AM cutoff).
     if (match.deadlineDate && !isReopenedByAdmin) {
       const deadlineTime = new Date(match.deadlineDate).getTime();
       const timeUntilDeadline = deadlineTime - now.getTime();
-      const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+      const ONE_HOUR_MS = 60 * 60 * 1000;
 
-      if (timeUntilDeadline > FIFTEEN_MINUTES_MS) {
-        const unlockTime = new Date(deadlineTime - FIFTEEN_MINUTES_MS);
+      if (timeUntilDeadline > ONE_HOUR_MS) {
+        const unlockTime = new Date(deadlineTime - ONE_HOUR_MS);
         const unlockTimeFormatted = unlockTime.toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
           timeZone: "Africa/Kigali",
         });
-        const minutesRemaining = Math.ceil((timeUntilDeadline - FIFTEEN_MINUTES_MS) / (60 * 1000));
+        const minutesRemaining = Math.ceil((timeUntilDeadline - ONE_HOUR_MS) / (60 * 1000));
         return NextResponse.json(
           {
-            error: `Forfeit Protocol: Forfeit claims and proof upload are locked until 15 minutes before the match deadline (unlocks at ${unlockTimeFormatted} CAT, in ~${minutesRemaining} min). Please continue reaching out to your opponent on WhatsApp to arrange and play your fixture.`,
+            error: `Forfeit Protocol: Forfeit claims and proof upload are locked until 1 hour before the match deadline (unlocks from 11:00 PM / at ${unlockTimeFormatted} CAT, in ~${minutesRemaining} min). Please continue reaching out to your opponent on WhatsApp to arrange and play your fixture.`,
           },
           { status: 400 }
         );

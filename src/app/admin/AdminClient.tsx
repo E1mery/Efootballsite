@@ -6948,7 +6948,7 @@ export default function AdminClient({
                     Pending Claims Awaiting Decision
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Review unresponsiveness claims filed by athletes in the final 15 minutes before cutoff.
+                    Review unresponsiveness claims filed by athletes during the final hour before cutoff (11:00 PM to midnight).
                   </p>
                 </div>
                 {pendingForfeits.length > 0 && (

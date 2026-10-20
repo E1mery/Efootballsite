@@ -97,17 +97,17 @@ export default function QuickActionHubModal({
       description: isDeadlineExpired
         ? "Deadline for this match has expired. Forfeit claims are closed."
         : !isForfeitWindowOpen
-        ? `Protocol: Forfeit claims unlock 15 minutes before deadline${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.`
+        ? `Protocol: Forfeit claims unlock from 11:00 PM until deadline (1 hour before cutoff)${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.`
         : "Opponent not answering on WhatsApp or refusing to play? Upload chat proof to claim a 3-0 win.",
       icon: ShieldAlert,
       iconColor: isDeadlineExpired || !isForfeitWindowOpen ? "text-muted-foreground" : "text-destructive",
       iconBg: isDeadlineExpired || !isForfeitWindowOpen ? "bg-muted border-border" : "bg-destructive/20 border-destructive/30",
-      badge: isDeadlineExpired ? "EXPIRED" : !isForfeitWindowOpen ? "LOCKED (15m)" : "DISPUTE",
+      badge: isDeadlineExpired ? "EXPIRED" : !isForfeitWindowOpen ? "LOCKED (1h)" : "DISPUTE",
       disabled: !hasActiveMatch || isReserved || isDeadlineExpired || !isForfeitWindowOpen,
       actionText: isDeadlineExpired
         ? "Deadline Reached (Closed)"
         : !isForfeitWindowOpen
-        ? "Locked (Unlocks 15m Before Deadline)"
+        ? "Locked (Unlocks 1h Before Deadline)"
         : hasActiveMatch
         ? "File Forfeit Claim"
         : "No Active Match",

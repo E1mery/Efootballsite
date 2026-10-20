@@ -1444,30 +1444,30 @@ export default function DashboardClient({
     !isAdminPermissionGranted && (isMatchLocked || hasSubmittedResult || hasClaimedForfeit || timeLeft.isExpired)
   );
 
-  // STRICT 15-MINUTE FORFEIT CLAIM PROTOCOL:
-  // Players are able to claim for forfeit (including screenshot upload) 15 minutes before the deadline only,
+  // STRICT 1-HOUR (11:00 PM TO CUTOFF) FORFEIT CLAIM PROTOCOL:
+  // Players are able to claim for forfeit (including screenshot upload) starting 1 hour before the deadline (11:00 PM to 12:00 AM cutoff),
   // else the forfeit claim button must be locked.
-  const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
-  const isWithin15MinutesOfDeadline = Boolean(
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const isWithin1HourOfDeadline = Boolean(
     !timeLeft.isExpired &&
-    timeLeft.hours === 0 &&
-    (timeLeft.minutes < 15 || (timeLeft.minutes === 15 && timeLeft.seconds === 0))
+    (timeLeft.hours === 0 || (timeLeft.hours === 1 && timeLeft.minutes === 0 && timeLeft.seconds === 0))
   );
 
   const isForfeitWindowOpen = Boolean(
     isAdminPermissionGranted ||
-    (activeMatch?.deadlineDate && isWithin15MinutesOfDeadline && !isDeadlineExpired)
+    (activeMatch?.deadlineDate && isWithin1HourOfDeadline && !isDeadlineExpired)
   );
 
   const forfeitUnlockTimeFormatted = useMemo(() => {
     if (!activeMatch?.deadlineDate) return null;
     const deadlineMs = new Date(activeMatch.deadlineDate).getTime();
     if (isNaN(deadlineMs)) return null;
-    const unlockDate = new Date(deadlineMs - FIFTEEN_MINUTES_MS);
+    const unlockDate = new Date(deadlineMs - ONE_HOUR_MS);
     return unlockDate.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Africa/Kigali",
     });
   }, [activeMatch?.deadlineDate]);
 
@@ -1670,7 +1670,7 @@ export default function DashboardClient({
       return;
     }
 
-    // STRICT 15-MINUTE PROTOCOL CHECK:
+    // STRICT 1-HOUR (11:00 PM TO CUTOFF) PROTOCOL CHECK:
     const targetDeadline = targetMatch.deadlineDate ? new Date(targetMatch.deadlineDate).getTime() : 0;
     const timeUntilTargetDeadline = targetDeadline - Date.now();
     const isTargetReopened = Boolean(
@@ -1679,8 +1679,9 @@ export default function DashboardClient({
       isAdminPermissionGranted
     );
 
-    if (targetDeadline > 0 && timeUntilTargetDeadline > 15 * 60 * 1000 && !isTargetReopened) {
-      alert("Forfeit Protocol: Forfeit claims (including screenshot upload) can only be submitted 15 minutes before the deadline cutoff. Please continue trying to contact your opponent on WhatsApp.");
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    if (targetDeadline > 0 && timeUntilTargetDeadline > ONE_HOUR_MS && !isTargetReopened) {
+      alert("Forfeit Protocol: Forfeit claims (including screenshot upload) can only be submitted from 11:00 PM to the deadline (1 hour before cutoff). Please continue trying to contact your opponent on WhatsApp.");
       setSubmittingForfeit(false);
       return;
     }
@@ -3237,7 +3238,7 @@ export default function DashboardClient({
                       </span>
                     </div>
                     <p className="text-xs text-secondary/90 leading-relaxed">
-                      You have not uploaded a match result screenshot or submitted a forfeit claim. Message <strong className="text-white">@{opponent?.gamerTag}</strong> on WhatsApp right now to play. If your opponent is unreachable, forfeit claims unlock strictly 15 minutes before cutoff{forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.
+                      You have not uploaded a match result screenshot or submitted a forfeit claim. Message <strong className="text-white">@{opponent?.gamerTag}</strong> on WhatsApp right now to play. If your opponent is unreachable, forfeit claims are now unlocked (available from 11:00 PM until cutoff).
                     </p>
                   </div>
                 </div>
@@ -3535,7 +3536,7 @@ export default function DashboardClient({
                           return;
                         }
                         if (!isForfeitWindowOpen && !isAdminPermissionGranted) {
-                          alert(`Forfeit Protocol: Forfeit claims unlock strictly 15 minutes before the match deadline${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}. Please continue to message your opponent on WhatsApp to arrange and play the match.`);
+                          alert(`Forfeit Protocol: Forfeit claims unlock from 11:00 PM until the match deadline (1 hour before cutoff)${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}. Please continue to message your opponent on WhatsApp to arrange and play the match.`);
                           return;
                         }
                         setActionMatch(activeMatch);
@@ -3548,14 +3549,14 @@ export default function DashboardClient({
                       }`}
                       title={
                         !isForfeitWindowOpen && !isAdminPermissionGranted
-                          ? `Protocol: Forfeit claims unlock 15 minutes before deadline${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.`
+                          ? `Protocol: Forfeit claims unlock 1 hour before deadline (from 11:00 PM)${forfeitUnlockTimeFormatted ? ` (at ${forfeitUnlockTimeFormatted})` : ""}.`
                           : "Claim 3-0 forfeit walkover by uploading WhatsApp chat proof."
                       }
                     >
                       {!isForfeitWindowOpen && !isAdminPermissionGranted ? (
                         <>
                           <Lock className="h-4 w-4 shrink-0" />
-                          Claim Forfeit (Unlocks 15m Before Deadline)
+                          Claim Forfeit (Unlocks 1h Before Deadline)
                         </>
                       ) : (
                         <>
@@ -5652,23 +5653,25 @@ export default function DashboardClient({
           ? new Date(modalMatch.deadlineDate).getTime()
           : 0;
         const modalTimeUntilDeadline = modalDeadline ? modalDeadline - Date.now() : 0;
+        const ONE_HOUR_MS = 60 * 60 * 1000;
         const isModalForfeitWindowOpen = Boolean(
           isModalReopened ||
           (modalDeadline > 0 &&
-            modalTimeUntilDeadline <= 15 * 60 * 1000 &&
+            modalTimeUntilDeadline <= ONE_HOUR_MS &&
             modalTimeUntilDeadline > 0)
         );
 
         const modalUnlockTimeFormatted = modalDeadline
-          ? new Date(modalDeadline - 15 * 60 * 1000).toLocaleTimeString("en-US", {
+          ? new Date(modalDeadline - ONE_HOUR_MS).toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
               hour12: true,
+              timeZone: "Africa/Kigali",
             })
           : null;
         const modalMinutesToUnlock = Math.max(
           1,
-          Math.ceil((modalTimeUntilDeadline - 15 * 60 * 1000) / (60 * 1000))
+          Math.ceil((modalTimeUntilDeadline - ONE_HOUR_MS) / (60 * 1000))
         );
 
         return (
@@ -5756,13 +5759,13 @@ export default function DashboardClient({
                   </div>
                   <div className="space-y-2">
                     <Badge variant="outline" className="text-xs font-mono font-bold uppercase tracking-wider">
-                      PROTOCOL LOCK • 15-MINUTE RULE
+                      PROTOCOL LOCK • 1-HOUR RULE
                     </Badge>
                     <h4 className="text-base font-black text-foreground uppercase tracking-tight">
                       Forfeit Claims Currently Locked
                     </h4>
                     <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                      Athletes are permitted to lodge a forfeit claim and upload screenshot evidence strictly <strong>15 minutes before the match deadline</strong>.
+                      Athletes are permitted to lodge a forfeit claim and upload screenshot evidence from <strong>11:00 PM to the deadline (1 hour before cutoff)</strong>.
                     </p>
                   </div>
                   {modalUnlockTimeFormatted && (
