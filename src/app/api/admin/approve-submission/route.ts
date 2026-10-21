@@ -5,6 +5,7 @@ import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
 import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
+import { createRwandanMidnight, getRwandanDateString } from "@/lib/rwandanTime";
 
 export async function POST(req: Request) {
   try {
@@ -665,8 +666,8 @@ export async function POST(req: Request) {
       }
 
       // Next midnight cutoff
-      const nextMidnight = new Date();
-      nextMidnight.setHours(24, 0, 0, 0);
+      const todayMidnight = createRwandanMidnight(getRwandanDateString(new Date()));
+      const nextMidnight = new Date(todayMidnight.getTime() + 24 * 60 * 60 * 1000);
 
       // Create round-robin pair for round
       const newMatches = [];
@@ -681,7 +682,7 @@ export async function POST(req: Request) {
               round: `Matchday - Daily Fixture`,
               platform: "eFootball Mobile",
               status: "SCHEDULED",
-              matchDate: new Date(),
+              matchDate: todayMidnight,
               deadlineDate: nextMidnight,
               notes: "24-Hour window active. Coordinate on WhatsApp and submit result screenshot before 12:00 AM.",
             },

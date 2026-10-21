@@ -7,6 +7,7 @@ import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
+import { createRwandanMidnight, getRwandanDateString } from "@/lib/rwandanTime";
 
 export interface DailyCycleResult {
   advanced: boolean;
@@ -232,9 +233,10 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     const now = new Date();
 
     if (!force) {
-      // Look for any match in the current matchday to check the deadline
+      // Look for the latest deadline in the current matchday
       const sampleMatch = await prisma.match.findFirst({
         where: { round: previousRoundName },
+        orderBy: { deadlineDate: "desc" },
         select: { deadlineDate: true },
       });
 
@@ -248,9 +250,10 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
         };
       }
 
-      // Allow a 2-minute buffer so that a cron job firing slightly before 00:00 CAT (e.g. 21:59:50 UTC) still executes safely
-      const BUFFER_MS = 2 * 60 * 1000;
-      if (now.getTime() + BUFFER_MS < new Date(sampleMatch.deadlineDate).getTime()) {
+      // STRICT DEADLINE CHECK:
+      // Never advance before the official deadline has actually arrived (12:00 AM CAT / Rwandan Time).
+      // Zero premature buffer to prevent dropping new fixtures before the deadline expires.
+      if (now.getTime() < new Date(sampleMatch.deadlineDate).getTime()) {
         return {
           advanced: false,
           currentMatchday,
@@ -298,14 +301,16 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
       }).catch(() => {});
     }
 
-    // 2. Activate next matchday fixtures (24-hour countdown starting now)
-    const deadlineDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    // 2. Activate next matchday fixtures (Anchored strictly to 12:00 AM Midnight CAT / Rwandan Time)
+    const currentRwandanDateStr = getRwandanDateString(now);
+    const activeKickoffDate = createRwandanMidnight(currentRwandanDateStr);
+    const activeDeadlineDate = new Date(activeKickoffDate.getTime() + 24 * 60 * 60 * 1000);
 
     const updatedMatches = await prisma.match.updateMany({
       where: { round: nextRoundName },
       data: {
-        matchDate: now,
-        deadlineDate: deadlineDate,
+        matchDate: activeKickoffDate,
+        deadlineDate: activeDeadlineDate,
       },
     });
 
