@@ -1786,6 +1786,16 @@ export default function AdminClient({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed to update player division (${res.status})`);
       alert(data.message || `Successfully moved athlete to ${targetDivision}!`);
+      if (targetDivision === "RESERVE") {
+        setPlayersList((prev) => prev.filter((p) => p.id !== playerId));
+        const moved = playersList.find((p) => p.id === playerId);
+        if (moved) {
+          setReservePlayers((prev) => [
+            { ...moved, division: "RESERVE", status: "RESERVED", realTeam: null, avatar: null },
+            ...prev.filter((p) => p.id !== playerId),
+          ]);
+        }
+      }
       setEditingDivisionPlayer(null);
       router.refresh();
     } catch (err: any) {
@@ -9132,7 +9142,7 @@ export default function AdminClient({
                       onChange={() => setOutgoingAction("MOVE_TO_RESERVE")}
                       className="text-secondary"
                     />
-                    <span>Move to Reserve Pool</span>
+                    <span>Move to Reserve Pool (Releases Club)</span>
                   </label>
                 </div>
               </div>
@@ -9450,7 +9460,15 @@ export default function AdminClient({
               <div className="rounded-xl border border-secondary/30 bg-secondary/30 p-3 text-xs text-secondary flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-secondary mt-0.5" />
                 <span>
-                  Notice: <strong>@{editingDivisionPlayer.gamerTag}</strong> currently represents <strong>{editingDivisionPlayer.realTeam}</strong>. If moved to {selectedTargetDivision}, any incompatible club will be cleared so they can pick a valid team from the new league.
+                  {selectedTargetDivision === "RESERVE" ? (
+                    <>
+                      Notice: <strong>@{editingDivisionPlayer.gamerTag}</strong> currently represents <strong>{editingDivisionPlayer.realTeam}</strong>. Moving this athlete to the <strong>Reserve Pool</strong> will remove their club assignment so <strong>{editingDivisionPlayer.realTeam}</strong> becomes available for other players to take.
+                    </>
+                  ) : (
+                    <>
+                      Notice: <strong>@{editingDivisionPlayer.gamerTag}</strong> currently represents <strong>{editingDivisionPlayer.realTeam}</strong>. If moved to {selectedTargetDivision}, any incompatible club will be cleared so they can pick a valid team from the new league.
+                    </>
+                  )}
                 </span>
               </div>
             )}

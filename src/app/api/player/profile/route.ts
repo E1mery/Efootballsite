@@ -130,6 +130,12 @@ export async function PUT(req: Request) {
     };
 
     if (realTeam !== undefined) {
+      if (user.player.status === "RESERVED" || user.player.division === "RESERVE") {
+        return NextResponse.json(
+          { error: "Athletes in the reserve pool cannot claim a club until admitted to an active division." },
+          { status: 400 }
+        );
+      }
       const team = findTeam(realTeam);
       if (team) {
         // Strict Division-to-League Verification:
@@ -175,7 +181,8 @@ export async function PUT(req: Request) {
               { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
               { realTeam: { equals: team.id, mode: "insensitive" as const } },
             ],
-            status: { not: "REJECTED" },
+            status: { notIn: ["REJECTED", "RESERVED"] },
+            division: { not: "RESERVE" },
           },
           select: { gamerTag: true },
         });

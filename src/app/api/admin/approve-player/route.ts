@@ -159,6 +159,9 @@ async function processAthlete({
       where: { id: playerId },
       data: {
         status: "RESERVED",
+        division: "RESERVE",
+        realTeam: null,
+        avatar: null,
       },
       include: { user: true },
     });

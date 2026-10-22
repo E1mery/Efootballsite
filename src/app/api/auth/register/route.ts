@@ -148,7 +148,8 @@ export async function POST(req: Request) {
                 ]
               : []),
           ],
-          status: { not: "REJECTED" },
+          status: { notIn: ["REJECTED", "RESERVED"] },
+          division: { not: "RESERVE" },
         },
         select: { gamerTag: true },
       });
@@ -187,8 +188,8 @@ export async function POST(req: Request) {
         efootballId: sanitizedKonami,
         whatsapp: phoneCheck.formatted,
         division: assignedDivision,
-        realTeam: selectedClub ? selectedClub.name : (realTeam || null),
-        avatar: selectedClub ? selectedClub.logo : null,
+        realTeam: isDivisionEntryClosed ? null : (selectedClub ? selectedClub.name : (realTeam || null)),
+        avatar: isDivisionEntryClosed ? null : (selectedClub ? selectedClub.logo : null),
         status: isDivisionEntryClosed ? "RESERVED" : "PENDING_APPROVAL",
         platform: "eFootball Mobile",
         overallRating: 85,

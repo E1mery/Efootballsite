@@ -87,8 +87,34 @@ export async function POST(req: Request) {
     }
 
     const effectiveDivision = division || player.division;
+    const isMovingToReserve = division === "RESERVE" || status === "RESERVED";
 
-    if (realTeam !== undefined) {
+    if (isMovingToReserve) {
+      updateData.division = "RESERVE";
+      updateData.status = "RESERVED";
+      // When moved to reserve pool, the team must be removed so it can be taken by others
+      updateData.realTeam = null;
+      updateData.avatar = null;
+
+      // Remove standings in division tournaments
+      await prisma.standing.deleteMany({ where: { playerId } }).catch(() => {});
+
+      // Recalculate standings for previous division if player was in an active division
+      if (player.division && player.division !== "RESERVE") {
+        const oldTournament = await prisma.tournament.findFirst({
+          where: {
+            OR: [
+              { name: { contains: player.division, mode: "insensitive" } },
+              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+            ],
+            type: "DIVISION",
+          },
+        });
+        if (oldTournament) {
+          await recalculateStandings(oldTournament.id, player.division).catch(() => {});
+        }
+      }
+    } else if (realTeam !== undefined) {
       const team = findTeam(realTeam);
       if (team) {
         // Strict Division-to-League Verification:
@@ -133,7 +159,8 @@ export async function POST(req: Request) {
               { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
               { realTeam: { equals: team.id, mode: "insensitive" as const } },
             ],
-            status: { not: "REJECTED" },
+            status: { notIn: ["REJECTED", "RESERVED"] },
+            division: { not: "RESERVE" },
           },
           select: { gamerTag: true },
         });
@@ -154,7 +181,7 @@ export async function POST(req: Request) {
       // If division was changed without supplying a new club, clear club if it belonged to the old division
       if (player.realTeam) {
         const currentTeam = findTeam(player.realTeam);
-        if (currentTeam && (division === "RESERVE" || currentTeam.division !== division)) {
+        if (!currentTeam || currentTeam.division !== division) {
           updateData.realTeam = null;
           updateData.avatar = null;
         }

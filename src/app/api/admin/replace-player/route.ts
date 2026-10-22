@@ -142,11 +142,17 @@ export async function POST(req: Request) {
         await prisma.player.update({
           where: { id: targetPlayer.id },
           data: {
+            division: "RESERVE",
             status: "RESERVED",
+            realTeam: null,
+            avatar: null,
             isDisqualified: false,
             consecutiveMissed: 0,
           },
         });
+        await prisma.standing.deleteMany({
+          where: { playerId: targetPlayer.id },
+        }).catch(() => {});
       } else {
         // Delete outgoing player
         await prisma.player.delete({ where: { id: targetPlayer.id } }).catch(() => {});

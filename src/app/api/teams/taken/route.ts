@@ -9,7 +9,8 @@ export async function GET(req: Request) {
     const players = await prisma.player.findMany({
       where: {
         realTeam: { not: null },
-        status: { not: "REJECTED" },
+        status: { notIn: ["REJECTED", "RESERVED"] },
+        division: { not: "RESERVE" },
       },
       select: {
         id: true,
@@ -51,7 +52,8 @@ export async function GET(req: Request) {
     const divisionCountsRaw = await prisma.player.groupBy({
       by: ["division"],
       where: {
-        status: { not: "REJECTED" },
+        status: { notIn: ["REJECTED", "RESERVED"] },
+        division: { not: "RESERVE" },
       },
       _count: {
         _all: true,
