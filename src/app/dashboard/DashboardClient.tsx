@@ -58,7 +58,6 @@ import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
 import SuperCupView from "@/components/competitions/SuperCupView";
 import SuperCupPredictionPoll from "@/components/competitions/SuperCupPredictionPoll";
 import InterdivisionCupsView from "@/components/competitions/InterdivisionCupsView";
-import SocialFeed from "@/components/social/SocialFeed";
 import PlayerDerbyPerformanceCard from "@/components/player/PlayerDerbyPerformanceCard";
 import HistoricalDerbyModal from "@/components/competitions/HistoricalDerbyModal";
 import {
@@ -3926,9 +3925,6 @@ export default function DashboardClient({
 
           {/* DIVISION STANDINGS SNAPSHOT (Shown at bottom only when an active match or kickoff pending occupies the top row) */}
           {(activeMatch || isSeasonAwaitingKickoff) && leaderboardSnapshotElement}
-
-          {/* FC-STYLE INSTAGRAM SOCIAL FEED & AUTOMATIC FOOTBALL NEWS */}
-          <SocialFeed currentUserId={currentPlayer.userId || undefined} isAdmin={false} />
 
           {/* Quick Stats Grid with Win Rate */}
           {(() => {
