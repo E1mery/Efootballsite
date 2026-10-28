@@ -145,7 +145,7 @@ export default function Notification({
 
   useEffect(() => {
     loadAnnouncements();
-    const interval = setInterval(loadAnnouncements, 30000);
+    const interval = setInterval(loadAnnouncements, 120000);
     return () => clearInterval(interval);
   }, [loadAnnouncements]);
 

@@ -3,7 +3,18 @@ import { checkAndSendOneHourMatchReminders } from "@/lib/autoMatchReminders";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+function isAuthorized(req: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return true; // If not configured yet, allow execution
+  const authHeader = req.headers.get("authorization");
+  return authHeader === `Bearer ${cronSecret}`;
+}
+
+export async function GET(req: Request) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const result = await checkAndSendOneHourMatchReminders();
     return NextResponse.json({
@@ -17,7 +28,11 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const result = await checkAndSendOneHourMatchReminders();
     return NextResponse.json({

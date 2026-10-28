@@ -57,10 +57,12 @@ export default function Navbar() {
   const [bothLeaguesUnlocked, setBothLeaguesUnlocked] = useState<boolean>(false);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchConfig = () => {
       fetch("/api/league/config")
         .then((res) => res.json())
         .then((data) => {
+          if (!isMounted) return;
           if (data.config) {
             if (data.config.season) {
               setCurrentSeason(data.config.season);
@@ -72,8 +74,12 @@ export default function Navbar() {
     };
 
     fetchConfig();
-    const interval = setInterval(fetchConfig, 5000);
-    return () => clearInterval(interval);
+    // Relaxed 5-minute interval to prevent exhausting Fluid Active CPU quota across client tabs
+    const interval = setInterval(fetchConfig, 5 * 60 * 1000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

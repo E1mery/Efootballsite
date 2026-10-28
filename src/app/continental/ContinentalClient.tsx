@@ -78,7 +78,7 @@ export default function ContinentalClient({
         }
       } catch (e) {}
     };
-    const interval = setInterval(poll, 5000);
+    const interval = setInterval(poll, 60 * 1000);
     return () => {
       isMounted = false;
       clearInterval(interval);

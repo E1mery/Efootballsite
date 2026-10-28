@@ -137,8 +137,6 @@ export default async function DashboardPage({
   let isRestDayToday = false;
   let isWaitingForSub = false;
 
-  // Automatic deletion of announcements older than 24 hours (pinned announcements are preserved)
-  await cleanupExpiredAnnouncements();
   const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   // Fetch announcements for this player: pinned announcements OR announcements within 24 hours

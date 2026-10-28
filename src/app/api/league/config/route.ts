@@ -9,18 +9,25 @@ export async function GET() {
       where: { id: "default" },
     });
 
-    return NextResponse.json({
-      success: true,
-      config: config || {
-        season: "Season 1 (2026)",
-        registrationOpen: true,
-        currentMatchday: 1,
-        uclStarted: false,
-        europaStarted: false,
-        uclDrawCompleted: false,
-        europaDrawCompleted: false,
+    return NextResponse.json(
+      {
+        success: true,
+        config: config || {
+          season: "Season 1 (2026)",
+          registrationOpen: true,
+          currentMatchday: 1,
+          uclStarted: false,
+          europaStarted: false,
+          uclDrawCompleted: false,
+          europaDrawCompleted: false,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { error: "Failed to fetch league configuration" },

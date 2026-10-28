@@ -105,7 +105,15 @@ export async function autoPublishSystemNews(params: {
  * 4. Europa news cannot be published on the carousel when Europa is locked (!leagueConfig.europaStarted).
  * 5. Standings reset announcements are strictly barred from carousel publication.
  */
-export async function syncSystemNewsToCarousel() {
+let lastNewsSyncTime = 0;
+const NEWS_SYNC_THROTTLE_MS = 30 * 60 * 1000; // 30 minutes throttle
+
+export async function syncSystemNewsToCarousel(force: boolean = false) {
+  if (!force && Date.now() - lastNewsSyncTime < NEWS_SYNC_THROTTLE_MS) {
+    return [];
+  }
+  lastNewsSyncTime = Date.now();
+
   const synced: any[] = [];
   try {
     await ensureNewsTable();

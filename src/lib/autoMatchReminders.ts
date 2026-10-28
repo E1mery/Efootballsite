@@ -160,19 +160,3 @@ export async function runAutoRemindersIfDue(): Promise<ReminderResult | null> {
   lastAutoReminderCheckTime = now;
   return checkAndSendOneHourMatchReminders();
 }
-
-// Register global in-process interval daemon for long-running Node server environments (disabled during build)
-const isBuilding =
-  process.env.NEXT_PHASE === "phase-production-build" ||
-  process.env.npm_lifecycle_event === "build";
-
-if (!isBuilding && typeof globalThis !== "undefined") {
-  const g = globalThis as any;
-  if (!g.__efootball_reminder_daemon) {
-    g.__efootball_reminder_daemon = setInterval(() => {
-      checkAndSendOneHourMatchReminders().catch((err) => {
-        console.error("Autonomous reminder daemon error:", err);
-      });
-    }, 60 * 1000); // Pulse every 60 seconds
-  }
-}

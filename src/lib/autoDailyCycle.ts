@@ -207,8 +207,22 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
  * 
  * If `force` is true (e.g. triggered manually by admin), ignores the deadline check.
  */
+let lastDailyCycleCheckTime = 0;
+const DAILY_CYCLE_THROTTLE_MS = 15 * 60 * 1000; // 15 minutes throttle for non-forced checks
+
 export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean } = {}): Promise<DailyCycleResult> {
   const { force = false } = options;
+
+  if (!force && Date.now() - lastDailyCycleCheckTime < DAILY_CYCLE_THROTTLE_MS) {
+    return {
+      advanced: false,
+      currentMatchday: 1,
+      message: "Daily cycle check throttled (checked recently).",
+    };
+  }
+  if (!force) {
+    lastDailyCycleCheckTime = Date.now();
+  }
 
   try {
     const config = await prisma.leagueConfig.findUnique({

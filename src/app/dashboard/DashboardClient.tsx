@@ -667,7 +667,7 @@ export default function DashboardClient({
         }
       } catch (e) {}
     };
-    const interval = setInterval(poll, 5000);
+    const interval = setInterval(poll, 60 * 1000);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -1484,16 +1484,16 @@ export default function DashboardClient({
   // automatically trigger system endpoint so both athletes receive individual reminder notifications.
   useEffect(() => {
     if (isOneHourWarning) {
-      fetch("/api/cron/reminders", { method: "POST" }).catch(() => {});
+      // Reminder check handled by server cron
     }
   }, [isOneHourWarning, timeLeft.minutes]);
 
   // Periodic system reminder pulse (every 2 minutes while active in portal)
   useEffect(() => {
-    const pulseTimer = setInterval(() => {
-      fetch("/api/cron/reminders", { method: "POST" }).catch(() => {});
-    }, 2 * 60 * 1000);
-    return () => clearInterval(pulseTimer);
+    // Reminders handled by server cron
+      // Cron reminders handled by server schedule
+    // idle
+    return () => {};
   }, []);
 
   // Copy WhatsApp Number helper
