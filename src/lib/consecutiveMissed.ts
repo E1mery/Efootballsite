@@ -34,12 +34,22 @@ export function computeConsecutiveMissedFromMatches(
       m.notes?.includes("elapsed without submitted score")
     );
 
-    const forfeitAgainstMe = (m.forfeitClaims || []).some(
-      (fc: any) => fc.status === "APPROVED" && fc.accusedPlayerId === player.id
-    );
-    const forfeitInMyFavor = (m.forfeitClaims || []).some(
-      (fc: any) => fc.status === "APPROVED" && fc.claimantPlayerId === player.id
-    );
+    const forfeitAgainstMe =
+      (m.forfeitClaims || []).some(
+        (fc: any) => fc.status === "APPROVED" && fc.accusedPlayerId === player.id
+      ) ||
+      (m.status === "FORFEIT" &&
+        ((m.homePlayerId === player.id && (m.homeScore ?? 0) < (m.awayScore ?? 0)) ||
+          (m.awayPlayerId === player.id && (m.awayScore ?? 0) < (m.homeScore ?? 0))));
+
+    const forfeitInMyFavor =
+      (m.forfeitClaims || []).some(
+        (fc: any) => fc.status === "APPROVED" && fc.claimantPlayerId === player.id
+      ) ||
+      (m.status === "FORFEIT" &&
+        ((m.homePlayerId === player.id && (m.homeScore ?? 0) > (m.awayScore ?? 0)) ||
+          (m.awayPlayerId === player.id && (m.awayScore ?? 0) > (m.homeScore ?? 0))));
+
     const hadApprovedSubmission = (m.submissions || []).some(
       (s: any) => s.status === "APPROVED" && s.submittedByPlayerId === player.id
     );

@@ -56,6 +56,7 @@ import {
   Flame,
   BarChart2,
   History,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -81,12 +82,6 @@ const AdminMotwManager = dynamic(() => import("@/components/AdminMotwManager"), 
 });
 const AdminDerbyManager = dynamic(() => import("@/components/admin/AdminDerbyManager"), {
   loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Derby Manager...</div>,
-});
-const AdminFinalsSocialManager = dynamic(() => import("@/components/admin/AdminFinalsSocialManager"), {
-  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Finals Social...</div>,
-});
-const AdminSocialFeedManager = dynamic(() => import("@/components/admin/AdminSocialFeedManager"), {
-  loading: () => <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Social Feed...</div>,
 });
 import {
   getTomorrowInRwandaString,
@@ -117,7 +112,6 @@ function toLocalDatetimeInput(dateInput: Date | string | null | undefined): stri
 
 export type AdminClientTab =
   | "DASHBOARD"
-  | "SOCIAL_FEED"
   | "NEWS"
   | "PENDING_REGISTRATIONS"
   | "RESERVE_POOL"
@@ -619,6 +613,14 @@ export default function AdminClient({
   const [outgoingAction, setOutgoingAction] = useState<"REMOVE" | "MOVE_TO_RESERVE">("REMOVE");
   const [replaceLoading, setReplaceLoading] = useState(false);
 
+  // Disqualified Player Walkover State (when there is still no replacement)
+  const [walkoverTargetPlayer, setWalkoverTargetPlayer] = useState<any | null>(null);
+  const [walkoverFixtures, setWalkoverFixtures] = useState<any[]>([]);
+  const [loadingWalkoverFixtures, setLoadingWalkoverFixtures] = useState(false);
+  const [submittingWalkover, setSubmittingWalkover] = useState(false);
+  const [submittingWalkoverMatchId, setSubmittingWalkoverMatchId] = useState<string | null>(null);
+  const [walkoverAdminNotes, setWalkoverAdminNotes] = useState("");
+
   // Hall of fame form state
   const [hofTournament, setHofTournament] = useState("EFRL Division 1 (Premiership)");
   const [hofSeason, setHofSeason] = useState("Season 2026");
@@ -864,6 +866,94 @@ export default function AdminClient({
     }
   };
 
+  // Disqualified Athlete Walkover Handlers (when no replacement is available)
+  const handleOpenPlayerWalkoverModal = async (player: any) => {
+    setWalkoverTargetPlayer(player);
+    setWalkoverFixtures([]);
+    setLoadingWalkoverFixtures(true);
+    setWalkoverAdminNotes("");
+    try {
+      const res = await fetch(`/api/admin/disqualified-walkover?playerId=${player.id}`);
+      const data = await res.json();
+      if (res.ok && data.fixtures) {
+        setWalkoverFixtures(data.fixtures);
+      }
+    } catch (err: any) {
+      console.error("Failed to load fixtures for walkover:", err);
+    } finally {
+      setLoadingWalkoverFixtures(false);
+    }
+  };
+
+  const handleAwardBulkWalkover = async () => {
+    if (!walkoverTargetPlayer) return;
+    if (
+      !confirm(
+        `Are you sure you want to award a 3-0 (3 points) walkover victory to all scheduled opponents of @${walkoverTargetPlayer.gamerTag}? This will update league tables and notify all affected opponents.`
+      )
+    ) {
+      return;
+    }
+
+    setSubmittingWalkover(true);
+    try {
+      const res = await fetch("/api/admin/disqualified-walkover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId: walkoverTargetPlayer.id,
+          adminNotes: walkoverAdminNotes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to award walkovers");
+
+      alert(data.message);
+      setWalkoverTargetPlayer(null);
+      if (replaceTargetPlayer?.id === walkoverTargetPlayer.id) {
+        setReplaceTargetPlayer(null);
+      }
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmittingWalkover(false);
+    }
+  };
+
+  const handleAwardMatchWalkover = async (matchId: string, opponentTag?: string, disqualifiedTag?: string) => {
+    const oppName = opponentTag ? `@${opponentTag}` : "the opponent";
+    const disqName = disqualifiedTag ? `@${disqualifiedTag}` : "the disqualified athlete";
+
+    if (
+      !confirm(
+        `Award an official 3-0 walkover victory (3 points) to ${oppName} against ${disqName}?\n\nThis will mark the fixture as FORFEIT, update standings, and notify both athletes.`
+      )
+    ) {
+      return;
+    }
+
+    setSubmittingWalkoverMatchId(matchId);
+    try {
+      const res = await fetch("/api/admin/disqualified-walkover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to award match walkover");
+
+      alert(data.message);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmittingWalkoverMatchId(null);
+    }
+  };
+
   // Handler: Upload Picture for Hall of Fame Champion
   const handleHofImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1079,6 +1169,16 @@ export default function AdminClient({
       return true;
     });
   }, [allForfeitItems, forfeitStatusFilter, forfeitDivisionFilter, forfeitRoundFilter, forfeitSearchQuery]);
+
+  const matchesOnHoldForSub = useMemo(() => {
+    return (matches || []).filter((m: any) => {
+      const isUnplayed = m.status === "SCHEDULED";
+      const hasWaitingNote = m.notes?.includes("WAITING_FOR_SUB");
+      const homeDisq = m.homePlayer?.isDisqualified || (m.homePlayer?.consecutiveMissed ?? 0) >= 3;
+      const awayDisq = m.awayPlayer?.isDisqualified || (m.awayPlayer?.consecutiveMissed ?? 0) >= 3;
+      return isUnplayed && (hasWaitingNote || homeDisq || awayDisq);
+    });
+  }, [matches]);
 
   const [matchScores, setMatchScores] = useState<Record<string, { home: number; away: number; touched?: boolean }>>({});
   const [selectedMatchdayRound, setSelectedMatchdayRound] = useState<string>(`Matchday ${leagueConfig.currentMatchday}`);
@@ -3751,13 +3851,6 @@ export default function AdminClient({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB: SOCIAL MEDIA FEED & EVENT PUBLISHING */}
-      {/* ========================================================================= */}
-      {activeTab === "SOCIAL_FEED" && (
-        <AdminSocialFeedManager />
-      )}
-
-      {/* ========================================================================= */}
       {/* TAB: NEWS & CAROUSEL MANAGEMENT */}
       {/* ========================================================================= */}
       {activeTab === "NEWS" && (
@@ -5164,6 +5257,11 @@ export default function AdminClient({
                             </Badge>
                           </div>
                           <div className="flex items-center gap-2">
+                            {m.notes?.includes("WAITING_FOR_SUB") && (
+                              <Badge variant="secondary" className="text-xs text-secondary bg-secondary/20 border-secondary/30">
+                                ⏳ WAITING FOR SUB
+                              </Badge>
+                            )}
                             {m.notes?.includes("ADMIN_REOPENED") && (
                               <Badge variant="secondary" className="text-xs text-primary bg-primary/20 border-primary/30">
                                 🔓 REOPENED
@@ -5327,6 +5425,31 @@ export default function AdminClient({
                                 {closingMatchId === m.id ? "Closing..." : "Close Submissions"}
                               </Button>
                             )}
+
+                            {m.status === "SCHEDULED" &&
+                              (m.homePlayer?.isDisqualified ||
+                                (m.homePlayer?.consecutiveMissed ?? 0) >= 3 ||
+                                m.awayPlayer?.isDisqualified ||
+                                (m.awayPlayer?.consecutiveMissed ?? 0) >= 3 ||
+                                m.notes?.includes("WAITING_FOR_SUB")) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={submittingWalkoverMatchId === m.id}
+                                  onClick={() => {
+                                    const homeIsDisq =
+                                      m.homePlayer?.isDisqualified || (m.homePlayer?.consecutiveMissed ?? 0) >= 3;
+                                    const disqTag = homeIsDisq ? m.homePlayer?.gamerTag : m.awayPlayer?.gamerTag;
+                                    const oppTag = homeIsDisq ? m.awayPlayer?.gamerTag : m.homePlayer?.gamerTag;
+                                    handleAwardMatchWalkover(m.id, oppTag, disqTag);
+                                  }}
+                                  className="text-xs h-7 px-2.5 font-bold border-secondary/40 text-secondary hover:bg-secondary/20"
+                                  title="Award 3-point walkover to opponent (No replacement available)"
+                                >
+                                  <Award className="h-3 w-3 mr-1" />
+                                  {submittingWalkoverMatchId === m.id ? "Awarding..." : "Award 3pts Walkover"}
+                                </Button>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -5372,8 +5495,6 @@ export default function AdminClient({
       {/* ========================================================================= */}
       {activeTab === "CONTINENTAL" && (
         <div className="space-y-8">
-          <AdminFinalsSocialManager onRefresh={() => router.refresh()} />
-
           <div className="rounded-3xl border border-border bg-background/90 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
             <div>
               <h3 className="text-xl font-black uppercase text-white flex items-center gap-2">
@@ -6966,6 +7087,71 @@ export default function AdminClient({
                 )}
               </div>
 
+              {/* Fixtures on hold awaiting replacement */}
+              {matchesOnHoldForSub.length > 0 && (
+                <div className="rounded-2xl border border-secondary/30 bg-secondary/10 p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-secondary">
+                      <Award className="h-5 w-5 shrink-0" />
+                      <h4 className="font-black uppercase text-sm">
+                        Fixtures On Hold — Awaiting Replacement ({matchesOnHoldForSub.length})
+                      </h4>
+                    </div>
+                    <Badge variant="outline" className="text-xs text-secondary border-secondary/30">
+                      Disqualification Rule
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-foreground leading-relaxed">
+                    The fixtures below involve athletes disqualified due to 3 missed matches. If there is still no replacement athlete available, you can directly award an official 3-point walkover (3-0 win) to their waiting opponents.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                    {matchesOnHoldForSub.map((m: any) => {
+                      const homeDisq = m.homePlayer?.isDisqualified || (m.homePlayer?.consecutiveMissed ?? 0) >= 3;
+                      const disqPlayer = homeDisq ? m.homePlayer : m.awayPlayer;
+                      const innocentOpponent = homeDisq ? m.awayPlayer : m.homePlayer;
+
+                      return (
+                        <div
+                          key={m.id}
+                          className="p-3.5 rounded-xl bg-card border border-border space-y-2 text-xs flex flex-col justify-between shadow-sm"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+                              <span>{m.round}</span>
+                              <span className="text-secondary font-bold">{m.division}</span>
+                            </div>
+                            <div className="text-white">
+                              <span className="text-destructive font-bold block truncate">
+                                🚫 @{disqPlayer?.gamerTag} (Disqualified)
+                              </span>
+                              <span className="text-primary font-bold block truncate">
+                                ⚔️ vs @{innocentOpponent?.gamerTag} (Waiting)
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={submittingWalkoverMatchId === m.id}
+                            onClick={() =>
+                              handleAwardMatchWalkover(
+                                m.id,
+                                innocentOpponent?.gamerTag,
+                                disqPlayer?.gamerTag
+                              )
+                            }
+                            className="w-full text-xs h-7 font-bold border-secondary/40 text-secondary hover:bg-secondary/20 mt-1"
+                          >
+                            <Award className="h-3 w-3 mr-1" />
+                            {submittingWalkoverMatchId === m.id ? "Awarding..." : "Award 3pts Walkover"}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {pendingForfeits.length === 0 ? (
                 <div className="rounded-3xl border border-border bg-background/80 p-12 text-center text-muted-foreground space-y-3">
                   <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
@@ -7774,11 +7960,44 @@ export default function AdminClient({
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {flaggedPlayers.map((fp) => (
-                  <div key={fp.id} className="p-3 rounded-xl bg-card/80 border border-destructive/20 text-xs">
-                    <span className="font-bold text-white">{fp.gamerTag}</span>
-                    <span className="text-destructive block font-mono">
-                      Missed: {fp.consecutiveMissed}/3 {fp.isDisqualified ? "(DISQUALIFIED)" : "(FINAL WARNING)"}
-                    </span>
+                  <div key={fp.id} className="p-3 rounded-xl bg-card/80 border border-destructive/20 text-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <span className="font-bold text-white block truncate">{fp.gamerTag}</span>
+                      <span className="text-destructive block font-mono text-xs">
+                        Missed: {fp.consecutiveMissed}/3 {fp.isDisqualified ? "(DISQUALIFIED)" : "(FINAL WARNING)"}
+                      </span>
+                    </div>
+                    {(fp.isDisqualified || fp.consecutiveMissed >= 3) && (
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setReplaceTargetPlayer(fp);
+                            setRepGamerTag("");
+                            setRepFullName("");
+                            setRepWhatsapp(fp.whatsapp || "");
+                            setRepEmail("");
+                            setRepPassword("");
+                            setSelectedReserveId(reservePlayers[0]?.id || "");
+                          }}
+                          className="h-6 px-2 text-xs font-bold border-primary/40 text-primary hover:bg-primary/20"
+                        >
+                          <Shuffle className="h-3 w-3 mr-1" />
+                          Replace
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenPlayerWalkoverModal(fp)}
+                          className="h-6 px-2 text-xs font-bold border-secondary/40 text-secondary hover:bg-secondary/20"
+                          title="Award 3-point walkover to opponents (no replacement available)"
+                        >
+                          <Award className="h-3 w-3 mr-1" />
+                          3pts Walkover
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -8158,6 +8377,18 @@ export default function AdminClient({
                               <Shuffle className="h-3 w-3 mr-1" />
                               {p.consecutiveMissed >= 3 || p.isDisqualified ? "Replace (Sub)" : "Replace"}
                             </Button>
+                            {(p.consecutiveMissed >= 3 || p.isDisqualified) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenPlayerWalkoverModal(p)}
+                                className="h-7 px-2 text-xs font-bold border-secondary/40 text-secondary hover:bg-secondary/20"
+                                title="Award 3pts walkover to opponents (no replacement available)"
+                              >
+                                <Award className="h-3 w-3 mr-1" />
+                                3pts Walkover
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="destructive"
@@ -9151,6 +9382,31 @@ export default function AdminClient({
                 💡 <strong>Automatic Cascading:</strong> All existing match fixtures, standings points, and UCL/Europa slots associated with this athlete slot will automatically update to display the new athlete&apos;s name immediately.
               </div>
 
+              {/* Option to award 3pts walkover if no replacement is available */}
+              {(replaceTargetPlayer.consecutiveMissed >= 3 || replaceTargetPlayer.isDisqualified) && (
+                <div className="p-4 rounded-2xl bg-card border border-secondary/30 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-secondary font-bold text-xs uppercase">
+                      <Award className="h-4 w-4 shrink-0" />
+                      <span>No Replacement Available?</span>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground">3-0 Walkover Rule</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    If there is currently no substitute in the reserve pool or ready to register, you can award an official <strong>3-point (3-0) walkover victory</strong> to all their scheduled opponents so matches do not remain blocked.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleOpenPlayerWalkoverModal(replaceTargetPlayer)}
+                    className="w-full text-xs font-bold border-secondary/40 text-secondary hover:bg-secondary/20"
+                  >
+                    <Award className="h-3.5 w-3.5 mr-1.5" />
+                    Award 3pts Walkovers to Opponents (No Replacement)
+                  </Button>
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 pt-2">
                 <Button
                   type="button"
@@ -9170,6 +9426,114 @@ export default function AdminClient({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3PTS WALKOVER MODAL FOR DISQUALIFIED ATHLETE */}
+      {walkoverTargetPlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4">
+          <div className="relative max-w-lg w-full max-h-screen overflow-y-auto rounded-3xl border border-secondary/40 bg-background p-5 sm:p-6 space-y-5 shadow-2xl no-scrollbar">
+            <div className="flex items-start justify-between border-b border-border pb-3">
+              <div>
+                <div className="flex items-center gap-2 text-secondary">
+                  <Award className="h-5 w-5" />
+                  <h3 className="text-lg font-black uppercase text-white">Award 3pts Walkovers</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Opponent walkovers for <strong className="text-white">@{walkoverTargetPlayer.gamerTag}</strong> ({walkoverTargetPlayer.division})
+                </p>
+              </div>
+              <button
+                onClick={() => setWalkoverTargetPlayer(null)}
+                className="rounded-full bg-card p-1.5 text-muted-foreground hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-secondary/10 border border-secondary/30 space-y-1.5">
+              <span className="text-xs font-bold text-secondary uppercase tracking-wide block">
+                Rule: 3 Missed Matches Disqualification
+              </span>
+              <p className="text-xs text-foreground leading-relaxed">
+                As @{walkoverTargetPlayer.gamerTag} has been disqualified due to 3 missed fixtures and there is still no replacement player available, each scheduled opponent will receive an official <strong>3-0 win (3 points)</strong> and their streak will remain clean.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase text-muted-foreground">
+                  Affected Scheduled Fixtures ({walkoverFixtures.length})
+                </label>
+                {walkoverFixtures.length > 0 && (
+                  <Badge variant="outline" className="text-xs font-mono text-secondary border-secondary/30">
+                    {walkoverFixtures.length} Opponent(s)
+                  </Badge>
+                )}
+              </div>
+              {loadingWalkoverFixtures ? (
+                <div className="p-4 rounded-xl bg-card border border-border text-center text-xs text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-1 text-primary" />
+                  Scanning scheduled fixtures...
+                </div>
+              ) : walkoverFixtures.length === 0 ? (
+                <div className="p-4 rounded-xl bg-card border border-border text-xs text-muted-foreground text-center">
+                  No scheduled or on-hold fixtures currently found for this player.
+                </div>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                  {walkoverFixtures.map((f: any) => (
+                    <div
+                      key={f.id}
+                      className="p-3 rounded-xl bg-card/80 border border-border flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-white block">{f.round} ({f.division})</span>
+                        <span className="text-muted-foreground text-xs">
+                          Opponent: <strong className="text-secondary">@{f.opponent?.gamerTag || "Unknown"}</strong>
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-secondary px-2 py-0.5 rounded bg-secondary/10 border border-secondary/30">
+                        +3 pts to @{f.opponent?.gamerTag}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
+                Administrative Notes (Optional)
+              </label>
+              <Input
+                placeholder="e.g. Disqualified due to 3 missed matches; no reserve replacement available"
+                value={walkoverAdminNotes}
+                onChange={(e) => setWalkoverAdminNotes(e.target.value)}
+                className="bg-card border-border text-xs text-white"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setWalkoverTargetPlayer(null)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={submittingWalkover || loadingWalkoverFixtures || walkoverFixtures.length === 0}
+                onClick={handleAwardBulkWalkover}
+                className="bg-secondary text-secondary-foreground hover:bg-secondary font-bold text-xs"
+              >
+                <Award className="h-4 w-4 mr-1.5" />
+                {submittingWalkover ? "Awarding..." : `Award 3pts Walkovers (${walkoverFixtures.length})`}
+              </Button>
+            </div>
           </div>
         </div>
       )}
