@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   XCircle,
   Sparkles,
-  Share2,
   Tv,
   Calendar,
   Search,
@@ -67,13 +66,11 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
   const [formIsHistoric, setFormIsHistoric] = useState(false);
   const [formPriority, setFormPriority] = useState(10);
   const [formIsActive, setFormIsActive] = useState(true);
-  const [formAutoSocial, setFormAutoSocial] = useState(false);
   const [formAutoCarousel, setFormAutoCarousel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Publishing State
   const [publishingCarouselId, setPublishingCarouselId] = useState<string | null>(null);
-  const [publishingSocialId, setPublishingSocialId] = useState<string | null>(null);
 
   // Historical Derby Modal
   const [h2hModalDerbyId, setH2hModalDerbyId] = useState<string | null>(null);
@@ -220,7 +217,6 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
     setFormIsHistoric(false);
     setFormPriority(10);
     setFormIsActive(true);
-    setFormAutoSocial(false);
     setFormAutoCarousel(false);
     setShowModal(true);
   };
@@ -238,7 +234,6 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
     setFormIsHistoric(Boolean(derby.isHistoricRivalry));
     setFormPriority(derby.priority);
     setFormIsActive(derby.isActive);
-    setFormAutoSocial(Boolean(derby.autoPublishSocial));
     setFormAutoCarousel(Boolean(derby.autoPublishCarousel));
     setShowModal(true);
   };
@@ -269,7 +264,6 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
       isHistoricRivalry: formIsHistoric,
       priority: Number(formPriority),
       isActive: formIsActive,
-      autoPublishSocial: formAutoSocial,
       autoPublishCarousel: formAutoCarousel,
     };
 
@@ -361,28 +355,6 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
     }
   };
 
-  // Publish to Social Feed
-  const handlePublishSocial = async (matchId: string) => {
-    setPublishingSocialId(matchId);
-    setActionMessage(null);
-    try {
-      const res = await fetch("/api/admin/derbies/publish-social", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || `Failed to publish social announcement (Status ${res.status}).`);
-
-      setActionMessage({ text: data?.message || "Derby announcement posted to social feed!" });
-      if (onRefresh) onRefresh();
-    } catch (err: any) {
-      setActionMessage({ text: err.message || "Error publishing social post.", error: true });
-    } finally {
-      setPublishingSocialId(null);
-    }
-  };
-
   // Filtered derbies
   const filteredDerbies = useMemo(() => {
     return derbies.filter((d) => {
@@ -428,7 +400,7 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
-              Automatic real-world rivalry recognition across match calendar, carousel, social feed, Match of the Day, and historical head-to-head records.
+              Automatic real-world rivalry recognition across match calendar, carousel, Match of the Day, and historical head-to-head records.
             </p>
           </div>
         </div>
@@ -717,7 +689,7 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
                 Matches Automatically Identified as Derbies ({recognizedFixtures.length})
               </h3>
               <p className="text-xs text-muted-foreground">
-                These league fixtures match an active official derby configuration. Administrators can publish them directly to the carousel or social feed.
+                These league fixtures match an active official derby configuration. Administrators can publish them directly to the carousel.
               </p>
             </div>
           </div>
@@ -780,18 +752,6 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
                     >
                       <Tv className="h-3.5 w-3.5 text-secondary" />
                       <span>{publishingCarouselId === fixture.id ? "Publishing..." : "To Carousel"}</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={publishingSocialId === fixture.id}
-                      onClick={() => handlePublishSocial(fixture.id)}
-                      className="rounded-xl border-border text-xs font-bold gap-1.5 hover:bg-card"
-                    >
-                      <Share2 className="h-3.5 w-3.5 text-primary" />
-                      <span>{publishingSocialId === fixture.id ? "Posting..." : "To Social Feed"}</span>
                     </Button>
 
                     <a
@@ -1054,16 +1014,6 @@ export default function AdminDerbyManager({ matches, onRefresh }: AdminDerbyMana
                     className="h-4 w-4 rounded border-border"
                   />
                   <span>Historic Rivalry (Not Local Derby)</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs font-bold text-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formAutoSocial}
-                    onChange={(e) => setFormAutoSocial(e.target.checked)}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  <span>Auto-Publish to Social Feed</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs font-bold text-foreground cursor-pointer">
