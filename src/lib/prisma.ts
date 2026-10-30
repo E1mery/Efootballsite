@@ -10,7 +10,8 @@ function getActivePrisma(): PrismaClient {
     // Dynamic import/require of Cloudflare context
     const { getCloudflareContext } = require("@opennextjs/cloudflare");
     const ctx = getCloudflareContext({ async: false });
-    const db = ctx?.env?.DB;
+    const env = ctx?.env || {};
+    const db = env.DB || env.efrl_db || env.D1 || env.DATABASE || (globalThis as any)?.DB;
 
     if (db) {
       if (!edgePrisma || currentDbBinding !== db) {
