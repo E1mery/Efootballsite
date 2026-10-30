@@ -22,6 +22,13 @@ if (fs.existsSync(workerSrc)) {
 
 export default {
   async fetch(request, env, ctx) {
+    if (env) {
+      globalThis.__CLOUDFLARE_ENV__ = env;
+      if (env.DB) {
+        globalThis.DB = env.DB;
+      }
+    }
+
     const url = new URL(request.url);
 
     // 1. Fast static asset routing
@@ -74,7 +81,7 @@ export default {
   console.warn("⚠️ worker.js not found in .open-next");
 }
 
-// 3. Write _routes.json into output directories to tell Cloudflare Pages CDN to bypass worker for static assets
+// 3. Generate _routes.json for Cloudflare Pages
 const routesConfig = JSON.stringify({
   version: 1,
   include: ["/*"],
@@ -84,9 +91,7 @@ const routesConfig = JSON.stringify({
     "/images/*",
     "/uploads/*",
     "/logo.png",
-    "/favicon.ico",
-    "/robots.txt",
-    "/sitemap.xml"
+    "/favicon.ico"
   ]
 }, null, 2);
 

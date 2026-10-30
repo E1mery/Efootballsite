@@ -7,11 +7,19 @@ let currentDbBinding: any = null;
 
 function getActivePrisma(): PrismaClient {
   try {
-    // Dynamic import/require of Cloudflare context
-    const { getCloudflareContext } = require("@opennextjs/cloudflare");
-    const ctx = getCloudflareContext({ async: false });
-    const env = ctx?.env || {};
-    const db = env.DB || env.efrl_db || env.D1 || env.DATABASE || (globalThis as any)?.DB;
+    let db: any = null;
+    try {
+      // Dynamic import/require of Cloudflare context
+      const { getCloudflareContext } = require("@opennextjs/cloudflare");
+      const ctx = getCloudflareContext({ async: false });
+      const env = ctx?.env || {};
+      db = env.DB || env.efrl_db || env.D1 || env.DATABASE;
+    } catch {}
+
+    if (!db) {
+      const fallbackEnv = (globalThis as any)?.__CLOUDFLARE_ENV__ || {};
+      db = fallbackEnv.DB || fallbackEnv.efrl_db || fallbackEnv.D1 || fallbackEnv.DATABASE || (globalThis as any)?.DB;
+    }
 
     if (db) {
       if (!edgePrisma || currentDbBinding !== db) {
@@ -21,9 +29,7 @@ function getActivePrisma(): PrismaClient {
       }
       return edgePrisma;
     }
-  } catch {
-    // Running in local Node environment or during build
-  }
+  } catch {}
 
   if (!localPrisma) {
     localPrisma = new PrismaClient({

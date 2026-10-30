@@ -1,9 +1,27 @@
 name = "efootballsite"
 pages_build_output_dir = ".open-next"
-compatibility_date = "2026-10-01"
+compatibility_date = "2026-10-30"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
+binding = "DB"
+database_name = "efrl-db"
+database_id = "ad99673d-d023-4973-90fc-6500cab0a81b"
+
+[env.production]
+compatibility_date = "2026-10-30"
+compatibility_flags = ["nodejs_compat"]
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "efrl-db"
+database_id = "ad99673d-d023-4973-90fc-6500cab0a81b"
+
+[env.preview]
+compatibility_date = "2026-10-30"
+compatibility_flags = ["nodejs_compat"]
+
+[[env.preview.d1_databases]]
 binding = "DB"
 database_name = "efrl-db"
 database_id = "ad99673d-d023-4973-90fc-6500cab0a81b"
