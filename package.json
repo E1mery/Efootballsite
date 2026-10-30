@@ -12,7 +12,8 @@
     "db:deduplicate": "tsx scripts/deduplicate.ts",
     "db:backup": "tsx scripts/backup.ts",
     "db:restore": "tsx scripts/restore.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build:pages": "opennextjs-cloudflare build && node scripts/prepare-pages-deploy.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
