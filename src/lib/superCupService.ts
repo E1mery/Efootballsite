@@ -52,8 +52,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       where: {
         season,
         OR: [
-          { tournamentName: { contains: "Champions League", mode: "insensitive" } },
-          { tournamentName: { contains: "UCL", mode: "insensitive" } },
+          { tournamentName: { contains: "Champions League" } },
+          { tournamentName: { contains: "UCL" } },
           { trophyType: "UCL" },
         ],
       },
@@ -66,8 +66,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
         : await prisma.player.findFirst({
             where: {
               OR: [
-                { gamerTag: { equals: uclHof.championName, mode: "insensitive" } },
-                { fullName: { equals: uclHof.championName, mode: "insensitive" } },
+                { gamerTag: { equals: uclHof.championName } },
+                { fullName: { equals: uclHof.championName } },
               ],
             },
           });
@@ -121,7 +121,7 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
       where: {
         season,
         OR: [
-          { tournamentName: { contains: "Europa", mode: "insensitive" } },
+          { tournamentName: { contains: "Europa" } },
           { trophyType: "EUROPA" },
         ],
       },
@@ -134,8 +134,8 @@ export async function getConfirmedContinentalChampions(season: string = "Season 
         : await prisma.player.findFirst({
             where: {
               OR: [
-                { gamerTag: { equals: europaHof.championName, mode: "insensitive" } },
-                { fullName: { equals: europaHof.championName, mode: "insensitive" } },
+                { gamerTag: { equals: europaHof.championName } },
+                { fullName: { equals: europaHof.championName } },
               ],
             },
           });
@@ -170,7 +170,7 @@ export async function syncSuperCupWinnerToHallOfFame() {
       where: {
         OR: [
           { division: "SUPER_CUP" },
-          { round: { contains: "Super Cup", mode: "insensitive" } },
+          { round: { contains: "Super Cup" } },
         ],
         status: { in: ["FINISHED", "FORFEIT"] },
         homeScore: { not: null },
@@ -202,7 +202,7 @@ export async function syncSuperCupWinnerToHallOfFame() {
       const existingHof = await prisma.hallOfFame.findFirst({
         where: {
           OR: [
-            { tournamentName: { contains: "Super Cup", mode: "insensitive" } },
+            { tournamentName: { contains: "Super Cup" } },
             { trophyType: "SUPER_CUP" },
           ],
           season: seasonName,
@@ -291,7 +291,7 @@ export async function getSuperCupOverview(season: string = "Season 1 (2026)") {
   const pastSuperCupWinners = await prisma.hallOfFame.findMany({
     where: {
       OR: [
-        { tournamentName: { contains: "Super Cup", mode: "insensitive" } },
+        { tournamentName: { contains: "Super Cup" } },
         { trophyType: "SUPER_CUP" },
       ],
     },

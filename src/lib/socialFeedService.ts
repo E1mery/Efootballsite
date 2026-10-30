@@ -389,7 +389,7 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
     update: {
       headline,
       caption,
-      hashtags: copy.hashtags,
+      hashtags: JSON.stringify(copy.hashtags || []),
       division,
       season,
       homePlayerId,
@@ -406,7 +406,7 @@ export async function syncSocialPostForMatch(input: CreateOrUpdateSocialPostInpu
       matchId,
       headline,
       caption,
-      hashtags: copy.hashtags,
+      hashtags: JSON.stringify(copy.hashtags || []),
       division,
       season,
       homePlayerId,

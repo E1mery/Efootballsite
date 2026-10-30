@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     const existingUser = await prisma.user.findFirst({
-      where: { email: { equals: cleanEmail, mode: "insensitive" } },
+      where: { email: { equals: cleanEmail } },
     });
     if (existingUser) {
       return NextResponse.json(
@@ -140,11 +140,11 @@ export async function POST(req: Request) {
       const existingTeamClaim = await prisma.player.findFirst({
         where: {
           OR: [
-            { realTeam: { equals: teamNameToMatch, mode: "insensitive" as const } },
+            { realTeam: { equals: teamNameToMatch } },
             ...(selectedClub
               ? [
-                  { realTeam: { equals: selectedClub.shortName, mode: "insensitive" as const } },
-                  { realTeam: { equals: selectedClub.id, mode: "insensitive" as const } },
+                  { realTeam: { equals: selectedClub.shortName } },
+                  { realTeam: { equals: selectedClub.id } },
                 ]
               : []),
           ],

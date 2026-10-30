@@ -20,11 +20,11 @@ export async function ensureNewsTable() {
         "buttonText" TEXT,
         "buttonUrl" TEXT,
         "status" TEXT NOT NULL DEFAULT 'DRAFT',
-        "publishDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "expirationDate" TIMESTAMP(3) NOT NULL,
+        "publishDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "expirationDate" DATETIME NOT NULL,
         "showOnCarousel" BOOLEAN NOT NULL DEFAULT true,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -32,7 +32,7 @@ export async function ensureNewsTable() {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "DismissedSystemNews" (
         "id" TEXT NOT NULL PRIMARY KEY,
-        "dismissedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        "dismissedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -40,7 +40,7 @@ export async function ensureNewsTable() {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "EditedSystemNews" (
         "id" TEXT NOT NULL PRIMARY KEY,
-        "editedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        "editedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
 

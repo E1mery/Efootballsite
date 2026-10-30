@@ -151,7 +151,17 @@ export async function GET(req: Request) {
         type: post.type,
         headline: post.headline,
         caption: post.caption,
-        hashtags: post.hashtags,
+        hashtags: (() => {
+        if (Array.isArray(post.hashtags)) return post.hashtags;
+        if (typeof post.hashtags === "string") {
+          try {
+            const parsed = JSON.parse(post.hashtags);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {}
+          return post.hashtags ? [post.hashtags] : [];
+        }
+        return [];
+      })(),
         division: post.division,
         season: post.season,
         publishedAt: post.publishedAt,

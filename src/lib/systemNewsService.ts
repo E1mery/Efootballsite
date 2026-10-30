@@ -597,8 +597,8 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
       await prisma.announcement.updateMany({
         where: {
           OR: [
-            { title: { contains: "Registration is OPEN", mode: "insensitive" } },
-            { content: { contains: "Registration is officially open", mode: "insensitive" } },
+            { title: { contains: "Registration is OPEN" } },
+            { content: { contains: "Registration is officially open" } },
           ],
           isPinned: true,
         },
@@ -645,10 +645,10 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
             { id: uclLaunchId },
             { id: "sys-announcement-ucl" },
             { category: "eFootball UCL" },
-            { title: { contains: "UCL", mode: "insensitive" } },
-            { title: { contains: "Champions League", mode: "insensitive" } },
-            { description: { contains: "Champions League", mode: "insensitive" } },
-            { buttonUrl: { contains: "UCL", mode: "insensitive" } },
+            { title: { contains: "UCL" } },
+            { title: { contains: "Champions League" } },
+            { description: { contains: "Champions League" } },
+            { buttonUrl: { contains: "UCL" } },
           ],
           featuredImage: "/images/carousel-stadium-bg.jpg",
         },
@@ -663,8 +663,8 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
             { id: "sys-announcement-draw-scheduled" },
             { id: "sys-announcement-draw-results" },
             { id: "sys-announcement-both-advance" },
-            { title: { contains: "Champions League", mode: "insensitive" } },
-            { title: { contains: "UCL", mode: "insensitive" } },
+            { title: { contains: "Champions League" } },
+            { title: { contains: "UCL" } },
           ],
           showOnCarousel: true,
         },
@@ -675,10 +675,10 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
       await prisma.announcement.updateMany({
         where: {
           OR: [
-            { title: { contains: "Champions League", mode: "insensitive" } },
-            { title: { contains: "UCL", mode: "insensitive" } },
-            { content: { contains: "Champions League", mode: "insensitive" } },
-            { content: { contains: "UCL", mode: "insensitive" } },
+            { title: { contains: "Champions League" } },
+            { title: { contains: "UCL" } },
+            { content: { contains: "Champions League" } },
+            { content: { contains: "UCL" } },
           ],
           isPinned: true,
         },
@@ -723,8 +723,8 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
         where: {
           OR: [
             { id: europaLaunchId },
-            { title: { contains: "Europa League", mode: "insensitive" } },
-            { title: { contains: "Europa", mode: "insensitive" } },
+            { title: { contains: "Europa League" } },
+            { title: { contains: "Europa" } },
           ],
           showOnCarousel: true,
         },
@@ -735,10 +735,10 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
       await prisma.announcement.updateMany({
         where: {
           OR: [
-            { title: { contains: "Europa League", mode: "insensitive" } },
-            { title: { contains: "Europa", mode: "insensitive" } },
-            { content: { contains: "Europa League", mode: "insensitive" } },
-            { content: { contains: "Europa", mode: "insensitive" } },
+            { title: { contains: "Europa League" } },
+            { title: { contains: "Europa" } },
+            { content: { contains: "Europa League" } },
+            { content: { contains: "Europa" } },
           ],
           isPinned: true,
         },
@@ -961,10 +961,10 @@ export async function syncSystemNewsToCarousel(force: boolean = false) {
           { id: { startsWith: "sys-" } },
           {
             OR: [
-              { category: { contains: "Super", mode: "insensitive" } },
-              { title: { contains: "Super Cup", mode: "insensitive" } },
-              { description: { contains: "Super Cup", mode: "insensitive" } },
-              { buttonUrl: { contains: "super-cup", mode: "insensitive" } },
+              { category: { contains: "Super" } },
+              { title: { contains: "Super Cup" } },
+              { description: { contains: "Super Cup" } },
+              { buttonUrl: { contains: "super-cup" } },
             ],
           },
           {

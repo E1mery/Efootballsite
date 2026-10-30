@@ -39,37 +39,30 @@ export async function ensureDerbyTable(): Promise<void> {
         "isActive" BOOLEAN NOT NULL DEFAULT true,
         "autoPublishSocial" BOOLEAN NOT NULL DEFAULT false,
         "autoPublishCarousel" BOOLEAN NOT NULL DEFAULT false,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
+    // Helper for safe column addition across SQLite and Postgres
+    const safeAddColumn = async (table: string, column: string, typeDef: string) => {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${typeDef}`);
+      } catch {}
+    };
+
     // 2. Ensure columns exist on Match
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "Match" ADD COLUMN IF NOT EXISTS "derbyId" TEXT;
-    `);
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "Match" ADD COLUMN IF NOT EXISTS "isDerby" BOOLEAN NOT NULL DEFAULT false;
-    `);
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "Match" ADD COLUMN IF NOT EXISTS "derbyName" TEXT;
-    `);
+    await safeAddColumn("Match", "derbyId", "TEXT");
+    await safeAddColumn("Match", "isDerby", "BOOLEAN NOT NULL DEFAULT 0");
+    await safeAddColumn("Match", "derbyName", "TEXT");
 
     // 3. Ensure columns exist on ArchivedMatch
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "ArchivedMatch" ADD COLUMN IF NOT EXISTS "derbyId" TEXT;
-    `);
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "ArchivedMatch" ADD COLUMN IF NOT EXISTS "derbyName" TEXT;
-    `);
+    await safeAddColumn("ArchivedMatch", "derbyId", "TEXT");
+    await safeAddColumn("ArchivedMatch", "derbyName", "TEXT");
 
     // 4. Ensure columns exist on SocialPost
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "SocialPost" ADD COLUMN IF NOT EXISTS "derbyId" TEXT;
-    `);
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "SocialPost" ADD COLUMN IF NOT EXISTS "derbyName" TEXT;
-    `);
+    await safeAddColumn("SocialPost", "derbyId", "TEXT");
+    await safeAddColumn("SocialPost", "derbyName", "TEXT");
 
     // 5. Seed initial official derbies if table is empty
     const count = await prisma.derby.count().catch(() => 0);

@@ -1146,7 +1146,7 @@ export async function syncPlayerAvatarWithHallOfFame(player: {
       where: {
         OR: [
           ...(player.id ? [{ playerId: player.id }] : []),
-          { championName: { equals: player.gamerTag.trim(), mode: "insensitive" as const } },
+          { championName: { equals: player.gamerTag.trim() } },
         ],
       },
     });

@@ -256,8 +256,8 @@ export async function POST(req: Request) {
         await prisma.news.updateMany({
           where: {
             OR: [
-              { title: { contains: compKeyword, mode: "insensitive" } },
-              { title: { contains: shortKeyword, mode: "insensitive" } },
+              { title: { contains: compKeyword } },
+              { title: { contains: shortKeyword } },
             ],
             category: { in: ["Competition", "Announcement"] },
           },
@@ -268,10 +268,10 @@ export async function POST(req: Request) {
         await prisma.announcement.updateMany({
           where: {
             OR: [
-              { title: { contains: compKeyword, mode: "insensitive" } },
-              { title: { contains: shortKeyword, mode: "insensitive" } },
-              { content: { contains: compKeyword, mode: "insensitive" } },
-              { content: { contains: shortKeyword, mode: "insensitive" } },
+              { title: { contains: compKeyword } },
+              { title: { contains: shortKeyword } },
+              { content: { contains: compKeyword } },
+              { content: { contains: shortKeyword } },
             ],
             isPinned: true,
           },

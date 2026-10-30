@@ -15,11 +15,11 @@ export async function ensurePasswordResetTable() {
         "id" TEXT NOT NULL PRIMARY KEY,
         "email" TEXT NOT NULL,
         "status" TEXT NOT NULL DEFAULT 'PENDING',
-        "requestedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "approvedAt" TIMESTAMP(3),
-        "completedAt" TIMESTAMP(3),
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        "requestedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "approvedAt" DATETIME,
+        "completedAt" DATETIME,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
 

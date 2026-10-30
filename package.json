@@ -10,6 +10,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:deduplicate": "tsx scripts/deduplicate.ts",
+    "db:backup": "tsx scripts/backup.ts",
+    "db:restore": "tsx scripts/restore.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -28,6 +30,8 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.15",
+    "@prisma/adapter-d1": "^7.10.1",
     "@shadcn/lint": "^0.2.0",
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
@@ -40,6 +44,7 @@
     "prisma": "^6.4.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "wrangler": "^4.156.0"
   }
 }

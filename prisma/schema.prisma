@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -515,7 +515,7 @@ model News {
   title          String
   category       String    // "League News", "Match", "Competition", "Registration", "Announcement", "System Update", "Event", "Other"
   featuredImage  String
-  description    String    @db.Text
+  description    String    
   buttonText     String?
   buttonUrl      String?
   status         String    @default("DRAFT") // "DRAFT" or "PUBLISHED"
@@ -545,8 +545,8 @@ model SocialPost {
   id            String           @id @default(cuid())
   type          String           // "MOTD_ANNOUNCEMENT", "MOTD_RESULT", "MOTW_ANNOUNCEMENT", "MOTW_RESULT", "MOTW_RIVALRY"
   headline      String
-  caption       String           @db.Text
-  hashtags      String[]         @default([])
+  caption       String           
+  hashtags      String           @default("[]")
 
   matchId       String?
   match         Match?           @relation(fields: [matchId], references: [id], onDelete: Cascade)
@@ -598,7 +598,7 @@ model SocialComment {
   userId           String
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  content          String     @db.Text
+  content          String     
   isOpponentBanter Boolean    @default(false)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -627,7 +627,7 @@ model Derby {
   club1Name           String
   club2Name           String
   competition         String?
-  description         String?      @db.Text
+  description         String?      
   imageUrl            String?
   isHistoricRivalry   Boolean      @default(false)
   priority            Int          @default(0)

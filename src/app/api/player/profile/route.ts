@@ -92,7 +92,7 @@ export async function PUT(req: Request) {
     if (cleanGamerTag.toLowerCase() !== user.player.gamerTag.toLowerCase()) {
       const existingTag = await prisma.player.findFirst({
         where: {
-          gamerTag: { equals: cleanGamerTag, mode: "insensitive" },
+          gamerTag: { equals: cleanGamerTag },
           id: { not: user.player.id },
         },
       });
@@ -177,9 +177,9 @@ export async function PUT(req: Request) {
           where: {
             id: { not: user.player.id },
             OR: [
-              { realTeam: { equals: team.name, mode: "insensitive" as const } },
-              { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
-              { realTeam: { equals: team.id, mode: "insensitive" as const } },
+              { realTeam: { equals: team.name } },
+              { realTeam: { equals: team.shortName } },
+              { realTeam: { equals: team.id } },
             ],
             status: { notIn: ["REJECTED", "RESERVED"] },
             division: { not: "RESERVE" },

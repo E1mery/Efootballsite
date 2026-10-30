@@ -127,7 +127,7 @@ export async function POST(req: Request) {
 
     // Check duplicate name
     const existingName = await prisma.derby.findFirst({
-      where: { name: { equals: name.trim(), mode: "insensitive" } },
+      where: { name: { equals: name.trim() } },
     });
     if (existingName) {
       return NextResponse.json(

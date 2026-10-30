@@ -79,10 +79,10 @@ export async function GET(req: Request) {
     }
     if (search.trim()) {
       whereClause.OR = [
-        { homePlayer: { gamerTag: { contains: search.trim(), mode: "insensitive" } } },
-        { awayPlayer: { gamerTag: { contains: search.trim(), mode: "insensitive" } } },
-        { homePlayer: { realTeam: { contains: search.trim(), mode: "insensitive" } } },
-        { awayPlayer: { realTeam: { contains: search.trim(), mode: "insensitive" } } },
+        { homePlayer: { gamerTag: { contains: search.trim() } } },
+        { awayPlayer: { gamerTag: { contains: search.trim() } } },
+        { homePlayer: { realTeam: { contains: search.trim() } } },
+        { awayPlayer: { realTeam: { contains: search.trim() } } },
       ];
     }
 

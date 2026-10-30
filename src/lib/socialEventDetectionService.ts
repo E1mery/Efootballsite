@@ -213,7 +213,7 @@ export async function detectPendingSystemEvents(): Promise<DetectedSystemEvent[]
           { isMatchOfTheDay: true },
           { isDerby: true },
           { stage: "FINAL" },
-          { round: { contains: "Final", mode: "insensitive" } },
+          { round: { contains: "Final" } },
         ],
       },
       include: {

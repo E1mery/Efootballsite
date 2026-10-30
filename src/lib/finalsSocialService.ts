@@ -236,7 +236,7 @@ export async function getFinalsSocialOverview() {
       matchWhere = {
         OR: [
           { division: "SUPER_CUP" },
-          { round: { contains: "Super Cup", mode: "insensitive" } },
+          { round: { contains: "Super Cup" } },
         ],
       };
     } else {
@@ -244,8 +244,8 @@ export async function getFinalsSocialOverview() {
         division: comp,
         OR: [
           { stage: "FINAL" },
-          { round: { contains: "Grand Final", mode: "insensitive" } },
-          { round: { equals: "Final", mode: "insensitive" } },
+          { round: { contains: "Grand Final" } },
+          { round: { equals: "Final" } },
         ],
       };
     }

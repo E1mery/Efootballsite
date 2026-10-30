@@ -969,8 +969,8 @@ export default async function DashboardPage({
     prisma.hallOfFame.findMany({
       where: {
         OR: [
-          { tournamentName: { contains: "Champions League", mode: "insensitive" } },
-          { tournamentName: { contains: "UCL", mode: "insensitive" } },
+          { tournamentName: { contains: "Champions League" } },
+          { tournamentName: { contains: "UCL" } },
           { trophyType: "UCL" },
         ],
       },
@@ -979,7 +979,7 @@ export default async function DashboardPage({
     prisma.hallOfFame.findMany({
       where: {
         OR: [
-          { tournamentName: { contains: "Europa", mode: "insensitive" } },
+          { tournamentName: { contains: "Europa" } },
           { trophyType: "EUROPA" },
         ],
       },

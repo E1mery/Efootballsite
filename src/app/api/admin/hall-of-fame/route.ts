@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     }
     if (!matchPlayer) {
       matchPlayer = await prisma.player.findFirst({
-        where: { gamerTag: { equals: championName.trim(), mode: "insensitive" } },
+        where: { gamerTag: { equals: championName.trim() } },
       });
       if (matchPlayer) linkedPlayerId = matchPlayer.id;
     }

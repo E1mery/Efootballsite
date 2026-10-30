@@ -39,3 +39,5 @@ prisma/backups/
 prisma/restore.js
 *.txt
 public/assets/trophies/originals/
+*.db
+.open-next/

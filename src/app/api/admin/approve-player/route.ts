@@ -91,8 +91,8 @@ async function processAthlete({
     const tournament = await prisma.tournament.findFirst({
       where: {
         OR: [
-          { name: { contains: targetDivision, mode: "insensitive" } },
-          { slug: { contains: targetDivision.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+          { name: { contains: targetDivision } },
+          { slug: { contains: targetDivision.toLowerCase().replace(/\s+/g, "-") } },
         ],
         type: "DIVISION",
       },

@@ -104,8 +104,8 @@ export async function POST(req: Request) {
         const oldTournament = await prisma.tournament.findFirst({
           where: {
             OR: [
-              { name: { contains: player.division, mode: "insensitive" } },
-              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+              { name: { contains: player.division } },
+              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-") } },
             ],
             type: "DIVISION",
           },
@@ -155,9 +155,9 @@ export async function POST(req: Request) {
           where: {
             id: { not: playerId },
             OR: [
-              { realTeam: { equals: team.name, mode: "insensitive" as const } },
-              { realTeam: { equals: team.shortName, mode: "insensitive" as const } },
-              { realTeam: { equals: team.id, mode: "insensitive" as const } },
+              { realTeam: { equals: team.name } },
+              { realTeam: { equals: team.shortName } },
+              { realTeam: { equals: team.id } },
             ],
             status: { notIn: ["REJECTED", "RESERVED"] },
             division: { not: "RESERVE" },
@@ -194,8 +194,8 @@ export async function POST(req: Request) {
         const oldTournament = await prisma.tournament.findFirst({
           where: {
             OR: [
-              { name: { contains: player.division, mode: "insensitive" } },
-              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+              { name: { contains: player.division } },
+              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-") } },
             ],
             type: "DIVISION",
           },
@@ -212,8 +212,8 @@ export async function POST(req: Request) {
         const oldTournament = await prisma.tournament.findFirst({
           where: {
             OR: [
-              { name: { contains: player.division, mode: "insensitive" } },
-              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+              { name: { contains: player.division } },
+              { slug: { contains: player.division.toLowerCase().replace(/\s+/g, "-") } },
             ],
             type: "DIVISION",
           },
@@ -223,8 +223,8 @@ export async function POST(req: Request) {
         const targetTournament = await prisma.tournament.findFirst({
           where: {
             OR: [
-              { name: { contains: division, mode: "insensitive" } },
-              { slug: { contains: division.toLowerCase().replace(/\s+/g, "-"), mode: "insensitive" } },
+              { name: { contains: division } },
+              { slug: { contains: division.toLowerCase().replace(/\s+/g, "-") } },
             ],
             type: "DIVISION",
           },

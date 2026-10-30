@@ -124,8 +124,8 @@ export async function POST(req: Request) {
         await prisma.announcement.updateMany({
           where: {
             OR: [
-              { title: { contains: "Registration is OPEN", mode: "insensitive" } },
-              { content: { contains: "Registration is officially open", mode: "insensitive" } },
+              { title: { contains: "Registration is OPEN" } },
+              { content: { contains: "Registration is officially open" } },
             ],
             isPinned: true,
           },
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
           where: {
             OR: [
               { id: "sys-season-registration" },
-              { title: { contains: "Registration", mode: "insensitive" } },
+              { title: { contains: "Registration" } },
             ],
             showOnCarousel: true,
           },
@@ -160,10 +160,10 @@ export async function POST(req: Request) {
         await prisma.announcement.updateMany({
           where: {
             OR: [
-              { title: { contains: "Champions League", mode: "insensitive" } },
-              { title: { contains: "UCL", mode: "insensitive" } },
-              { content: { contains: "Champions League", mode: "insensitive" } },
-              { content: { contains: "UCL", mode: "insensitive" } },
+              { title: { contains: "Champions League" } },
+              { title: { contains: "UCL" } },
+              { content: { contains: "Champions League" } },
+              { content: { contains: "UCL" } },
             ],
             isPinned: true,
           },
@@ -173,8 +173,8 @@ export async function POST(req: Request) {
           where: {
             OR: [
               { id: "sys-announcement-ucl-launched" },
-              { title: { contains: "Champions League", mode: "insensitive" } },
-              { title: { contains: "UCL", mode: "insensitive" } },
+              { title: { contains: "Champions League" } },
+              { title: { contains: "UCL" } },
             ],
             showOnCarousel: true,
           },
@@ -199,10 +199,10 @@ export async function POST(req: Request) {
         await prisma.announcement.updateMany({
           where: {
             OR: [
-              { title: { contains: "Europa League", mode: "insensitive" } },
-              { title: { contains: "Europa", mode: "insensitive" } },
-              { content: { contains: "Europa League", mode: "insensitive" } },
-              { content: { contains: "Europa", mode: "insensitive" } },
+              { title: { contains: "Europa League" } },
+              { title: { contains: "Europa" } },
+              { content: { contains: "Europa League" } },
+              { content: { contains: "Europa" } },
             ],
             isPinned: true,
           },
@@ -212,8 +212,8 @@ export async function POST(req: Request) {
           where: {
             OR: [
               { id: "sys-announcement-europa-launched" },
-              { title: { contains: "Europa League", mode: "insensitive" } },
-              { title: { contains: "Europa", mode: "insensitive" } },
+              { title: { contains: "Europa League" } },
+              { title: { contains: "Europa" } },
             ],
             showOnCarousel: true,
           },
