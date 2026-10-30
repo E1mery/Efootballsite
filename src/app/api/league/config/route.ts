@@ -30,7 +30,7 @@ export async function GET() {
     );
   } catch (error: any) {
     return NextResponse.json(
-      { error: "Failed to fetch league configuration" },
+      { error: "Failed to fetch league configuration", details: error?.message || String(error) },
       { status: 500 }
     );
   }
