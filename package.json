@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.15",
-    "@prisma/adapter-d1": "^6.4.1",
+    "@prisma/adapter-d1": "^6.19.3",
     "@shadcn/lint": "^0.2.0",
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
