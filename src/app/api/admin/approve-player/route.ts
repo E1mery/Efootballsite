@@ -190,7 +190,13 @@ async function processAthlete({
     const userId = player.userId;
     const gamerTag = player.gamerTag;
 
-    // Delete standings / match references if any
+    // Delete standings, matches, announcements, reviews to maintain DB foreign key integrity
+    await prisma.match.deleteMany({
+      where: { OR: [{ homePlayerId: player.id }, { awayPlayerId: player.id }] },
+    });
+    await prisma.announcement.deleteMany({ where: { targetPlayerId: player.id } });
+    await prisma.announcementRead.deleteMany({ where: { playerId: player.id } });
+    await prisma.feedbackReview.deleteMany({ where: { playerId: player.id } });
     await prisma.standing.deleteMany({ where: { playerId: player.id } });
     await prisma.matchSubmission.deleteMany({ where: { submittedByPlayerId: player.id } });
     await prisma.forfeitClaim.deleteMany({

@@ -696,8 +696,9 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
   const allPlayersList = Array.from(playersMap.values());
 
   // Determine All-Time Records (Requirement 02 & 10)
-  // Only calculate automatic records if official matches or historical snapshots exist (Requirement 16)
-  const hasOfficialData = officialMatches.length > 0 || historicalSnapshots.length > 0;
+  // Only calculate automatic records if official matches, historical snapshots, or Hall of Fame entries exist
+  const hasOfficialData =
+    officialMatches.length > 0 || historicalSnapshots.length > 0 || hallOfFameEntries.length > 0;
   const allTimeRecords: AllTimeRecord[] = [];
 
   if (hasOfficialData) {
@@ -706,14 +707,23 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
     if (maxTitles > 0) {
       const holders = allPlayersList
         .filter((p) => p.totalTrophies === maxTitles)
-        .map((p) => ({
-          playerId: p.playerId,
-          gamerTag: p.gamerTag,
-          fullName: p.fullName,
-          avatar: p.avatar,
-          currentDivision: p.currentDivision,
-          detail: `${p.leagueTitles} League • ${p.uclTitles} UCL • ${p.europaTitles} Europa • ${p.d2Titles + p.d3Titles} Lower Tier`,
-        }));
+        .map((p) => {
+          const breakdownParts: string[] = [];
+          if (p.leagueTitles > 0) breakdownParts.push(`${p.leagueTitles} League`);
+          if (p.uclTitles > 0) breakdownParts.push(`${p.uclTitles} UCL`);
+          if (p.europaTitles > 0) breakdownParts.push(`${p.europaTitles} Europa`);
+          if (p.superCupTitles > 0) breakdownParts.push(`${p.superCupTitles} Super Cup`);
+          if (p.d2Titles + p.d3Titles > 0) breakdownParts.push(`${p.d2Titles + p.d3Titles} Lower Tier`);
+
+          return {
+            playerId: p.playerId,
+            gamerTag: p.gamerTag,
+            fullName: p.fullName,
+            avatar: p.avatar,
+            currentDivision: p.currentDivision,
+            detail: breakdownParts.length > 0 ? breakdownParts.join(" • ") : `${p.totalTrophies} Titles`,
+          };
+        });
       allTimeRecords.push({
         id: "rec_most_titles",
         recordKey: "MOST_TITLES",
@@ -723,7 +733,7 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
         numericValue: maxTitles,
         holders,
         sourceType: "AUTOMATIC",
-        transparencyNote: `Verified across all domestic league tiers, UCL, and Europa League competitions`,
+        transparencyNote: `Verified across all domestic league tiers, UCL, Europa League, and Super Cup competitions`,
       });
     }
 
@@ -914,26 +924,32 @@ export async function calculateHallOfFameStats(): Promise<HallOfFameStatsResult>
   }
 
   // Convert Manual Historical Records (Requirement 11)
-  const manualRecords: AllTimeRecord[] = manualHistoricalRecords.map((m) => ({
-    id: m.id,
-    recordKey: `MANUAL_${m.id}`,
-    title: m.recordName,
-    category: "HISTORICAL",
-    valueFormatted: m.value,
-    numericValue: m.numericValue || 0,
-    holders: [
-      {
-        playerId: m.playerId || undefined,
-        gamerTag: m.playerName,
-        detail: m.description || undefined,
-      },
-    ],
-    sourceType: "MANUAL",
-    transparencyNote: m.description || "Manual historical record entered by commissioner office",
-    season: m.season,
-    competition: m.competition,
-    supportingImageUrl: m.supportingImageUrl,
-  }));
+  const manualRecords: AllTimeRecord[] = manualHistoricalRecords.map((m) => {
+    const matchedPlayer = playerMapByTag.get((m.playerName || "").trim().toLowerCase());
+    return {
+      id: m.id,
+      recordKey: `MANUAL_${m.id}`,
+      title: m.recordName,
+      category: "HISTORICAL" as const,
+      valueFormatted: m.value,
+      numericValue: m.numericValue || 0,
+      holders: [
+        {
+          playerId: m.playerId || matchedPlayer?.id || undefined,
+          gamerTag: m.playerName,
+          fullName: matchedPlayer?.fullName || null,
+          avatar: matchedPlayer?.avatar || null,
+          currentDivision: matchedPlayer?.division || undefined,
+          detail: m.description || undefined,
+        },
+      ],
+      sourceType: "MANUAL" as const,
+      transparencyNote: m.description || "Manual historical record entered by commissioner office",
+      season: m.season,
+      competition: m.competition,
+      supportingImageUrl: m.supportingImageUrl,
+    };
+  });
 
   // Inducted Legends vs Featured Legends - strictly players who have won any trophy
   const inductedLegends = allPlayersList.filter((p) => p.totalTrophies > 0);
@@ -1024,7 +1040,12 @@ export async function getHallOfFameStats(forceFresh = false): Promise<HallOfFame
         where: { id: "stats_cache" },
       });
       if (cached && cached.data) {
-        return cached.data as unknown as HallOfFameStatsResult;
+        // Enforce a 5-minute cache TTL so fresh match results and inductees reflect automatically
+        const cacheAge = Date.now() - new Date(cached.lastUpdated).getTime();
+        const maxAge = 5 * 60 * 1000; // 5 minutes
+        if (cacheAge < maxAge) {
+          return cached.data as unknown as HallOfFameStatsResult;
+        }
       }
     } catch {
       // Fall through to calculation

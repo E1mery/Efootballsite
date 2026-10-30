@@ -95,6 +95,13 @@ export async function POST(req: Request) {
       }
     }
 
+    // Invalidate Hall of Fame statistical cache when match completes
+    if (status === "FINISHED" || status === "FORFEIT") {
+      import("@/lib/hallOfFameStatsService")
+        .then((s) => s.invalidateHallOfFameCache())
+        .catch(() => {});
+    }
+
     // 2. If finished or forfeit, recalculate standings for this tournament/division
     if (
       (status === "FINISHED" || status === "FORFEIT") &&

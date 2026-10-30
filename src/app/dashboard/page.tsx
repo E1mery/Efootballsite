@@ -51,7 +51,11 @@ export default async function DashboardPage({
   }
 
   // Automatic midnight cycle check
-  await checkAndAutoAdvanceDailyCycle();
+  try {
+    await checkAndAutoAdvanceDailyCycle();
+  } catch (cycleErr) {
+    console.error("Non-fatal: checkAndAutoAdvanceDailyCycle encountered an error:", cycleErr);
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: sessionUserId },

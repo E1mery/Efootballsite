@@ -154,7 +154,22 @@ export async function POST(req: Request) {
           where: { playerId: targetPlayer.id },
         }).catch(() => {});
       } else {
-        // Delete outgoing player
+        // Delete outgoing player and all associated matches & announcements to maintain integrity
+        await prisma.match.deleteMany({
+          where: { OR: [{ homePlayerId: targetPlayer.id }, { awayPlayerId: targetPlayer.id }] },
+        }).catch(() => {});
+        await prisma.announcement.deleteMany({
+          where: { targetPlayerId: targetPlayer.id },
+        }).catch(() => {});
+        await prisma.announcementRead.deleteMany({
+          where: { playerId: targetPlayer.id },
+        }).catch(() => {});
+        await prisma.feedbackReview.deleteMany({
+          where: { playerId: targetPlayer.id },
+        }).catch(() => {});
+        await prisma.standing.deleteMany({
+          where: { playerId: targetPlayer.id },
+        }).catch(() => {});
         await prisma.player.delete({ where: { id: targetPlayer.id } }).catch(() => {});
         if (targetPlayer.userId) {
           await prisma.user.delete({ where: { id: targetPlayer.userId } }).catch(() => {});

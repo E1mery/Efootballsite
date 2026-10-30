@@ -39,12 +39,22 @@ export async function DELETE(req: Request) {
     const gamerTag = player.gamerTag;
     const userId = player.userId;
 
-    // 1. Delete scheduled / unplayed matches for this player
+    // 1. Delete all matches for this player to prevent orphaned records in SQLite/D1
     await prisma.match.deleteMany({
       where: {
         OR: [{ homePlayerId: playerId }, { awayPlayerId: playerId }],
-        status: { in: ["SCHEDULED", "LIVE"] },
       },
+    });
+
+    // 1.1 Delete player announcements and read receipts
+    await prisma.announcement.deleteMany({
+      where: { targetPlayerId: playerId },
+    });
+    await prisma.announcementRead.deleteMany({
+      where: { playerId: playerId },
+    });
+    await prisma.feedbackReview.deleteMany({
+      where: { playerId: playerId },
     });
 
     // 2. Delete standings entries

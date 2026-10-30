@@ -6,11 +6,13 @@ import { AllTimeRecord } from "@/lib/hallOfFameStatsService";
 interface AllTimeRecordsProps {
   records: AllTimeRecord[];
   onViewAllRecords?: () => void;
+  onSelectPlayer?: (gamerTag: string) => void;
 }
 
 export default function AllTimeRecords({
   records = [],
   onViewAllRecords,
+  onSelectPlayer,
 }: AllTimeRecordsProps) {
   const getRecordIcon = (category: string) => {
     switch (category) {
@@ -105,18 +107,56 @@ export default function AllTimeRecords({
                 </div>
 
                 {/* Record Holder Section */}
-                <div className="border-t border-border/50 pt-3 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-secondary" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold uppercase tracking-wide text-foreground truncate">
-                      {primaryHolder ? primaryHolder.gamerTag : "No Holder Yet"}
+                <div className="border-t border-border/50 pt-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {primaryHolder?.avatar ? (
+                      <img
+                        src={primaryHolder.avatar}
+                        alt={primaryHolder.gamerTag}
+                        className="w-9 h-9 rounded-full object-cover border border-secondary/30 shrink-0 bg-secondary/10"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = "none";
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`w-9 h-9 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0 ${
+                        primaryHolder?.avatar ? "hidden" : "flex"
+                      }`}
+                    >
+                      <User className="w-4 h-4 text-secondary" />
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {primaryHolder?.fullName || (rec.holders.length > 1 ? `+${rec.holders.length - 1} tied` : "Official Holder")}
+                    <div className="min-w-0">
+                      {primaryHolder ? (
+                        <button
+                          type="button"
+                          onClick={() => onSelectPlayer && onSelectPlayer(primaryHolder.gamerTag)}
+                          className="text-xs font-bold uppercase tracking-wide text-foreground hover:text-secondary truncate block text-left transition-colors cursor-pointer"
+                        >
+                          {primaryHolder.gamerTag}
+                        </button>
+                      ) : (
+                        <div className="text-xs font-bold uppercase tracking-wide text-foreground truncate">
+                          No Holder Yet
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground truncate">
+                        {primaryHolder?.fullName || (rec.holders.length > 1 ? `+${rec.holders.length - 1} tied` : "Official Holder")}
+                      </div>
                     </div>
                   </div>
+
+                  {primaryHolder && onSelectPlayer && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectPlayer(primaryHolder.gamerTag)}
+                      className="px-2 py-1 rounded-lg text-xs font-bold text-secondary bg-secondary/10 hover:bg-secondary/20 transition-colors shrink-0"
+                    >
+                      Audit
+                    </button>
+                  )}
                 </div>
               </div>
             );
