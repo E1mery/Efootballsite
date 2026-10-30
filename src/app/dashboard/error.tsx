@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, RefreshCw, RotateCcw, Home } from "lucide-react";
+import { AlertTriangle, RefreshCw, RotateCcw, Home, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   const [isChunkError, setIsChunkError] = useState(false);
+  const [isConnectionError, setIsConnectionError] = useState(false);
 
   useEffect(() => {
     console.error("Dashboard Client-Side Exception Caught:", error);
@@ -23,6 +24,13 @@ export default function DashboardError({
       errorMessage.includes("loading chunk") ||
       errorMessage.includes("failed to fetch dynamically imported module") ||
       errorMessage.includes("error loading dynamic script");
+
+    const isConn =
+      errorMessage.includes("connection closed") ||
+      errorMessage.includes("network connection lost") ||
+      errorMessage.includes("d1_error") ||
+      errorMessage.includes("failed to fetch") ||
+      errorMessage.includes("database is locked");
 
     if (isChunk) {
       setIsChunkError(true);
@@ -35,11 +43,23 @@ export default function DashboardError({
           window.location.reload();
         }
       }
+    } else if (isConn) {
+      setIsConnectionError(true);
+      if (typeof window !== "undefined") {
+        const reloadKey = "efrl_dashboard_conn_error_ts";
+        const lastReload = sessionStorage.getItem(reloadKey);
+        const now = Date.now();
+        // Automatically attempt a fresh reload once to reconnect to edge database
+        if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+          sessionStorage.setItem(reloadKey, String(now));
+          window.location.reload();
+        }
+      }
     }
   }, [error]);
 
   const handleRetry = () => {
-    if (typeof window !== "undefined" && isChunkError) {
+    if (typeof window !== "undefined") {
       window.location.reload();
       return;
     }
@@ -58,13 +78,29 @@ export default function DashboardError({
     }
   };
 
+  const title = isChunkError
+    ? "Dashboard Update Detected"
+    : isConnectionError
+    ? "Database Reconnection Needed"
+    : "Dashboard Interface Refresh Needed";
+
+  const description = isChunkError
+    ? "A fresh build was deployed. Please reload your dashboard to load the newest features and assets."
+    : isConnectionError
+    ? "A temporary edge database connection timeout occurred. Click below to reconnect and reload your session."
+    : "A temporary client state issue was encountered. Click below to recover your dashboard session.";
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-xl w-full rounded-3xl border border-destructive/40 bg-gradient-to-b from-background via-card to-background p-6 sm:p-10 text-center space-y-6 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-destructive/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="inline-flex p-4 rounded-3xl bg-destructive/10 text-destructive border border-destructive/30">
-          <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+          {isConnectionError ? (
+            <WifiOff className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+          ) : (
+            <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse" />
+          )}
         </div>
 
         <div className="space-y-2">
@@ -72,12 +108,10 @@ export default function DashboardError({
             Player Dashboard Sync
           </span>
           <h2 className="text-xl sm:text-2xl font-black uppercase text-foreground tracking-tight">
-            {isChunkError ? "Dashboard Update Detected" : "Dashboard Interface Refresh Needed"}
+            {title}
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-            {isChunkError
-              ? "A fresh build was deployed. Please reload your dashboard to load the newest features and assets."
-              : "A temporary client state issue was encountered. Click below to recover your dashboard session."}
+            {description}
           </p>
         </div>
 
@@ -95,7 +129,7 @@ export default function DashboardError({
             className="font-bold text-xs gap-2 py-2.5 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 transition-all"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>{isChunkError ? "Reload Dashboard" : "Try Again"}</span>
+            <span>{isChunkError ? "Reload Dashboard" : isConnectionError ? "Reconnect & Reload" : "Try Again"}</span>
           </Button>
 
           <Button

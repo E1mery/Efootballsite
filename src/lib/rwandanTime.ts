@@ -66,15 +66,35 @@ export function createRwandanMidnight(dateStr?: string | Date): Date {
 }
 
 /**
+ * Safely parses any date string (including SQLite D1 'YYYY-MM-DD HH:MM:SS')
+ * into a valid Date object without failing in Safari / WebKit.
+ */
+export function parseDateSafe(date: Date | string | number | null | undefined): Date | null {
+  if (!date) return null;
+  if (date instanceof Date) {
+    return isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof date === "string") {
+    let s = date.trim();
+    if (s.includes(" ") && !s.includes("T")) {
+      s = s.replace(" ", "T") + (s.endsWith("Z") ? "" : "Z");
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const fallback = new Date(date);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+/**
  * Format a date in Rwandan Time (CAT)
  */
 export function formatRwandanDate(
   date: Date | string | number | null | undefined,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "";
+  const d = parseDateSafe(date);
+  if (!d) return "";
   return d.toLocaleDateString("en-US", {
     timeZone: RWANDA_TIMEZONE,
     month: "short",
@@ -91,9 +111,8 @@ export function formatRwandanTime(
   date: Date | string | number | null | undefined,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "";
+  const d = parseDateSafe(date);
+  if (!d) return "";
   return d.toLocaleTimeString("en-US", {
     timeZone: RWANDA_TIMEZONE,
     hour: "2-digit",
@@ -109,9 +128,8 @@ export function formatRwandanDateTime(
   date: Date | string | number | null | undefined,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "";
+  const d = parseDateSafe(date);
+  if (!d) return "";
   return d.toLocaleString("en-US", {
     timeZone: RWANDA_TIMEZONE,
     month: "short",

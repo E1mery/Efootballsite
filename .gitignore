@@ -37,6 +37,7 @@ next-env.d.ts
 # backups & scratch files
 prisma/backups/
 prisma/restore.js
+scripts/compare-neon-d1.mjs
 *.txt
 public/assets/trophies/originals/
 *.db

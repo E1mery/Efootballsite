@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/badge";
-import { Tv, Smartphone, Calendar, ShieldAlert, Eye, MessageSquare, Flame } from "lucide-react";
+import { Tv, Smartphone, Calendar, ShieldAlert, Eye, Flame } from "lucide-react";
 import { resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
 import { detectDerby } from "@/lib/derbyCore";
+import { formatRwandanDate, formatRwandanTime } from "@/lib/rwandanTime";
 
 interface PlayerInfo {
   id: string;
@@ -39,10 +40,12 @@ interface MatchProps {
     derbyName?: string | null;
     isDerby?: boolean;
     submissions?: Array<{ screenshotUrl?: string | null; status?: string }>;
+    forfeitClaims?: Array<{ proofScreenshotUrl?: string | null; status?: string }>;
   };
+  isHighlighted?: boolean;
 }
 
-export default function MatchCard({ match }: MatchProps) {
+export default function MatchCard({ match, isHighlighted }: MatchProps) {
   const isMotd = Boolean(match.isMatchOfTheDay);
   const detectedDerby = match.isDerby && match.derbyName ? { name: match.derbyName } : detectDerby(match.homePlayer, match.awayPlayer);
   const derbyName = match.derbyName || detectedDerby?.name;
@@ -58,23 +61,23 @@ export default function MatchCard({ match }: MatchProps) {
   const approvedSub =
     match.submissions?.find((s) => s.status === "APPROVED") ||
     match.submissions?.[0];
+  const approvedForfeit =
+    match.forfeitClaims?.find((f) => f.status === "APPROVED") ||
+    match.forfeitClaims?.[0];
 
-  const dateObj = new Date(match.matchDate);
-  const formattedTime = dateObj.toLocaleTimeString("en-US", {
-    timeZone: "Africa/Kigali",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const formattedDate = dateObj.toLocaleDateString("en-US", {
-    timeZone: "Africa/Kigali",
+  const formattedTime = formatRwandanTime(match.matchDate);
+  const formattedDate = formatRwandanDate(match.matchDate, {
     month: "short",
     day: "numeric",
   });
 
   return (
     <div
-      className={`esports-card relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 transition-all ${
-        isMotd
+      id={`match-${match.id}`}
+      className={`esports-card relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 transition-all scroll-mt-24 ${
+        isHighlighted
+          ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background bg-card shadow-2xl"
+          : isMotd
           ? "border-secondary/60 bg-gradient-to-br from-card via-background to-secondary/20 shadow-lg"
           : isLive
           ? "border-destructive/50 bg-card/90 shadow-lg"
@@ -123,7 +126,7 @@ export default function MatchCard({ match }: MatchProps) {
           {!isLive && !isFinished && !isForfeit && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium font-mono">
               <Calendar className="h-3 w-3 text-secondary" />
-              <span>{formattedDate}</span>
+              <span>{formattedDate || formattedTime}</span>
             </div>
           )}
         </div>
@@ -276,6 +279,17 @@ export default function MatchCard({ match }: MatchProps) {
             >
               <Eye className="h-3 w-3" />
               <span>Score Proof</span>
+            </a>
+          )}
+          {!approvedSub?.screenshotUrl && approvedForfeit?.proofScreenshotUrl && (
+            <a
+              href={approvedForfeit.proofScreenshotUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-destructive hover:text-destructive bg-card border border-border px-2.5 py-1 rounded-lg transition"
+            >
+              <Eye className="h-3 w-3" />
+              <span>Forfeit Proof</span>
             </a>
           )}
 

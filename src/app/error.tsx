@@ -24,6 +24,13 @@ export default function GlobalError({
       errorMessage.includes("failed to fetch dynamically imported module") ||
       errorMessage.includes("error loading dynamic script");
 
+    const isConn =
+      errorMessage.includes("connection closed") ||
+      errorMessage.includes("network connection lost") ||
+      errorMessage.includes("d1_error") ||
+      errorMessage.includes("failed to fetch") ||
+      errorMessage.includes("database is locked");
+
     if (isChunk) {
       setIsChunkError(true);
       if (typeof window !== "undefined") {
@@ -36,11 +43,22 @@ export default function GlobalError({
           window.location.reload();
         }
       }
+    } else if (isConn) {
+      if (typeof window !== "undefined") {
+        const reloadKey = "efrl_global_conn_error_ts";
+        const lastReload = sessionStorage.getItem(reloadKey);
+        const now = Date.now();
+        // Automatically attempt a fresh reload once on transient edge connection drop
+        if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+          sessionStorage.setItem(reloadKey, String(now));
+          window.location.reload();
+        }
+      }
     }
   }, [error]);
 
   const handleRetry = () => {
-    if (typeof window !== "undefined" && isChunkError) {
+    if (typeof window !== "undefined") {
       window.location.reload();
       return;
     }

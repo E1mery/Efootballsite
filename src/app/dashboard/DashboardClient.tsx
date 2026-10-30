@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Search,
   Smartphone,
   Clock,
   MessageSquare,
@@ -52,6 +53,7 @@ import HomeDivisionsTabs from "@/components/HomeDivisionsTabs";
 import QuickGuideModal from "@/components/QuickGuideModal";
 import ContinentalDrawExperience from "@/components/ContinentalDrawExperience";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam, handleAvatarError } from "@/lib/teams";
+import { formatRwandanDate } from "@/lib/rwandanTime";
 import type { PlayerDashboardTab } from "@/components/player/player-nav";
 import ChampionsLeagueView from "@/components/competitions/ChampionsLeagueView";
 import EuropaLeagueView from "@/components/competitions/EuropaLeagueView";
@@ -700,9 +702,15 @@ export default function DashboardClient({
     return (allPlayerMatches || []).find(
       (m: any) =>
         m.round === activeRoundLabel &&
-        (m.division === "UCL" || m.division === "EUROPA" || new Date(m.matchDate).getTime() <= Date.now())
+        (m.division === "UCL" ||
+          m.division === "EUROPA" ||
+          !m.division?.startsWith("Division") ||
+          (parseInt(m.round?.match(/\d+/)?.[0] || "0", 10) <= (leagueConfig?.currentMatchday || 1)) ||
+          new Date(m.matchDate).getTime() <= Date.now())
     );
-  }, [allPlayerMatches, activeRoundLabel]);
+  }, [allPlayerMatches, activeRoundLabel, leagueConfig?.currentMatchday]);
+
+
 
   // Combined playable matches: Reopened previous matches + Today's active matchday fixture
   const playableMatches = useMemo(() => {
@@ -761,6 +769,74 @@ export default function DashboardClient({
     );
     return firstDropped || null;
   }, [isReserved, isRestDayToday, isSuspended, isSeasonAwaitingKickoff, selectedBacklogMatchId, replacementBacklogMatches, initialActiveMatch, allPlayerMatches, leagueConfig?.currentMatchday]);
+
+  // Match Calendar filtering & search states
+  const [calendarSearch, setCalendarSearch] = useState("");
+  const [calendarCompFilter, setCalendarCompFilter] = useState<"ALL" | "DOMESTIC" | "CONTINENTAL">("ALL");
+  const [calendarStatusFilter, setCalendarStatusFilter] = useState<"ALL" | "PLAYABLE" | "COMPLETED" | "UPCOMING">("ALL");
+
+  const hasContinentalCalendarMatches = useMemo(
+    () => (allPlayerMatches || []).some((m: any) => m.division === "UCL" || m.division === "EUROPA"),
+    [allPlayerMatches]
+  );
+
+  const filteredCalendarMatches = useMemo(() => {
+    return (allPlayerMatches || []).filter((m: any) => {
+      // Competition Filter
+      if (calendarCompFilter === "DOMESTIC" && (m.division === "UCL" || m.division === "EUROPA")) {
+        return false;
+      }
+      if (calendarCompFilter === "CONTINENTAL" && m.division !== "UCL" && m.division !== "EUROPA") {
+        return false;
+      }
+
+      const isFinished = m.status === "FINISHED" || m.status === "FORFEIT";
+      const isCurrentActive = m.id === activeMatch?.id;
+      const isBacklog = Boolean(
+        (m.notes?.includes("REPLACEMENT_BACKLOG") ||
+          m.notes?.includes("ADMIN_REOPENED") ||
+          m.allowLateSubmission) &&
+        m.status === "SCHEDULED"
+      );
+      const isPending = Boolean(
+        m.submissions?.some((s: any) => s.status === "PENDING") ||
+        m.forfeitClaims?.some((f: any) => f.status === "PENDING")
+      );
+
+      // Status Filter
+      if (calendarStatusFilter === "PLAYABLE") {
+        if (!isCurrentActive && !isBacklog && !isPending) return false;
+      } else if (calendarStatusFilter === "COMPLETED") {
+        if (!isFinished) return false;
+      } else if (calendarStatusFilter === "UPCOMING") {
+        if (isFinished || isCurrentActive || isBacklog || isPending) return false;
+      }
+
+      // Search Query
+      if (calendarSearch.trim()) {
+        const q = calendarSearch.toLowerCase().trim();
+        const isHome = m.homePlayerId === player?.id;
+        const opponent = isHome ? m.awayPlayer : m.homePlayer;
+        const oppTag = (opponent?.gamerTag || "").toLowerCase();
+        const oppName = (opponent?.fullName || "").toLowerCase();
+        const oppTeam = (opponent?.realTeam || "").toLowerCase();
+        const roundName = (m.round || "").toLowerCase();
+        const divName = (m.division || "").toLowerCase();
+
+        if (
+          !oppTag.includes(q) &&
+          !oppName.includes(q) &&
+          !oppTeam.includes(q) &&
+          !roundName.includes(q) &&
+          !divName.includes(q)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allPlayerMatches, calendarCompFilter, calendarStatusFilter, calendarSearch, activeMatch?.id, player?.id]);
 
   // Dynamic user and player profile state
   const [currentPlayer, setCurrentPlayer] = useState(player);
@@ -4491,6 +4567,13 @@ export default function DashboardClient({
                   : "Complete timeline of all your league fixtures across all matchdays. Your active match is highlighted below with full score and screenshot submission controls."}
               </p>
             </div>
+            {(allPlayerMatches || []).length > 0 && (
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <div className="px-3 py-1.5 rounded-xl bg-card border border-border text-xs font-mono font-bold text-muted-foreground">
+                  Total Fixtures: <span className="text-white font-black">{(allPlayerMatches || []).length}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {isRestDayToday && (
@@ -4570,254 +4653,415 @@ export default function DashboardClient({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {(allPlayerMatches || []).map((m: any) => {
-                const isCurrentActive = m.id === activeMatch?.id;
-                const isHome = m.homePlayerId === player?.id;
-                const matchOpponent = isHome ? m.awayPlayer : m.homePlayer;
-                const isFinished = m.status === "FINISHED";
-                const isForfeit = m.status === "FORFEIT";
-                const sub = m.submissions?.find((s: any) => s.status !== "REJECTED") || m.submissions?.[0];
-                const forfeit = m.forfeitClaims?.find((f: any) => f.status !== "REJECTED") || m.forfeitClaims?.[0];
-                const hasSubOrForfeit = Boolean(sub || forfeit);
-                const isPending = sub?.status === "PENDING";
-                const isForfeitPending = forfeit?.status === "PENDING";
-                const matchRoundNum = parseInt(m.round?.match(/\d+/)?.[0] || "0", 10);
-                const isDivisionMatch = m.division?.startsWith("Division");
-                const currentMatchdayNum = leagueConfig?.currentMatchday || 1;
-                const isFutureDivisionMatch = isDivisionMatch && !isFinished && !isForfeit && (matchRoundNum > currentMatchdayNum || new Date(m.matchDate).getTime() > Date.now());
-                const isMatchPastDeadline = Boolean(
-                  m.deadlineDate && new Date(m.deadlineDate).getTime() <= Date.now()
-                );
-
-                return (
-                  <div
-                    key={m.id}
-                    className={`rounded-3xl border p-5 flex flex-col justify-between transition-all backdrop-blur-xl shadow-xl space-y-4 ${
-                      isCurrentActive
-                        ? "border-primary/60 bg-gradient-to-r from-primary/30 via-card/90 to-background/90 ring-2 ring-primary/30"
-                        : isFinished || isForfeit
-                        ? "border-border bg-background/60"
-                        : "border-border/80 bg-background/40 hover:border-muted-foreground"
-                    }`}
-                  >
-                    {/* Card Header */}
-                    <div className="space-y-2 border-b border-border/80 pb-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-mono text-muted-foreground">
-                            {m.round} • {m.division}
-                          </span>
-                        </div>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {new Date(m.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali", month: "short", day: "numeric" })}
-                        </span>
-                      </div>
-
-                      {/* Status Badges */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {isCurrentActive && !isMatchPastDeadline && (
-                          <Badge variant="live" className="text-xs animate-pulse">
-                            ⚡ ACTIVE 24-HR FIXTURE
-                          </Badge>
-                        )}
-                        {isMatchPastDeadline && !isFinished && !isForfeit && !isPending && !isForfeitPending && (
-                          <Badge variant="destructive" className="text-xs font-bold gap-1">
-                            <Lock className="h-3 w-3" />
-                            DEADLINE EXPIRED
-                          </Badge>
-                        )}
-                        {isFinished && (
-                          <span className="text-xs font-bold text-muted-foreground">
-                            COMPLETED
-                          </span>
-                        )}
-                        {isForfeit && (
-                          <Badge variant="destructive" className="text-xs font-black">
-                            FORFEIT (0-3)
-                          </Badge>
-                        )}
-                        {isPending && (
-                          <Badge variant="yellow" className="text-xs font-black animate-pulse">
-                            PENDING APPROVAL
-                          </Badge>
-                        )}
-                        {isForfeitPending && !isPending && (
-                          <Badge variant="destructive" className="text-xs font-black animate-pulse">
-                            FORFEIT ARBITRATION
-                          </Badge>
-                        )}
-                        {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && !isForfeitPending && !isMatchPastDeadline && (
-                          <span className="text-xs text-muted-foreground">
-                            LOCKED (1 MATCH/DAY)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Team Pairings & Score Grid */}
-                    <div className="space-y-2.5 py-1">
-                      {/* You */}
-                      <div className="p-2.5 rounded-2xl bg-card/80 border border-border flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
-                            <img
-                              src={resolvePlayerAvatar(player)}
-                              alt={player.realTeam || player.gamerTag || "Team"}
-                              className="w-full h-full object-contain"
-                              loading="lazy"
-                              onError={handleAvatarError}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white truncate">{player.gamerTag}</span>
-                              <span className="text-xs px-1 py-0 rounded bg-primary/20 text-primary font-bold border border-primary/30">
-                                {isHome ? "H" : "A"}
-                              </span>
-                            </div>
-                            {player.realTeam && (
-                              <span className="text-xs text-secondary font-bold block truncate">
-                                {findTeam(player.realTeam)?.shortName || player.realTeam}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                          {isFinished || isForfeit ? (
-                            <span className="font-mono text-base font-black text-primary">
-                              {isHome ? m.homeScore : m.awayScore}
-                            </span>
-                          ) : sub ? (
-                            <span className="font-mono text-sm font-black text-secondary">
-                              {isHome ? sub.homeScore : sub.awayScore}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-mono text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Opponent */}
-                      <div className="p-2.5 rounded-2xl bg-card/80 border border-border flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
-                            <img
-                              src={resolvePlayerAvatar(matchOpponent)}
-                              alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
-                              className="w-full h-full object-contain"
-                              loading="lazy"
-                              onError={handleAvatarError}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-white truncate">{matchOpponent?.gamerTag || "TBD"}</span>
-                              <span className="text-xs px-1 py-0 rounded bg-muted text-muted-foreground font-bold border border-border">
-                                {isHome ? "A" : "H"}
-                              </span>
-                            </div>
-                            {matchOpponent?.realTeam && (
-                              <span className="text-xs text-secondary font-bold block truncate">
-                                {findTeam(matchOpponent.realTeam)?.shortName || matchOpponent.realTeam}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                          {isFinished || isForfeit ? (
-                            <span className="font-mono text-base font-black text-primary">
-                              {isHome ? m.awayScore : m.homeScore}
-                            </span>
-                          ) : sub ? (
-                            <span className="font-mono text-sm font-black text-secondary">
-                              {isHome ? sub.awayScore : sub.homeScore}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-mono text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Footer Actions */}
-                    <div className="pt-2 border-t border-border/80 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {matchOpponent?.whatsapp && !isFutureDivisionMatch && (
-                          <ButtonRollingText
-                            href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            text="WhatsApp"
-                            stagger
-                            size="sm"
-                            icon={<MessageSquare className="h-3 w-3" />}
-                            iconPosition="left"
-                            className="h-7 py-1 px-2.5 rounded-lg bg-primary hover:bg-primary text-white text-xs font-bold shadow-sm"
-                          />
-                        )}
-
-                        {sub?.screenshotUrl && (
-                          <ButtonRollingText
-                            href={sub.screenshotUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            variant="outline"
-                            text="Proof"
-                            stagger
-                            size="sm"
-                            icon={<Eye className="h-3 w-3" />}
-                            iconPosition="left"
-                            className="h-7 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-primary font-bold hover:bg-muted"
-                          />
-                        )}
-
-                        {forfeit?.proofScreenshotUrl && (
-                          <ButtonRollingText
-                            href={forfeit.proofScreenshotUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            variant="outline"
-                            text="Forfeit Proof"
-                            stagger
-                            size="sm"
-                            icon={<Eye className="h-3 w-3" />}
-                            iconPosition="left"
-                            className="h-7 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-destructive font-bold hover:bg-muted"
-                          />
-                        )}
-                      </div>
-
-                      {isCurrentActive && !isFinished && !isForfeit && !isMatchPastDeadline && (
-                        <Button
-                          variant="yellow"
-                          size="sm"
-                          onClick={() => setActiveTab("OVERVIEW")}
-                          className="font-bold text-xs py-1 px-2.5 h-auto gap-1 shadow-md"
-                        >
-                          <Clock className="h-3 w-3" />
-                          <span>Play Now</span>
-                        </Button>
-                      )}
-                      {isCurrentActive && !isFinished && !isForfeit && isMatchPastDeadline && (
-                        <div className="flex items-center gap-1.5 text-xs text-destructive py-1 px-2.5 rounded-lg bg-destructive/10 border border-destructive/30 font-bold">
-                          <Lock className="h-3 w-3" />
-                          <span>Deadline Passed (Closed)</span>
-                        </div>
-                      )}
-                      {/* For future fixtures: strictly NO action buttons (no Play Now, no WhatsApp, no submit). Shows lock indicator */}
-                      {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1 px-2.5 rounded-lg bg-card border border-border">
-                          <Lock className="h-3 w-3 text-secondary" />
-                          <span>Drops on {new Date(m.matchDate).toLocaleDateString("en-US", { timeZone: "Africa/Kigali", month: "short", day: "numeric" })} at 12:00 AM</span>
-                        </div>
-                      )}
-                    </div>
+            <div className="space-y-4">
+              {/* Calendar Filter Toolbar */}
+              <div className="p-4 rounded-2xl border border-border bg-card/60 backdrop-blur-md space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Status Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    {[
+                      { id: "ALL", label: `All (${allPlayerMatches.length})` },
+                      { id: "PLAYABLE", label: "Active / Playable" },
+                      { id: "COMPLETED", label: "Completed" },
+                      { id: "UPCOMING", label: "Upcoming" },
+                    ].map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setCalendarStatusFilter(st.id as any)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                          calendarStatusFilter === st.id
+                            ? "bg-primary text-white font-black shadow-md"
+                            : "bg-background/80 text-muted-foreground hover:text-white border border-border"
+                        }`}
+                      >
+                        {st.label}
+                      </button>
+                    ))}
                   </div>
-                );
-              })}
+
+                  {/* Competition Filter if player has continental fixtures */}
+                  {hasContinentalCalendarMatches && (
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                      {[
+                        { id: "ALL", label: "All Cups" },
+                        { id: "DOMESTIC", label: currentPlayer.division || "Domestic" },
+                        { id: "CONTINENTAL", label: "UCL / Europa" },
+                      ].map((cp) => (
+                        <button
+                          key={cp.id}
+                          type="button"
+                          onClick={() => setCalendarCompFilter(cp.id as any)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                            calendarCompFilter === cp.id
+                              ? "bg-secondary text-secondary-foreground font-black"
+                              : "bg-card text-muted-foreground hover:text-white border border-border"
+                          }`}
+                        >
+                          {cp.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Real-time search by opponent */}
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={calendarSearch}
+                    onChange={(e) => setCalendarSearch(e.target.value)}
+                    placeholder="Search opponent tag, team, or round..."
+                    className="w-full rounded-xl border border-border bg-background/80 py-2 pl-9 pr-8 text-xs font-bold text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  {calendarSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCalendarSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold p-1 cursor-pointer"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {(calendarStatusFilter !== "ALL" || calendarCompFilter !== "ALL" || calendarSearch.trim()) && (
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
+                    <span className="text-muted-foreground">
+                      Showing <strong className="text-white font-mono">{filteredCalendarMatches.length}</strong> of {allPlayerMatches.length} matches
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCalendarStatusFilter("ALL");
+                        setCalendarCompFilter("ALL");
+                        setCalendarSearch("");
+                      }}
+                      className="text-secondary hover:text-secondary font-bold text-xs"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Grid of Matches */}
+              {filteredCalendarMatches.length === 0 ? (
+                <div className="rounded-3xl border border-border bg-background/60 p-10 text-center space-y-3">
+                  <Calendar className="h-10 w-10 text-muted-foreground mx-auto" />
+                  <h4 className="text-sm font-bold text-white uppercase">No Fixtures Match Your Search</h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Try clearing your search query or selecting &quot;All&quot; in the filter toolbar above.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {filteredCalendarMatches.map((m: any) => {
+                    const isCurrentActive = m.id === activeMatch?.id;
+                    const isHome = m.homePlayerId === player?.id;
+                    const matchOpponent = isHome ? m.awayPlayer : m.homePlayer;
+                    const isFinished = m.status === "FINISHED";
+                    const isForfeit = m.status === "FORFEIT";
+                    const sub = m.submissions?.find((s: any) => s.status !== "REJECTED") || m.submissions?.[0];
+                    const forfeit = m.forfeitClaims?.find((f: any) => f.status !== "REJECTED") || m.forfeitClaims?.[0];
+                    const isPending = sub?.status === "PENDING";
+                    const isForfeitPending = forfeit?.status === "PENDING";
+                    const matchRoundNum = parseInt(m.round?.match(/\d+/)?.[0] || "0", 10);
+                    const isDivisionMatch = m.division?.startsWith("Division");
+                    const currentMatchdayNum = leagueConfig?.currentMatchday || 1;
+
+                    // A division match is future locked ONLY if its round number is strictly greater than currentMatchdayNum AND it is not the active match
+                    const isFutureDivisionMatch =
+                      Boolean(isDivisionMatch && !isFinished && !isForfeit && !isCurrentActive && matchRoundNum > currentMatchdayNum);
+
+                    // Check if match was reopened by admin (48h backlog window or late submission allowed)
+                    const isMatchAdminPermitted = Boolean(
+                      m.allowLateSubmission ||
+                      m.notes?.includes("ADMIN_REOPENED") ||
+                      m.notes?.includes("REPLACEMENT_BACKLOG")
+                    );
+
+                    const isBacklogMatch = Boolean(isMatchAdminPermitted && m.status === "SCHEDULED");
+
+                    const isMatchPastDeadline = Boolean(
+                      !isMatchAdminPermitted &&
+                      m.deadlineDate &&
+                      new Date(m.deadlineDate).getTime() <= Date.now()
+                    );
+
+                    const formattedMatchDate = formatRwandanDate(m.matchDate, {
+                      month: "short",
+                      day: "numeric",
+                    });
+
+                    return (
+                      <div
+                        key={m.id}
+                        className={`rounded-3xl border p-5 flex flex-col justify-between transition-all backdrop-blur-xl shadow-xl space-y-4 ${
+                          isCurrentActive
+                            ? "border-primary/60 bg-gradient-to-r from-primary/30 via-card/90 to-background/90 ring-2 ring-primary/30"
+                            : isBacklogMatch
+                            ? "border-secondary/60 bg-card/90 ring-1 ring-secondary/40"
+                            : isFinished || isForfeit
+                            ? "border-border bg-background/60"
+                            : "border-border/80 bg-background/40 hover:border-muted-foreground"
+                        }`}
+                      >
+                        {/* Card Header */}
+                        <div className="space-y-2 border-b border-border/80 pb-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {m.round} • {m.division}
+                              </span>
+                            </div>
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {formattedMatchDate}
+                            </span>
+                          </div>
+
+                          {/* Status Badges */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {isCurrentActive && !isMatchPastDeadline && (
+                              <Badge variant="live" className="text-xs animate-pulse">
+                                ⚡ ACTIVE 24-HR FIXTURE
+                              </Badge>
+                            )}
+                            {isBacklogMatch && !isFinished && !isForfeit && !isCurrentActive && (
+                              <Badge variant="yellow" className="text-xs font-bold animate-pulse">
+                                ⚡ REOPENED / BACKLOG
+                              </Badge>
+                            )}
+                            {isMatchPastDeadline && !isFinished && !isForfeit && !isPending && !isForfeitPending && (
+                              <Badge variant="destructive" className="text-xs font-bold gap-1">
+                                <Lock className="h-3 w-3" />
+                                DEADLINE EXPIRED
+                              </Badge>
+                            )}
+                            {isFinished && (
+                              <span className="text-xs font-bold text-muted-foreground">
+                                COMPLETED
+                              </span>
+                            )}
+                            {isForfeit && (
+                              <Badge variant="destructive" className="text-xs font-black">
+                                FORFEIT (0-3)
+                              </Badge>
+                            )}
+                            {isPending && (
+                              <Badge variant="yellow" className="text-xs font-black animate-pulse">
+                                PENDING APPROVAL
+                              </Badge>
+                            )}
+                            {isForfeitPending && !isPending && (
+                              <Badge variant="destructive" className="text-xs font-black animate-pulse">
+                                FORFEIT ARBITRATION
+                              </Badge>
+                            )}
+                            {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && !isForfeitPending && !isMatchPastDeadline && (
+                              <span className="text-xs text-muted-foreground">
+                                LOCKED (1 MATCH/DAY)
+                              </span>
+                            )}
+                            {(m.division === "UCL" || m.division === "EUROPA") && !isFinished && !isForfeit && !isPending && !isForfeitPending && !isCurrentActive && (
+                              <span className="text-xs text-secondary font-mono font-bold">
+                                CONTINENTAL
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Team Pairings & Score Grid */}
+                        <div className="space-y-2.5 py-1">
+                          {/* You */}
+                          <div className="p-2.5 rounded-2xl bg-card/80 border border-border flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                                <img
+                                  src={resolvePlayerAvatar(player)}
+                                  alt={player.realTeam || player.gamerTag || "Team"}
+                                  className="w-full h-full object-contain"
+                                  loading="lazy"
+                                  onError={handleAvatarError}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-xs text-white truncate">{player.gamerTag}</span>
+                                  <span className="text-xs px-1 py-0 rounded bg-primary/20 text-primary font-bold border border-primary/30">
+                                    {isHome ? "H" : "A"}
+                                  </span>
+                                </div>
+                                {player.realTeam && (
+                                  <span className="text-xs text-secondary font-bold block truncate">
+                                    {findTeam(player.realTeam)?.shortName || player.realTeam}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 text-right">
+                              {isFinished || isForfeit ? (
+                                <span className="font-mono text-base font-black text-primary">
+                                  {isHome ? m.homeScore : m.awayScore}
+                                </span>
+                              ) : sub ? (
+                                <span className="font-mono text-sm font-black text-secondary">
+                                  {isHome ? sub.homeScore : sub.awayScore}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-mono text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Opponent */}
+                          <div className="p-2.5 rounded-2xl bg-card/80 border border-border flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-background border border-border/80 p-0.5 flex items-center justify-center shrink-0 aspect-square overflow-hidden shadow-inner">
+                                <img
+                                  src={resolvePlayerAvatar(matchOpponent)}
+                                  alt={matchOpponent?.realTeam || matchOpponent?.gamerTag || "Opponent"}
+                                  className="w-full h-full object-contain"
+                                  loading="lazy"
+                                  onError={handleAvatarError}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-xs text-white truncate">{matchOpponent?.gamerTag || "TBD"}</span>
+                                  <span className="text-xs px-1 py-0 rounded bg-muted text-muted-foreground font-bold border border-border">
+                                    {isHome ? "A" : "H"}
+                                  </span>
+                                </div>
+                                {matchOpponent?.realTeam && (
+                                  <span className="text-xs text-secondary font-bold block truncate">
+                                    {findTeam(matchOpponent.realTeam)?.shortName || matchOpponent.realTeam}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 text-right">
+                              {isFinished || isForfeit ? (
+                                <span className="font-mono text-base font-black text-primary">
+                                  {isHome ? m.awayScore : m.homeScore}
+                                </span>
+                              ) : sub ? (
+                                <span className="font-mono text-sm font-black text-secondary">
+                                  {isHome ? sub.awayScore : sub.homeScore}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-mono text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Footer Actions */}
+                        <div className="pt-2 border-t border-border/80 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {matchOpponent?.whatsapp && !isFutureDivisionMatch && (
+                              <ButtonRollingText
+                                href={`https://wa.me/${matchOpponent.whatsapp.replace(/\D/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                text="WhatsApp"
+                                stagger
+                                size="sm"
+                                icon={<MessageSquare className="h-3 w-3" />}
+                                iconPosition="left"
+                                className="h-7 py-1 px-2.5 rounded-lg bg-primary hover:bg-primary text-white text-xs font-bold shadow-sm"
+                              />
+                            )}
+
+                            {sub?.screenshotUrl && (
+                              <ButtonRollingText
+                                href={sub.screenshotUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                variant="outline"
+                                text="Proof"
+                                stagger
+                                size="sm"
+                                icon={<Eye className="h-3 w-3" />}
+                                iconPosition="left"
+                                className="h-7 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-primary font-bold hover:bg-muted"
+                              />
+                            )}
+
+                            {forfeit?.proofScreenshotUrl && (
+                              <ButtonRollingText
+                                href={forfeit.proofScreenshotUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                variant="outline"
+                                text="Forfeit Proof"
+                                stagger
+                                size="sm"
+                                icon={<Eye className="h-3 w-3" />}
+                                iconPosition="left"
+                                className="h-7 py-1 px-2.5 rounded-lg bg-card border border-border text-xs text-destructive font-bold hover:bg-muted"
+                              />
+                            )}
+                          </div>
+
+                          {isCurrentActive && !isFinished && !isForfeit && !isMatchPastDeadline && (
+                            <Button
+                              variant="yellow"
+                              size="sm"
+                              onClick={() => setActiveTab("OVERVIEW")}
+                              className="font-bold text-xs py-1 px-2.5 h-auto gap-1 shadow-md"
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>Play Now</span>
+                            </Button>
+                          )}
+                          {isBacklogMatch && !isCurrentActive && !isFinished && !isForfeit && (
+                            <Button
+                              variant="yellow"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedBacklogMatchId(m.id);
+                                setActiveTab("OVERVIEW");
+                              }}
+                              className="font-bold text-xs py-1 px-2.5 h-auto gap-1 shadow-md"
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>Play Backlog Fixture</span>
+                            </Button>
+                          )}
+                          {(m.division === "UCL" || m.division === "EUROPA") && !isFinished && !isForfeit && !isCurrentActive && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setActiveTab(m.division === "UCL" ? "UCL" : "EUROPA")}
+                              className="font-bold text-xs py-1 px-2.5 h-auto gap-1 border-secondary/40 text-secondary hover:bg-secondary/20"
+                            >
+                              <Trophy className="h-3 w-3" />
+                              <span>View Competition</span>
+                            </Button>
+                          )}
+                          {isCurrentActive && !isFinished && !isForfeit && isMatchPastDeadline && (
+                            <div className="flex items-center gap-1.5 text-xs text-destructive py-1 px-2.5 rounded-lg bg-destructive/10 border border-destructive/30 font-bold">
+                              <Lock className="h-3 w-3" />
+                              <span>Deadline Passed (Closed)</span>
+                            </div>
+                          )}
+                          {/* For future fixtures: strictly NO action buttons. Shows lock indicator */}
+                          {isFutureDivisionMatch && !isFinished && !isForfeit && !isPending && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1 px-2.5 rounded-lg bg-card border border-border">
+                              <Lock className="h-3 w-3 text-secondary" />
+                              <span>Drops on {formattedMatchDate} at 12:00 AM</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -8,6 +8,7 @@ import SuperCupPredictionPoll from "@/components/competitions/SuperCupPrediction
 import HistoricalDerbyModal from "@/components/competitions/HistoricalDerbyModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatRwandanDate } from "@/lib/rwandanTime";
 import {
   Calendar,
   Gamepad2,
@@ -15,7 +16,6 @@ import {
   Filter,
   X,
   Trophy,
-  Globe,
   ArrowUpDown,
   Flame,
   ChevronDown,
@@ -28,6 +28,10 @@ interface FixturesClientProps {
   initialFilter?: string;
   initialDivision?: string;
   initialRound?: string;
+  initialSearch?: string;
+  highlightId?: string;
+  isSeasonAwaitingKickoff?: boolean;
+  seasonKickoffDate?: string | null;
 }
 
 export default function FixturesClient({
@@ -37,15 +41,40 @@ export default function FixturesClient({
   initialFilter = "ALL",
   initialDivision = "ALL",
   initialRound = "ALL",
+  initialSearch = "",
+  highlightId = "",
+  isSeasonAwaitingKickoff = false,
+  seasonKickoffDate = null,
 }: FixturesClientProps) {
   const currentMatchdayName = `Matchday ${leagueConfig?.currentMatchday || 1}`;
 
   const [divisionFilter, setDivisionFilter] = useState<string>(initialDivision);
   const [roundFilter, setRoundFilter] = useState<string>(initialRound);
   const [statusFilter, setStatusFilter] = useState<string>(initialFilter);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [sortOrder, setSortOrder] = useState<"CHRONOLOGICAL" | "LATEST">("CHRONOLOGICAL");
   const [isDerbyModalOpen, setIsDerbyModalOpen] = useState(false);
+
+  // Auto-scroll and target highlighted match if present in query params
+  useEffect(() => {
+    if (!highlightId) return;
+    const target = initialMatches.find((m) => m.id === highlightId);
+    if (target) {
+      if (divisionFilter !== "ALL" && target.division !== divisionFilter) {
+        setDivisionFilter("ALL");
+      }
+      if (roundFilter !== "ALL" && target.round !== roundFilter) {
+        setRoundFilter("ALL");
+      }
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`match-${highlightId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, initialMatches]);
 
   // Keep URL search params in sync smoothly without full page reloads
   useEffect(() => {
@@ -55,15 +84,27 @@ export default function FixturesClient({
     if (roundFilter !== "ALL") params.set("round", roundFilter);
     if (statusFilter !== "ALL") params.set("filter", statusFilter);
     if (searchQuery.trim()) params.set("q", searchQuery.trim());
+    if (highlightId) params.set("highlight", highlightId);
     const newUrl = params.toString() ? `/fixtures?${params.toString()}` : "/fixtures";
     window.history.replaceState(null, "", newUrl);
-  }, [divisionFilter, roundFilter, statusFilter, searchQuery]);
+  }, [divisionFilter, roundFilter, statusFilter, searchQuery, highlightId]);
 
-  // Extract all distinct rounds present in fixtures sorted naturally
+  // Extract distinct rounds present in current division fixtures sorted naturally
   const distinctRounds = useMemo(() => {
     const roundsSet = new Set<string>();
-    initialMatches.forEach((m) => {
-      if (m.round) roundsSet.add(m.round);
+    const matchesSource =
+      divisionFilter === "ALL"
+        ? initialMatches
+        : initialMatches.filter((m) => {
+            if (divisionFilter === "UCL") return m.division === "UCL" || m.division?.includes("UCL");
+            if (divisionFilter === "EUROPA")
+              return m.division === "EUROPA" || m.division?.toLowerCase().includes("europa");
+            if (divisionFilter === "SUPER_CUP") return (m.division || "").toLowerCase().includes("super");
+            return m.division === divisionFilter;
+          });
+
+    matchesSource.forEach((m) => {
+      if (m.round && typeof m.round === "string") roundsSet.add(m.round.trim());
     });
 
     return Array.from(roundsSet).sort((a, b) => {
@@ -76,7 +117,14 @@ export default function FixturesClient({
       if (numA !== numB) return numA - numB;
       return a.localeCompare(b);
     });
-  }, [initialMatches]);
+  }, [initialMatches, divisionFilter]);
+
+  // Automatically reset round filter if it does not exist in the newly selected division
+  useEffect(() => {
+    if (roundFilter !== "ALL" && distinctRounds.length > 0 && !distinctRounds.includes(roundFilter)) {
+      setRoundFilter("ALL");
+    }
+  }, [distinctRounds, roundFilter]);
 
   // Filter and sort matches
   const filteredMatches = useMemo(() => {
@@ -116,6 +164,8 @@ export default function FixturesClient({
           const awayName = m.awayPlayer?.fullName?.toLowerCase() || "";
           const homeId = m.homePlayer?.efootballId?.toLowerCase() || "";
           const awayId = m.awayPlayer?.efootballId?.toLowerCase() || "";
+          const homeTeam = m.homePlayer?.realTeam?.toLowerCase() || "";
+          const awayTeam = m.awayPlayer?.realTeam?.toLowerCase() || "";
           const roundName = m.round?.toLowerCase() || "";
           const divName = m.division?.toLowerCase() || "";
 
@@ -126,6 +176,8 @@ export default function FixturesClient({
             !awayName.includes(q) &&
             !homeId.includes(q) &&
             !awayId.includes(q) &&
+            !homeTeam.includes(q) &&
+            !awayTeam.includes(q) &&
             !roundName.includes(q) &&
             !divName.includes(q)
           ) {
@@ -145,9 +197,13 @@ export default function FixturesClient({
           const numA = getRoundNum(a.round || "");
           const numB = getRoundNum(b.round || "");
           if (numA !== numB) return numA - numB;
-          return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+          const timeA = new Date(a.matchDate).getTime() || 0;
+          const timeB = new Date(b.matchDate).getTime() || 0;
+          return timeA - timeB;
         } else {
-          return new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime();
+          const timeA = new Date(a.matchDate).getTime() || 0;
+          const timeB = new Date(b.matchDate).getTime() || 0;
+          return timeB - timeA;
         }
       });
   }, [initialMatches, divisionFilter, roundFilter, statusFilter, searchQuery, sortOrder]);
@@ -230,264 +286,285 @@ export default function FixturesClient({
           </section>
         )}
 
-      {/* Hero Header & Quick Stats */}
-      <div className="rounded-3xl border border-border bg-gradient-to-b from-card via-background to-background p-5 sm:p-7 backdrop-blur-xl shadow-2xl relative overflow-hidden space-y-5">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <button
-                type="button"
-                onClick={handleJumpToCurrentMatchday}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-bold hover:bg-primary/30 transition cursor-pointer"
-                title="Click to filter by current matchday"
-              >
-                <Flame className="h-3 w-3 text-primary animate-pulse" />
-                <span>Current: {currentMatchdayName}</span>
-              </button>
+        {/* Kickoff Countdown Banner if season has not dropped first fixtures */}
+        {isSeasonAwaitingKickoff && (
+          <div className="rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/20 via-card to-background p-6 text-center space-y-2 shadow-xl">
+            <div className="inline-flex p-2.5 rounded-2xl bg-primary/20 text-primary border border-primary/40">
+              <Calendar className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight">
-              Official Tournament Match Center
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
-              Real-time schedule, results, walkover records, and screenshot verifications across 3 Domestic Divisions, eFootball Champions League, and Europa League.
+            <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-tight">
+              Official Tournament Schedule Confirmed
+            </h2>
+            <p className="text-xs sm:text-sm text-foreground/80 max-w-xl mx-auto leading-relaxed">
+              {seasonKickoffDate
+                ? `Division fixtures drop daily starting ${formatRwandanDate(seasonKickoffDate, { month: "short", day: "numeric", year: "numeric" })} at 12:00 AM Midnight (CAT). Match pairings remain sealed until drop time.`
+                : "Official round-robin fixtures drop daily at 12:00 AM Midnight (CAT). Match pairings remain sealed until drop time."}
             </p>
           </div>
+        )}
 
-          {/* Quick Stats Pill Grid */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
-            <div className="rounded-2xl border border-border bg-card/60 p-2.5 sm:p-3 text-center w-full sm:w-20">
-              <span className="text-xs font-black uppercase text-muted-foreground block">Total</span>
-              <span className="text-base sm:text-xl font-black text-white font-mono">{initialMatches.length}</span>
-            </div>
-            <div className="rounded-2xl border border-primary/30 bg-primary/20 p-2.5 sm:p-3 text-center w-full sm:w-20">
-              <span className="text-xs font-black uppercase text-primary block">Finished</span>
-              <span className="text-base sm:text-xl font-black text-primary font-mono">{totalCompleted}</span>
-            </div>
-            <div className="rounded-2xl border border-secondary/30 bg-secondary/20 p-2.5 sm:p-3 text-center w-full sm:w-20">
-              <span className="text-xs font-black uppercase text-secondary block">Upcoming</span>
-              <span className="text-base sm:text-xl font-black text-secondary font-mono">{totalUpcoming}</span>
-            </div>
-          </div>
-        </div>
+        {/* Hero Header & Quick Stats */}
+        <div className="rounded-3xl border border-border bg-gradient-to-b from-card via-background to-background p-5 sm:p-7 backdrop-blur-xl shadow-2xl relative overflow-hidden space-y-5">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* ========================================================================= */}
-        {/* COMPREHENSIVE FILTERING & SEARCH TOOLBAR */}
-        {/* ========================================================================= */}
-        <div className="space-y-4">
-          {/* Row 1: Division & Competition Selectors (Horizontally scrollable on mobile) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth -mx-2 px-2 sm:mx-0 sm:px-0">
-              {[
-                { id: "ALL", label: "All Competitions", trophy: null, icon: Trophy },
-                { id: "Division 1", label: "Division 1", trophy: "/assets/trophies/league.png", icon: null },
-                { id: "Division 2", label: "Division 2", trophy: "/assets/trophies/d2.png", icon: null },
-                { id: "Division 3", label: "Division 3", trophy: "/assets/trophies/d3.png", icon: null },
-                { id: "UCL", label: "eFootball UCL", trophy: "/assets/trophies/champions-league.png", icon: null },
-                { id: "EUROPA", label: "Europa League", trophy: "/assets/trophies/europa-league.png", icon: null },
-                { id: "SUPER_CUP", label: "Super Cup", trophy: "/assets/trophies/super-cup.png", icon: null },
-              ].map((div) => {
-                const isSelected = divisionFilter === div.id;
-                const Icon = div.icon;
-                return (
-                  <button
-                    key={div.id}
-                    type="button"
-                    onClick={() => setDivisionFilter(div.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
-                      isSelected
-                        ? "bg-primary text-white shadow-lg font-black"
-                        : "text-muted-foreground hover:text-white bg-card/60 border border-border hover:border-border"
-                    }`}
-                  >
-                    {div.trophy ? (
-                      <div className="relative h-4 w-4 shrink-0">
-                        <Image
-                          src={div.trophy}
-                          alt={`${div.label} Trophy`}
-                          fill
-                          sizes="16px"
-                          className="object-contain drop-shadow"
-                        />
-                      </div>
-                    ) : Icon ? (
-                      <Icon className="h-3.5 w-3.5" />
-                    ) : null}
-                    <span>{div.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Rivalries H2H & Sort Toggle */}
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsDerbyModalOpen(true)}
-                className="text-xs font-bold border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 gap-1.5 h-9"
-              >
-                <Flame className="h-3.5 w-3.5 text-primary" />
-                <span>Rivalries & H2H</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setSortOrder(sortOrder === "CHRONOLOGICAL" ? "LATEST" : "CHRONOLOGICAL")
-                }
-                className="text-xs font-bold border-border text-foreground hover:text-white gap-1.5 h-9"
-              >
-                <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
-                <span>{sortOrder === "CHRONOLOGICAL" ? "Round 1 First" : "Latest First"}</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Row 2: Matchday / Round Selector, Status Selector, and Athlete Search */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-1">
-            {/* Matchday Selector Dropdown */}
-            <div className="md:col-span-4 flex items-center gap-2">
-              <div className="relative w-full">
-                <select
-                  value={roundFilter}
-                  onChange={(e) => setRoundFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                >
-                  <option value="ALL">All Matchday Rounds ({distinctRounds.length})</option>
-                  {distinctRounds.map((roundName) => (
-                    <option key={roundName} value={roundName}>
-                      {roundName === currentMatchdayName ? `🔥 ${roundName} (Current Active)` : roundName}
-                    </option>
-                  ))}
-                </select>
-                <Filter className="h-3.5 w-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Status Selector Dropdown */}
-            <div className="md:col-span-4 flex items-center gap-2">
-              <div className="relative w-full">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="DERBY">🔥 Official Derbies</option>
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="LIVE">Live Window</option>
-                  <option value="FINISHED">Completed Results</option>
-                </select>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Realtime Player Search Input */}
-            <div className="md:col-span-4 relative">
-              <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search athlete tag, name, ID..."
-                className="w-full rounded-xl border border-border bg-card/90 py-2.5 pl-9 pr-8 text-xs font-bold text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              {searchQuery && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold p-1 cursor-pointer"
+                  onClick={handleJumpToCurrentMatchday}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-bold hover:bg-primary/30 transition cursor-pointer"
+                  title="Click to filter by current matchday"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <Flame className="h-3 w-3 text-primary animate-pulse" />
+                  <span>Current: {currentMatchdayName}</span>
                 </button>
-              )}
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight">
+                Official Tournament Match Center
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
+                Real-time schedule, results, walkover records, and screenshot verifications across 3 Domestic Divisions, eFootball Champions League, and Europa League.
+              </p>
+            </div>
+
+            {/* Quick Stats Pill Grid */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
+              <div className="rounded-2xl border border-border bg-card/60 p-2.5 sm:p-3 text-center w-full sm:w-20">
+                <span className="text-xs font-black uppercase text-muted-foreground block">Total</span>
+                <span className="text-base sm:text-xl font-black text-white font-mono">{initialMatches.length}</span>
+              </div>
+              <div className="rounded-2xl border border-primary/30 bg-primary/20 p-2.5 sm:p-3 text-center w-full sm:w-20">
+                <span className="text-xs font-black uppercase text-primary block">Finished</span>
+                <span className="text-base sm:text-xl font-black text-primary font-mono">{totalCompleted}</span>
+              </div>
+              <div className="rounded-2xl border border-secondary/30 bg-secondary/20 p-2.5 sm:p-3 text-center w-full sm:w-20">
+                <span className="text-xs font-black uppercase text-secondary block">Upcoming</span>
+                <span className="text-base sm:text-xl font-black text-secondary font-mono">{totalUpcoming}</span>
+              </div>
             </div>
           </div>
 
-          {/* Active Filter Indicator & Reset Button */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-xs">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-muted-foreground font-medium">Active Filters:</span>
-                {divisionFilter !== "ALL" && (
-                  <Badge variant="yellow" className="text-xs gap-1 font-bold">
-                    <span>{divisionFilter}</span>
-                    <button onClick={() => setDivisionFilter("ALL")} className="hover:text-secondary-foreground ml-1">×</button>
-                  </Badge>
-                )}
-                {roundFilter !== "ALL" && (
-                  <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/40">
-                    <span>{roundFilter}</span>
-                    <button onClick={() => setRoundFilter("ALL")} className="hover:text-white ml-1">×</button>
-                  </Badge>
-                )}
-                {statusFilter !== "ALL" && (
-                  <Badge variant="secondary" className="text-xs gap-1 text-white">
-                    <span>{statusFilter}</span>
-                    <button onClick={() => setStatusFilter("ALL")} className="hover:text-white ml-1">×</button>
-                  </Badge>
-                )}
-                {searchQuery.trim() && (
-                  <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/40">
-                    <span>&quot;{searchQuery.trim()}&quot;</span>
-                    <button onClick={() => setSearchQuery("")} className="hover:text-white ml-1">×</button>
-                  </Badge>
-                )}
+          {/* ========================================================================= */}
+          {/* COMPREHENSIVE FILTERING & SEARCH TOOLBAR */}
+          {/* ========================================================================= */}
+          <div className="space-y-4">
+            {/* Row 1: Division & Competition Selectors (Horizontally scrollable on mobile) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth -mx-2 px-2 sm:mx-0 sm:px-0">
+                {[
+                  { id: "ALL", label: "All Competitions", trophy: null, icon: Trophy },
+                  { id: "Division 1", label: "Division 1", trophy: "/assets/trophies/league.png", icon: null },
+                  { id: "Division 2", label: "Division 2", trophy: "/assets/trophies/d2.png", icon: null },
+                  { id: "Division 3", label: "Division 3", trophy: "/assets/trophies/d3.png", icon: null },
+                  { id: "UCL", label: "eFootball UCL", trophy: "/assets/trophies/champions-league.png", icon: null },
+                  { id: "EUROPA", label: "Europa League", trophy: "/assets/trophies/europa-league.png", icon: null },
+                  { id: "SUPER_CUP", label: "Super Cup", trophy: "/assets/trophies/super-cup.png", icon: null },
+                ].map((div) => {
+                  const isSelected = divisionFilter === div.id;
+                  const Icon = div.icon;
+                  return (
+                    <button
+                      key={div.id}
+                      type="button"
+                      onClick={() => setDivisionFilter(div.id)}
+                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 h-10 ${
+                        isSelected
+                          ? "bg-primary text-white shadow-lg font-black"
+                          : "text-muted-foreground hover:text-white bg-card/60 border border-border hover:border-border"
+                      }`}
+                    >
+                      {div.trophy ? (
+                        <div className="relative h-4 w-4 shrink-0">
+                          <Image
+                            src={div.trophy}
+                            alt={`${div.label} Trophy`}
+                            fill
+                            sizes="16px"
+                            className="object-contain drop-shadow"
+                          />
+                        </div>
+                      ) : Icon ? (
+                        <Icon className="h-3.5 w-3.5" />
+                      ) : null}
+                      <span>{div.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="text-xs font-bold text-secondary hover:text-secondary transition"
-              >
-                Clear All Filters
-              </button>
+              {/* Rivalries H2H & Sort Toggle */}
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDerbyModalOpen(true)}
+                  className="text-xs font-bold border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 gap-1.5 h-9"
+                >
+                  <Flame className="h-3.5 w-3.5 text-primary" />
+                  <span>Rivalries & H2H</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setSortOrder(sortOrder === "CHRONOLOGICAL" ? "LATEST" : "CHRONOLOGICAL")
+                  }
+                  className="text-xs font-bold border-border text-foreground hover:text-white gap-1.5 h-9"
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+                  <span>{sortOrder === "CHRONOLOGICAL" ? "Round 1 First" : "Latest First"}</span>
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Filter Results Counter */}
-      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>
-            Showing <strong className="text-white font-mono text-sm">{filteredMatches.length}</strong> of {initialMatches.length} fixtures
-          </span>
-          {divisionFilter !== "ALL" && (
-            <span className="text-primary font-semibold">• {divisionFilter}</span>
-          )}
-          {roundFilter !== "ALL" && (
-            <span className="text-secondary font-semibold">• {roundFilter}</span>
-          )}
-        </div>
-      </div>
+            {/* Row 2: Matchday / Round Selector, Status Selector, and Athlete Search */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-1">
+              {/* Matchday Selector Dropdown */}
+              <div className="md:col-span-4 flex items-center gap-2">
+                <div className="relative w-full">
+                  <select
+                    value={roundFilter}
+                    onChange={(e) => setRoundFilter(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  >
+                    <option value="ALL">All Matchday Rounds ({distinctRounds.length})</option>
+                    {distinctRounds.map((roundName) => (
+                      <option key={roundName} value={roundName}>
+                        {roundName === currentMatchdayName ? `🔥 ${roundName} (Current Active)` : roundName}
+                      </option>
+                    ))}
+                  </select>
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
 
-      {/* Matches Grid */}
-      {filteredMatches.length === 0 ? (
-        <div className="rounded-3xl border border-border bg-background/70 p-12 text-center space-y-4">
-          <Gamepad2 className="h-12 w-12 text-muted-foreground mx-auto" />
-          <h3 className="text-lg font-black uppercase text-white">No Generated Fixtures Found</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-            {initialMatches.length === 0
-              ? "The League Commissioner has not yet generated official fixtures for this season. Please check back after registration closes."
-              : "No fixtures match your current filter selections. Try selecting another round or clearing your search query."}
-          </p>
-          {hasActiveFilters && (
-            <Button variant="yellow" size="sm" onClick={handleResetFilters} className="text-xs font-black mt-2">
-              Reset All Filters
-            </Button>
-          )}
+              {/* Status Selector Dropdown */}
+              <div className="md:col-span-4 flex items-center gap-2">
+                <div className="relative w-full">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-border bg-card/90 py-2.5 pl-3.5 pr-8 text-xs font-bold text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="DERBY">🔥 Official Derbies</option>
+                    <option value="SCHEDULED">Scheduled</option>
+                    <option value="LIVE">Live Window</option>
+                    <option value="FINISHED">Completed Results</option>
+                  </select>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Realtime Player Search Input */}
+              <div className="md:col-span-4 relative">
+                <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search athlete tag, name, club..."
+                  className="w-full rounded-xl border border-border bg-card/90 py-2.5 pl-9 pr-8 text-xs font-bold text-white placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white text-xs font-bold p-1 cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filter Indicator & Reset Button */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground font-medium">Active Filters:</span>
+                  {divisionFilter !== "ALL" && (
+                    <Badge variant="yellow" className="text-xs gap-1 font-bold">
+                      <span>{divisionFilter}</span>
+                      <button onClick={() => setDivisionFilter("ALL")} className="hover:text-secondary-foreground ml-1">×</button>
+                    </Badge>
+                  )}
+                  {roundFilter !== "ALL" && (
+                    <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/40">
+                      <span>{roundFilter}</span>
+                      <button onClick={() => setRoundFilter("ALL")} className="hover:text-white ml-1">×</button>
+                    </Badge>
+                  )}
+                  {statusFilter !== "ALL" && (
+                    <Badge variant="secondary" className="text-xs gap-1 text-white">
+                      <span>{statusFilter}</span>
+                      <button onClick={() => setStatusFilter("ALL")} className="hover:text-white ml-1">×</button>
+                    </Badge>
+                  )}
+                  {searchQuery.trim() && (
+                    <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/40">
+                      <span>&quot;{searchQuery.trim()}&quot;</span>
+                      <button onClick={() => setSearchQuery("")} className="hover:text-white ml-1">×</button>
+                    </Badge>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-xs font-bold text-secondary hover:text-secondary transition"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
+
+        {/* Filter Results Counter */}
+        <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>
+              Showing <strong className="text-white font-mono text-sm">{filteredMatches.length}</strong> of {initialMatches.length} fixtures
+            </span>
+            {divisionFilter !== "ALL" && (
+              <span className="text-primary font-semibold">• {divisionFilter}</span>
+            )}
+            {roundFilter !== "ALL" && (
+              <span className="text-secondary font-semibold">• {roundFilter}</span>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Matches Grid */}
+        {filteredMatches.length === 0 ? (
+          <div className="rounded-3xl border border-border bg-background/70 p-12 text-center space-y-4">
+            <Gamepad2 className="h-12 w-12 text-muted-foreground mx-auto" />
+            <h3 className="text-lg font-black uppercase text-white">No Generated Fixtures Found</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+              {initialMatches.length === 0
+                ? "The League Commissioner has not yet generated official fixtures for this season. Please check back after registration closes."
+                : "No fixtures match your current filter selections. Try selecting another round or clearing your search query."}
+            </p>
+            {hasActiveFilters && (
+              <Button variant="yellow" size="sm" onClick={handleResetFilters} className="text-xs font-black mt-2">
+                Reset All Filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredMatches.map((match) => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                isHighlighted={match.id === highlightId}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <HistoricalDerbyModal

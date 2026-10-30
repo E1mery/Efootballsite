@@ -50,9 +50,25 @@ export default async function DashboardPage({
     redirect("/login");
   }
 
-  // Automatic midnight cycle check
+  // Automatic midnight cycle check (offloaded to background context in Cloudflare Workers to prevent request query contention)
   try {
-    await checkAndAutoAdvanceDailyCycle();
+    let offloadedToBackground = false;
+    try {
+      const { getCloudflareContext } = require("@opennextjs/cloudflare");
+      const cfContext = getCloudflareContext({ async: false });
+      if (cfContext?.ctx?.waitUntil) {
+        cfContext.ctx.waitUntil(
+          checkAndAutoAdvanceDailyCycle().catch((err: any) =>
+            console.error("Non-fatal background checkAndAutoAdvanceDailyCycle error:", err)
+          )
+        );
+        offloadedToBackground = true;
+      }
+    } catch {}
+
+    if (!offloadedToBackground) {
+      await checkAndAutoAdvanceDailyCycle();
+    }
   } catch (cycleErr) {
     console.error("Non-fatal: checkAndAutoAdvanceDailyCycle encountered an error:", cycleErr);
   }
@@ -341,18 +357,16 @@ export default async function DashboardPage({
     orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
   });
 
-  // RULE: When UCL or Europa starts, the match calendar page for participants ONLY is cleared of old domestic fixtures to show UCL / Europa matches
+  // RULE: Continental matches (UCL/Europa) are never sealed and remain accessible.
   const continentalMatches = allPlayerMatchesRaw.filter(
     (m) => m.division === "UCL" || m.division === "EUROPA"
   );
   const hasStartedContinental =
-    (leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0;
+    Boolean((leagueConfig?.uclStarted || leagueConfig?.europaStarted) && continentalMatches.length > 0);
 
-  // RULE: Sealed matches - Before league kickoff (isSeasonAwaitingKickoff), division matches remain strictly sealed until kickoff date at 12:00 AM.
+  // RULE: Sealed matches - Before league kickoff (isSeasonAwaitingKickoff), division matches remain sealed until kickoff date at 12:00 AM.
   // After the league starts (!isSeasonAwaitingKickoff), players can see all their season fixtures (including future matchdays) in the Match Calendar.
   const matchesToDisplay = isSeasonAwaitingKickoff
-    ? []
-    : hasStartedContinental
     ? continentalMatches
     : allPlayerMatchesRaw;
 
@@ -365,7 +379,9 @@ export default async function DashboardPage({
     const numA = getRoundNum(a.round || "");
     const numB = getRoundNum(b.round || "");
     if (numA !== numB) return numA - numB;
-    return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+    const timeA = new Date(a.matchDate).getTime() || 0;
+    const timeB = new Date(b.matchDate).getTime() || 0;
+    return timeA - timeB;
   });
 
   // Fetch player's existing feedback review if any
@@ -395,42 +411,32 @@ export default async function DashboardPage({
     },
   });
 
-  // Fetch all 3 division standings so reserve and active athletes can view all tables
-  const [div1StandingsRaw, div2StandingsRaw, div3StandingsRaw, uclTournament, europaTournament, uclSlots, europaSlots] = await Promise.all([
+  // Fetch all 3 division standings and continental data with consolidated parallel queries to prevent D1 concurrency timeouts
+  const [allDomesticStandingsRaw, continentalTournaments, allGroupSlots] = await Promise.all([
     prisma.standing.findMany({
       where: {
-        division: "Division 1",
-        player: { division: "Division 1", status: { not: "RESERVED" } },
+        division: { in: ["Division 1", "Division 2", "Division 3"] },
+        player: { status: { not: "RESERVED" } },
       },
       include: { player: true },
     }),
-    prisma.standing.findMany({
-      where: {
-        division: "Division 2",
-        player: { division: "Division 2", status: { not: "RESERVED" } },
-      },
-      include: { player: true },
-    }),
-    prisma.standing.findMany({
-      where: {
-        division: "Division 3",
-        player: { division: "Division 3", status: { not: "RESERVED" } },
-      },
-      include: { player: true },
-    }),
-    prisma.tournament.findFirst({ where: { type: "UCL" } }),
-    prisma.tournament.findFirst({ where: { type: "EUROPA" } }),
-    prisma.uclGroupSlot.findMany({
-      where: { competition: "UCL" },
-      include: { player: true },
-      orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
+    prisma.tournament.findMany({
+      where: { type: { in: ["UCL", "EUROPA"] } },
     }),
     prisma.uclGroupSlot.findMany({
-      where: { competition: "EUROPA" },
+      where: { competition: { in: ["UCL", "EUROPA"] } },
       include: { player: true },
       orderBy: [{ groupName: "asc" }, { slotIndex: "asc" }],
     }),
   ]);
+
+  const div1StandingsRaw = allDomesticStandingsRaw.filter((s) => s.division === "Division 1");
+  const div2StandingsRaw = allDomesticStandingsRaw.filter((s) => s.division === "Division 2");
+  const div3StandingsRaw = allDomesticStandingsRaw.filter((s) => s.division === "Division 3");
+  const uclTournament = continentalTournaments.find((t) => t.type === "UCL") || null;
+  const europaTournament = continentalTournaments.find((t) => t.type === "EUROPA") || null;
+  const uclSlots = allGroupSlots.filter((s) => s.competition === "UCL");
+  const europaSlots = allGroupSlots.filter((s) => s.competition === "EUROPA");
 
   // Deterministic 5-level tiebreaker sorting function with defensive deduplication
   const sortStandingsDeterministically = (list: any[]) => {
@@ -943,25 +949,14 @@ export default async function DashboardPage({
   });
   const europaGroupMotds = evaluateContinentalGroupMotds(europaGroupMatches, allDomesticStandings, "EUROPA");
 
-  // Fetch UCL matches, Europa matches, Super Cup overview, and past championship archives
+  // Fetch UCL/Europa matches, Super Cup overview, and past championship archives with consolidated queries
   const [
-    uclMatches,
-    europaMatches,
+    allContinentalMatches,
     superCupOverview,
-    pastChampionsUcl,
-    pastChampionsEuropa,
+    allPastContinentalChampions,
   ] = await Promise.all([
     prisma.match.findMany({
-      where: { division: "UCL" },
-      include: {
-        homePlayer: true,
-        awayPlayer: true,
-        submissions: true,
-      },
-      orderBy: [{ stage: "asc" }, { matchDate: "asc" }],
-    }),
-    prisma.match.findMany({
-      where: { division: "EUROPA" },
+      where: { division: { in: ["UCL", "EUROPA"] } },
       include: {
         homePlayer: true,
         awayPlayer: true,
@@ -976,13 +971,6 @@ export default async function DashboardPage({
           { tournamentName: { contains: "Champions League" } },
           { tournamentName: { contains: "UCL" } },
           { trophyType: "UCL" },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.hallOfFame.findMany({
-      where: {
-        OR: [
           { tournamentName: { contains: "Europa" } },
           { trophyType: "EUROPA" },
         ],
@@ -990,6 +978,21 @@ export default async function DashboardPage({
       orderBy: { createdAt: "desc" },
     }),
   ]);
+
+  const uclMatches = allContinentalMatches.filter((m) => m.division === "UCL");
+  const europaMatches = allContinentalMatches.filter((m) => m.division === "EUROPA");
+
+  const pastChampionsUcl = allPastContinentalChampions.filter(
+    (h) =>
+      h.tournamentName?.includes("Champions League") ||
+      h.tournamentName?.includes("UCL") ||
+      h.trophyType === "UCL"
+  );
+  const pastChampionsEuropa = allPastContinentalChampions.filter(
+    (h) =>
+      h.tournamentName?.includes("Europa") ||
+      h.trophyType === "EUROPA"
+  );
 
   return (
     <PlayerShell
