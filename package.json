@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "opennextjs-cloudflare build && node scripts/prepare-pages-deploy.js",
+    "build:next": "prisma generate && next build",
+    "build:pages": "opennextjs-cloudflare build && node scripts/prepare-pages-deploy.js",
     "start": "next start",
     "lint": "eslint .",
     "db:push": "prisma db push",
@@ -12,8 +14,7 @@
     "db:deduplicate": "tsx scripts/deduplicate.ts",
     "db:backup": "tsx scripts/backup.ts",
     "db:restore": "tsx scripts/restore.ts",
-    "postinstall": "prisma generate",
-    "build:pages": "opennextjs-cloudflare build && node scripts/prepare-pages-deploy.js"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",

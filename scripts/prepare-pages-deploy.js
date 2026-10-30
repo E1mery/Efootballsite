@@ -5,7 +5,6 @@ const openNextDir = path.resolve(__dirname, "..", ".open-next");
 const workerSrc = path.join(openNextDir, "worker.js");
 const workerDestRoot = path.join(openNextDir, "_worker.js");
 const assetsDir = path.join(openNextDir, "assets");
-const workerDestAssets = path.join(assetsDir, "_worker.js");
 
 console.log("Preparing Cloudflare Pages deployment bundle...");
 
@@ -66,9 +65,10 @@ export default {
   fs.writeFileSync(workerDestRoot, workerWrapper, "utf8");
   console.log("✅ Created smart .open-next/_worker.js wrapper with env.ASSETS fallback");
 
-  if (fs.existsSync(assetsDir)) {
-    fs.writeFileSync(workerDestAssets, workerWrapper, "utf8");
-    console.log("✅ Created smart .open-next/assets/_worker.js wrapper with env.ASSETS fallback");
+  // Clean up any stray _worker.js inside assets dir that would cause relative import errors
+  const strayWorkerAssets = path.join(assetsDir, "_worker.js");
+  if (fs.existsSync(strayWorkerAssets)) {
+    fs.unlinkSync(strayWorkerAssets);
   }
 } else {
   console.warn("⚠️ worker.js not found in .open-next");
@@ -92,10 +92,5 @@ const routesConfig = JSON.stringify({
 
 fs.writeFileSync(path.join(openNextDir, "_routes.json"), routesConfig, "utf8");
 console.log("✅ Created .open-next/_routes.json");
-
-if (fs.existsSync(assetsDir)) {
-  fs.writeFileSync(path.join(assetsDir, "_routes.json"), routesConfig, "utf8");
-  console.log("✅ Created .open-next/assets/_routes.json");
-}
 
 console.log("Cloudflare Pages bundle preparation completed successfully.");
