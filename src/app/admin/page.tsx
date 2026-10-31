@@ -55,8 +55,7 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // Trigger maintenance tasks non-blocking so the admin portal renders immediately
-  triggerAdminBackgroundMaintenance();
+  // Maintenance is non-blocking and avoided on page render to protect D1 write quota
 
   const [
     matches,
@@ -79,11 +78,6 @@ export default async function AdminPage() {
       include: {
         homePlayer: true,
         awayPlayer: true,
-        submissions: {
-          where: { status: { not: "REPLACED" } },
-          include: { submittedByPlayer: true },
-          orderBy: { createdAt: "desc" },
-        },
       },
       orderBy: [{ round: "asc" }, { matchDate: "asc" }],
     }),
@@ -118,16 +112,8 @@ export default async function AdminPage() {
         OR: [{ consecutiveMissed: { gte: 2 } }, { isDisqualified: true }],
       },
     }),
-    prisma.leagueConfig.upsert({
+    prisma.leagueConfig.findUnique({
       where: { id: "default" },
-      update: {},
-      create: {
-        id: "default",
-        registrationOpen: true,
-        currentMatchday: 1,
-        uclStarted: false,
-        europaStarted: false,
-      },
     }),
     prisma.standing.findMany({
       where: {
@@ -192,6 +178,21 @@ export default async function AdminPage() {
     }).catch(() => []),
   ]);
 
+  // Map submissions to matches in memory to keep AdminClient intact without exceeding SQLite parameter limits
+  const submissionsByMatchId = new Map<string, any[]>();
+  for (const sub of pendingSubmissions) {
+    if (sub.matchId) {
+      const list = submissionsByMatchId.get(sub.matchId) || [];
+      list.push(sub);
+      submissionsByMatchId.set(sub.matchId, list);
+    }
+  }
+
+  const enrichedMatches = matches.map((m: any) => ({
+    ...m,
+    submissions: submissionsByMatchId.get(m.id) || [],
+  }));
+
   // Split merged standings
   const div1Standings = allDivisionStandings.filter((s) => s.division === "Division 1");
   const div2Standings = allDivisionStandings.filter((s) => s.division === "Division 2");
@@ -248,14 +249,14 @@ export default async function AdminPage() {
 
   return (
     <AdminShell
-      matches={matches}
+      matches={enrichedMatches}
       pendingSubmissions={pendingSubmissions}
       pendingForfeits={pendingForfeits}
       allForfeits={allForfeitClaims}
       allPlayers={allPlayers}
       announcements={announcements}
       flaggedPlayers={flaggedPlayers}
-      leagueConfig={leagueConfig}
+      leagueConfig={leagueConfig || { id: "default", season: "Season 1 (2026)", registrationOpen: true, currentMatchday: 1, uclStarted: false, europaStarted: false, div1MaxPlayers: 20, div2MaxPlayers: 20, div3MaxPlayers: 20, updatedAt: new Date() }}
       div1Standings={div1Standings}
       div2Standings={div2Standings}
       div3Standings={div3Standings}

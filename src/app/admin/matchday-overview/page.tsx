@@ -31,16 +31,8 @@ export default async function AdminMatchdayOverviewPage() {
 
   // Fetch league configuration, standings, matches, and continental slots in parallel
   const [leagueConfig, standings, matches, uclGroupSlots] = await Promise.all([
-    prisma.leagueConfig.upsert({
+    prisma.leagueConfig.findUnique({
       where: { id: "default" },
-      update: {},
-      create: {
-        id: "default",
-        registrationOpen: true,
-        currentMatchday: 1,
-        uclStarted: false,
-        europaStarted: false,
-      },
     }),
     prisma.standing.findMany({
       where: {
@@ -101,7 +93,7 @@ export default async function AdminMatchdayOverviewPage() {
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10">
         <MatchdayOverviewManager
-          leagueConfig={leagueConfig}
+          leagueConfig={leagueConfig || { id: "default", season: "Season 1 (2026)", registrationOpen: true, currentMatchday: 1, uclStarted: false, europaStarted: false, div1MaxPlayers: 20, div2MaxPlayers: 20, div3MaxPlayers: 20, updatedAt: new Date() }}
           allStandings={standings}
           allMatches={matches}
           uclGroupSlots={uclGroupSlots}

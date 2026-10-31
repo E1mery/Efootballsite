@@ -1,0 +1,25 @@
+name: EFRL Daily Matchday Rollover & Cron Trigger
+
+on:
+  schedule:
+    # 21:00 UTC = 23:00 CAT (1-hour match reminder warnings)
+    - cron: '0 21 * * *'
+    # 22:00 UTC = 00:00 Midnight CAT (Rwandan Time) Matchday Rollover
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Matchday Reminders (21:00 UTC)
+        if: github.event.schedule == '0 21 * * *'
+        run: |
+          echo "Sending 1-hour match reminder alerts..."
+          curl -s -f -X GET https://efootballsite.pages.dev/api/cron/reminders || true
+
+      - name: Trigger Automated Matchday Daily Cycle (22:00 UTC / 00:00 Midnight CAT)
+        if: github.event.schedule == '0 22 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Executing automated midnight matchday advance..."
+          curl -s -f -X GET https://efootballsite.pages.dev/api/cron/daily-cycle || true
