@@ -113,8 +113,9 @@ export default {
         );
       }
 
+      const fallbackHtml = "<!DOCTYPE html><html><head><title>500 Internal Server Error</title><meta name=\\"viewport\\" content=\\"width=device-width,initial-scale=1\\"/><style>body{font-family:system-ui,-apple-system,sans-serif;background:#0b0f19;color:#f3f4f6;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.card{text-align:center;padding:2rem;background:#111827;border:1px solid #1f2937;border-radius:1rem;max-width:400px}h1{margin:0 0 .5rem;font-size:1.5rem;color:#f87171}p{font-size:.875rem;color:#9ca3af;margin:0 0 1.5rem}a{display:inline-block;padding:.6rem 1.2rem;background:#2563eb;color:#fff;border-radius:.5rem;text-decoration:none;font-weight:600}</style></head><body><div class=\\"card\\"><h1>System Temporary Error</h1><p>The league application encountered a transient runtime exception. Please retry shortly.</p><a href=\\"/\\">Return Home</a></div></body></html>";
       return new Response(
-        `<!DOCTYPE html><html><head><title>500 Internal Server Error</title><meta name="viewport" content="width=device-width,initial-scale=1"/><style>body{font-family:system-ui,-apple-system,sans-serif;background:#0b0f19;color:#f3f4f6;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.card{text-align:center;padding:2rem;background:#111827;border:1px solid #1f2937;border-radius:1rem;max-width:400px}h1{margin:0 0 .5rem;font-size:1.5rem;color:#f87171}p{font-size:.875rem;color:#9ca3af;margin:0 0 1.5rem}a{display:inline-block;padding:.6rem 1.2rem;background:#2563eb;color:#fff;border-radius:.5rem;text-decoration:none;font-weight:600}</style></head><body><div class="card"><h1>System Temporary Error</h1><p>The league application encountered a transient runtime exception. Please retry shortly.</p><a href="/">Return Home</a></div></body></html>`,
+        fallbackHtml,
         {
           status: 500,
           headers: { "Content-Type": "text/html; charset=utf-8" }
