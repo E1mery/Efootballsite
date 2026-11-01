@@ -1040,16 +1040,9 @@ export async function getHallOfFameStats(forceFresh = false): Promise<HallOfFame
         where: { id: "stats_cache" },
       });
       if (cached && cached.data) {
-        // Enforce a 5-minute cache TTL so fresh match results and inductees reflect automatically
-        const cacheAge = Date.now() - new Date(cached.lastUpdated).getTime();
-        const maxAge = 5 * 60 * 1000; // 5 minutes
-        if (cacheAge < maxAge) {
-          return cached.data as unknown as HallOfFameStatsResult;
-        }
+        return cached.data as unknown as HallOfFameStatsResult;
       }
-    } catch {
-      // Fall through to calculation
-    }
+    } catch {}
   }
 
   return await calculateHallOfFameStats();

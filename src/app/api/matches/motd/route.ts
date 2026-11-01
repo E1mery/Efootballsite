@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { syncMatchOfTheDay } from "@/lib/matchOfTheDay";
+import { syncMatchOfTheDay, evaluateAllDivisionsMatchOfTheDay } from "@/lib/matchOfTheDay";
 
 export async function GET(req: Request) {
   try {
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const requestedDivision = searchParams.get("division");
 
-    // Fetch existing MOTD matches for this round
+    // Fetch existing pre-flagged MOTD matches for this round
     let motdMatches = await prisma.match.findMany({
       where: {
         round: roundName,
@@ -36,18 +36,35 @@ export async function GET(req: Request) {
       },
     });
 
-    // If none are flagged, run sync
+    // If none are pre-flagged in database, compute in-memory to keep GET fast without DB mutations
     if (motdMatches.length === 0) {
-      await syncMatchOfTheDay(currentMatchday);
-      motdMatches = await prisma.match.findMany({
-        where: {
-          round: roundName,
-          isMatchOfTheDay: true,
+      const [roundMatches, standings] = await Promise.all([
+        prisma.match.findMany({
+          where: { round: roundName },
+          include: { homePlayer: true, awayPlayer: true },
+        }),
+        prisma.standing.findMany({
+          orderBy: [{ points: "desc" }, { goalDifference: "desc" }],
+        }),
+      ]);
+
+      const evaluated = evaluateAllDivisionsMatchOfTheDay(roundMatches, standings, currentMatchday);
+      const div1 = evaluated["Division 1"] || null;
+      const div2 = evaluated["Division 2"] || null;
+      const div3 = evaluated["Division 3"] || null;
+
+      if (requestedDivision) {
+        return NextResponse.json({ matchOfTheDay: evaluated[requestedDivision] || null, currentMatchday });
+      }
+
+      return NextResponse.json({
+        matchOfTheDay: div1 || div2 || div3,
+        divisionalMotd: {
+          "Division 1": div1,
+          "Division 2": div2,
+          "Division 3": div3,
         },
-        include: {
-          homePlayer: true,
-          awayPlayer: true,
-        },
+        currentMatchday,
       });
     }
 
