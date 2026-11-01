@@ -55,10 +55,8 @@ export default async function HomePage({
         orderBy: { matchDate: "desc" },
         take: 3,
       }),
-      prisma.leagueConfig.upsert({
+      prisma.leagueConfig.findUnique({
         where: { id: "default" },
-        update: {},
-        create: { id: "default", registrationOpen: true, currentMatchday: 1 },
       }),
       getCarouselSlides(),
       sessionUserId
@@ -71,7 +69,7 @@ export default async function HomePage({
 
     liveMatches = liveResults;
     recentMatches = recentResults;
-    leagueConfig = cfgResult;
+    leagueConfig = cfgResult || { id: "default", registrationOpen: true, currentMatchday: 1 };
     carouselSlides = slidesResult;
     if (userResult) {
       userSession = {

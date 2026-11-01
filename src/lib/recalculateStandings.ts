@@ -190,59 +190,110 @@ export async function recalculateStandings(tournamentId: string, division: strin
 
   const canonicalDiv = isGroup && groupName ? `${comp} ${groupName}` : division;
 
+  const existingStandingsMap = new Map<string, any>();
+  for (const s of standings) {
+    if (s.playerId) {
+      existingStandingsMap.set(s.playerId, s);
+    }
+  }
+
+  const standingOperations: Promise<any>[] = [];
+  const playerOperations: Promise<any>[] = [];
+
   for (let i = 0; i < sortedPlayerIds.length; i++) {
     const pId = sortedPlayerIds[i];
     const st = playerStats[pId];
     const last5 = st.form.slice(-5).join(",") || "D";
+    const newRank = i + 1;
     const prevRank = previousRanks[pId] !== undefined ? previousRanks[pId] : null;
+    const goalDiff = st.goalsFor - st.goalsAgainst;
 
-    await prisma.standing.upsert({
-      where: {
-        tournamentId_playerId: {
-          tournamentId,
-          playerId: pId,
-        },
-      },
-      update: {
-        division: canonicalDiv,
-        rank: i + 1,
-        previousRank: prevRank,
-        played: st.played,
-        won: st.won,
-        drawn: st.drawn,
-        lost: st.lost,
-        goalsFor: st.goalsFor,
-        goalsAgainst: st.goalsAgainst,
-        goalDifference: st.goalsFor - st.goalsAgainst,
-        points: st.points,
-        form: last5,
-      },
-      create: {
-        tournamentId,
-        division: canonicalDiv,
-        playerId: pId,
-        rank: i + 1,
-        previousRank: null,
-        played: st.played,
-        won: st.won,
-        drawn: st.drawn,
-        lost: st.lost,
-        goalsFor: st.goalsFor,
-        goalsAgainst: st.goalsAgainst,
-        goalDifference: st.goalsFor - st.goalsAgainst,
-        points: st.points,
-        form: last5,
-      },
-    });
+    const existing = existingStandingsMap.get(pId);
+    const standingChanged =
+      !existing ||
+      existing.division !== canonicalDiv ||
+      existing.rank !== newRank ||
+      existing.played !== st.played ||
+      existing.won !== st.won ||
+      existing.drawn !== st.drawn ||
+      existing.lost !== st.lost ||
+      existing.goalsFor !== st.goalsFor ||
+      existing.goalsAgainst !== st.goalsAgainst ||
+      existing.goalDifference !== goalDiff ||
+      existing.points !== st.points ||
+      existing.form !== last5;
 
-    // Also synchronize player goals and matchesPlayed in Player model
-    await prisma.player.update({
-      where: { id: pId },
-      data: {
-        goals: st.goalsFor,
-        matchesPlayed: st.played,
-      },
-    });
+    if (standingChanged) {
+      if (existing) {
+        standingOperations.push(
+          prisma.standing.update({
+            where: { id: existing.id },
+            data: {
+              division: canonicalDiv,
+              rank: newRank,
+              previousRank: prevRank,
+              played: st.played,
+              won: st.won,
+              drawn: st.drawn,
+              lost: st.lost,
+              goalsFor: st.goalsFor,
+              goalsAgainst: st.goalsAgainst,
+              goalDifference: goalDiff,
+              points: st.points,
+              form: last5,
+            },
+          })
+        );
+      } else {
+        standingOperations.push(
+          prisma.standing.create({
+            data: {
+              tournamentId,
+              division: canonicalDiv,
+              playerId: pId,
+              rank: newRank,
+              previousRank: null,
+              played: st.played,
+              won: st.won,
+              drawn: st.drawn,
+              lost: st.lost,
+              goalsFor: st.goalsFor,
+              goalsAgainst: st.goalsAgainst,
+              goalDifference: goalDiff,
+              points: st.points,
+              form: last5,
+            },
+          })
+        );
+      }
+    }
+
+    // Only update Player model if goals or matchesPlayed actually changed
+    const playerRecord = existing?.player;
+    const playerChanged =
+      !playerRecord ||
+      playerRecord.goals !== st.goalsFor ||
+      playerRecord.matchesPlayed !== st.played;
+
+    if (playerChanged) {
+      playerOperations.push(
+        prisma.player.update({
+          where: { id: pId },
+          data: {
+            goals: st.goalsFor,
+            matchesPlayed: st.played,
+          },
+        })
+      );
+    }
+  }
+
+  // Execute standing and player updates concurrently in parallel
+  if (standingOperations.length > 0) {
+    await Promise.all(standingOperations);
+  }
+  if (playerOperations.length > 0) {
+    await Promise.all(playerOperations);
   }
 
   // Record StandingsUpdate to track new movement state and one-time display

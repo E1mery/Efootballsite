@@ -18,14 +18,6 @@ export async function GET(req: Request) {
       include: {
         homePlayer: true,
         awayPlayer: true,
-        submissions: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-        },
-        forfeitClaims: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-        },
       },
       orderBy: { matchDate: "asc" },
     });

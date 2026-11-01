@@ -18,68 +18,9 @@ let derbyTableEnsured = false;
  * Auto-seeds initial official derbies if the table is empty.
  */
 export async function ensureDerbyTable(): Promise<void> {
-  if (derbyTableEnsured) return;
-
-  try {
-    // 1. Create Derby table if not exists
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Derby" (
-        "id" TEXT NOT NULL PRIMARY KEY,
-        "name" TEXT NOT NULL UNIQUE,
-        "shortName" TEXT NOT NULL,
-        "club1Id" TEXT NOT NULL,
-        "club2Id" TEXT NOT NULL,
-        "club1Name" TEXT NOT NULL,
-        "club2Name" TEXT NOT NULL,
-        "competition" TEXT,
-        "description" TEXT,
-        "imageUrl" TEXT,
-        "isHistoricRivalry" BOOLEAN NOT NULL DEFAULT false,
-        "priority" INTEGER NOT NULL DEFAULT 0,
-        "isActive" BOOLEAN NOT NULL DEFAULT true,
-        "autoPublishSocial" BOOLEAN NOT NULL DEFAULT false,
-        "autoPublishCarousel" BOOLEAN NOT NULL DEFAULT false,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Helper for safe column addition across SQLite and Postgres
-    const safeAddColumn = async (table: string, column: string, typeDef: string) => {
-      try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${typeDef}`);
-      } catch {}
-    };
-
-    // 2. Ensure columns exist on Match
-    await safeAddColumn("Match", "derbyId", "TEXT");
-    await safeAddColumn("Match", "isDerby", "BOOLEAN NOT NULL DEFAULT 0");
-    await safeAddColumn("Match", "derbyName", "TEXT");
-
-    // 3. Ensure columns exist on ArchivedMatch
-    await safeAddColumn("ArchivedMatch", "derbyId", "TEXT");
-    await safeAddColumn("ArchivedMatch", "derbyName", "TEXT");
-
-    // 4. Ensure columns exist on SocialPost
-    await safeAddColumn("SocialPost", "derbyId", "TEXT");
-    await safeAddColumn("SocialPost", "derbyName", "TEXT");
-
-    // 5. Seed initial official derbies if table is empty
-    const count = await prisma.derby.count().catch(() => 0);
-    if (count === 0) {
-      for (const d of INITIAL_OFFICIAL_DERBIES) {
-        await prisma.derby
-          .create({
-            data: d,
-          })
-          .catch(() => {});
-      }
-    }
-
-    derbyTableEnsured = true;
-  } catch (err) {
-    console.error("[ensureDerbyTable] Error ensuring Derby schema:", err);
-  }
+  // Derby table and Match/ArchivedMatch/SocialPost relation columns are part of the Prisma schema.
+  // Runtime DDL is eliminated to avoid database locking and CPU timeouts.
+  return;
 }
 
 /**

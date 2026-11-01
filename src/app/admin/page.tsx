@@ -17,26 +17,7 @@ let lastMaintenanceTime = 0;
 const MAINTENANCE_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 function triggerAdminBackgroundMaintenance() {
-  const now = Date.now();
-  if (now - lastMaintenanceTime < MAINTENANCE_COOLDOWN_MS) return;
-  lastMaintenanceTime = now;
-
-  // Run in background without awaiting to keep admin load instant
-  (async () => {
-    try {
-      await Promise.allSettled([
-        cleanupExpiredRepliedMessages(),
-        cleanupExpiredAnnouncements(),
-        ensureNewsTable(),
-        ensureDerbyTable(),
-        syncSystemNewsToCarousel(),
-        syncPlayerDiscipline(),
-        ensurePasswordResetTable(),
-      ]);
-    } catch (err) {
-      console.error("Background maintenance task error:", err);
-    }
-  })();
+  // Heavy maintenance is executed via scheduled cron tasks to avoid Cloudflare Worker CPU limits.
 }
 
 export default async function AdminPage() {

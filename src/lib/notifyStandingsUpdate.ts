@@ -122,15 +122,15 @@ export async function notifyStandingsUpdate({
         matchSummary ? ` (${matchSummary})` : ""
       }. The standings table for ${comp}${grpLabel} has been updated. Open your Standings tab to check your current points, goal difference, and qualification status!`;
 
-      for (const pId of recipientIds) {
-        await prisma.announcement.create({
-          data: {
+      if (recipientIds.length > 0) {
+        await prisma.announcement.createMany({
+          data: recipientIds.map((pId) => ({
             title,
             content,
             type: "INDIVIDUAL",
             targetPlayerId: pId,
             isPinned: false,
-          },
+          })),
         });
       }
     } else {
@@ -187,15 +187,16 @@ export async function notifyStandingsUpdate({
       }. The ${targetDivision} table has been updated. Head over to the Standings tab to inspect your ranking!`;
 
       // Send individual notifications ONLY to the players participating in this division
-      for (const pId of targetPlayerIds) {
-        await prisma.announcement.create({
-          data: {
+      const recipientList = Array.from(targetPlayerIds);
+      if (recipientList.length > 0) {
+        await prisma.announcement.createMany({
+          data: recipientList.map((pId) => ({
             title,
             content,
             type: "INDIVIDUAL",
             targetPlayerId: pId,
             isPinned: false,
-          },
+          })),
         });
       }
     }

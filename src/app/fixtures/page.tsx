@@ -39,21 +39,11 @@ export default async function FixturesPage({
           include: {
             homePlayer: true,
             awayPlayer: true,
-            submissions: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
-            },
-            forfeitClaims: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
-            },
           },
           orderBy: [{ matchDate: "asc" }, { createdAt: "asc" }],
         }),
-        prisma.leagueConfig.upsert({
+        prisma.leagueConfig.findUnique({
           where: { id: "default" },
-          update: {},
-          create: { id: "default", currentMatchday: 1 },
         }),
         prisma.match.findFirst({
           where: { isMatchOfTheDay: true },
@@ -78,7 +68,7 @@ export default async function FixturesPage({
         }),
       ]);
 
-    leagueConfig = cfg;
+    leagueConfig = cfg || { id: "default", currentMatchday: 1 };
     storedMotd = motdMatch;
     allStandings = standings;
 

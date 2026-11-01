@@ -74,8 +74,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Run automated cycle check to ensure database records reflect recent deadline rollovers
-    await checkAndAutoAdvanceDailyCycle();
+    // Automated cycle checks are handled asynchronously via dedicated cron routes
 
     const isReplacementMatch = Boolean(match.notes?.includes("REPLACEMENT_BACKLOG"));
     const isReopenedByAdmin = Boolean(
