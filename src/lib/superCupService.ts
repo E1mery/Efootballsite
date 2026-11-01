@@ -284,8 +284,10 @@ export async function getSuperCupOverview(season: string = "Season 1 (2026)") {
     orderBy: { createdAt: "desc" },
   });
 
-  // Automatically sync any completed Super Cup match winner to Hall of Fame
-  await syncSuperCupWinnerToHallOfFame();
+  // Only sync if there is a finished Super Cup match, non-blocking
+  if (superCupMatch && (superCupMatch.status === "FINISHED" || superCupMatch.status === "FORFEIT")) {
+    syncSuperCupWinnerToHallOfFame().catch(() => {});
+  }
 
   // Past Super Cup winners
   const pastSuperCupWinners = await prisma.hallOfFame.findMany({

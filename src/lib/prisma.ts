@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaD1 } from "@prisma/adapter-d1";
 
-// Cache for request-scoped Prisma clients in Cloudflare Workers runtime
-const requestPrismaClients = new WeakMap<object, PrismaClient>();
-let fallbackEdgePrisma: PrismaClient | null = null;
+// Cache for singleton Prisma client in Cloudflare Workers runtime
+let edgePrismaClient: PrismaClient | null = null;
+let edgePrismaDb: any = null;
 let localPrisma: PrismaClient | null = null;
 
 export function isTransientD1Error(err: any): boolean {
@@ -145,30 +145,13 @@ function getActivePrisma(): PrismaClient {
     }
 
     if (db) {
-      const key =
-        cfStore?.ctx && typeof cfStore.ctx === "object"
-          ? cfStore.ctx
-          : cfStore && typeof cfStore === "object"
-          ? cfStore
-          : null;
-
-      if (key) {
-        let client = requestPrismaClients.get(key);
-        if (!client) {
-          const resilientDb = createResilientD1Binding(db);
-          const adapter = new PrismaD1(resilientDb);
-          client = new PrismaClient({ adapter });
-          requestPrismaClients.set(key, client);
-        }
-        return client;
-      }
-
-      if (!fallbackEdgePrisma) {
+      if (!edgePrismaClient || edgePrismaDb !== db) {
+        edgePrismaDb = db;
         const resilientDb = createResilientD1Binding(db);
         const adapter = new PrismaD1(resilientDb);
-        fallbackEdgePrisma = new PrismaClient({ adapter });
+        edgePrismaClient = new PrismaClient({ adapter });
       }
-      return fallbackEdgePrisma;
+      return edgePrismaClient;
     }
   } catch {}
 
