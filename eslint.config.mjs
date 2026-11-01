@@ -4,7 +4,7 @@ import { defineConfig } from "eslint/config"
 
 export default defineConfig([
   {
-    ignores: ["node_modules/**", ".next/**", ".open-next/**", "out/**", "build/**", "next-env.d.ts", "prisma/**", "scripts/**"],
+    ignores: ["node_modules/**", ".next/**", ".open-next/**", ".wrangler/**", "out/**", "build/**", "next-env.d.ts", "prisma/**", "scripts/**"],
   },
   {
     files: ["**/*.{js,jsx,ts,tsx}"],

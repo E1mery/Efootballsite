@@ -42,3 +42,5 @@ scripts/compare-neon-d1.mjs
 public/assets/trophies/originals/
 *.db
 .open-next/
+
+.wrangler/

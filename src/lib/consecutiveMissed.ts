@@ -112,11 +112,37 @@ export async function computeConsecutiveMissedForPlayer(playerId: string): Promi
  */
 export async function syncPlayerDiscipline(playerId?: string | string[]) {
   try {
-    const where: any = playerId
+    const targetPlayerIds = playerId
       ? Array.isArray(playerId)
-        ? { id: { in: playerId } }
-        : { id: playerId }
+        ? playerId.filter(Boolean)
+        : [playerId]
+      : null;
+
+    const where: any = targetPlayerIds && targetPlayerIds.length > 0
+      ? { id: { in: targetPlayerIds } }
       : { status: { in: ["ACTIVE", "WARNING", "DISQUALIFIED"] } };
+
+    const matchesWhere: any = {
+      status: { in: ["FINISHED", "FORFEIT"] },
+      OR: [
+        { stage: "DIVISION" },
+        { division: { startsWith: "Division" } },
+      ],
+    };
+    if (targetPlayerIds && targetPlayerIds.length > 0) {
+      matchesWhere.AND = [
+        {
+          OR: [
+            { homePlayerId: { in: targetPlayerIds } },
+            { awayPlayerId: { in: targetPlayerIds } },
+          ],
+        },
+      ];
+    }
+
+    const standingsWhere: any = targetPlayerIds && targetPlayerIds.length > 0
+      ? { playerId: { in: targetPlayerIds } }
+      : {};
 
     const [players, allFinishedMatches, allStandings] = await Promise.all([
       prisma.player.findMany({
@@ -131,19 +157,14 @@ export async function syncPlayerDiscipline(playerId?: string | string[]) {
         },
       }),
       prisma.match.findMany({
-        where: {
-          status: { in: ["FINISHED", "FORFEIT"] },
-          OR: [
-            { stage: "DIVISION" },
-            { division: { startsWith: "Division" } },
-          ],
-        },
+        where: matchesWhere,
         include: {
           submissions: { where: { status: "APPROVED" } },
           forfeitClaims: { where: { status: "APPROVED" } },
         },
       }),
       prisma.standing.findMany({
+        where: standingsWhere,
         select: {
           id: true,
           playerId: true,

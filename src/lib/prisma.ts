@@ -1,9 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaD1 } from "@prisma/adapter-d1";
 
-// Cache for singleton Prisma client in Cloudflare Workers runtime
+// Singleton Prisma client cache for Cloudflare Workers runtime
 let edgePrismaClient: PrismaClient | null = null;
-let edgePrismaDb: any = null;
 let localPrisma: PrismaClient | null = null;
 
 export function isTransientD1Error(err: any): boolean {
@@ -36,6 +35,22 @@ function getCloudflareStore(): { env: any; ctx?: any; cf?: any } | null {
   return null;
 }
 
+export function getRawD1Binding(): any {
+  try {
+    const cfStore = getCloudflareStore();
+    const env = cfStore?.env || (globalThis as any)?.__CLOUDFLARE_ENV__ || {};
+    return (
+      env.DB ||
+      env.efrl_db ||
+      env.D1 ||
+      env.DATABASE ||
+      (globalThis as any)?.DB
+    );
+  } catch {
+    return (globalThis as any)?.DB;
+  }
+}
+
 function wrapD1PreparedStatement(rawDb: any, query: string, stmt: any, boundArgs: any[] = []): any {
   return new Proxy(stmt, {
     get(target, prop, receiver) {
@@ -61,8 +76,9 @@ function wrapD1PreparedStatement(rawDb: any, query: string, stmt: any, boundArgs
                 );
                 await new Promise((r) => setTimeout(r, attempt * 80));
                 try {
+                  const currentDb = getRawD1Binding() || rawDb;
                   const freshStmt =
-                    boundArgs.length > 0 ? rawDb.prepare(query).bind(...boundArgs) : rawDb.prepare(query);
+                    boundArgs.length > 0 ? currentDb.prepare(query).bind(...boundArgs) : currentDb.prepare(query);
                   return await freshStmt[prop](...args);
                 } catch (retryErr: any) {
                   if (attempt >= maxRetries || !isTransientD1Error(retryErr)) {
@@ -83,18 +99,18 @@ function wrapD1PreparedStatement(rawDb: any, query: string, stmt: any, boundArgs
   });
 }
 
-function createResilientD1Binding(rawDb: any): any {
-  if (!rawDb || typeof rawDb !== "object") return rawDb;
-
-  return new Proxy(rawDb, {
-    get(target, prop, receiver) {
-      const orig = Reflect.get(target, prop, receiver);
-      if (typeof orig !== "function") return orig;
+function createDynamicResilientD1Binding(): any {
+  return new Proxy({} as any, {
+    get(_target, prop, receiver) {
+      const activeDb = getRawD1Binding();
+      if (!activeDb) {
+        throw new Error("Cloudflare D1 database binding (DB) is not available in the current runtime context.");
+      }
 
       if (prop === "prepare") {
         return function (query: string) {
-          const stmt = orig.call(target, query);
-          return wrapD1PreparedStatement(target, query, stmt);
+          const stmt = activeDb.prepare(query);
+          return wrapD1PreparedStatement(activeDb, query, stmt);
         };
       }
 
@@ -104,7 +120,8 @@ function createResilientD1Binding(rawDb: any): any {
           const maxRetries = 2;
           while (true) {
             try {
-              return await orig.apply(target, args);
+              const currentDb = getRawD1Binding() || activeDb;
+              return await currentDb[prop].apply(currentDb, args);
             } catch (err: any) {
               attempt++;
               if (attempt <= maxRetries && isTransientD1Error(err)) {
@@ -120,40 +137,26 @@ function createResilientD1Binding(rawDb: any): any {
         };
       }
 
-      return orig.bind(target);
+      const orig = activeDb[prop];
+      return typeof orig === "function" ? orig.bind(activeDb) : orig;
     },
   });
 }
 
 function getActivePrisma(): PrismaClient {
   try {
-    const cfStore = getCloudflareStore();
-    let db =
-      cfStore?.env?.DB ||
-      cfStore?.env?.efrl_db ||
-      cfStore?.env?.D1 ||
-      cfStore?.env?.DATABASE;
-
-    if (!db) {
-      const fallbackEnv = (globalThis as any)?.__CLOUDFLARE_ENV__ || {};
-      db =
-        fallbackEnv.DB ||
-        fallbackEnv.efrl_db ||
-        fallbackEnv.D1 ||
-        fallbackEnv.DATABASE ||
-        (globalThis as any)?.DB;
-    }
-
-    if (db) {
-      if (!edgePrismaClient || edgePrismaDb !== db) {
-        edgePrismaDb = db;
-        const resilientDb = createResilientD1Binding(db);
-        const adapter = new PrismaD1(resilientDb);
+    const rawDb = getRawD1Binding();
+    if (rawDb) {
+      if (!edgePrismaClient) {
+        const dynamicResilientDb = createDynamicResilientD1Binding();
+        const adapter = new PrismaD1(dynamicResilientDb);
         edgePrismaClient = new PrismaClient({ adapter });
       }
       return edgePrismaClient;
     }
-  } catch {}
+  } catch (err) {
+    console.error("[Prisma Edge Init Error]:", err);
+  }
 
   if (!localPrisma) {
     localPrisma = new PrismaClient({

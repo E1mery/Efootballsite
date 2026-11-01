@@ -1608,7 +1608,20 @@ export default function DashboardClient({
         body: formData,
       });
 
-      const data = await res.json();
+      let data: any = {};
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(
+          res.status === 503
+            ? "Service temporarily busy. Please try uploading again in a few seconds."
+            : text && text.length < 200
+            ? text
+            : `Upload server error (${res.status}). Please try again.`
+        );
+      }
       if (!res.ok) {
         throw new Error(data.error || "Failed to upload file to Cloudflare R2 storage");
       }
@@ -1696,7 +1709,20 @@ export default function DashboardClient({
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(
+          res.status === 503
+            ? "Service temporarily busy. Please wait a few seconds and try again."
+            : text && text.length < 200
+            ? text
+            : `Server response error (${res.status}). Please try again.`
+        );
+      }
       if (!res.ok) throw new Error(data.error || "Failed to submit result");
 
       setResultSuccessMsg(data.message);
@@ -1772,7 +1798,20 @@ export default function DashboardClient({
         }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(
+          res.status === 503
+            ? "Service temporarily busy. Please wait a few seconds and try again."
+            : text && text.length < 200
+            ? text
+            : `Server response error (${res.status}). Please try again.`
+        );
+      }
       if (!res.ok) throw new Error(data.error || "Failed to submit forfeit claim");
 
       setForfeitSuccessMsg(data.message);
