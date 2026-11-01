@@ -5,6 +5,7 @@ import { uploadBase64ToR2, ensureR2FileUrl } from "@/lib/r2";
 import { checkAndAutoAdvanceDailyCycle } from "@/lib/autoDailyCycle";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
+import { syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 
 export async function POST(req: Request) {
   try {
@@ -284,15 +285,8 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    // Reset consecutive missed counters since players completed their match fixture
-    await prisma.player.updateMany({
-      where: { id: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
-      data: { consecutiveMissed: 0 },
-    });
-    await prisma.standing.updateMany({
-      where: { playerId: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
-      data: { consecutiveMissed: 0 },
-    });
+    // Reset consecutive missed counters and restore ACTIVE status since players completed their match fixture
+    await syncPlayerDiscipline([updatedMatch.homePlayerId, updatedMatch.awayPlayerId]).catch(() => {});
 
     // Recalculate standings table immediately without requiring admin approval
     const divToRecalc =

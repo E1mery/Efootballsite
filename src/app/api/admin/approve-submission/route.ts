@@ -107,15 +107,8 @@ export async function POST(req: Request) {
           },
         });
 
-        // Reset consecutive missed counter for both players as they fulfilled their match fixture
-        await prisma.player.updateMany({
-          where: { id: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
-          data: { consecutiveMissed: 0 },
-        });
-        await prisma.standing.updateMany({
-          where: { playerId: { in: [updatedMatch.homePlayerId, updatedMatch.awayPlayerId] } },
-          data: { consecutiveMissed: 0 },
-        });
+        // Synchronize discipline and restore ACTIVE status as players fulfilled their match fixture
+        await syncPlayerDiscipline([updatedMatch.homePlayerId, updatedMatch.awayPlayerId]).catch(() => {});
 
         // Always recalculate standings immediately upon match result verification
         const divToRecalc = updatedMatch.stage === "GROUP" && updatedMatch.groupName

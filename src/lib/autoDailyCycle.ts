@@ -471,6 +471,14 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
       console.warn("Auto-sync news warning during daily cycle:", newsErr);
     }
 
+    // 8. Synchronize player discipline and standings across all active tiers
+    try {
+      const { syncPlayerDiscipline } = await import("@/lib/consecutiveMissed");
+      await syncPlayerDiscipline();
+    } catch (disciplineErr) {
+      console.warn("Auto-sync discipline warning during daily cycle:", disciplineErr);
+    }
+
     return {
       advanced: true,
       currentMatchday: nextMatchday,

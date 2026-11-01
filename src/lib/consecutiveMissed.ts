@@ -67,7 +67,8 @@ export function computeConsecutiveMissedFromMatches(
     }
   }
 
-  return streak;
+  // Cap streak at maximum 3 (disqualification threshold)
+  return Math.min(streak, 3);
 }
 
 /**
