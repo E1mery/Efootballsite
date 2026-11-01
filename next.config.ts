@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
