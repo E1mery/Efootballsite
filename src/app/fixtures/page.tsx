@@ -40,12 +40,10 @@ export default async function FixturesPage({
             homePlayer: true,
             awayPlayer: true,
             submissions: {
-              where: { status: { in: ["APPROVED", "PENDING"] } },
               orderBy: { createdAt: "desc" },
               take: 1,
             },
             forfeitClaims: {
-              where: { status: { in: ["APPROVED", "PENDING"] } },
               orderBy: { createdAt: "desc" },
               take: 1,
             },

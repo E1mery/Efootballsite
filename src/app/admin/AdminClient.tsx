@@ -63,6 +63,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
+import ReopenMatchdayModal from "@/components/admin/ReopenMatchdayModal";
+import CloseMatchdayModal from "@/components/admin/CloseMatchdayModal";
 import { getTeamsForDivision, resolvePlayerAvatar, findTeam, handleAvatarError, DEFAULT_AVATAR_FALLBACK } from "@/lib/teams";
 
 const AdminHallOfFameHub = dynamic(() => import("@/components/admin/AdminHallOfFameHub"), {
@@ -239,6 +241,8 @@ export default function AdminClient({
   const [extendingMatchId, setExtendingMatchId] = useState<string | null>(null);
   const [reopeningMatchId, setReopeningMatchId] = useState<string | null>(null);
   const [closingMatchId, setClosingMatchId] = useState<string | null>(null);
+  const [reopenMatchdayTarget, setReopenMatchdayTarget] = useState<string | null>(null);
+  const [closeMatchdayTarget, setCloseMatchdayTarget] = useState<string | null>(null);
   const [uclDrawInput, setUclDrawInput] = useState<string>(
     toLocalDatetimeInput(leagueConfig?.uclDrawTime)
   );
@@ -3583,6 +3587,32 @@ export default function AdminClient({
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>Advance to Matchday {leagueConfig.currentMatchday + 1}</span>
                 </Button>
+
+                <Button
+                  rollingText={false}
+                  size="sm"
+                  onClick={() => setReopenMatchdayTarget(`Matchday ${leagueConfig.currentMatchday}`)}
+                  disabled={actionLoading}
+                  variant="outline"
+                  className="border-primary/50 text-primary hover:bg-primary/20 text-xs flex items-center gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
+                  title={`Reopen result submissions for Matchday ${leagueConfig.currentMatchday}`}
+                >
+                  <Unlock className="h-3.5 w-3.5" />
+                  <span>Reopen Matchday {leagueConfig.currentMatchday} Submissions</span>
+                </Button>
+
+                <Button
+                  rollingText={false}
+                  size="sm"
+                  onClick={() => setCloseMatchdayTarget(`Matchday ${leagueConfig.currentMatchday}`)}
+                  disabled={actionLoading}
+                  variant="outline"
+                  className="border-destructive/50 text-destructive hover:bg-destructive/20 text-xs flex items-center gap-1.5 self-start max-w-full font-medium shadow-none hover:shadow-none"
+                  title={`Close result submissions for Matchday ${leagueConfig.currentMatchday}`}
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  <span>Close Matchday {leagueConfig.currentMatchday} Submissions</span>
+                </Button>
               </div>
             </div>
 
@@ -5119,6 +5149,48 @@ export default function AdminClient({
                 <option value="FINISHED">Finished / Approved</option>
                 <option value="FORFEIT">Forfeit Walkover</option>
               </select>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setReopenMatchdayTarget(
+                    allMatchesFilterRound !== "ALL"
+                      ? allMatchesFilterRound
+                      : `Matchday ${leagueConfig.currentMatchday}`
+                  )
+                }
+                className="text-xs h-9 px-3 font-bold border-primary/50 text-primary hover:bg-primary/20 gap-1.5"
+                title="Reopen result submissions for a whole matchday round"
+              >
+                <Unlock className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  {allMatchesFilterRound !== "ALL"
+                    ? `Reopen ${allMatchesFilterRound}`
+                    : "Reopen Matchday"}
+                </span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setCloseMatchdayTarget(
+                    allMatchesFilterRound !== "ALL"
+                      ? allMatchesFilterRound
+                      : `Matchday ${leagueConfig.currentMatchday}`
+                  )
+                }
+                className="text-xs h-9 px-3 font-bold border-destructive/50 text-destructive hover:bg-destructive/20 gap-1.5"
+                title="Close result submissions for a whole matchday round"
+              >
+                <Lock className="h-3.5 w-3.5 text-destructive" />
+                <span>
+                  {allMatchesFilterRound !== "ALL"
+                    ? `Close ${allMatchesFilterRound}`
+                    : "Close Matchday"}
+                </span>
+              </Button>
             </div>
 
             {/* Search Input */}
@@ -6832,11 +6904,31 @@ export default function AdminClient({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 self-end lg:self-auto">
+                  <div className="flex flex-wrap items-center gap-2.5 self-end lg:self-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReopenMatchdayTarget(selectedMatchdayRound)}
+                      className="border-primary/50 text-primary hover:bg-primary/20 font-bold px-3.5 py-2 text-xs gap-1.5 rounded-xl h-auto"
+                      title={`Reopen result submissions for ${selectedMatchdayRound}`}
+                    >
+                      <Unlock className="h-3.5 w-3.5 text-primary" />
+                      <span>Reopen {selectedMatchdayRound}</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCloseMatchdayTarget(selectedMatchdayRound)}
+                      className="border-destructive/50 text-destructive hover:bg-destructive/20 font-bold px-3.5 py-2 text-xs gap-1.5 rounded-xl h-auto"
+                      title={`Close result submissions for ${selectedMatchdayRound}`}
+                    >
+                      <Lock className="h-3.5 w-3.5 text-destructive" />
+                      <span>Close {selectedMatchdayRound}</span>
+                    </Button>
                     <Button
                       disabled={batchLoading}
                       onClick={handleBatchDirectMatchScores}
-                      className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-white font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg"
+                      className="bg-primary hover:bg-primary text-white font-black px-6 py-2.5 rounded-xl text-xs gap-2 shadow-lg"
                     >
                       {batchLoading ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -9992,6 +10084,26 @@ export default function AdminClient({
             />
           </div>
         </div>
+      )}
+
+      {/* REOPEN MATCHDAY SUBMISSIONS MODAL */}
+      {reopenMatchdayTarget && (
+        <ReopenMatchdayModal
+          isOpen={Boolean(reopenMatchdayTarget)}
+          onClose={() => setReopenMatchdayTarget(null)}
+          initialRound={reopenMatchdayTarget}
+          matches={matches}
+        />
+      )}
+
+      {/* CLOSE MATCHDAY SUBMISSIONS MODAL */}
+      {closeMatchdayTarget && (
+        <CloseMatchdayModal
+          isOpen={Boolean(closeMatchdayTarget)}
+          onClose={() => setCloseMatchdayTarget(null)}
+          initialRound={closeMatchdayTarget}
+          matches={matches}
+        />
       )}
     </div>
   );

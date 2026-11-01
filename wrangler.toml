@@ -8,6 +8,10 @@ binding = "DB"
 database_name = "efrl-db"
 database_id = "ad99673d-d023-4973-90fc-6500cab0a81b"
 
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "rwandafootballleague"
+
 [env.production]
 compatibility_date = "2026-10-30"
 compatibility_flags = ["nodejs_compat"]
@@ -17,6 +21,10 @@ binding = "DB"
 database_name = "efrl-db"
 database_id = "ad99673d-d023-4973-90fc-6500cab0a81b"
 
+[[env.production.r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "rwandafootballleague"
+
 [env.preview]
 compatibility_date = "2026-10-30"
 compatibility_flags = ["nodejs_compat"]
@@ -25,3 +33,7 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "efrl-db"
 database_id = "ad99673d-d023-4973-90fc-6500cab0a81b"
+
+[[env.preview.r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "rwandafootballleague"

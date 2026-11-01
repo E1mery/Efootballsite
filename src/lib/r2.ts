@@ -16,14 +16,51 @@ export const r2Client = new S3Client({
 });
 
 /**
+ * Resolves the Cloudflare R2 bucket binding if running within Cloudflare Workers / OpenNext runtime.
+ */
+export function getR2BucketBinding(): any {
+  try {
+    const { getCloudflareContext } = require("@opennextjs/cloudflare");
+    const cf = getCloudflareContext({ async: false });
+    if (cf?.env?.R2_BUCKET) return cf.env.R2_BUCKET;
+    if (cf?.env?.BUCKET) return cf.env.BUCKET;
+  } catch {}
+
+  const fallbackEnv = (globalThis as any)?.__CLOUDFLARE_ENV__ || {};
+  return (
+    fallbackEnv.R2_BUCKET ||
+    fallbackEnv.BUCKET ||
+    (globalThis as any)?.R2_BUCKET ||
+    (globalThis as any)?.BUCKET ||
+    null
+  );
+}
+
+/**
  * Uploads a raw buffer to Cloudflare R2 and returns a publicly accessible URL.
- * Includes automatic retry with backoff to prevent data loss during transient network issues.
+ * Automatically prefers native high-performance Cloudflare R2 binding on Workers,
+ * with S3 client fallback and exponential backoff.
  */
 export async function uploadBufferToR2(
   buffer: Buffer | Uint8Array,
   key: string,
   contentType: string
 ): Promise<string> {
+  const binding = getR2BucketBinding();
+  if (binding && typeof binding.put === "function") {
+    try {
+      await binding.put(key, buffer, {
+        httpMetadata: { contentType },
+      });
+      if (process.env.R2_PUBLIC_URL) {
+        return `${process.env.R2_PUBLIC_URL.replace(/\/$/, "")}/${key}`;
+      }
+      return `/api/files/${key}`;
+    } catch (err: any) {
+      console.warn(`[Cloudflare Native R2] Put failed for key ${key}, falling back to S3 API:`, err?.message);
+    }
+  }
+
   const maxRetries = 2;
   let lastError: any = null;
 
@@ -135,8 +172,19 @@ export async function ensureR2FileUrl(
 
 /**
  * Retrieves an object from Cloudflare R2.
+ * Native binding returns R2ObjectBody; S3 client fallback returns GetObjectCommandOutput.
  */
-export async function getObjectFromR2(key: string) {
+export async function getObjectFromR2(key: string): Promise<any> {
+  const binding = getR2BucketBinding();
+  if (binding && typeof binding.get === "function") {
+    try {
+      const obj = await binding.get(key);
+      if (obj) return obj;
+    } catch (err: any) {
+      console.warn(`[Cloudflare Native R2] Get failed for key ${key}, falling back to S3 API:`, err?.message);
+    }
+  }
+
   const command = new GetObjectCommand({
     Bucket: R2_BUCKET_NAME,
     Key: key,
@@ -148,7 +196,17 @@ export async function getObjectFromR2(key: string) {
 /**
  * Deletes an object from Cloudflare R2.
  */
-export async function deleteFromR2(key: string) {
+export async function deleteFromR2(key: string): Promise<any> {
+  const binding = getR2BucketBinding();
+  if (binding && typeof binding.delete === "function") {
+    try {
+      await binding.delete(key);
+      return;
+    } catch (err: any) {
+      console.warn(`[Cloudflare Native R2] Delete failed for key ${key}, falling back to S3 API:`, err?.message);
+    }
+  }
+
   const command = new DeleteObjectCommand({
     Bucket: R2_BUCKET_NAME,
     Key: key,

@@ -4765,6 +4765,8 @@ export default function DashboardClient({
                     const isForfeit = m.status === "FORFEIT";
                     const sub = m.submissions?.find((s: any) => s.status !== "REJECTED") || m.submissions?.[0];
                     const forfeit = m.forfeitClaims?.find((f: any) => f.status !== "REJECTED") || m.forfeitClaims?.[0];
+                    const matchScoreProof = sub?.screenshotUrl || (m.status !== "FORFEIT" ? m.screenshotUrl : null);
+                    const matchForfeitProof = forfeit?.proofScreenshotUrl || (m.status === "FORFEIT" ? m.screenshotUrl : null);
                     const isPending = sub?.status === "PENDING";
                     const isForfeitPending = forfeit?.status === "PENDING";
                     const matchRoundNum = parseInt(m.round?.match(/\d+/)?.[0] || "0", 10);
@@ -4976,9 +4978,9 @@ export default function DashboardClient({
                               />
                             )}
 
-                            {sub?.screenshotUrl && (
+                            {matchScoreProof && (
                               <ButtonRollingText
-                                href={sub.screenshotUrl}
+                                href={matchScoreProof}
                                 target="_blank"
                                 rel="noreferrer"
                                 variant="outline"
@@ -4991,9 +4993,9 @@ export default function DashboardClient({
                               />
                             )}
 
-                            {forfeit?.proofScreenshotUrl && (
+                            {!matchScoreProof && matchForfeitProof && (
                               <ButtonRollingText
-                                href={forfeit.proofScreenshotUrl}
+                                href={matchForfeitProof}
                                 target="_blank"
                                 rel="noreferrer"
                                 variant="outline"

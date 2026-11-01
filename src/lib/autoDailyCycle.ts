@@ -29,6 +29,13 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
   const roundFilter = options.round ? { round: options.round } : {};
   const deadlineFilter = options.force ? {} : { deadlineDate: { lte: now } };
 
+  // Fetch current matchday to ensure we never auto-expire matches for the active or future rounds during generic cleanup
+  const config = await prisma.leagueConfig.findUnique({
+    where: { id: "default" },
+    select: { currentMatchday: true },
+  });
+  const currentMatchday = config?.currentMatchday || 1;
+
   // Find all scheduled matches whose deadline has passed (or matching the specified round)
   // Exclude matches on hold for replacement (WAITING_FOR_SUB) or replacement backlog
   const expiredMatches = await prisma.match.findMany({
@@ -65,10 +72,23 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
     include: { homePlayer: true, awayPlayer: true },
   });
 
+  // Filter out any division matches that belong to active or future rounds when generic cleanup is running
+  const matchesToProcess = expiredMatches.filter((match) => {
+    if (options.round) return true;
+    const isDivisionMatch = match.division?.startsWith("Division");
+    if (isDivisionMatch) {
+      const matchRoundNum = parseInt(match.round?.match(/\d+/)?.[0] || "0", 10);
+      if (matchRoundNum >= currentMatchday) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   const affectedDivisions = new Map<string, { tournamentId: string; division: string }>();
   const processedMatchIds: string[] = [];
 
-  for (const match of expiredMatches) {
+  for (const match of matchesToProcess) {
     await prisma.match.update({
       where: { id: match.id },
       data: {
@@ -196,7 +216,7 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
   }
 
   return {
-    processedMatchesCount: expiredMatches.length,
+    processedMatchesCount: matchesToProcess.length,
     processedMatchIds,
   };
 }
@@ -319,6 +339,21 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     const currentRwandanDateStr = getRwandanDateString(now);
     const activeKickoffDate = createRwandanMidnight(currentRwandanDateStr);
     const activeDeadlineDate = new Date(activeKickoffDate.getTime() + 24 * 60 * 60 * 1000);
+
+    // Ensure any previously premature auto-drawn fixtures for the newly activated round are freshly scheduled
+    await prisma.match.updateMany({
+      where: {
+        round: nextRoundName,
+        status: "FINISHED",
+        notes: { contains: "Automatic 0-0 Draw" },
+      },
+      data: {
+        status: "SCHEDULED",
+        homeScore: null,
+        awayScore: null,
+        notes: null,
+      },
+    });
 
     const updatedMatches = await prisma.match.updateMany({
       where: { round: nextRoundName },

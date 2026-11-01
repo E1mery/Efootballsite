@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:next": "prisma generate && next build",
+    "build:next": "prisma generate && node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
     "build:pages": "opennextjs-cloudflare build && node scripts/prepare-pages-deploy.js",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "node --max-old-space-size=4096 ./node_modules/eslint/bin/eslint.js .",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:deduplicate": "tsx scripts/deduplicate.ts",

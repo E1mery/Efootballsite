@@ -16,7 +16,7 @@ if (fs.existsSync(assetsDir)) {
   console.warn("⚠️ assets directory not found in .open-next");
 }
 
-// 2. Generate _worker.js that wraps OpenNext and falls back to env.ASSETS
+// 2. Generate _worker.js that wraps OpenNext, streams R2 files directly, and falls back to env.ASSETS
 if (fs.existsSync(workerSrc)) {
   const workerWrapper = `import openNextWorker from "./worker.js";
 
@@ -26,6 +26,12 @@ export default {
       globalThis.__CLOUDFLARE_ENV__ = env;
       if (env.DB) {
         globalThis.DB = env.DB;
+      }
+      if (env.R2_BUCKET) {
+        globalThis.R2_BUCKET = env.R2_BUCKET;
+      }
+      if (env.BUCKET) {
+        globalThis.BUCKET = env.BUCKET;
       }
     }
 
@@ -45,7 +51,28 @@ export default {
       }
     }
 
-    // 2. Dynamic execution via OpenNext Next.js server
+    // 2. Direct high-performance Cloudflare R2 file streaming
+    if (url.pathname.startsWith("/api/files/") && request.method === "GET") {
+      const bucket = env.R2_BUCKET || env.BUCKET;
+      if (bucket) {
+        try {
+          const key = decodeURIComponent(url.pathname.replace(/^\\/api\\/files\\//, ""));
+          const obj = await bucket.get(key);
+          if (obj && obj.body) {
+            const headers = new Headers();
+            headers.set("Content-Type", obj.httpMetadata?.contentType || "image/png");
+            if (obj.size) headers.set("Content-Length", String(obj.size));
+            if (obj.httpEtag) headers.set("ETag", obj.httpEtag);
+            headers.set("Cache-Control", "public, max-age=31536000, immutable");
+            return new Response(obj.body, { status: 200, headers });
+          }
+        } catch (e) {
+          console.error("Direct R2 streaming error:", e);
+        }
+      }
+    }
+
+    // 3. Dynamic execution via OpenNext Next.js server
     try {
       const response = await openNextWorker.fetch(request, env, ctx);
       // Fallback to static assets if OpenNext returned 404
@@ -70,7 +97,7 @@ export default {
 `;
 
   fs.writeFileSync(workerDestRoot, workerWrapper, "utf8");
-  console.log("✅ Created smart .open-next/_worker.js wrapper with env.ASSETS fallback");
+  console.log("✅ Created smart .open-next/_worker.js wrapper with direct R2 streaming and env.ASSETS fallback");
 
   // Clean up any stray _worker.js inside assets dir that would cause relative import errors
   const strayWorkerAssets = path.join(assetsDir, "_worker.js");

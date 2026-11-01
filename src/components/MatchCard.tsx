@@ -35,11 +35,13 @@ interface MatchProps {
     matchDate: Date | string;
     notes?: string | null;
     streamUrl?: string | null;
+    screenshotUrl?: string | null;
+    leg2ScreenshotUrl?: string | null;
     isMatchOfTheDay?: boolean;
     derbyId?: string | null;
     derbyName?: string | null;
     isDerby?: boolean;
-    submissions?: Array<{ screenshotUrl?: string | null; status?: string }>;
+    submissions?: Array<{ screenshotUrl?: string | null; leg2ScreenshotUrl?: string | null; status?: string }>;
     forfeitClaims?: Array<{ proofScreenshotUrl?: string | null; status?: string }>;
   };
   isHighlighted?: boolean;
@@ -64,6 +66,17 @@ export default function MatchCard({ match, isHighlighted }: MatchProps) {
   const approvedForfeit =
     match.forfeitClaims?.find((f) => f.status === "APPROVED") ||
     match.forfeitClaims?.[0];
+
+  const scoreProofUrl =
+    approvedSub?.screenshotUrl ||
+    (match.status !== "FORFEIT" ? match.screenshotUrl : null);
+  const leg2ScoreProofUrl =
+    approvedSub?.leg2ScreenshotUrl ||
+    match.leg2ScreenshotUrl ||
+    null;
+  const forfeitProofUrl =
+    approvedForfeit?.proofScreenshotUrl ||
+    (match.status === "FORFEIT" ? match.screenshotUrl : null);
 
   const formattedTime = formatRwandanTime(match.matchDate);
   const formattedDate = formatRwandanDate(match.matchDate, {
@@ -270,9 +283,9 @@ export default function MatchCard({ match, isHighlighted }: MatchProps) {
         )}
 
         <div className="flex items-center gap-2 ml-auto">
-          {approvedSub?.screenshotUrl && (
+          {scoreProofUrl && (
             <a
-              href={approvedSub.screenshotUrl}
+              href={scoreProofUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary bg-card border border-border px-2.5 py-1 rounded-lg transition"
@@ -281,9 +294,20 @@ export default function MatchCard({ match, isHighlighted }: MatchProps) {
               <span>Score Proof</span>
             </a>
           )}
-          {!approvedSub?.screenshotUrl && approvedForfeit?.proofScreenshotUrl && (
+          {leg2ScoreProofUrl && (
             <a
-              href={approvedForfeit.proofScreenshotUrl}
+              href={leg2ScoreProofUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary bg-card border border-border px-2.5 py-1 rounded-lg transition"
+            >
+              <Eye className="h-3 w-3" />
+              <span>Leg 2 Proof</span>
+            </a>
+          )}
+          {!scoreProofUrl && forfeitProofUrl && (
+            <a
+              href={forfeitProofUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs font-bold text-destructive hover:text-destructive bg-card border border-border px-2.5 py-1 rounded-lg transition"

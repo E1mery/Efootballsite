@@ -18,9 +18,13 @@ import {
   ExternalLink,
   Clock,
   RefreshCw,
+  Unlock,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import ReopenMatchdayModal from "@/components/admin/ReopenMatchdayModal";
+import CloseMatchdayModal from "@/components/admin/CloseMatchdayModal";
 import {
   exportStandingsTablePng,
   exportFixturesPng,
@@ -36,6 +40,7 @@ export interface MatchdayOverviewProps {
     currentMatchday: number;
     uclStarted?: boolean;
     europaStarted?: boolean;
+    [key: string]: any;
   };
   allStandings: any[];
   allMatches: any[];
@@ -90,6 +95,8 @@ export default function MatchdayOverviewManager({
   const [selectedDivisionTab, setSelectedDivisionTab] = useState<string>("ALL");
   const [copiedDivision, setCopiedDivision] = useState<string | null>(null);
   const [exportingState, setExportingState] = useState<string | null>(null);
+  const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [, startTransition] = useTransition();
 
   // Trigger manual sync or server auto-advance
@@ -475,6 +482,26 @@ export default function MatchdayOverviewManager({
           {/* Master Batch Export Actions */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Button
+              onClick={() => setIsReopenModalOpen(true)}
+              size="sm"
+              variant="outline"
+              className="text-xs font-bold gap-1.5 border-primary/50 text-primary hover:bg-primary/20 shadow-sm"
+              title={`Reopen result submissions for ${selectedRound}`}
+            >
+              <Unlock className="h-3.5 w-3.5 text-primary" />
+              <span>Reopen {selectedRound} Submissions</span>
+            </Button>
+            <Button
+              onClick={() => setIsCloseModalOpen(true)}
+              size="sm"
+              variant="outline"
+              className="text-xs font-bold gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/20 shadow-sm"
+              title={`Close result submissions for ${selectedRound}`}
+            >
+              <Lock className="h-3.5 w-3.5 text-destructive" />
+              <span>Close {selectedRound} Submissions</span>
+            </Button>
+            <Button
               onClick={handleExportAllTables}
               disabled={exportingState !== null}
               size="sm"
@@ -836,6 +863,22 @@ export default function MatchdayOverviewManager({
           );
         })}
       </div>
+
+      <ReopenMatchdayModal
+        isOpen={isReopenModalOpen}
+        onClose={() => setIsReopenModalOpen(false)}
+        initialRound={selectedRound}
+        availableRounds={availableRounds}
+        matches={allMatches}
+      />
+
+      <CloseMatchdayModal
+        isOpen={isCloseModalOpen}
+        onClose={() => setIsCloseModalOpen(false)}
+        initialRound={selectedRound}
+        availableRounds={availableRounds}
+        matches={allMatches}
+      />
     </div>
   );
 }
