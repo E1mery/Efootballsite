@@ -5,6 +5,7 @@ import { formatRwandanDateTime } from "@/lib/rwandanTime";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
+import { syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -152,11 +153,23 @@ export async function POST(req: Request) {
       }
     }
 
+    // Always remove missed match penalties and synchronize player discipline
+    const participantIds = [match.homePlayerId, match.awayPlayerId].filter(
+      (id): id is string => Boolean(id)
+    );
+    if (participantIds.length > 0) {
+      try {
+        await syncPlayerDiscipline(participantIds);
+      } catch (disciplineErr) {
+        console.error("[reopen-submissions] Discipline sync error:", disciplineErr);
+      }
+    }
+
     // Safely notify the players
     const homeTag = match.homePlayer?.gamerTag || "Home Athlete";
     const awayTag = match.awayPlayer?.gamerTag || "Away Athlete";
     const notifyTitle = `🔓 Match Result Submissions Reopened!`;
-    const notifyContent = `The League Commissioner has granted permission to upload or re-upload your match scores and screenshot proof for ${homeTag} vs ${awayTag}. The submission buttons on your "Today's Match" page are now active until ${formatRwandanDateTime(newDeadline)} (CAT / Rwandan Time).`;
+    const notifyContent = `The League Commissioner has granted permission to upload or re-upload your match scores and screenshot proof for ${homeTag} vs ${awayTag}. Any missed match penalty previously assigned to this fixture has been removed. The submission buttons on your "Today's Match" page are now active until ${formatRwandanDateTime(newDeadline)} (CAT / Rwandan Time).`;
 
     const recipientIds = (
       targetPlayerId
@@ -182,7 +195,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Submissions reopened successfully for match ${homeTag} vs ${awayTag}. Window active for ${hours} hours.`,
+      message: `Submissions reopened successfully for match ${homeTag} vs ${awayTag}. Window active for ${hours} hours. Any missed match penalty for this fixture has been removed.`,
       match: updatedMatch,
     });
   } catch (err: any) {

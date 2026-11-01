@@ -1471,7 +1471,7 @@ export default function AdminClient({
   const handleReopenSubmissions = async (matchId: string, defaultHours: number = 24) => {
     if (
       !confirm(
-        "Reopen submission buttons for this fixture? Both athletes will receive permission to upload/re-upload scores and screenshot proof, and deadline will be extended."
+        "Reopen submission buttons for this fixture? Any missed match penalty for this closed fixture will be removed, both athletes will receive permission to upload/re-upload scores and screenshot proof, and deadline will be extended."
       )
     ) {
       return;

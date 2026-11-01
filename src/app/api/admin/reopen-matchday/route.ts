@@ -5,6 +5,7 @@ import { formatRwandanDateTime } from "@/lib/rwandanTime";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
+import { syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -217,7 +218,7 @@ export async function POST(req: Request) {
 
     const deadlineFormatted = formatRwandanDateTime(newDeadline);
 
-    // Collect individual players to notify
+    // Collect individual players to notify and sync discipline
     const playerIdsToNotify = new Set<string>();
     for (const m of matchesToReopen) {
       if (m.homePlayerId) playerIdsToNotify.add(m.homePlayerId);
@@ -225,12 +226,22 @@ export async function POST(req: Request) {
     }
 
     const pIds = Array.from(playerIdsToNotify);
+
+    // Remove missed match penalties and synchronize player discipline
+    if (pIds.length > 0) {
+      try {
+        await syncPlayerDiscipline(pIds);
+      } catch (disciplineErr) {
+        console.error("[reopen-matchday] Discipline sync error:", disciplineErr);
+      }
+    }
+
     if (pIds.length > 0) {
       try {
         await prisma.announcement.createMany({
           data: pIds.map((pid) => ({
             title: `🔓 ${trimmedRound} Result Submissions Reopened!`,
-            content: `The League Commissioner has officially reopened result submissions for ${trimmedRound}. Your fixture submission and forfeit claim buttons are now unlocked on "Today's Match" until ${deadlineFormatted} (CAT / Rwandan Time).`,
+            content: `The League Commissioner has officially reopened result submissions for ${trimmedRound}. Any missed match penalties recorded for closed fixtures in this round have been removed. Your fixture submission and forfeit claim buttons are now unlocked on "Today's Match" until ${deadlineFormatted} (CAT / Rwandan Time).`,
             type: "INDIVIDUAL",
             targetPlayerId: pid,
             isPinned: true,
@@ -246,7 +257,7 @@ export async function POST(req: Request) {
       await prisma.announcement.create({
         data: {
           title: `📢 ${trimmedRound} Result Submissions Reopened`,
-          content: `The League Commissioner has reopened result submissions for ${trimmedRound}. All participating athletes have an extended window of ${hours} hours (until ${deadlineFormatted} CAT) to play fixtures and submit screenshot proofs.`,
+          content: `The League Commissioner has reopened result submissions for ${trimmedRound}. Any missed match penalties recorded for closed fixtures have been removed. All participating athletes have an extended window of ${hours} hours (until ${deadlineFormatted} CAT) to play fixtures and submit screenshot proofs.`,
           type: "BROADCAST",
           isPinned: true,
         },
@@ -257,7 +268,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully reopened result submissions for ${matchesToReopen.length} fixture(s) in ${trimmedRound}. Submissions window unlocked for ${hours} hours until ${deadlineFormatted}.`,
+      message: `Successfully reopened result submissions for ${matchesToReopen.length} fixture(s) in ${trimmedRound}. Submissions window unlocked for ${hours} hours until ${deadlineFormatted}. Missed match counts have been removed.`,
       reopenedCount: matchesToReopen.length,
       newDeadline,
       round: trimmedRound,

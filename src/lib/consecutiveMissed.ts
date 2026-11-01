@@ -85,7 +85,14 @@ export async function computeConsecutiveMissedForPlayer(playerId: string): Promi
     where: {
       OR: [{ homePlayerId: playerId }, { awayPlayerId: playerId }],
       status: { in: ["FINISHED", "FORFEIT"] },
-      stage: "DIVISION",
+      AND: [
+        {
+          OR: [
+            { stage: "DIVISION" },
+            { division: { startsWith: "Division" } },
+          ],
+        },
+      ],
     },
     include: {
       submissions: { where: { status: "APPROVED" } },
@@ -99,11 +106,15 @@ export async function computeConsecutiveMissedForPlayer(playerId: string): Promi
 /**
  * Synchronizes consecutiveMissed and disciplinary status across active players and standings tables.
  * Highly optimized: batches data in minimal queries and only writes updates when values differ.
+ * When a closed match is reopened, its status changes to SCHEDULED and it is excluded from finished matches,
+ * which automatically clears the missed match count for both athletes.
  */
-export async function syncPlayerDiscipline(playerId?: string) {
+export async function syncPlayerDiscipline(playerId?: string | string[]) {
   try {
     const where: any = playerId
-      ? { id: playerId }
+      ? Array.isArray(playerId)
+        ? { id: { in: playerId } }
+        : { id: playerId }
       : { status: { in: ["ACTIVE", "WARNING", "DISQUALIFIED"] } };
 
     const [players, allFinishedMatches, allStandings] = await Promise.all([
@@ -121,7 +132,10 @@ export async function syncPlayerDiscipline(playerId?: string) {
       prisma.match.findMany({
         where: {
           status: { in: ["FINISHED", "FORFEIT"] },
-          stage: "DIVISION",
+          OR: [
+            { stage: "DIVISION" },
+            { division: { startsWith: "Division" } },
+          ],
         },
         include: {
           submissions: { where: { status: "APPROVED" } },
@@ -163,6 +177,8 @@ export async function syncPlayerDiscipline(playerId?: string) {
       }
     }
 
+    let updatedCount = 0;
+
     for (const p of players) {
       const pMatches = matchesByPlayer.get(p.id) || [];
       const correctMissed = computeConsecutiveMissedFromMatches(p, pMatches);
@@ -175,11 +191,13 @@ export async function syncPlayerDiscipline(playerId?: string) {
         ? "ACTIVE"
         : p.status;
 
-      if (
+      const playerChanged =
         p.consecutiveMissed !== correctMissed ||
         p.isDisqualified !== isDisqualified ||
-        p.status !== newStatus
-      ) {
+        p.status !== newStatus;
+
+      if (playerChanged) {
+        updatedCount++;
         await prisma.player.update({
           where: { id: p.id },
           data: {
@@ -193,7 +211,47 @@ export async function syncPlayerDiscipline(playerId?: string) {
         });
       }
 
-      if (correctMissed === 2 && !isDisqualified) {
+      // If player was disqualified and is now reinstated (e.g. closed match was reopened):
+      // clear WAITING_FOR_SUB on upcoming fixtures and remove suspension announcement
+      if (p.isDisqualified && !isDisqualified) {
+        await prisma.match.updateMany({
+          where: {
+            OR: [{ homePlayerId: p.id }, { awayPlayerId: p.id }],
+            status: "SCHEDULED",
+            notes: { contains: "WAITING_FOR_SUB" },
+          },
+          data: {
+            notes: null,
+          },
+        });
+
+        await prisma.announcement.deleteMany({
+          where: {
+            targetPlayerId: p.id,
+            title: { contains: "ACCOUNT SUSPENDED: 3 Missed Matches" },
+          },
+        }).catch(() => {});
+
+        await prisma.announcement.create({
+          data: {
+            title: "✅ Disciplinary Suspension Lifted",
+            content: `Hello @${p.gamerTag}. Your closed fixture was reopened by the League Administrator, and your missed match count has been reduced to ${correctMissed}/3. Your account suspension has been lifted and you are restored to active competition.`,
+            type: "INDIVIDUAL",
+            targetPlayerId: p.id,
+            isPinned: false,
+          },
+        }).catch(() => {});
+      }
+
+      // If missed matches reduced below warning threshold, delete previous warning announcement
+      if (correctMissed < 2) {
+        await prisma.announcement.deleteMany({
+          where: {
+            targetPlayerId: p.id,
+            title: { contains: "DISCIPLINARY WARNING: 2/3 Missed Matches" },
+          },
+        }).catch(() => {});
+      } else if (correctMissed === 2 && !isDisqualified) {
         const existingWarning = await prisma.announcement.findFirst({
           where: {
             targetPlayerId: p.id,
@@ -213,7 +271,7 @@ export async function syncPlayerDiscipline(playerId?: string) {
         }
       }
 
-      // Check player standings
+      // Check and update player standings
       const pStandings = standingsByPlayer.get(p.id) || [];
       for (const s of pStandings) {
         if (s.consecutiveMissed !== correctMissed || s.isDisqualified !== isDisqualified) {
@@ -227,7 +285,17 @@ export async function syncPlayerDiscipline(playerId?: string) {
         }
       }
     }
+
+    return {
+      success: true,
+      syncedCount: players.length,
+      updatedCount,
+    };
   } catch (err) {
     console.error("syncPlayerDiscipline error:", err);
+    return {
+      success: false,
+      error: err,
+    };
   }
 }

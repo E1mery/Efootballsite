@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
 import { invalidateHallOfFameCache } from "@/lib/hallOfFameStatsService";
-import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
+import { computeConsecutiveMissedForPlayer, syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 import { createRwandanMidnight, getRwandanDateString } from "@/lib/rwandanTime";
 
 export async function POST(req: Request) {
@@ -244,6 +244,13 @@ export async function POST(req: Request) {
           matchSummary: "Result Reverted (Match Reset)",
         });
 
+        // Synchronize discipline and remove missed match counts
+        await syncPlayerDiscipline(
+          [revertedMatch.homePlayerId, revertedMatch.awayPlayerId].filter(
+            (id): id is string => Boolean(id)
+          )
+        ).catch(() => {});
+
         // Revert social result posts if previously published
         try {
           const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
@@ -440,20 +447,56 @@ export async function POST(req: Request) {
         }
       }
 
-      await prisma.match.update({
-        where: { id: matchId },
-        data: {
-          status: allowLate ? "SCHEDULED" : match.status,
-          notes: allowLate
-            ? "ADMIN_REOPENED - Late submission approved by Admin Office."
-            : "Locked per regular matchday window.",
-        },
-      });
+      if (allowLate) {
+        const hadFinishedResult =
+          match.status === "FINISHED" ||
+          match.status === "FORFEIT" ||
+          match.homeScore !== null ||
+          match.awayScore !== null;
+
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            status: "SCHEDULED",
+            homeScore: null,
+            awayScore: null,
+            leg2HomeScore: null,
+            leg2AwayScore: null,
+            aggregateHomeScore: null,
+            aggregateAwayScore: null,
+            screenshotUrl: null,
+            leg2ScreenshotUrl: null,
+            allowLateSubmission: true,
+            notes: "ADMIN_REOPENED - Late submission approved by Admin Office.",
+          },
+        });
+
+        if (hadFinishedResult) {
+          const divToRecalc =
+            match.stage === "GROUP" && match.groupName
+              ? `${match.division} ${match.groupName}`
+              : match.division;
+          await recalculateStandings(match.tournamentId, divToRecalc).catch(() => {});
+        }
+
+        // Synchronize discipline and remove missed match count
+        await syncPlayerDiscipline(
+          [match.homePlayerId, match.awayPlayerId].filter((id): id is string => Boolean(id))
+        ).catch(() => {});
+      } else {
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            status: match.status,
+            notes: "Locked per regular matchday window.",
+          },
+        });
+      }
 
       return NextResponse.json({
         success: true,
         message: allowLate
-          ? "Fixture unlocked! Players can now submit scores."
+          ? "Fixture unlocked! Players can now submit scores, and any missed match count has been removed."
           : "Fixture locked.",
       });
     }

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { formatRwandanDateTime } from "@/lib/rwandanTime";
+import { recalculateStandings } from "@/lib/recalculateStandings";
+import { syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -41,6 +43,12 @@ export async function POST(req: Request) {
 
     const newDeadline = new Date(Date.now() + Number(extensionHours) * 60 * 60 * 1000);
 
+    const isAutoDrawOrMissed = Boolean(
+      match.notes?.includes("Automatic 0-0 Draw") ||
+      match.notes?.includes("missed match") ||
+      match.notes?.includes("elapsed without submitted score")
+    );
+
     const updatedMatch = await prisma.match.update({
       where: { id: matchId },
       data: {
@@ -48,9 +56,22 @@ export async function POST(req: Request) {
         extendedDeadlineDate: newDeadline,
         deadlineDate: newDeadline,
         status: match.status === "FORFEIT" ? match.status : "SCHEDULED",
+        homeScore: isAutoDrawOrMissed ? null : undefined,
+        awayScore: isAutoDrawOrMissed ? null : undefined,
         notes: customNotes || `Deadline extended by Admin Office until ${formatRwandanDateTime(newDeadline)} (CAT). Late result upload granted.`,
       },
     });
+
+    if (isAutoDrawOrMissed) {
+      const divToRecalc =
+        match.stage === "GROUP" && match.groupName
+          ? `${match.division} ${match.groupName}`
+          : match.division;
+      await recalculateStandings(match.tournamentId, divToRecalc).catch(() => {});
+      await syncPlayerDiscipline(
+        [match.homePlayerId, match.awayPlayerId].filter((id): id is string => Boolean(id))
+      ).catch(() => {});
+    }
 
     // Notify both athletes
     const notifyTitle = `⏰ Match Deadline Extended: ${match.round}`;

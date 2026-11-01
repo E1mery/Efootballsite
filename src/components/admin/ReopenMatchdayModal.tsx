@@ -309,7 +309,7 @@ export default function ReopenMatchdayModal({
               </div>
             )}
             <p className="text-xs text-muted-foreground pt-1 border-t border-border/60">
-              Both athletes in each fixture will receive individual notification announcements, and their result submission & forfeit claim buttons on &quot;Today&apos;s Match&quot; will activate immediately.
+              Both athletes in each fixture will receive individual notification announcements, any missed match penalties recorded for closed fixtures will be removed, and their result submission & forfeit claim buttons on &quot;Today&apos;s Match&quot; will activate immediately.
             </p>
           </div>
 
