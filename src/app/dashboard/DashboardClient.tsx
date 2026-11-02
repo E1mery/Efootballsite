@@ -4145,7 +4145,7 @@ export default function DashboardClient({
                       <span className="text-xs font-bold text-muted-foreground uppercase">Missed Matches</span>
                       <div
                         className={`p-1.5 rounded-xl ${
-                          player.consecutiveMissed > 0
+                          (currentPlayer?.consecutiveMissed ?? player.consecutiveMissed ?? 0) > 0
                             ? "bg-destructive/20 text-destructive"
                             : "bg-primary/20 text-primary"
                         }`}
@@ -4156,17 +4156,17 @@ export default function DashboardClient({
                     <div>
                       <span
                         className={`text-2xl sm:text-3xl font-black block ${
-                          player.consecutiveMissed > 0 ? "text-destructive" : "text-foreground"
+                          (currentPlayer?.consecutiveMissed ?? player.consecutiveMissed ?? 0) > 0 ? "text-destructive" : "text-foreground"
                         }`}
                       >
-                        {player.consecutiveMissed} <span className="text-xs font-bold text-muted-foreground">/ 3 Max</span>
+                        {currentPlayer?.consecutiveMissed ?? player.consecutiveMissed ?? 0} <span className="text-xs font-bold text-muted-foreground">/ 3 Max</span>
                       </span>
                       <span
                         className={`text-xs font-mono ${
-                          player.consecutiveMissed > 0 ? "text-destructive" : "text-muted-foreground"
+                          (currentPlayer?.consecutiveMissed ?? player.consecutiveMissed ?? 0) > 0 ? "text-destructive" : "text-muted-foreground"
                         }`}
                       >
-                        {player.consecutiveMissed === 0 ? "Clean Record" : "Forfeit Risk"}
+                        {(currentPlayer?.consecutiveMissed ?? player.consecutiveMissed ?? 0) === 0 ? "Clean Record" : "Forfeit Risk"}
                       </span>
                     </div>
                   </div>

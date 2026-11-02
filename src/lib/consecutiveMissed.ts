@@ -28,6 +28,18 @@ export function computeConsecutiveMissedFromMatches(
       continue;
     }
 
+    // Reopened fixtures or fixtures with active late submission MUST NOT count as missed matches
+    const isReopenedOrActive = Boolean(
+      m.status === "SCHEDULED" ||
+      m.allowLateSubmission ||
+      m.notes?.includes("ADMIN_REOPENED") ||
+      m.notes?.includes("REOPEN")
+    );
+
+    if (isReopenedOrActive) {
+      continue;
+    }
+
     const isAutoDraw = Boolean(
       m.notes?.includes("Automatic 0-0 Draw") ||
       m.notes?.includes("missed match") ||
@@ -84,9 +96,13 @@ export async function computeConsecutiveMissedForPlayer(playerId: string): Promi
 
   const matches = await prisma.match.findMany({
     where: {
-      OR: [{ homePlayerId: playerId }, { awayPlayerId: playerId }],
-      status: { in: ["FINISHED", "FORFEIT"] },
       AND: [
+        {
+          OR: [{ homePlayerId: playerId }, { awayPlayerId: playerId }],
+        },
+        {
+          status: { in: ["FINISHED", "FORFEIT"] },
+        },
         {
           OR: [
             { stage: "DIVISION" },
@@ -122,23 +138,28 @@ export async function syncPlayerDiscipline(playerId?: string | string[]) {
       ? { id: { in: targetPlayerIds } }
       : { status: { in: ["ACTIVE", "WARNING", "DISQUALIFIED"] } };
 
-    const matchesWhere: any = {
-      status: { in: ["FINISHED", "FORFEIT"] },
-      OR: [
-        { stage: "DIVISION" },
-        { division: { startsWith: "Division" } },
-      ],
-    };
+    const andConditions: any[] = [
+      {
+        status: { in: ["FINISHED", "FORFEIT"] },
+      },
+      {
+        OR: [
+          { stage: "DIVISION" },
+          { division: { startsWith: "Division" } },
+        ],
+      },
+    ];
+
     if (targetPlayerIds && targetPlayerIds.length > 0) {
-      matchesWhere.AND = [
-        {
-          OR: [
-            { homePlayerId: { in: targetPlayerIds } },
-            { awayPlayerId: { in: targetPlayerIds } },
-          ],
-        },
-      ];
+      andConditions.push({
+        OR: [
+          { homePlayerId: { in: targetPlayerIds } },
+          { awayPlayerId: { in: targetPlayerIds } },
+        ],
+      });
     }
+
+    const matchesWhere: any = { AND: andConditions };
 
     const standingsWhere: any = targetPlayerIds && targetPlayerIds.length > 0
       ? { playerId: { in: targetPlayerIds } }
@@ -233,9 +254,10 @@ export async function syncPlayerDiscipline(playerId?: string | string[]) {
         });
       }
 
-      // If player was disqualified and is now reinstated (e.g. closed match was reopened):
-      // clear WAITING_FOR_SUB on upcoming fixtures and remove suspension announcement
-      if (p.isDisqualified && !isDisqualified) {
+      // If player was disqualified/suspended and is now reinstated (e.g. closed match was reopened):
+      // clear WAITING_FOR_SUB on upcoming fixtures, clean announcements, and restore active standing
+      const wasSuspended = Boolean(p.isDisqualified || (p.consecutiveMissed ?? 0) >= 3);
+      if (wasSuspended && !isDisqualified) {
         await prisma.match.updateMany({
           where: {
             OR: [{ homePlayerId: p.id }, { awayPlayerId: p.id }],
@@ -251,6 +273,13 @@ export async function syncPlayerDiscipline(playerId?: string | string[]) {
           where: {
             targetPlayerId: p.id,
             title: { contains: "ACCOUNT SUSPENDED: 3 Missed Matches" },
+          },
+        }).catch(() => {});
+
+        await prisma.announcement.deleteMany({
+          where: {
+            title: { contains: "Match on Hold — Waiting for Sub" },
+            content: { contains: p.gamerTag },
           },
         }).catch(() => {});
 

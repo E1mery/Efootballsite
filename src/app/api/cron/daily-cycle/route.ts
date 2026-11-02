@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await checkAndAutoAdvanceDailyCycle({ force: false });
+    const result = await checkAndAutoAdvanceDailyCycle({ force: false, bypassThrottle: true });
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await checkAndAutoAdvanceDailyCycle({ force: false });
+    const result = await checkAndAutoAdvanceDailyCycle({ force: false, bypassThrottle: true });
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),

@@ -55,14 +55,14 @@ export async function POST(req: Request) {
         allowLateSubmission: Boolean(allowLateSubmission),
         extendedDeadlineDate: newDeadline,
         deadlineDate: newDeadline,
-        status: match.status === "FORFEIT" ? match.status : "SCHEDULED",
-        homeScore: isAutoDrawOrMissed ? null : undefined,
-        awayScore: isAutoDrawOrMissed ? null : undefined,
+        status: allowLateSubmission ? "SCHEDULED" : match.status,
+        homeScore: (allowLateSubmission || isAutoDrawOrMissed) ? null : undefined,
+        awayScore: (allowLateSubmission || isAutoDrawOrMissed) ? null : undefined,
         notes: customNotes || `Deadline extended by Admin Office until ${formatRwandanDateTime(newDeadline)} (CAT). Late result upload granted.`,
       },
     });
 
-    if (isAutoDrawOrMissed) {
+    if (isAutoDrawOrMissed || allowLateSubmission) {
       const divToRecalc =
         match.stage === "GROUP" && match.groupName
           ? `${match.division} ${match.groupName}`

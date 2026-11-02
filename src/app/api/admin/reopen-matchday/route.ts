@@ -93,13 +93,21 @@ export async function POST(req: Request) {
       matchesToReopen = allMatchesInRound.filter((m) => {
         if (m.status === "SCHEDULED") return true;
         if (m.status === "FORFEIT") return true;
+        if (m.allowLateSubmission) return true;
         if (
           m.notes?.includes("Automatic 0-0 Draw") ||
-          m.notes?.includes("24-hour midnight window elapsed")
+          m.notes?.includes("24-hour midnight window elapsed") ||
+          m.notes?.includes("missed match") ||
+          m.notes?.includes("elapsed without submitted score") ||
+          m.notes?.includes("ADMIN_REOPENED") ||
+          m.notes?.includes("REOPEN")
         ) {
           return true;
         }
         if (m.homeScore === null || m.awayScore === null) return true;
+        if (m.homeScore === 0 && m.awayScore === 0 && (!m.submissions || m.submissions.length === 0)) {
+          return true;
+        }
         return false;
       });
     }
@@ -205,12 +213,26 @@ export async function POST(req: Request) {
 
       await invalidateHallOfFameCache().catch(() => {});
 
-      // Social feed sync
+      // Social feed sync: Archive results of reopened fixtures in one fast batch query
       try {
-        const { syncSocialResultForMatch } = await import("@/lib/socialResultSync");
-        for (const m of hadFinishedResultMatches) {
-          await syncSocialResultForMatch(m.id, "SCHEDULED").catch(() => {});
-        }
+        await prisma.socialPost.updateMany({
+          where: {
+            matchId: { in: matchIdsToReopen },
+            type: {
+              in: [
+                "MOTD_RESULT",
+                "MOTW_RESULT",
+                "DERBY_RESULT",
+                "SUPER_CUP_RESULT",
+                "UCL_FINAL_RESULT",
+                "EUROPA_FINAL_RESULT",
+              ],
+            },
+          },
+          data: {
+            status: "ARCHIVED",
+          },
+        });
       } catch (socialErr) {
         console.error("[reopen-matchday] Social sync error:", socialErr);
       }
@@ -238,15 +260,20 @@ export async function POST(req: Request) {
 
     if (pIds.length > 0) {
       try {
-        await prisma.announcement.createMany({
-          data: pIds.map((pid) => ({
-            title: `🔓 ${trimmedRound} Result Submissions Reopened!`,
-            content: `The League Commissioner has officially reopened result submissions for ${trimmedRound}. Any missed match penalties recorded for closed fixtures in this round have been removed. Your fixture submission and forfeit claim buttons are now unlocked on "Today's Match" until ${deadlineFormatted} (CAT / Rwandan Time).`,
-            type: "INDIVIDUAL",
-            targetPlayerId: pid,
-            isPinned: true,
-          })),
-        });
+        // Chunk individual announcements in batches of 25 to respect D1 query parameter limits
+        const chunkSize = 25;
+        for (let i = 0; i < pIds.length; i += chunkSize) {
+          const chunk = pIds.slice(i, i + chunkSize);
+          await prisma.announcement.createMany({
+            data: chunk.map((pid) => ({
+              title: `🔓 ${trimmedRound} Result Submissions Reopened!`,
+              content: `The League Commissioner has officially reopened result submissions for ${trimmedRound}. Any missed match penalties recorded for closed fixtures in this round have been removed. Your fixture submission and forfeit claim buttons are now unlocked on "Today's Match" until ${deadlineFormatted} (CAT / Rwandan Time).`,
+              type: "INDIVIDUAL",
+              targetPlayerId: pid,
+              isPinned: true,
+            })),
+          });
+        }
       } catch (announcementErr) {
         console.error("[reopen-matchday] Individual announcements error:", announcementErr);
       }

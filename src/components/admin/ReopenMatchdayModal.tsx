@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Unlock, RefreshCw, X, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default function ReopenMatchdayModal({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Synchronize when initialRound changes upon opening
-  useMemo(() => {
+  useEffect(() => {
     if (initialRound) {
       setSelectedRound(initialRound);
     }
@@ -68,13 +68,21 @@ export default function ReopenMatchdayModal({
     return matchingMatches.filter((m: any) => {
       if (m.status === "SCHEDULED") return true;
       if (m.status === "FORFEIT") return true;
+      if (m.allowLateSubmission) return true;
       if (
         m.notes?.includes("Automatic 0-0 Draw") ||
-        m.notes?.includes("24-hour midnight window elapsed")
+        m.notes?.includes("24-hour midnight window elapsed") ||
+        m.notes?.includes("missed match") ||
+        m.notes?.includes("elapsed without submitted score") ||
+        m.notes?.includes("ADMIN_REOPENED") ||
+        m.notes?.includes("REOPEN")
       ) {
         return true;
       }
       if (m.homeScore === null || m.awayScore === null) return true;
+      if (m.homeScore === 0 && m.awayScore === 0 && (!m.submissions || m.submissions.length === 0)) {
+        return true;
+      }
       return false;
     }).length;
   }, [matchingMatches, scope]);
@@ -101,7 +109,20 @@ export default function ReopenMatchdayModal({
         }),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        if (!res.ok) {
+          if (responseText.includes("1102") || res.status === 503) {
+            throw new Error("Server CPU execution limit reached (Error 1102). Try reopening per-division or select Unplayed Only scope.");
+          }
+          throw new Error(`Server returned error (${res.status}): ${res.statusText || "Unable to complete request"}`);
+        }
+        throw new Error("Unexpected non-JSON response from server.");
+      }
+
       if (!res.ok) {
         throw new Error(data.error || "Failed to reopen matchday submissions.");
       }

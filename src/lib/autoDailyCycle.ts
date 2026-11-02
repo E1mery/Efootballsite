@@ -6,7 +6,7 @@ import { cleanupExpiredRepliedMessages } from "@/lib/messageCleanup";
 import { cleanupExpiredAnnouncements } from "@/lib/announcementCleanup";
 import { recalculateStandings } from "@/lib/recalculateStandings";
 import { notifyStandingsUpdate } from "@/lib/notifyStandingsUpdate";
-import { computeConsecutiveMissedForPlayer } from "@/lib/consecutiveMissed";
+import { computeConsecutiveMissedForPlayer, syncPlayerDiscipline } from "@/lib/consecutiveMissed";
 import { createRwandanMidnight, getRwandanDateString } from "@/lib/rwandanTime";
 
 export interface DailyCycleResult {
@@ -20,6 +20,10 @@ export interface DailyCycleResult {
 /**
  * Processes unplayed scheduled matches whose deadline has passed (or for a specified round).
  * Sets them to 0-0 Draw, awards 1 point each in standings, and adds 1 missed match to both players.
+ * Highly optimized for Cloudflare Workers / D1 execution time limits:
+ * - Batches match updates in a single query
+ * - Uses in-memory discipline synchronization
+ * - Recalculates standings once per unique affected division
  */
 export async function processOverdueUnplayedMatches(options: { round?: string; force?: boolean } = {}): Promise<{
   processedMatchesCount: number;
@@ -69,7 +73,16 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
         },
       ],
     },
-    include: { homePlayer: true, awayPlayer: true },
+    select: {
+      id: true,
+      round: true,
+      division: true,
+      stage: true,
+      groupName: true,
+      tournamentId: true,
+      homePlayerId: true,
+      awayPlayerId: true,
+    },
   });
 
   // Filter out any division matches that belong to active or future rounds when generic cleanup is running
@@ -85,134 +98,74 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
     return true;
   });
 
-  const affectedDivisions = new Map<string, { tournamentId: string; division: string }>();
-  const processedMatchIds: string[] = [];
+  if (matchesToProcess.length === 0) {
+    return {
+      processedMatchesCount: 0,
+      processedMatchIds: [],
+    };
+  }
+
+  const processedMatchIds = matchesToProcess.map((m) => m.id);
+
+  // 1. Batch-update all expired matches to FINISHED with 0-0 in a single query
+  await prisma.match.updateMany({
+    where: { id: { in: processedMatchIds } },
+    data: {
+      homeScore: 0,
+      awayScore: 0,
+      status: "FINISHED",
+      notes: "Automatic 0-0 Draw (1 pt each): 24-hour midnight window elapsed without submitted score. Both players assigned 1 missed match.",
+    },
+  });
+
+  const affectedDivisions = new Map<
+    string,
+    { tournamentId: string; division: string; rawDivision: string; groupName?: string | null }
+  >();
+  const affectedPlayerIds = new Set<string>();
 
   for (const match of matchesToProcess) {
-    await prisma.match.update({
-      where: { id: match.id },
-      data: {
-        homeScore: 0,
-        awayScore: 0,
-        status: "FINISHED",
-        notes: `Automatic 0-0 Draw (1 pt each): 24-hour midnight window elapsed without submitted score. Both players assigned 1 missed match.`,
-      },
-    });
-
-    processedMatchIds.push(match.id);
+    if (match.homePlayerId) affectedPlayerIds.add(match.homePlayerId);
+    if (match.awayPlayerId) affectedPlayerIds.add(match.awayPlayerId);
 
     const divToRecalc = match.stage === "GROUP" && match.groupName
       ? `${match.division} ${match.groupName}`
       : match.division;
     const divKey = `${match.tournamentId}__${divToRecalc}`;
     if (!affectedDivisions.has(divKey)) {
-      affectedDivisions.set(divKey, { tournamentId: match.tournamentId, division: divToRecalc });
-    }
-
-    // Compute accurate consecutiveMissed count for both players (disqualifying if >= 3)
-    for (const player of [match.homePlayer, match.awayPlayer]) {
-      const freshPlayer = (await prisma.player.findUnique({ where: { id: player.id } })) || player;
-      const newMissed = await computeConsecutiveMissedForPlayer(freshPlayer.id);
-      const isDisqualified = newMissed >= 3;
-
-      await prisma.player.update({
-        where: { id: freshPlayer.id },
-        data: {
-          consecutiveMissed: newMissed,
-          isDisqualified,
-          status: isDisqualified ? "DISQUALIFIED" : newMissed >= 2 ? "WARNING" : "ACTIVE",
-          disqualificationReason: isDisqualified
-            ? "Missed 3 consecutive league fixtures without submitting results or claiming forfeit."
-            : null,
-        },
+      affectedDivisions.set(divKey, {
+        tournamentId: match.tournamentId,
+        division: divToRecalc,
+        rawDivision: match.division,
+        groupName: match.groupName,
       });
-
-      await prisma.standing.updateMany({
-        where: { playerId: freshPlayer.id },
-        data: {
-          consecutiveMissed: newMissed,
-          isDisqualified,
-        },
-      });
-
-      if (newMissed === 2 && !isDisqualified) {
-        // Private warning notification directly to the player's portal inbox
-        const existingWarning = await prisma.announcement.findFirst({
-          where: {
-            targetPlayerId: freshPlayer.id,
-            title: { contains: "DISCIPLINARY WARNING: 2/3 Missed Matches" },
-          },
-        });
-
-        if (!existingWarning) {
-          await prisma.announcement.create({
-            data: {
-              title: `⚠️ DISCIPLINARY WARNING: 2/3 Missed Matches`,
-              content: `Hello @${freshPlayer.gamerTag}. You have missed 2 consecutive scheduled fixtures without administrative approval. This is your FINAL WARNING. EFRL regulations mandate immediate disqualification and roster replacement upon reaching 3 missed matches. Please ensure you play your next fixture and submit results before the deadline.`,
-              type: "INDIVIDUAL",
-              targetPlayerId: freshPlayer.id,
-              isPinned: true,
-            },
-          });
-        }
-      }
-
-      if (isDisqualified) {
-        // Private notification to suspended player
-        await prisma.announcement.create({
-          data: {
-            title: `🚨 ACCOUNT SUSPENDED: 3 Missed Matches`,
-            content: `Hello ${freshPlayer.gamerTag}. You have reached 3 missed matches without submitting results or claiming forfeit. In accordance with league rules, you have been removed from active match fixtures until the League Admin assigns a replacement.`,
-            type: "INDIVIDUAL",
-            targetPlayerId: freshPlayer.id,
-            isPinned: true,
-          },
-        });
-
-        // Mark all upcoming scheduled matches for this player as WAITING_FOR_SUB and notify opponents
-        const upcomingMatches = await prisma.match.findMany({
-          where: {
-            OR: [{ homePlayerId: freshPlayer.id }, { awayPlayerId: freshPlayer.id }],
-            status: "SCHEDULED",
-          },
-        });
-
-        for (const upm of upcomingMatches) {
-          await prisma.match.update({
-            where: { id: upm.id },
-            data: {
-              notes: "WAITING_FOR_SUB: Opponent reached 3 missed matches. Awaiting Admin replacement.",
-            },
-          });
-
-          const opponentId = upm.homePlayerId === freshPlayer.id ? upm.awayPlayerId : upm.homePlayerId;
-          if (opponentId) {
-            await prisma.announcement.create({
-              data: {
-                title: `⏳ Match on Hold — Waiting for Sub (${upm.round})`,
-                content: `Your scheduled match against @${freshPlayer.gamerTag} for ${upm.round} is on hold because your opponent reached 3 missed matches. The League Admin is currently assigning a replacement player. You will receive a 48-hour window once the substitute arrives.`,
-                type: "INDIVIDUAL",
-                targetPlayerId: opponentId,
-                isPinned: true,
-              },
-            });
-          }
-        }
-      }
     }
   }
 
-  // Recalculate standings for all affected divisions so both players officially receive 1 point each
-  for (const { tournamentId, division } of affectedDivisions.values()) {
-    await recalculateStandings(tournamentId, division);
-    const compType = division.includes("EUROPA") ? "EUROPA" : division.includes("UCL") ? "UCL" : "DIVISION";
-    const grpMatch = division.match(/Group [A-D]/i);
-    await notifyStandingsUpdate({
-      tournamentType: compType,
-      competitionName: division,
-      groupName: grpMatch ? grpMatch[0] : null,
-      matchSummary: "Overdue matchday resolution (0-0 draw)",
-    }).catch(() => {});
+  // 2. Synchronize player discipline and consecutive missed matches in batched memory
+  const playerIdsArr = Array.from(affectedPlayerIds);
+  if (playerIdsArr.length > 0) {
+    try {
+      await syncPlayerDiscipline(playerIdsArr);
+    } catch (discErr) {
+      console.warn("Discipline sync warning in processOverdueUnplayedMatches:", discErr);
+    }
+  }
+
+  // 3. Recalculate standings once per affected division
+  for (const { tournamentId, division, rawDivision, groupName } of affectedDivisions.values()) {
+    try {
+      await recalculateStandings(tournamentId, division);
+      const compType = rawDivision.includes("EUROPA") ? "EUROPA" : rawDivision.includes("UCL") ? "UCL" : "DIVISION";
+      await notifyStandingsUpdate({
+        tournamentType: compType,
+        competitionName: rawDivision,
+        groupName: groupName || null,
+        matchSummary: "Overdue matchday resolution (0-0 draw)",
+      }).catch(() => {});
+    } catch (recalcErr) {
+      console.warn("recalculateStandings warning in processOverdueUnplayedMatches:", recalcErr);
+    }
   }
 
   return {
@@ -221,19 +174,18 @@ export async function processOverdueUnplayedMatches(options: { round?: string; f
   };
 }
 
-/**
- * Checks if the current matchday deadline has expired (12:00 AM midnight passed)
- * and automatically rolls over to the next matchday without requiring Admin intervention.
- * 
- * If `force` is true (e.g. triggered manually by admin), ignores the deadline check.
- */
+export interface AutoAdvanceOptions {
+  force?: boolean;
+  bypassThrottle?: boolean;
+}
+
 let lastDailyCycleCheckTime = 0;
-const DAILY_CYCLE_THROTTLE_MS = 15 * 60 * 1000; // 15 minutes throttle for non-forced checks
+const DAILY_CYCLE_THROTTLE_MS = 2 * 60 * 1000; // 2 minutes throttle (was 15 minutes)
 
-export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean } = {}): Promise<DailyCycleResult> {
-  const { force = false } = options;
+export async function checkAndAutoAdvanceDailyCycle(options: AutoAdvanceOptions = {}): Promise<DailyCycleResult> {
+  const { force = false, bypassThrottle = false } = options;
 
-  if (!force && Date.now() - lastDailyCycleCheckTime < DAILY_CYCLE_THROTTLE_MS) {
+  if (!force && !bypassThrottle && Date.now() - lastDailyCycleCheckTime < DAILY_CYCLE_THROTTLE_MS) {
     return {
       advanced: false,
       currentMatchday: 1,
@@ -254,9 +206,6 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     const nextMatchday = currentMatchday + 1;
     const nextRoundName = `Matchday ${nextMatchday}`;
 
-    // Always run automated 1-hour match reminders check for any expiring unsubmitted matches
-    await checkAndSendOneHourMatchReminders();
-
     // Automatically purge replied player messages and announcements older than 24 hours
     await cleanupExpiredRepliedMessages();
     await cleanupExpiredAnnouncements();
@@ -267,12 +216,22 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
     const now = new Date();
 
     if (!force) {
-      // Look for the latest deadline in the current matchday
-      const sampleMatch = await prisma.match.findFirst({
-        where: { round: previousRoundName },
-        orderBy: { deadlineDate: "desc" },
+      // Look for the standard deadline in the current matchday
+      // Priority 1: Unextended standard fixture (allowLateSubmission: false)
+      // Priority 2: Earliest deadline in the round
+      let sampleMatch = await prisma.match.findFirst({
+        where: { round: previousRoundName, allowLateSubmission: false },
+        orderBy: { deadlineDate: "asc" },
         select: { deadlineDate: true },
       });
+
+      if (!sampleMatch) {
+        sampleMatch = await prisma.match.findFirst({
+          where: { round: previousRoundName },
+          orderBy: { deadlineDate: "asc" },
+          select: { deadlineDate: true },
+        });
+      }
 
       // If no match found, do nothing
       if (!sampleMatch || !sampleMatch.deadlineDate) {
@@ -286,7 +245,6 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
 
       // STRICT DEADLINE CHECK:
       // Never advance before the official deadline has actually arrived (12:00 AM CAT / Rwandan Time).
-      // Zero premature buffer to prevent dropping new fixtures before the deadline expires.
       if (now.getTime() < new Date(sampleMatch.deadlineDate).getTime()) {
         return {
           advanced: false,
@@ -314,9 +272,10 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
       },
     });
 
-    for (const rm of expiredReplacementMatches) {
-      await prisma.match.update({
-        where: { id: rm.id },
+    if (expiredReplacementMatches.length > 0) {
+      const repMatchIds = expiredReplacementMatches.map((m) => m.id);
+      await prisma.match.updateMany({
+        where: { id: { in: repMatchIds } },
         data: {
           homeScore: 0,
           awayScore: 0,
@@ -324,15 +283,30 @@ export async function checkAndAutoAdvanceDailyCycle(options: { force?: boolean }
           notes: "Automatic 0-0 Draw (1 pt each): 48-hour replacement window elapsed without submitted score.",
         },
       });
-      await recalculateStandings(rm.tournamentId, rm.division);
-      const compType = rm.division.includes("EUROPA") ? "EUROPA" : rm.division.includes("UCL") ? "UCL" : "DIVISION";
-      const grpMatch = rm.division.match(/Group [A-D]/i);
-      await notifyStandingsUpdate({
-        tournamentType: compType,
-        competitionName: rm.division,
-        groupName: grpMatch ? grpMatch[0] : null,
-        matchSummary: "Replacement match elapsed (0-0 draw)",
-      }).catch(() => {});
+
+      const affectedRepDivisions = new Map<string, { tournamentId: string; division: string }>();
+      for (const rm of expiredReplacementMatches) {
+        const divKey = `${rm.tournamentId}__${rm.division}`;
+        if (!affectedRepDivisions.has(divKey)) {
+          affectedRepDivisions.set(divKey, { tournamentId: rm.tournamentId, division: rm.division });
+        }
+      }
+
+      for (const { tournamentId, division } of affectedRepDivisions.values()) {
+        try {
+          await recalculateStandings(tournamentId, division);
+          const compType = division.includes("EUROPA") ? "EUROPA" : division.includes("UCL") ? "UCL" : "DIVISION";
+          const grpMatch = division.match(/Group [A-D]/i);
+          await notifyStandingsUpdate({
+            tournamentType: compType,
+            competitionName: division,
+            groupName: grpMatch ? grpMatch[0] : null,
+            matchSummary: "Replacement match elapsed (0-0 draw)",
+          }).catch(() => {});
+        } catch (repRecalcErr) {
+          console.warn("Standings recalculation warning for replacement matches:", repRecalcErr);
+        }
+      }
     }
 
     // 2. Activate next matchday fixtures (Anchored strictly to 12:00 AM Midnight CAT / Rwandan Time)

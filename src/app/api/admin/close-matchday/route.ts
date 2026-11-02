@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const trimmedRound = round.trim();
 
     const whereFilter: any = {
-      round: { equals: trimmedRound, mode: "insensitive" },
+      round: trimmedRound,
     };
     if (division && division !== "ALL") {
       whereFilter.division = division;
@@ -63,29 +63,19 @@ export async function POST(req: Request) {
     );
 
     const targetMatches = matchesToClose.length > 0 ? matchesToClose : matches;
+    const targetMatchIds = targetMatches.map((m) => m.id);
+
+    // Batch update all target matches in a single query
+    await prisma.match.updateMany({
+      where: { id: { in: targetMatchIds } },
+      data: {
+        allowLateSubmission: false,
+        extendedDeadlineDate: null,
+      },
+    });
 
     const playerIdsToNotify = new Set<string>();
-
     for (const match of targetMatches) {
-      const updatedNotes = (match.notes || "")
-        .replace(/ADMIN_REOPENED_FOR_[^:\n]+:\s*[^\n]*/g, "")
-        .replace(/ADMIN_REOPENED:\s*[^\n]*/g, "")
-        .replace(/\[CLOSED_BY_ADMIN:[^\]]*\]/g, "")
-        .trim();
-
-      const finalNotes = updatedNotes.length > 0 ? updatedNotes : null;
-      const originalDate = match.matchDate ? new Date(match.matchDate) : new Date();
-
-      await prisma.match.update({
-        where: { id: match.id },
-        data: {
-          allowLateSubmission: false,
-          extendedDeadlineDate: null,
-          deadlineDate: originalDate,
-          notes: finalNotes,
-        },
-      });
-
       if (match.homePlayerId) playerIdsToNotify.add(match.homePlayerId);
       if (match.awayPlayerId) playerIdsToNotify.add(match.awayPlayerId);
     }
@@ -93,15 +83,19 @@ export async function POST(req: Request) {
     const pIds = Array.from(playerIdsToNotify);
     if (pIds.length > 0) {
       try {
-        await prisma.announcement.createMany({
-          data: pIds.map((pid) => ({
-            title: `🔒 ${trimmedRound} Submissions Closed`,
-            content: `The submission window for ${trimmedRound} fixtures has been closed by the League Administrator. Late upload buttons are now locked.`,
-            type: "INDIVIDUAL",
-            targetPlayerId: pid,
-            isPinned: false,
-          })),
-        });
+        const chunkSize = 25;
+        for (let i = 0; i < pIds.length; i += chunkSize) {
+          const chunk = pIds.slice(i, i + chunkSize);
+          await prisma.announcement.createMany({
+            data: chunk.map((pid) => ({
+              title: `🔒 ${trimmedRound} Submissions Closed`,
+              content: `The submission window for ${trimmedRound} fixtures has been closed by the League Administrator. Late upload buttons are now locked.`,
+              type: "INDIVIDUAL",
+              targetPlayerId: pid,
+              isPinned: false,
+            })),
+          });
+        }
       } catch (announcementErr) {
         console.error("[close-matchday] Announcements error:", announcementErr);
       }

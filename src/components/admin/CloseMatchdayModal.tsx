@@ -83,7 +83,20 @@ export default function CloseMatchdayModal({
         }),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        if (!res.ok) {
+          if (responseText.includes("1102") || res.status === 503) {
+            throw new Error("Server CPU execution limit reached (Error 1102). Try closing per-division.");
+          }
+          throw new Error(`Server returned error (${res.status}): ${res.statusText || "Unable to complete request"}`);
+        }
+        throw new Error("Unexpected non-JSON response from server.");
+      }
+
       if (!res.ok) {
         throw new Error(data.error || "Failed to close matchday submissions.");
       }
